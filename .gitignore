@@ -1,0 +1,15 @@
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Secrets / local env
+.env
+.env.*
+!.env.example
