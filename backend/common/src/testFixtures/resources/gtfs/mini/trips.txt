@@ -1,0 +1,43 @@
+route_id,service_id,trip_id,trip_headsign,direction_id,direction,block_id,shape_id,wheelchair_accessible,branch_letter,boarding_type
+901,7,885556,Mpls-Target Field,0,NB,126556,650901005,1,,1
+901,10,886908,Mall of America,1,SB,138416,650901006,1,,1
+901,7,895418,Mall of America,1,SB,139793,650901006,1,,1
+901,7,897222,Mpls-Target Field,0,NB,123412,650901005,1,,1
+901,13,897345,Mpls-Target Field,0,NB,124978,650901005,1,,1
+901,7,897880,Mall of America,1,SB,124040,650901006,1,,1
+901,13,897985,Mall of America,1,SB,124978,650901006,1,,1
+901,9,898611,Mall of America,1,SB,123820,650901006,1,,1
+901,6,900261,Mpls-Target Field,0,NB,124345,650901005,1,,1
+901,13,902930,Mall of America,1,SB,125895,650901006,1,,1
+901,1,903557,Mpls-Target Field,0,NB,125626,650901005,1,,1
+901,1,904363,Mall of America,1,SB,125626,650901006,1,,1
+901,1,978017,Mpls-Target Field,0,NB,135365,650901005,1,,1
+901,13,982871,Mpls-Target Field,0,NB,134972,650901005,1,,1
+901,1,1003873,Mall of America,1,SB,139075,650901006,1,,1
+901,1,1007132,Mpls-Target Field,0,NB,139425,650901005,1,,1
+18,1,1220504,Nicollet-66,1,SB,176235,650018015,1,C,0
+18,6,1221178,Nicollet-66,1,SB,189187,650018015,1,C,0
+18,1,1221427,Nicollet-66,1,SB,176968,650018015,1,C,0
+18,6,1221488,Nicollet-66,1,SB,183628,650018008,1,C,0
+18,1,1240549,Nicollet / Downtown Minneapolis,0,NB,175318,650018006,1,,0
+18,1,1242853,Nicollet / Downtown Minneapolis,0,NB,189146,650018006,1,,0
+18,6,1348791,Nicollet Ave / 104-Humboldt,1,SB,189101,650018013,1,E,0
+18,6,1349634,Nicollet Ave / 104-Humboldt,1,SB,189174,650018013,1,E,0
+18,1,1349871,Nicollet Ave / 104-Humboldt,1,SB,189288,650018013,1,E,0
+18,1,1350448,Nicollet Ave / 104-Humboldt,1,SB,189172,650018013,1,E,0
+18,1,1357117,Nicollet / American-2Ave,1,SB,189297,650018017,1,D,0
+18,6,1357314,Nicollet / American-2Ave,1,SB,189337,650018017,1,D,0
+18,1,1357973,Nicollet / American-2Ave,1,SB,187473,650018009,1,D,0
+18,1,1357988,Nicollet / American-2Ave,1,SB,189347,650018017,1,D,0
+18,6,1360857,Nicollet / Downtown Minneapolis,0,NB,189266,650018001,1,,0
+18,1,1361305,Nicollet / Downtown Minneapolis,0,NB,189361,650018011,1,,0
+18,1,1361431,Nicollet / Downtown Minneapolis,0,NB,189084,650018001,1,,0
+18,6,1361510,Nicollet / Downtown Minneapolis,0,NB,189587,650018001,1,,0
+18,6,1361598,Nicollet / Downtown Minneapolis,0,NB,189125,650018011,1,,0
+18,1,1361832,Nicollet / Downtown Minneapolis,0,NB,189200,650018011,1,,0
+18,1,1361959,Nicollet / Downtown Minneapolis,0,NB,187658,650018001,1,,0
+18,6,1362079,Nicollet / Downtown Minneapolis,0,NB,189115,650018011,1,,0
+18,6,1362921,Nicollet / Downtown Minneapolis,0,NB,189546,650018006,1,,0
+18,6,1362994,Nicollet / Downtown Minneapolis,0,NB,189609,650018006,1,,0
+18,6,1363281,Nicollet / American-2Ave,1,SB,189446,650018017,1,D,0
+18,6,1363792,Nicollet-66,1,SB,189444,650018015,1,C,0

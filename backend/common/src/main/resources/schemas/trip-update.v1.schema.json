@@ -1,0 +1,141 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pti.dev/schemas/trip-update.v1.schema.json",
+  "title": "TripUpdate payload, version 1 (DOC-09 §4)",
+  "description": "Increasing, unique stop_sequence cannot be expressed in JSON Schema; Bean Validation checks it.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "trip_id",
+    "route_id",
+    "direction_id",
+    "start_date",
+    "vehicle_id",
+    "stop_time_updates"
+  ],
+  "properties": {
+    "trip_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "route_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64
+    },
+    "direction_id": {
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ]
+    },
+    "start_date": {
+      "type": "string",
+      "pattern": "^[0-9]{8}$"
+    },
+    "vehicle_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64
+    },
+    "stop_time_updates": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 300,
+      "items": {
+        "$ref": "#/$defs/stop_time_update"
+      }
+    }
+  },
+  "$defs": {
+    "stop_time_event": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "time",
+        "delay"
+      ],
+      "properties": {
+        "time": {
+          "type": "string",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{1,9})?Z$"
+        },
+        "delay": {
+          "type": "integer"
+        }
+      }
+    },
+    "stop_time_update": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "stop_sequence",
+        "stop_id",
+        "schedule_relationship"
+      ],
+      "properties": {
+        "stop_sequence": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "stop_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "arrival": {
+          "$ref": "#/$defs/stop_time_event"
+        },
+        "departure": {
+          "$ref": "#/$defs/stop_time_event"
+        },
+        "schedule_relationship": {
+          "enum": [
+            "SCHEDULED",
+            "SKIPPED",
+            "NO_DATA"
+          ]
+        }
+      },
+      "if": {
+        "properties": {
+          "schedule_relationship": {
+            "const": "SCHEDULED"
+          }
+        }
+      },
+      "then": {
+        "anyOf": [
+          {
+            "required": [
+              "arrival"
+            ]
+          },
+          {
+            "required": [
+              "departure"
+            ]
+          }
+        ]
+      },
+      "else": {
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "arrival"
+              ]
+            },
+            {
+              "required": [
+                "departure"
+              ]
+            }
+          ]
+        }
+      }
+    }
+  }
+}

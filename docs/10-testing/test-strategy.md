@@ -147,7 +147,7 @@ Task `testIdReport` trong `build-logic` quét các bảng "Test bắt buộc" tr
 `backend/common/src/testFixtures/resources/gtfs/mini/` (dạng thư mục các file `.txt`, không zip; helper zip lúc chạy test):
 
 - Cắt từ feed thật `sample-data/gtfs/metrotransit-mn-20260926.zip` bằng script `sample-data/gtfs/make_mini_feed.py` (tất định; chạy lại cho cùng output). Script ghi SHA-256 của feed gốc vào `mini/SOURCE.txt`.
-- Nội dung: `agency`, `feed_info`, `routes` (18 và 901), `trips` của hai route đó cho `service_id` có hiệu lực ngày **2026-09-29** (thứ Ba) và **2026-10-03** (thứ Bảy), `stop_times` tương ứng (khoảng 2.000 dòng), `stops` được tham chiếu và các `parent_station` của chúng, `calendar`, `calendar_dates` cắt theo khoảng đó, `shapes` của các trip giữ lại.
+- Nội dung: `agency`, `feed_info`, `routes` (18 và 901), `trips` của hai route đó cho `service_id` có hiệu lực ngày **2026-09-29** (thứ Ba) và **2026-10-03** (thứ Bảy) **có giờ xuất phát đầu tiên trong [16:00:00, 17:00:00)**, cộng với chuyến tuyến 18 kết thúc muộn nhất sau nửa đêm của mỗi `service_id`. Lấy toàn bộ chuyến của hai ngày sẽ ra 646 chuyến và khoảng 28.000 `stop_times`, quá lớn cho fixture; cửa sổ này cho 42 chuyến và 1.813 `stop_times`, và bao trùm mốc `TestClock` mặc định (16:20 CDT). Kèm theo: `stop_times` tương ứng, `stops` được tham chiếu và các `parent_station` của chúng, `calendar` của các service giữ lại, `calendar_dates` trong khoảng hai ngày đó, `shapes` của các trip giữ lại, và 60 xe đầu tiên của `vehicles.txt` (theo `vehicle_id`). Dòng được chép nguyên văn từ feed gốc.
 - Có ít nhất một chuyến qua nửa đêm (giờ ≥ 24:00:00) của tuyến 18 để test DQ-09 và `scheduledArrival` (G-11).
 - Không sửa tay file trong `mini/`. Cần ca đặc biệt thì dựng biến thể lúc chạy test (§5.2).
 
@@ -159,6 +159,7 @@ Task `testIdReport` trong `build-logic` quét các bảng "Test bắt buộc" tr
 
 | Lớp | Việc |
 | --- | --- |
+| `GtfsFixtures` | `open(name)` đọc một file của feed mini, `miniFeedZip(path)` ghi feed mini thành zip GTFS (§5.1) |
 | `TestClock` | `BusinessClock` cố định; mặc định `2026-09-29T21:20:00Z` (16:20 CDT, giờ cao điểm chiều), `advance(Duration)` |
 | `Messages` | Builder envelope: `Messages.vehiclePosition().route("18").vehicle("1234").at("21:19:00").build()`; `tripUpdate()`, `saleCdc(op)`, `salePointCdc(op)`. Giá trị mặc định hợp lệ theo feed mini; `.invalid(InvalidKind)` sinh đúng các loại lỗi của simulator (DOC-25) |
 | `KafkaRecords` | Tạo `ConsumerRecord` có partition, offset, timestamp, headers cho unit test mapper |

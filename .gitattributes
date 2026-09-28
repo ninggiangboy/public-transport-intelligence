@@ -1,0 +1,2 @@
+# Test fixtures cut verbatim from the real GTFS feed: keep their bytes (some files use CRLF).
+backend/common/src/testFixtures/resources/gtfs/** -text

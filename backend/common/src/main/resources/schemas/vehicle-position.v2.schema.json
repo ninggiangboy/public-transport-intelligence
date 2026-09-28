@@ -1,0 +1,95 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pti.dev/schemas/vehicle-position.v2.schema.json",
+  "title": "VehiclePosition payload, version 2 (DOC-09 §3.2)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "vehicle_id",
+    "trip_id",
+    "route_id",
+    "direction_id",
+    "start_date",
+    "lat",
+    "lon",
+    "current_stop_sequence",
+    "stop_id",
+    "current_status"
+  ],
+  "properties": {
+    "vehicle_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64
+    },
+    "trip_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "route_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64
+    },
+    "direction_id": {
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ]
+    },
+    "start_date": {
+      "type": "string",
+      "pattern": "^[0-9]{8}$"
+    },
+    "lat": {
+      "type": "number",
+      "minimum": -90,
+      "maximum": 90
+    },
+    "lon": {
+      "type": "number",
+      "minimum": -180,
+      "maximum": 180
+    },
+    "bearing": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 360
+    },
+    "speed_mps": {
+      "type": "number",
+      "minimum": 0
+    },
+    "current_stop_sequence": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "stop_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64
+    },
+    "current_status": {
+      "enum": [
+        "INCOMING_AT",
+        "STOPPED_AT",
+        "IN_TRANSIT_TO"
+      ]
+    },
+    "occupancy_status": {
+      "enum": [
+        "EMPTY",
+        "MANY_SEATS_AVAILABLE",
+        "FEW_SEATS_AVAILABLE",
+        "STANDING_ROOM_ONLY",
+        "CRUSHED_STANDING_ROOM_ONLY",
+        "FULL",
+        "NOT_ACCEPTING_PASSENGERS",
+        "NO_DATA_AVAILABLE",
+        "NOT_BOARDABLE"
+      ]
+    }
+  }
+}

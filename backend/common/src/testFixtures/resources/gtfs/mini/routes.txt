@@ -1,0 +1,3 @@
+route_id,agency_id,route_short_name,route_long_name,route_desc,route_type,route_url,route_color,route_text_color,route_sort_order
+901,0,,METRO Blue Line,Blue Line - Mpls - Airport - MOA,0,https://www.metrotransit.org/route/blue,00539F,ffffff,1
+18,0,18,,Nicollet Av - South Bloomington,3,https://www.metrotransit.org/route/18,771473,ffffff,24
