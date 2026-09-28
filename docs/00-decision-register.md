@@ -38,6 +38,7 @@ Tài liệu gốc mô tả tốt *cái gì* và *vì sao*, nhưng còn nhiều c
 | 2026-09-27 | Claude (Owner ủy quyền) | **AI triage (tài liệu P6):** lease kiêm backoff; hành động do bảng quyết định và guard trong code sở hữu; triage-worker không ghi `alert_event`, cảnh báo DLQ qua Prometheus; luật chặn cuối bằng `DlqRuleClassifier` trong etl; demo auto-replay bằng kịch bản `late-delivery` và `PTI_DQ_MAX_CLOCK_SKEW=5m`; định dạng `model_version`; KEDA PostgreSQL scaler cho triage-worker (1→3); virtual thread cho `api` và `triage-worker` | DR-37, DR-72, DR-73, DR-74, ADR-0018, ADR-0019 |
 | 2026-09-27 | Claude (Owner ủy quyền) | **Kubernetes và CI (tài liệu P7–P8):** API đọc qua JDBC nhiều host (`-ro` rồi `-rw`) để không mất đọc khi failover; `etl-stream` tối đa 4 pod; CI toàn stack chạy tuần một lần trên self-hosted runner (sau đó đổi sang runner GitHub hằng đêm khi repo chuyển public); test k3d mang mã `KD-xx` | DR-75, DR-76 |
 | 2026-09-27 | Claude (Owner ủy quyền) | **Demo và báo cáo (tài liệu P8):** demo hai phần (compose rồi k3d dựng sẵn và dừng), kịch bản bunching/gián đoạn gieo trước; lệnh `make` vận hành dùng chung cho k3d qua `PTI_ENV`; báo cáo lấy số liệu duy nhất từ `pti-exp report` | DR-77, DR-78, DR-79 |
+| 2026-09-28 | Owner | **Không dùng Quartz Scheduler**; giữ `@Scheduled` + ShedLock cho lịch job batch | DR-83 (mới), ADR-0015 |
 | 2026-09-27 | Owner | **Repo chuyển sang GitHub public** (thay quyết định private): runner chuẩn của GitHub đủ 16 GB để chạy E2E và k3d, không cần self-hosted runner; image GHCR để public | DR-56, DR-76 |
 | 2026-09-28 | Claude (Owner ủy quyền) | **S-06 xong:** Boot 4.1.1 + Java 25 dùng được với mọi thư viện đã chọn, không cần lối lui. Chunk step của job batch dựng bằng builder fault-tolerant cũ của Spring Batch 6, vì `ChunkOrientedStep` mới làm mất DLQ và bỏ sót item khi crash giữa lúc scan | DR-53, DR-80 |
 | 2026-09-28 | Claude (Owner ủy quyền) | **S-04 xong:** image Connect = Debezium 3.6.3 + Aiven S3 sink 3.4.3. Raw zone lưu value dạng base64 để giữ đúng từng byte; thư mục giờ theo CreateTime; `file.max.records=2000` và `mem_limit` 1.280 MB để S3 sink không OOM khi chạy bù. Debezium chạy được trên PostgreSQL 18.6; vẫn dùng 17.11 tới khi kiểm xong CNPG | DR-81, DR-53, DR-66 |
@@ -708,6 +709,20 @@ Tài liệu gốc mô tả tốt *cái gì* và *vì sao*, nhưng còn nhiều c
   - Font và sprite không commit. `make tiles` tải chúng từ `protomaps/basemaps-assets` (commit pin) vào `infra/tiles/`; nginx phục vụ cùng chỗ với file PMTiles (`/tiles/`).
   - Style dựng lúc chạy bằng `@protomaps/basemaps` 5.x, không sinh file JSON lúc build. Theme sáng dùng flavor `grayscale`, theme tối dùng `black`; cả hai là nền không màu có sẵn nên không cần tự chỉnh màu.
 - **Ghi vào:** ADR-0021, DOC-11, DOC-27 §5.3, DOC-34 §9, DOC-35 §6, DOC-38.
+
+### DR-83 · Không dùng Quartz Scheduler cho lịch job batch — **Chốt**
+- **Vấn đề:** Có nên thay `@Scheduled` + ShedLock (DR-24, ADR-0015) bằng Quartz Scheduler (`spring-boot-starter-quartz`, `JobStoreTX` chế độ cluster) cho các lịch của `etl-batch` không? Lý do cân nhắc: Quartz có sẵn cluster, lưu trigger xuống DB, xử lý lượt bị lỡ (misfire) và cho phép lên lịch động.
+- **Quyết định:** Không dùng Quartz, giữ nguyên DR-24. Lý do:
+  1. **Cơ chế khôi phục của Quartz không chạm tới Spring Batch.** Job được khởi chạy bất đồng bộ qua `JobOperator.start`, nên Quartz job kết thúc ngay khi execution vào executor, và Quartz không biết job Spring Batch chạy bao lâu hay chết lúc nào. Nếu Quartz fire lại (`requestsRecovery`) thì execution cũ vẫn ở `STARTED`, nên lần fire đó nhận `JobExecutionAlreadyRunningException`. Phần khó (execution kẹt, pod zombie) vẫn cần `StaleExecutionRecoverer` và fencing bằng `VERSION`.
+  2. **Thêm một nguồn sự thật thứ hai.** Quartz mang theo 11 bảng `QRTZ_*` với máy trạng thái trigger riêng (`WAITING`, `ACQUIRED`, `BLOCKED`, `ERROR`…), phải khớp với `batch.BATCH_*` và `ops.job_request`. UI (`ops_job_run_v`), API và EXP-08 đều dựa trên hai nguồn kia, còn Quartz không cung cấp thêm thông tin nào mà chúng cần.
+  3. **Trùng với thứ đã có.** Chỉ một pod kích hoạt: ShedLock. Chạy tay, restart, stop: `job_request` + `JobRequestPoller`. Lưu trạng thái chạy: JobRepository JDBC.
+  4. **Bảo đảm về thời gian yếu hơn.** Quartz cluster so thời gian bằng đồng hồ của từng node và yêu cầu các node đồng bộ giờ. ShedLock với `usingDbTime()` so bằng giờ của Postgres.
+  5. **Không có nhu cầu mà chỉ Quartz đáp ứng.** Lịch là cron cố định trong cấu hình (`pti.batch.schedule.<job>`). Không có lịch người dùng sửa lúc chạy, calendar loại trừ ngày lễ, hay trigger hẹn giờ chạy một lần. `AUTO_REPLAY_SCHEDULED` chờ theo điều kiện (nguồn UP ≥ 60 giây), không chờ theo giờ.
+  6. **Chi phí đổi.** ShedLock 7.10.1 đã được xác minh với Boot 4.1 ở S-06, còn Quartz thì chưa. Đổi sang Quartz phải spike lại và sửa ADR-0015, DOC-19 (§2, §7, §12), glossary và kịch bản EXP-08.
+  - PgBouncer **không** phải lý do loại: khóa cluster của Quartz (`SELECT … FOR UPDATE` trên `QRTZ_LOCKS`) nằm trong transaction nên vẫn chạy được ở chế độ transaction pooling.
+- **Hệ quả:** Điểm duy nhất Quartz làm tốt hơn là chạy bù lượt lịch bị lỡ khi mọi pod `etl-batch` cùng tắt đúng lúc cron bắn. Hiện đã có bù cho `GtfsStaticLoadJob` (lúc khởi động, khi chưa có feed ACTIVE), `PartitionMaintenanceJob` (lúc khởi động) và `TicketingAnomalyJob` (con trỏ `max-catch-up`). Chưa có bù cho `OtpScorecardJob`, `EtaAggregationJob`, và `GtfsStaticLoadJob` khi đã có feed ACTIVE. Nếu cần bù thì làm được mà không cần Quartz: tham số định danh của lượt tự động đã tất định (`scheduled:<runDate>`, `scheduled:<hour>`), nên một bước chạy lúc khởi động có thể tra `BATCH_JOB_INSTANCE` để biết lượt nào bị lỡ. Bước này chưa được thiết kế trong DR này.
+- **Xem lại khi:** cần lịch do người dùng sửa lúc chạy, calendar loại trừ, hoặc nhiều trigger hẹn giờ chạy một lần. Khi đó so thêm với thư viện chỉ dùng một bảng (ví dụ db-scheduler), không mặc định chọn Quartz.
+- **Ghi vào:** ADR-0015 (phương án 6).
 ---
 
 ## Tổng hợp theo mức ảnh hưởng
@@ -715,7 +730,7 @@ Tài liệu gốc mô tả tốt *cái gì* và *vì sao*, nhưng còn nhiều c
 | Mức | Mục | Lý do cần chốt sớm |
 | --- | --- | --- |
 | Chặn P1 | DR-01, 02, 03, 04, 05, 06, 09, 10, 11, 26, 53, 64, 66, 67, 68, 81 | Quyết định schema, contract và cấu trúc repo |
-| Chặn P2 | DR-07, 13, 14, 15, 16, 18, 21, 22, 23, 24, 25, 62, 63, 65, 69, 70, 80 | Quyết định ngữ nghĩa đúng đắn của pipeline |
+| Chặn P2 | DR-07, 13, 14, 15, 16, 18, 21, 22, 23, 24, 25, 62, 63, 65, 69, 70, 80, 83 | Quyết định ngữ nghĩa đúng đắn của pipeline |
 | Chặn P3 | DR-27, 28, 50, 57, 58, 71 | Thiếu thì không đo được thực nghiệm |
 | Chặn P4 | DR-12, 17, 19, 20, 29–35, 39–45 | Analytics và API |
 | Chặn P5 | DR-46–49, 82 | Frontend |

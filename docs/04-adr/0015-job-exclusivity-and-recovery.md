@@ -1,7 +1,7 @@
 # ADR-0015: Chống chạy trùng job: ShedLock, JobInstance, `VERSION` làm fencing
 
 - Trạng thái: Accepted
-- Ngày: 2026-09-27 · Liên quan: DR-24, DR-62, ADR-0002, FR-03.6, NFR-01, NFR-04
+- Ngày: 2026-09-27 · Liên quan: DR-24, DR-62, DR-83, ADR-0002, FR-03.6, NFR-01, NFR-04
 
 ## Bối cảnh
 
@@ -18,6 +18,7 @@
 3. **Advisory lock.** Không hợp với PgBouncer transaction pooling.
 4. **Kết hợp thứ có sẵn:** ShedLock cho lịch, tính duy nhất của `JobInstance` của Spring Batch, và cột `VERSION` (optimistic lock) mà Spring Batch đã cập nhật ở mỗi chunk làm fencing token.
 5. **Leader election (Spring Integration `LockRegistryLeaderInitiator`)** để chỉ một pod chạy scheduler. Vẫn cần lớp 2 và 3 cho trường hợp leader đổi giữa chừng.
+6. **Quartz Scheduler cluster (`JobStoreTX`)** thay cho `@Scheduled` + ShedLock. *Bổ sung 2026-09-28 (DR-83), bị loại:* recovery của Quartz chỉ fire lại trigger, không đưa execution Spring Batch đang kẹt ở `STARTED` về `FAILED`, nên vẫn cần lớp 2, lớp 3 và `StaleExecutionRecoverer`. Quartz còn thêm 11 bảng `QRTZ_*` với trạng thái riêng phải khớp với `BATCH_*` và `job_request`, và so thời gian bằng đồng hồ của từng node. Các nhu cầu nó phục vụ (lịch động, calendar loại trừ, trigger hẹn giờ một lần) không có trong dự án.
 
 ## Quyết định
 
