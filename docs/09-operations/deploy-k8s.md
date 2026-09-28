@@ -30,9 +30,9 @@ deploy/
     pti/                                # apps, db-migrate hook, connectors, rules, dashboards, KEDA, HPA, PDB, NetworkPolicy, backup
       Chart.yaml, values.yaml, values-{dev,staging,lite}.yaml, templates/_app.tpl, templates/*.yaml
       files/ -> symlinks (§1.1)
-connect/
-  Dockerfile.strimzi                    # §6.3
-chaos/                                  # Chaos Mesh manifests for EXP-08 and demo step 7 (§13)
+  connect/
+    Dockerfile.strimzi                  # §6.3
+  chaos/                                # Chaos Mesh manifests for EXP-08 and demo step 7 (§13)
 ```
 
 ### 1.1 File dùng chung với compose
@@ -43,7 +43,7 @@ Helm chỉ đọc được file nằm trong thư mục chart. Các file dưới 
 | --- | --- | --- |
 | `pti-infra/files/topics.yaml` | `deploy/topics.yaml` | `KafkaTopic` (§6.2) |
 | `pti-infra/files/realm-pti.json` | `deploy/compose/keycloak/realm-pti.json` | ConfigMap import realm (§6.6) |
-| `pti/files/connectors/` | `connect/connectors/` | `KafkaConnector` (§6.3) |
+| `pti/files/connectors/` | `deploy/connect/connectors/` | `KafkaConnector` (§6.3) |
 | `pti/files/rules/` | `deploy/compose/observability/prometheus/rules/` | `PrometheusRule` (§7.6) |
 | `pti/files/dashboards/` | `deploy/compose/observability/grafana/dashboards/` | ConfigMap `grafana_dashboard=1` (§7.6) |
 
@@ -92,7 +92,7 @@ registries:
 volumes:
   - volume: ${PTI_REPO}/sample-data/gtfs:/var/lib/pti/feed
     nodeFilters: [all]
-  - volume: ${PTI_REPO}/infra/tiles:/var/lib/pti/tiles
+  - volume: ${PTI_REPO}/deploy/tiles:/var/lib/pti/tiles
     nodeFilters: [all]
 ports:
   - port: 127.0.0.1:8080:80                  # Traefik → frontend Ingress
@@ -362,7 +362,7 @@ Topic Operator không giảm partition; đổi số partition chỉ được tă
 
 ### 6.3 Kafka Connect
 
-Strimzi yêu cầu image dựa trên image Kafka của Strimzi, nên image `pti-connect` của compose (dựa trên Debezium) không dùng lại được. `connect/Dockerfile.strimzi`:
+Strimzi yêu cầu image dựa trên image Kafka của Strimzi, nên image `pti-connect` của compose (dựa trên Debezium) không dùng lại được. `deploy/connect/Dockerfile.strimzi`:
 
 ```dockerfile
 FROM quay.io/strimzi/kafka:${STRIMZI_VERSION}-kafka-${KAFKA_VERSION}
@@ -372,7 +372,7 @@ COPY --chmod=0644 build/plugins/ /opt/kafka/plugins/
 USER 1001
 ```
 
-`make k8s-images` tải hai plugin (URL và SHA-256 trong `versions.env`, cùng nguồn với `connect/Dockerfile`: Debezium PostgreSQL connector 3.6.3.Final và Aiven S3 sink 3.4.3, DOC-11), giải nén vào `connect/build/plugins/`, build và push `k3d-pti-registry:5000/pti-connect-strimzi:<tag>`.
+`make k8s-images` tải hai plugin (URL và SHA-256 trong `versions.env`, cùng nguồn với `deploy/connect/Dockerfile`: Debezium PostgreSQL connector 3.6.3.Final và Aiven S3 sink 3.4.3, DOC-11), giải nén vào `deploy/connect/build/plugins/`, build và push `k3d-pti-registry:5000/pti-connect-strimzi:<tag>`.
 
 ```yaml
 apiVersion: kafka.strimzi.io/v1beta2
@@ -501,7 +501,7 @@ Deployment 1 replica, `start-dev --import-realm --http-port=8080`, cùng env v�
 
 - **Mailpit:** Deployment, Service `mailpit` (SMTP 1025, UI 8025 → NodePort 30825). Alertmanager gửi email tới `mailpit.pti:1025`.
 - **Toxiproxy** (`lite`): Deployment `ghcr.io/shopify/toxiproxy:2.x`, proxy `jev` lắng nghe `18080` tới `jev-stub:8080`; API 8474 → NodePort 30474 (host 18474). Postgres **không** đi qua Toxiproxy trên k3d: lỗi mạng tới Postgres dùng `NetworkChaos` của Chaos Mesh (§13).
-- **`jev-stub`** (`lite`): WireMock 3.x với mapping sinh từ fixture S-01 (`triage-worker/src/contractTest/resources/jev/`), trả response hợp lệ với độ trễ cố định 300 ms (median của DR-36). Mục đích: EXP-07/08 dùng đúng đường code `JevDecisionModel` và Resilience4j mà không tốn quota và không phụ thuộc Internet.
+- **`jev-stub`** (`lite`): WireMock 3.x với mapping sinh từ fixture S-01 (`backend/triage-worker/src/contractTest/resources/jev/`), trả response hợp lệ với độ trễ cố định 300 ms (median của DR-36). Mục đích: EXP-07/08 dùng đúng đường code `JevDecisionModel` và Resilience4j mà không tốn quota và không phụ thuộc Internet.
 
 ## 7. App (chart `pti`)
 
@@ -773,7 +773,7 @@ Cổng đã publish qua NodePort cho phép mọi nguồn vì traffic từ host �
 | Code app | `make k8s-images` (tag mới) rồi `helmfile -e <env> apply`: hook `db-migrate` chạy trước, rồi rolling update theo §7.2 |
 | Migration | Expand/contract (ADR-0024); hook chạy trước rollout |
 | Topic | Sửa `deploy/topics.yaml`, `apply`; Topic Operator cập nhật config và tăng partition |
-| Connector | Sửa `connect/connectors/*.json`, `apply`; Strimzi cập nhật connector. Đổi `slot.name` hay `topic.prefix` là thay đổi phá vỡ như compose |
+| Connector | Sửa `deploy/connect/connectors/*.json`, `apply`; Strimzi cập nhật connector. Đổi `slot.name` hay `topic.prefix` là thay đổi phá vỡ như compose |
 | Phiên bản operator hoặc chart | Sửa `versions.env` trong một PR riêng; chạy lại KD-01…KD-05 trên cluster mới |
 | Postgres minor | Đổi `imageName`; CNPG rolling update (replica trước, switchover, primary sau) |
 | Postgres major | Không hỗ trợ tại chỗ; `pg_dump` → cluster mới → restore (DOC-43) |
@@ -788,7 +788,7 @@ Cổng đã publish qua NodePort cho phép mọi nguồn vì traffic từ host �
 
 ## 13. Tiêm lỗi
 
-### 13.1 Chaos Mesh (`chaos/`)
+### 13.1 Chaos Mesh (`deploy/chaos/`)
 
 | File | Resource | Tác động | Dùng ở |
 | --- | --- | --- | --- |

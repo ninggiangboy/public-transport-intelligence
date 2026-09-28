@@ -1,6 +1,6 @@
 # Mô hình dữ liệu vận hành và insight
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-27 · DOC-15
+> Trạng thái: **Review** · Cập nhật: 2026-09-28 · DOC-15
 > Phụ thuộc: [DR](../00-decision-register.md) (DR-16…19, 22, 25, 29…37, 62, 63), [ADR-0002](../04-adr/0002-spring-batch-and-spring-kafka.md), [DOC-14](warehouse-model.md), [DOC-17](db-roles-and-grants.md)
 > Người dùng chính: `etl` (P2), `triage-worker` (P6), `api` (P4), `analytics` (P4)
 
@@ -39,7 +39,7 @@ Spring Batch không tạo index cho các khóa ngoại của nó. V5_2 thêm 4 i
 
 ## 3. Bảng vận hành (V5_2)
 
-File `db/src/main/resources/db/migration/warehouse/V5_2__ops_tables.sql`:
+File `backend/db/src/main/resources/db/migration/warehouse/V5_2__ops_tables.sql`:
 
 ```sql
 -- ETL operations: audit, checkpoints, locks, DLQ, replay, dedup, flags, DQ, alerts (DOC-15).
@@ -552,7 +552,7 @@ View gộp hai loại "lần chạy" cho ops console và API `GET /etl/jobs` (DO
 
 ## 6. Bảng insight (V7)
 
-File `db/src/main/resources/db/migration/warehouse/V7__insight.sql`:
+File `backend/db/src/main/resources/db/migration/warehouse/V7__insight.sql`:
 
 ```sql
 -- Analytics output and state (DR-29..DR-34), AI enrichment columns (DR-36, DR-37). Phase 4.

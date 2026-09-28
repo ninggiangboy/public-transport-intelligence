@@ -1,6 +1,6 @@
 # Danh mục endpoint API
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-27 · DOC-32
+> Trạng thái: **Review** · Cập nhật: 2026-09-28 · DOC-32
 >
 > Phụ thuộc: [DOC-31](api-guidelines.md) (quy ước chung), [DOC-33](sse-events.md), [DOC-26](../06-design/realtime-delivery.md), [DOC-27](../06-design/security.md), [DOC-14](../05-data/warehouse-model.md), [DOC-15](../05-data/ops-and-insight-model.md), [DOC-17](../05-data/db-roles-and-grants.md), [DOC-19](../06-design/batch-and-chunk-processing.md), [DOC-22](../06-design/dlq-and-replay.md), [DOC-23](../06-design/analytics.md), [DOC-30](../06-design/error-handling.md) §3, DR-39, DR-43, ADR-0013
 >
@@ -13,7 +13,7 @@
 - Chỉ ghi phần **khác** hoặc **cụ thể hơn** DOC-31. Các điều sau áp dụng cho mọi endpoint nên không nhắc lại: `X-Trace-Id`, Problem Details, `401`/`403`/`429`/`503`, tham số lạ bị từ chối, phân trang keyset chuẩn (`limit` 1–500, mặc định 50, `cursor`).
 - **Quyền:** `anonymous` < `viewer` < `operator` (role hierarchy, DOC-27 §3). "viewer" nghĩa là viewer **hoặc** operator.
 - **Trục** là trục thời gian của tham số `from`/`to` (DOC-31 §4.2): `event` (giờ nghiệp vụ), `audit` (giờ thật), `record` (giờ record Kafka).
-- **SQL** là câu truy vấn chính, đặt trong `api/src/main/resources/sql/<nhóm>/<tên>.sql`. `:fv` là `feedVersionId` của feed ACTIVE (DOC-31 §10.2), `:tz` là `agency_timezone` của nó.
+- **SQL** là câu truy vấn chính, đặt trong `backend/api/src/main/resources/sql/<nhóm>/<tên>.sql`. `:fv` là `feedVersionId` của feed ACTIVE (DOC-31 §10.2), `:tz` là `agency_timezone` của nó.
 - **p95** là mục tiêu ở tải nền trên 7 ngày dữ liệu (NFR-10), đo bằng `http_server_requests_seconds{uri}` và kiểm ở P4-10 bằng k6 (DOC-44).
 
 ## 2. Tổng quan

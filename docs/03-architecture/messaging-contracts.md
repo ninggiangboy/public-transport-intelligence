@@ -186,7 +186,7 @@ Simulator phát xen kẽ v1 và v2 theo tỷ lệ `pti.sim.vehicle-position.v2-r
 
 ### 5.1 Cấu hình connector (điểm then chốt)
 
-File đầy đủ: `connect/connectors/debezium-ticketing.json` (P1-12).
+File đầy đủ: `deploy/connect/connectors/debezium-ticketing.json` (P1-12).
 
 | Property | Giá trị |
 | --- | --- |
@@ -308,7 +308,7 @@ Mọi topic nguồn (`gtfs.*`, `ticketing.sales.cdc`, `ticketing.sale_points.cdc
 - **At-least-once:** sau khi connector restart, một offset có thể xuất hiện trong hai object. Replay khử trùng theo `(topic, partition, offset)` (DOC-22).
 - File GTFS static: `raw/gtfs-static/<feed_hash>.zip`, ghi bởi `GtfsStaticLoadJob`.
 
-Cấu hình connector (`connect/connectors/pti-raw-sink.json`, P1-13):
+Cấu hình connector (`deploy/connect/connectors/pti-raw-sink.json`, P1-13):
 
 | Property | Giá trị |
 | --- | --- |
@@ -369,4 +369,4 @@ Test bắt buộc (`common`): cùng dữ liệu nhưng khác thứ tự key, kh�
 5. Hợp đồng CDC thay đổi theo schema DB nguồn. Mọi migration của `ticketing_source` phải kèm test Debezium thật (DR-44).
 6. Sự kiện UI: thêm trường thì không cần đổi version (client bỏ qua trường lạ); đổi nghĩa hoặc xóa trường thì phải đổi tên `type`.
 
-File schema: `common/src/main/resources/schemas/{vehicle-position.v1,vehicle-position.v2,trip-update.v1,envelope}.schema.json` (JSON Schema draft 2020-12). Test của simulator và ETL dùng chung các file này (DR-44).
+File schema: `backend/common/src/main/resources/schemas/{vehicle-position.v1,vehicle-position.v2,trip-update.v1,envelope}.schema.json` (JSON Schema draft 2020-12). Test của simulator và ETL dùng chung các file này (DR-44).

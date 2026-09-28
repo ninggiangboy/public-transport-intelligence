@@ -84,7 +84,7 @@ Không dùng: Spring Cloud Contract (DR-44), H2, `@EmbeddedKafka`, PowerMock, Lo
 
 ### 3.3 Luật ArchUnit (module `common`, chạy trong `test` của từng app)
 
-Lớp `PtiArchitectureRules` trong `common/src/testFixtures`, mỗi app có một test gọi lại:
+Lớp `PtiArchitectureRules` trong `backend/common/src/testFixtures`, mỗi app có một test gọi lại:
 
 | # | Luật |
 | --- | --- |
@@ -144,7 +144,7 @@ Task `testIdReport` trong `build-logic` quét các bảng "Test bắt buộc" tr
 
 ### 5.1 Feed GTFS thu nhỏ
 
-`common/src/testFixtures/resources/gtfs/mini/` (dạng thư mục các file `.txt`, không zip; helper zip lúc chạy test):
+`backend/common/src/testFixtures/resources/gtfs/mini/` (dạng thư mục các file `.txt`, không zip; helper zip lúc chạy test):
 
 - Cắt từ feed thật `sample-data/gtfs/metrotransit-mn-20260926.zip` bằng script `sample-data/gtfs/make_mini_feed.py` (tất định; chạy lại cho cùng output). Script ghi SHA-256 của feed gốc vào `mini/SOURCE.txt`.
 - Nội dung: `agency`, `feed_info`, `routes` (18 và 901), `trips` của hai route đó cho `service_id` có hiệu lực ngày **2026-09-29** (thứ Ba) và **2026-10-03** (thứ Bảy), `stop_times` tương ứng (khoảng 2.000 dòng), `stops` được tham chiếu và các `parent_station` của chúng, `calendar`, `calendar_dates` cắt theo khoảng đó, `shapes` của các trip giữ lại.
@@ -155,7 +155,7 @@ Task `testIdReport` trong `build-logic` quét các bảng "Test bắt buộc" tr
 
 `GtfsFeedMutator` (testFixtures) nhận thư mục mini, áp một phép biến đổi, trả về zip tạm: `dropFile`, `dropColumn`, `setValue(file, row, column, value)`, `duplicateRow`, `appendRow`, `addEntry(name, bytes)` (dùng cho zip-slip), `zipBomb(ratio)`. Mỗi ca G-04/G-05 là một lời gọi mutator.
 
-### 5.3 Builder và tiện ích (`common/src/testFixtures/java/dev/pti/testing/`)
+### 5.3 Builder và tiện ích (`backend/common/src/testFixtures/java/dev/pti/testing/`)
 
 | Lớp | Việc |
 | --- | --- |
@@ -168,11 +168,11 @@ Task `testIdReport` trong `build-logic` quét các bảng "Test bắt buộc" tr
 | `LedgerFixture` | Ghi và đọc ledger `pti_sim` cho test so khớp mất/trùng |
 | `JwtFixture` | JWT tự ký với role `viewer`, `operator`, `admin` cho test `api` |
 
-Dump `mini-feed.sql` sinh bằng task `:etl:generateMiniFeedDump` và commit vào `common/src/testFixtures/resources/db/`. Test `MiniFeedDumpUpToDateIT` trong `etl` fail nếu dump không khớp kết quả job hiện tại (tránh dump cũ âm thầm lệch).
+Dump `mini-feed.sql` sinh bằng task `:etl:generateMiniFeedDump` và commit vào `backend/common/src/testFixtures/resources/db/`. Test `MiniFeedDumpUpToDateIT` trong `etl` fail nếu dump không khớp kết quả job hiện tại (tránh dump cũ âm thầm lệch).
 
 ### 5.4 Dữ liệu lớn
 
-- Feed thật chỉ dùng trong ca `@Tag("slow")` (G-03, T-03, T-04, T-07) và E2E. Test đọc từ `sample-data/gtfs/` theo đường dẫn tương đối tới root repo, kiểm SHA-256 với `SHA256SUMS` trước khi chạy.
+- Feed thật chỉ dùng trong ca `@Tag("slow")` (G-03, T-03, T-04, T-07) và E2E. Test đọc từ `sample-data/gtfs/` theo gốc repo (system property `pti.repo-root` do `build-logic` đặt bằng thư mục cha của `backend/`, ADR-0030), kiểm SHA-256 với `SHA256SUMS` trước khi chạy.
 - Không commit dữ liệu sinh ra lớn hơn 1 MB vào `src/*/resources`. Dữ liệu lớn hơn thì sinh lúc chạy từ seed.
 
 ## 6. Hạ tầng Testcontainers
@@ -200,7 +200,7 @@ public @interface PtiIntegrationTest {
 | Kafka | `apache/kafka:4.3.x` | Topic tạo theo `deploy/topics.yaml` với tiền tố riêng mỗi lớp test (§6.2) |
 | SeaweedFS | `chrislusf/seaweedfs:4.47`, `server -s3` | Bucket `raw` có versioning, user `etl` như `s3-init` |
 | Toxiproxy | `ghcr.io/shopify/toxiproxy:2.x` | Proxy trước Postgres, Kafka hoặc MockWebServer |
-| Kafka Connect | Build từ `connect/Dockerfile` (`ImageFromDockerfile`, cache theo hash Dockerfile) | Chỉ trong `contractTest` |
+| Kafka Connect | Build từ `deploy/connect/Dockerfile` (`ImageFromDockerfile`, cache theo hash Dockerfile) | Chỉ trong `contractTest` |
 
 - CI: không bật reuse. Máy dev có thể bật `testcontainers.reuse.enable=true` trong `~/.testcontainers.properties`; code gọi `.withReuse(true)` nên khi bật thì container được giữ giữa các lần chạy.
 - Ryuk bật (mặc định) để dọn container khi JVM chết.
@@ -236,7 +236,7 @@ JaCoCo gộp dữ liệu của `test` và `integrationTest` (task `jacocoMergedR
 
 - `ConfigurableFaultInjector` (DOC-19 §8) với `pti.test.fault.<point>=<action>` và `pti.test.fault.after-n`. Các lớp test gắn `@Tag("fault")` (vẫn nằm trong `integrationTest`).
 - `throw-transient` và `throw-fatal` chạy trong JVM test.
-- `halt` gọi `Runtime.halt(137)`, nên **không chạy được trong JVM test**. Harness `EtlProcess` (testFixtures của `etl`) chạy `java -jar etl/build/libs/etl.jar` ở tiến trình con với profile `stream,test` hoặc `batch,test`, cấu hình trỏ vào container của test, chờ tiến trình thoát với mã 137, rồi khởi động tiến trình mới không có cấu hình lỗi.
+- `halt` gọi `Runtime.halt(137)`, nên **không chạy được trong JVM test**. Harness `EtlProcess` (testFixtures của `etl`) chạy `java -jar backend/etl/build/libs/etl.jar` ở tiến trình con với profile `stream,test` hoặc `batch,test`, cấu hình trỏ vào container của test, chờ tiến trình thoát với mã 137, rồi khởi động tiến trình mới không có cấu hình lỗi.
 - Hỏng hạ tầng dùng Toxiproxy (cắt kết nối, thêm độ trễ) hoặc `container.getDockerClient().pauseContainerCmd` (dừng Postgres).
 - Mỗi ca so sánh với **ledger** (`LedgerFixture`) hoặc với tập message đã publish: mất = 0, trùng = 0, DLQ chỉ có record hỏng cố ý.
 
@@ -263,7 +263,7 @@ F-01…F-03 chạy với dữ liệu có 5% record hỏng (`Messages.invalid`) �
 
 ### 9.1 Message Kafka ↔ JSON Schema
 
-- Schema ở `common/src/main/resources/schemas/` (bất biến theo phiên bản, DOC-09), ví dụ ở `common/src/test/resources/contract-examples/{valid,invalid}/<schema>/*.json`.
+- Schema ở `backend/common/src/main/resources/schemas/` (bất biến theo phiên bản, DOC-09), ví dụ ở `backend/common/src/test/resources/contract-examples/{valid,invalid}/<schema>/*.json`.
 - **Producer** (`source-simulator`, T-09): sinh 1.000 message mỗi loại với seed cố định trên feed mini, validate từng message; mỗi `invalid_kind` fail đúng như DOC-25 quy định.
 - **Consumer** (`etl`): mỗi file trong `contract-examples/valid` đi qua mapper → ra đúng `WriteSet` kỳ vọng (file `<name>.expected.json` bên cạnh); mỗi file trong `invalid` → DLQ đúng `stage` và `rule_id`.
 - **Sự kiện UI** (`schemas/ui-events/`): `etl` validate mọi sự kiện nó phát trong test integration; frontend dùng cùng schema qua `json-schema-to-zod` lúc build (DOC-33).
@@ -271,7 +271,7 @@ F-01…F-03 chạy với dữ liệu có 5% record hỏng (`Messages.invalid`) �
 
 ### 9.2 Debezium thật
 
-`DebeziumTicketingContractTest` (`etl/src/contractTest`): Postgres source + Kafka + Kafka Connect (image từ `connect/Dockerfile`), đăng ký connector bằng đúng file `connect/connectors/debezium-ticketing.json` (Connect thay `${env:…}` như khi chạy thật), rồi:
+`DebeziumTicketingContractTest` (`backend/etl/src/contractTest`): Postgres source + Kafka + Kafka Connect (image từ `deploy/connect/Dockerfile`), đăng ký connector bằng đúng file `deploy/connect/connectors/debezium-ticketing.json` (Connect thay `${env:…}` như khi chạy thật), rồi:
 
 | ID | Thao tác trên `ticketing_source` | Kỳ vọng ở ETL |
 | --- | --- | --- |
@@ -286,14 +286,14 @@ F-01…F-03 chạy với dữ liệu có 5% record hỏng (`Messages.invalid`) �
 
 ### 9.3 API ↔ frontend
 
-- `OpenApiSnapshotTest` (`api/src/contractTest`): khởi động app, lấy `/v3/api-docs`, so với `api/openapi.json` đã commit (bỏ qua thứ tự key). Khác nhau → fail kèm hướng dẫn chạy `./gradlew :api:updateOpenApi`.
-- `openapi-diff` so `api/openapi.json` với bản ở tag phát hành gần nhất; breaking change cần nhãn `breaking-api` (DOC-41 §3).
+- `OpenApiSnapshotTest` (`backend/api/src/contractTest`): khởi động app, lấy `/v3/api-docs`, so với `backend/api/openapi.json` đã commit (bỏ qua thứ tự key). Khác nhau → fail kèm hướng dẫn chạy `./gradlew :api:updateOpenApi`.
+- `openapi-diff` so `backend/api/openapi.json` với bản ở tag phát hành gần nhất; breaking change cần nhãn `breaking-api` (DOC-41 §3).
 - Frontend: `pnpm gen:api` + `git diff --exit-code` + `tsc --noEmit` (DOC-41 §2). Handler MSW khai báo kiểu từ type sinh ra, nên đổi API làm vỡ test frontend lúc typecheck.
 - Mọi Problem slug trong `ConstraintProblemMap` và bảng DOC-30 §3 phải có trong `openapi.json` (`components.schemas.Problem.type` enum) — test `ProblemSlugCatalogTest`.
 
 ### 9.4 Jev
 
-`JevContractTest` (`triage-worker/src/contractTest`): request mà worker gửi validate theo `schemas/jev/request-*.json`; các response mẫu (gồm response lỗi, thiếu trường, sai kiểu) đi qua parser → kết quả hoặc `Unclassified`. Không gọi Jev thật.
+`JevContractTest` (`backend/triage-worker/src/contractTest`): request mà worker gửi validate theo `schemas/jev/request-*.json`; các response mẫu (gồm response lỗi, thiếu trường, sai kiểu) đi qua parser → kết quả hoặc `Unclassified`. Không gọi Jev thật.
 
 ## 10. Frontend
 
@@ -371,7 +371,7 @@ Mọi tài liệu thiết kế đã có tiền tố trong bảng. Tài liệu m�
 | Unit + slice + ArchUnit + JaCoCo (ngưỡng PR) | `./gradlew build -x integrationTest` | ✅ | ✅ | | `make test` |
 | Integration (trừ `slow`, `quarantine`) | `affectedIntegrationTest` / `integrationTest` | module bị ảnh hưởng | toàn bộ | | `make it` |
 | JaCoCo gộp (ngưỡng main) | `jacocoMergedCoverageVerification` | | ✅ | | |
-| Contract | `./gradlew contractTest` | chỉ `openapi-diff` khi `api/**` đổi | ✅ | | `./gradlew contractTest` |
+| Contract | `./gradlew contractTest` | chỉ `openapi-diff` khi `backend/api/**` đổi | ✅ | | `./gradlew contractTest` |
 | Slow | `./gradlew slowTest` | | | ✅ `slow-tests` | tùy chọn |
 | Quarantine | `./gradlew integrationTest -PincludeTags=quarantine` | | | ✅ `slow-tests` (không chặn) | |
 | Frontend unit + component | `pnpm test --run --coverage` | ✅ | ✅ | | `pnpm test` |

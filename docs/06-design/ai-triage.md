@@ -1,6 +1,6 @@
 # AI triage (triage-worker)
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-27 · DOC-24
+> Trạng thái: **Review** · Cập nhật: 2026-09-28 · DOC-24
 > Phụ thuộc: [DOC-03](../01-product/requirements.md) FR-09, [DOC-15](../05-data/ops-and-insight-model.md) §4.3, §4.5, §6, [DOC-16](../05-data/data-quality-rules.md), [DOC-17](../05-data/db-roles-and-grants.md), [DOC-18](../05-data/data-lifecycle.md) §4, [DOC-20](etl-streaming.md) §6.1, [DOC-22](dlq-and-replay.md), [DOC-23](analytics.md) §9–10, §12.2, [DOC-28](observability.md), [DOC-30](error-handling.md), [DOC-33](../07-api/sse-events.md), [ADR-0018](../04-adr/0018-decision-model-port.md), [ADR-0019](../04-adr/0019-code-owned-automation-thresholds.md), [DR](../00-decision-register.md) (DR-36, 37, 38, 60, 72, 73, 74)
 > Người dùng chính: P6-01…P6-12, DOC-36 (Ops console: DLQ, ticketing), DOC-42 (RB-04, RB-08), [EXP-06](../10-testing/experiments/EXP-06-ai-decision-quality.md), EXP-08
 
@@ -40,7 +40,7 @@ S-01 (tối đa nửa ngày, đầu P6) kiểm ba điểm của DR-36. Mỗi đi
 | 3 | Mã lỗi rate limit và hết quota, lớp exception tương ứng | Ánh xạ vào bảng §11.2 theo lớp exception | Ánh xạ theo HTTP status trong exception của SDK: 429 → `RATE_LIMITED`; 402 hoặc 429 có thông điệp chứa `quota` → `QUOTA_EXHAUSTED` |
 | 4 | Thang giá trị của `Score` (chỉ số mức hay [0,1]) | Không ảnh hưởng: mức được tính từ xác suất từng mức (§4.3) | Như cột trái |
 
-Kết quả S-01 được ghi thành mục "Kết quả spike S-01" trong DR-36 (giống cách S-02 được ghi ở DR-01), kèm một response mẫu đã che API key. Response mẫu này được copy thành fixture `triage-worker/src/contractTest/resources/jev/response-*.json` cho `JevContractTest` (DOC-44 §9.4), cùng các schema request `schemas/jev/request-*.json` suy từ request thật của S-01.
+Kết quả S-01 được ghi thành mục "Kết quả spike S-01" trong DR-36 (giống cách S-02 được ghi ở DR-01), kèm một response mẫu đã che API key. Response mẫu này được copy thành fixture `backend/triage-worker/src/contractTest/resources/jev/response-*.json` cho `JevContractTest` (DOC-44 §9.4), cùng các schema request `schemas/jev/request-*.json` suy từ request thật của S-01.
 
 ## 4. Thành phần
 

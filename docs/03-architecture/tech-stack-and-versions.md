@@ -6,7 +6,7 @@
 ## 0. Chính sách phiên bản
 
 1. **Nguồn sự thật duy nhất** cho phiên bản:
-   - Java: `gradle/libs.versions.toml` (version catalog).
+   - Java: `backend/gradle/libs.versions.toml` (version catalog).
    - Frontend: `frontend/package.json` + `pnpm-lock.yaml`.
    - Python: `experiments/pyproject.toml` + `uv.lock`.
    - Công cụ dev: `mise.toml`.
@@ -17,7 +17,7 @@
 5. Cột **Trạng thái** ở các bảng dưới:
    - ✅: đã xác minh khi viết tài liệu.
    - 🔬: dòng phiên bản đã chốt, số patch và tính tương thích xác minh sau (spike hoặc phase ghi trong ô).
-   - Thư viện Java đã được S-06 (2026-09-28) xác minh bằng app mẫu `spikes/s06-boot41-java25/` (20 test trên Postgres 17.11 và 18.1, Kafka 4.2.1, SeaweedFS 4.47). Số phiên bản ghi trong bảng là bản đã chạy thử; P1-02 chép vào `gradle/libs.versions.toml`.
+   - Thư viện Java đã được S-06 (2026-09-28) xác minh bằng app mẫu `spikes/s06-boot41-java25/` (20 test trên Postgres 17.11 và 18.1, Kafka 4.2.1, SeaweedFS 4.47). Số phiên bản ghi trong bảng là bản đã chạy thử; P1-02 chép vào `backend/gradle/libs.versions.toml`.
 
 ## 1. Nền tảng Java
 
@@ -73,7 +73,7 @@
 | Thành phần | Image / phiên bản | Ghi chú | License | Trạng thái |
 | --- | --- | --- | --- | --- |
 | Kafka | `apache/kafka:4.3.1` | KRaft, một broker trên compose. 4.4.0 đang ở RC lúc viết | Apache-2.0 | ✅ (S-03) |
-| Kafka Connect + Debezium | build từ `quay.io/debezium/connect:3.6.3.Final` (runtime Kafka Connect 4.3.0) + S3 sink connector | Dockerfile `connect/Dockerfile` (DOC-39 §3.4). Debezium PostgreSQL connector chạy được trên PostgreSQL 17.11 và 18.6 (S-04) | Apache-2.0 | ✅ (S-04) |
+| Kafka Connect + Debezium | build từ `quay.io/debezium/connect:3.6.3.Final` (runtime Kafka Connect 4.3.0) + S3 sink connector | Dockerfile `deploy/connect/Dockerfile` (DOC-39 §3.4). Debezium PostgreSQL connector chạy được trên PostgreSQL 17.11 và 18.6 (S-04) | Apache-2.0 | ✅ (S-04) |
 | S3 sink connector | **Aiven `s3-sink-connector-for-apache-kafka` 3.4.3** | Tải từ `https://github.com/Aiven-Open/cloud-storage-connectors-for-apache-kafka/releases/download/v3.4.3/s3-sink-connector-for-apache-kafka-3.4.3.tar`, SHA-256 `85661c4d3d49b85f4a65170a5c27464e4359760aa7140a24628e45323b6d7329`. Cấu hình ở DOC-09 §7; `file.max.records=2000` là bắt buộc để không OOM (DR-81). Không cần phương án dự phòng Confluent (ADR-0012) | Apache-2.0 | ✅ (S-04) |
 | PostgreSQL | `postgres:17.11` | 18.6 đã chạy được với Debezium (S-04) và Spring Batch (S-06). Còn chờ CNPG ở P7-01 rồi mới đổi cả compose lẫn k3d sang 18 trong cùng một thay đổi (DR-53). Lưu ý khi đổi: image 18 đặt `PGDATA=/var/lib/postgresql/18/docker` và khai báo volume ở `/var/lib/postgresql` (image 17 là `/var/lib/postgresql/data`), nên phải sửa mount của volume | PostgreSQL | ✅ 17 / 🔬 18 |
 | Object storage | **SeaweedFS** `chrislusf/seaweedfs:4.47` (`server -s3`); job `s3-init` dùng `amazon/aws-cli` | Thay MinIO vì repository `minio/minio` không còn trên Docker Hub (S-03, DR-66). Dự phòng: RustFS 1.0 (Apache-2.0), đổi không phải sửa code | Apache-2.0 | ✅ (S-03) |

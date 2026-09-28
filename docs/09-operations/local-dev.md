@@ -42,7 +42,7 @@ make doctor
 
 `make doctor` in ra một bảng `OK`/`FAIL` cho: phiên bản Java, Node, pnpm, Python, uv; Docker chạy được; RAM của VM; ổ trống ≥ 80 GB; các cổng ở §5 còn trống; có file `.env`. Lệnh trả mã khác 0 nếu có mục `FAIL`.
 
-IDE: IntelliJ IDEA hoặc VS Code đều được. Code format bằng Spotless (`./gradlew spotlessApply`), không cần cài plugin format riêng. Trình duyệt cho frontend: Chrome hoặc Firefox bản mới.
+IDE: IntelliJ IDEA hoặc VS Code đều được. Mở thư mục gốc repo rồi import `backend/` như một Gradle project (IntelliJ: *Link Gradle Project* → `backend/settings.gradle.kts`); `frontend/` và `experiments/` là hai project riêng (pnpm, uv). Code format bằng Spotless (`./gradlew spotlessApply`), không cần cài plugin format riêng. Trình duyệt cho frontend: Chrome hoặc Firefox bản mới.
 
 ## 3. Chạy lần đầu
 
@@ -87,9 +87,9 @@ Offset được làm tròn tới phút. Mọi app dùng chung một giá trị. 
 | Lệnh | Việc |
 | --- | --- |
 | `make doctor` | Kiểm tra môi trường (§2) |
-| `make tiles` | Chạy `infra/tiles/fetch.sh`: cắt bản đồ nền Twin Cities bằng `pmtiles extract` từ bản build Protomaps mới nhất vào `infra/tiles/twin-cities.pmtiles` (khoảng 84 MB), tải font và sprite vào `infra/tiles/fonts/`, `infra/tiles/sprites/` (khoảng 13 MB); tất cả gitignored (ADR-0021). Phần nào đã có thì bỏ qua |
+| `make tiles` | Chạy `deploy/tiles/fetch.sh`: cắt bản đồ nền Twin Cities bằng `pmtiles extract` từ bản build Protomaps mới nhất vào `deploy/tiles/twin-cities.pmtiles` (khoảng 84 MB), tải font và sprite vào `deploy/tiles/fonts/`, `deploy/tiles/sprites/` (khoảng 13 MB); tất cả gitignored (ADR-0021). Phần nào đã có thì bỏ qua |
 | `make secrets` | Tạo `.env` nếu chưa có; điền biến trống bằng `openssl rand -base64 24`; sinh `deploy/compose/.generated/s3.json`. Chạy lại không ghi đè giá trị đã có |
-| `make images` | Build mọi image: `./gradlew jibDockerBuild` (các app Java), `docker build` cho `connect/` và `frontend/` |
+| `make images` | Build mọi image: `./gradlew jibDockerBuild` (các app Java), `docker build` cho `deploy/connect/` và `frontend/` |
 | `make up` | `images` (nếu code đổi) rồi `docker compose --profile core up -d --wait`. Lệnh chỉ trả về khi mọi service healthy và mọi job một lần (`db-migrate`, `kafka-init`, `s3-init`, `kafka-connect-init`) đã xong |
 | `make up-obs` | Thêm profile `observability` |
 | `make up-triage` | Thêm profile `triage` (triage-worker; cần `TYPESAFE_API_KEY` hoặc `PTI_TRIAGE_PROVIDER=fake`) |
@@ -139,6 +139,8 @@ Offset được làm tròn tới phút. Mọi app dùng chung một giá trị. 
 
 ### 4.4 Build và test
 
+Gradle build nằm trọn trong `backend/` (ADR-0030). Makefile gọi `backend/gradlew -p backend`; lệnh `./gradlew …` trong mọi tài liệu hiểu là chạy trong `backend/`.
+
 | Lệnh | Việc |
 | --- | --- |
 | `make fmt` | `./gradlew spotlessApply` và `pnpm -C frontend format` |
@@ -147,7 +149,7 @@ Offset được làm tròn tới phút. Mọi app dùng chung một giá trị. 
 | `make it` | Integration test (Testcontainers; cần Docker, không cần compose chạy) |
 | `make e2e` | Playwright trên compose đang chạy (`make up-demo` trước) |
 | `make smoke` | Smoke test trên compose đang chạy (`deploy/compose/smoke.sh`, DOC-39 §8) |
-| `make openapi` | Sinh `api/openapi.json` và type TypeScript cho frontend (DR-44) |
+| `make openapi` | Sinh `backend/api/openapi.json` và type TypeScript cho frontend (DR-44) |
 
 ### 4.5 Kubernetes cục bộ (k3d, P7)
 
@@ -259,7 +261,7 @@ Không có bản dump dữ liệu mẫu nào được commit. Muốn có vài gi
 ```bash
 docker compose -f deploy/compose/compose.yaml stop etl-stream
 set -a && source .env && set +a         # nạp mật khẩu vào shell (hoặc dùng plugin EnvFile của IDE)
-./gradlew :etl:bootRun --args='--spring.profiles.active=stream,local'
+cd backend && ./gradlew :etl:bootRun --args='--spring.profiles.active=stream,local'
 ```
 
 | App | Profile khi chạy từ IDE | Lưu ý |
@@ -288,6 +290,7 @@ set -a && source .env && set +a         # nạp mật khẩu vào shell (hoặc 
 
 ## 9. Quy ước làm việc với repo
 
+- Monorepo: `backend/` (Gradle), `frontend/` (pnpm), `deploy/` (compose, k3d, Helm, Connect, Chaos Mesh, bản đồ nền), `experiments/` (Python), `docs/`. Cây thư mục đầy đủ ở ADR-0030.
 - Nhánh `main` luôn build được; làm việc trên `feat/…`, `fix/…`, `docs/…`; PR squash merge (master plan §7.3). Chi tiết trong `CONTRIBUTING.md` (tạo ở P1-01).
 - Commit và tiêu đề PR theo Conventional Commits, tiếng Anh. Tài liệu trong `docs/` viết tiếng Việt (DR-61).
 - `.env`, `deploy/compose/.generated/` và `backups/` (DOC-43) nằm trong `.gitignore`. CI chạy gitleaks (NFR-06).

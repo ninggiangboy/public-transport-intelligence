@@ -44,6 +44,7 @@ Tài liệu gốc mô tả tốt *cái gì* và *vì sao*, nhưng còn nhiều c
 | 2026-09-28 | Claude (Owner ủy quyền) | **S-06 xong:** Boot 4.1.1 + Java 25 dùng được với mọi thư viện đã chọn, không cần lối lui. Chunk step của job batch dựng bằng builder fault-tolerant cũ của Spring Batch 6, vì `ChunkOrientedStep` mới làm mất DLQ và bỏ sót item khi crash giữa lúc scan | DR-53, DR-80 |
 | 2026-09-28 | Claude (Owner ủy quyền) | **S-04 xong:** image Connect = Debezium 3.6.3 + Aiven S3 sink 3.4.3. Raw zone lưu value dạng base64 để giữ đúng từng byte; thư mục giờ theo CreateTime; `file.max.records=2000` và `mem_limit` 1.280 MB để S3 sink không OOM khi chạy bù. Debezium chạy được trên PostgreSQL 18.6; vẫn dùng 17.11 tới khi kiểm xong CNPG | DR-81, DR-53, DR-66 |
 | 2026-09-28 | Claude (Owner ủy quyền) | **S-05 xong:** bản đồ nền Twin Cities 84 MB, render offline không có request ra ngoài. Dùng MapLibre 6 (worker cùng origin, CSP không cần `blob:`); font và sprite tải bằng `make tiles` thay vì commit vào repo | DR-47, DR-82 |
+| 2026-09-28 | Owner | **Monorepo:** backend, frontend, hạ tầng và thực nghiệm chung một repo. Gốc chia theo stack: Gradle build gom vào `backend/`, mọi thứ hạ tầng (kể cả `connect/`, `chaos/`, bản đồ nền) gom vào `deploy/`, bỏ thư mục `infra/` | DR-85 (mới), DR-26, ADR-0030 |
 
 ---
 
@@ -108,7 +109,7 @@ Tài liệu gốc mô tả tốt *cái gì* và *vì sao*, nhưng còn nhiều c
   - TripUpdate payload: `trip_id, route_id, direction_id, start_date, vehicle_id, stop_time_updates[{stop_sequence, stop_id, arrival:{time, delay}, departure:{time, delay}, schedule_relationship}]`.
   - **Hash dedup chỉ tính trên `schema_version + entity_type + event_timestamp + payload` đã chuẩn hóa** (canonical JSON). Không đưa `message_id` và `produced_at` vào hash, để một message bị gửi lại vẫn cho ra cùng hash.
   - Kafka headers: `traceparent` (W3C), `schema_version`.
-- **Ghi vào:** DOC-09, JSON Schema trong `common/src/main/resources/schemas/`.
+- **Ghi vào:** DOC-09, JSON Schema trong `backend/common/src/main/resources/schemas/`.
 
 ### DR-05 · Danh sách topic, key, partition
 - **Quyết định:**
@@ -130,11 +131,11 @@ Tài liệu gốc mô tả tốt *cái gì* và *vì sao*, nhưng còn nhiều c
   - `sale_point(sale_point_id TEXT PK, name, kind KIOSK|ONBOARD|APP, stop_id NULL, created_at)` — *bổ sung 2026-09-26:* thêm `route_id NULL` (bắt buộc với `ONBOARD`) và `updated_at`; `sale_point_id` theo mẫu `^(KIOSK|ONBOARD|APP)-[0-9A-Z]{1,16}$`. Cả hai bảng đặt `REPLICA IDENTITY FULL` để event xóa vẫn mang `created_at` (cần cho `sale_date`). DDL đầy đủ ở DOC-13 §5.
   - `ticket_transaction(transaction_id UUID PK, sale_point_id FK, route_id NULL, stop_id NULL, ticket_type SINGLE|DAY|MONTH, txn_type SALE|REFUND, amount NUMERIC(10,2) CHECK ≥ 0, currency 'USD' (giá vé mô phỏng theo bảng giá của Metro Transit, ví dụ $2.00/$2.50, day pass $5.00), refund_of UUID NULL, customer_ref TEXT, status COMPLETED|VOIDED, created_at, updated_at)`
   - `customer_ref` là dữ liệu cá nhân mô phỏng. ETL bỏ trường này ngay khi đọc, không nạp vào warehouse và không gửi sang Jev (DR-60).
-- **Ghi vào:** DOC-13, migration `db/src/main/resources/db/migration/ticketing/`.
+- **Ghi vào:** DOC-13, migration `backend/db/src/main/resources/db/migration/ticketing/`.
 
 ### DR-07 · Định dạng event CDC
 - **Quyết định:** Debezium PostgreSQL connector, plugin `pgoutput`, publication chỉ gồm `ticket_transaction` (và `sale_point` nếu cần dimension), `snapshot.mode=initial`. Dùng SMT `ExtractNewRecordState` (unwrap) với `add.fields=op,lsn,source.ts_ms` và `delete.handling.mode=rewrite`, sau đó `RegexRouter` để đổi tên topic thành `ticketing.sales.cdc`. ETL chỉ upsert khi `lsn` mới hơn bản đang lưu. Gặp `op=d` thì đánh dấu `is_deleted=true`, không xóa vật lý.
-- **Ghi vào:** DOC-09, `connect/connectors/debezium-ticketing.json`.
+- **Ghi vào:** DOC-09, `deploy/connect/connectors/debezium-ticketing.json`.
 
 ### DR-08 · Đồng hồ mô phỏng và ngày phục vụ
 - **Vấn đề:** Lịch trong feed thật thường đã hết hạn. Simulator cần biết "hôm nay" ứng với ngày nào trong feed.
@@ -277,7 +278,7 @@ Tài liệu gốc mô tả tốt *cái gì* và *vì sao*, nhưng còn nhiều c
 
 ### DR-26 · Đơn vị triển khai
 - **Quyết định:**
-  - Các Gradle module: `build-logic, common, analytics (thư viện), etl (app), triage-worker (app), api (app), source-simulator (app), db (migration + Flyway runner)`. Thêm `frontend/` (pnpm) và `experiments/` (Python). **Không còn module `engine`** (ADR-0002).
+  - Các Gradle module, đặt trong `backend/` (DR-85): `build-logic, common, analytics (thư viện), etl (app), triage-worker (app), api (app), source-simulator (app), db (migration + Flyway runner)`. Thêm `frontend/` (pnpm) và `experiments/` (Python). **Không còn module `engine`** (ADR-0002).
   - `etl` dùng một image với hai profile: `stream` (Spring Kafka consumer + analytics micro-batch; không bật scheduler) và `batch` (Spring Batch, `@Scheduled` + ShedLock, các job batch, replay). Cả hai profile đặt `spring.batch.job.enabled=false` để không job nào tự chạy lúc khởi động. Cách này khớp với bảng workload K8s trong SDD gốc.
   - Flyway chạy như một container/job riêng (`db-migrate`), các app không tự migrate.
 - **Ghi vào:** ADR-0014, ADR-0024, DOC-07.
@@ -551,7 +552,7 @@ Tài liệu gốc mô tả tốt *cái gì* và *vì sao*, nhưng còn nhiều c
   - **Spring Boot 4.1.x** (bản mới nhất lúc viết là 4.1.1, được hỗ trợ tới 2027-07-31; nguồn: [spring.io](https://spring.io/blog/2026/06/10/spring-boot-4/), [endoflife.date](https://endoflife.date/spring-boot)). Kéo theo Spring Framework 7, Jakarta EE 11, Spring Kafka 4.x, Spring Security 7.
   - **Java 25 LTS** (đề xuất thay cho Java 21 của SDD gốc, cho khớp với nguyên tắc "mới nhất"; Boot 4.1 hỗ trợ tới Java 26).
   - Kafka 4.x (chỉ còn KRaft), Debezium 3.x, PostgreSQL 17 (dùng 18 nếu CNPG và Debezium đã hỗ trợ ổn định), Node 24 LTS, React 19, `typesafe-java-sdk` 0.2.x.
-  - Ghi version cố định vào `gradle/libs.versions.toml`, `frontend/package.json` và `.tool-versions` (mise). Mỗi phase kiểm tra lại bản patch mới nhất một lần.
+  - Ghi version cố định vào `backend/gradle/libs.versions.toml`, `frontend/package.json` và `mise.toml`. Mỗi phase kiểm tra lại bản patch mới nhất một lần.
 - **Cần xác minh trong spike S-06:**
   0. **Spring Batch 6.x (đi kèm Boot 4.1) cho ETL (ADR-0002):** (a) API của fault-tolerant chunk step (skip, retry, scan) và cơ chế retry nó dựa vào (Spring Framework 7 core retry thay cho Spring Retry); (b) `SkipListener` vẫn được gọi trong transaction của chunk; (c) cách bật JobRepository JDBC thay cho bản resourceless; (d) có API khôi phục execution kẹt ở STARTED hay phải tự cập nhật (DR-24); (e) `JobOperator` thay cho `JobLauncher`; (f) ShedLock, Spring Cloud AWS S3 và `ContainerPausingBackOffHandler` của Spring Kafka 4 có bản tương thích. Một app mẫu phải chạy được test "lỗi ghi ở item thứ 37 → 499 dòng ghi, 1 dòng DLQ, restart đọc tiếp đúng vị trí".
   1. Resilience4j đã hỗ trợ Spring Boot 4 chưa. Nếu chưa, thử cơ chế resilience có sẵn trong Spring Framework 7 (`@Retryable`, `@ConcurrencyLimit`), còn circuit breaker và rate limiter vẫn dùng Resilience4j core, cấu hình thủ công không qua starter.
@@ -707,7 +708,7 @@ Tài liệu gốc mô tả tốt *cái gì* và *vì sao*, nhưng còn nhiều c
 - **Quyết định:**
   - Dùng **MapLibre GL JS 6.x** (theo DR-53). `@vis.gl/react-maplibre` 8.1.3 (phần maplibre của `react-map-gl`) chấp nhận `maplibre-gl >=4`. Worker được đặt bằng `setWorkerUrl` với import `?worker&url` của Vite (ADR-0021).
   - CSP bỏ `blob:` khỏi `worker-src`, `child-src` và `img-src`. S-05 chạy được dưới CSP chặt hơn này.
-  - Font và sprite không commit. `make tiles` tải chúng từ `protomaps/basemaps-assets` (commit pin) vào `infra/tiles/`; nginx phục vụ cùng chỗ với file PMTiles (`/tiles/`).
+  - Font và sprite không commit. `make tiles` tải chúng từ `protomaps/basemaps-assets` (commit pin) vào `deploy/tiles/`; nginx phục vụ cùng chỗ với file PMTiles (`/tiles/`).
   - Style dựng lúc chạy bằng `@protomaps/basemaps` 5.x, không sinh file JSON lúc build. Theme sáng dùng flavor `grayscale`, theme tối dùng `black`; cả hai là nền không màu có sẵn nên không cần tự chỉnh màu.
 - **Ghi vào:** ADR-0021, DOC-11, DOC-27 §5.3, DOC-34 §9, DOC-35 §6, DOC-38.
 
@@ -737,13 +738,23 @@ Tài liệu gốc mô tả tốt *cái gì* và *vì sao*, nhưng còn nhiều c
 - **Hệ quả:** Không thêm dependency hay container nào. Kafka Streams và Spring Cloud Stream đã bị loại ở ADR-0002 vì cùng lý do (đích ghi là Postgres).
 - **Xem lại khi:** cần tính lại chỉ số trên nhiều tháng dữ liệu raw zone mà job SQL theo tập chạy quá lâu, hoặc cần phân tích hay huấn luyện ML trên lịch sử dạng cột. Khi đó thử DuckDB trước (đọc thẳng file raw zone trên S3, chạy trong runner Python của `experiments/`, ADR-0025), chỉ cân nhắc Spark khi dữ liệu vượt quá một máy.
 - **Ghi vào:** ADR-0002 (phương án 5), DOC-11 §7.
+
+### DR-85 · Monorepo và bố cục thư mục gốc — **Chốt** · ⚠ lệch SDD gốc
+- **Vấn đề:** Phụ lục "Cấu trúc repo" của SDD gốc đặt mọi module Gradle ở gốc repo, ngang hàng với `frontend/`, `connect/`, `chaos/`, `observability/` và `deploy/`. Tài liệu viết sau đó còn thêm `infra/tiles` (DR-82), nên hạ tầng nằm rải ở bốn thư mục gốc, và một chỗ trong DOC-27 ghi nhầm `infra/compose/…`. Chưa tài liệu nào chốt backend, frontend và hạ tầng ở chung một repo hay tách ra.
+- **Quyết định:**
+  - Một **monorepo** cho backend, frontend, hạ tầng và thực nghiệm. Không tách repo, không dùng công cụ điều phối monorepo (Nx, Turborepo, Bazel).
+  - Gốc repo chia theo stack: **`backend/`** chứa toàn bộ Gradle build (settings, wrapper, `gradle/libs.versions.toml`, `build-logic` và 7 module của DR-26); **`frontend/`**; **`deploy/`** là gốc duy nhất cho hạ tầng (compose, k3d, Helm, helmfile, `connect/`, `chaos/`, `tiles/`, `versions.env`, `topics.yaml`); **`experiments/`**. Không có thư mục gốc `infra/`.
+  - Lệnh `./gradlew` chạy trong `backend/`. Makefile gọi `backend/gradlew -p backend`, CI đặt `working-directory: backend`.
+  - Test backend chỉ đọc file ngoài `backend/` (`deploy/topics.yaml`, `deploy/connect/`, `sample-data/gtfs/`) qua system property `pti.repo-root`.
+- **Hệ quả:** Tên module, đường dẫn Gradle và tên image giữ nguyên, chỉ đổi đường dẫn file. Path filter `backend` của CI gồm `backend/**`, `deploy/topics.yaml` và `deploy/connect/**`. Dependabot dùng `/backend` và `/deploy/connect`. SDD gốc giữ nguyên, ADR-0030 thay cho phụ lục "Cấu trúc repo" của nó.
+- **Ghi vào:** ADR-0030, DR-26, ADR-0014, ADR-0021, DOC-07 §3, DOC-38, DOC-39 §1, DOC-40 §1, DOC-41 §2 và §8, DOC-44, master plan P1-01, P1-02; đường dẫn file trong mọi DOC.
 ---
 
 ## Tổng hợp theo mức ảnh hưởng
 
 | Mức | Mục | Lý do cần chốt sớm |
 | --- | --- | --- |
-| Chặn P1 | DR-01, 02, 03, 04, 05, 06, 09, 10, 11, 26, 53, 64, 66, 67, 68, 81 | Quyết định schema, contract và cấu trúc repo |
+| Chặn P1 | DR-01, 02, 03, 04, 05, 06, 09, 10, 11, 26, 53, 64, 66, 67, 68, 81, 85 | Quyết định schema, contract và cấu trúc repo |
 | Chặn P2 | DR-07, 13, 14, 15, 16, 18, 21, 22, 23, 24, 25, 62, 63, 65, 69, 70, 80, 83, 84 | Quyết định ngữ nghĩa đúng đắn của pipeline |
 | Chặn P3 | DR-27, 28, 50, 57, 58, 71 | Thiếu thì không đo được thực nghiệm |
 | Chặn P4 | DR-12, 17, 19, 20, 29–35, 39–45 | Analytics và API |

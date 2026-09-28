@@ -1,6 +1,6 @@
 # ETL GTFS static
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-27 · DOC-21
+> Trạng thái: **Review** · Cập nhật: 2026-09-28 · DOC-21
 > Phụ thuộc: [DOC-13](../05-data/source-data.md) §2–3, [DOC-14](../05-data/warehouse-model.md) §4–6, [DOC-18](../05-data/data-lifecycle.md), [DOC-19](batch-and-chunk-processing.md), [ADR-0009](../04-adr/0009-gtfs-feed-versioning.md), [ADR-0012](../04-adr/0012-raw-zone-s3-sink.md), [DR](../00-decision-register.md) (DR-02, 09, 10, 12, 24, 67)
 > Người dùng chính: `etl` profile `batch` (P2-11), `etl` profile `stream` (§6), DOC-16 (rule DQ dùng `ReferenceData`)
 
@@ -106,7 +106,7 @@ Bước 1–7 chạy lại được nguyên vẹn nếu `fetch` bị lỗi giữ
 Chạy **sau** `activate`, để feed bị từ chối không động tới `dim_vehicle` (bảng không theo phiên bản).
 
 ```sql
--- etl/src/main/resources/sql/upsert_dim_vehicle_feed.sql
+-- backend/etl/src/main/resources/sql/upsert_dim_vehicle_feed.sql
 INSERT INTO dw.dim_vehicle AS t (vehicle_id, vehicle_label, vehicle_model, seated_capacity, standing_capacity,
                                  low_floor, wheelchair_access, fuel, source)
 VALUES (:vehicle_id, :vehicle_label, :vehicle_model, :seated_capacity, :standing_capacity,
@@ -122,7 +122,7 @@ Dòng `REALTIME` có cùng `vehicle_id` được nâng thành `FEED`. Xe không 
 
 ## 4. Kiểm tra feed (`validate`)
 
-Mỗi kiểm tra có mã `GV-xx`. **Lỗi** làm feed `REJECTED`; **cảnh báo** chỉ ghi vào report. Các kiểm tra SQL chạy trên phiên bản `STAGED` với `statement_timeout = 60s`, file `etl/src/main/resources/sql/gtfs-validate/GV-xx.sql`, trả về số vi phạm và tối đa 20 mẫu.
+Mỗi kiểm tra có mã `GV-xx`. **Lỗi** làm feed `REJECTED`; **cảnh báo** chỉ ghi vào report. Các kiểm tra SQL chạy trên phiên bản `STAGED` với `statement_timeout = 60s`, file `backend/etl/src/main/resources/sql/gtfs-validate/GV-xx.sql`, trả về số vi phạm và tối đa 20 mẫu.
 
 | Mã | Mức | Kiểm tra | Ở đâu |
 | --- | --- | --- | --- |
@@ -286,7 +286,7 @@ Log `INFO` ở đầu và cuối mỗi step, kèm số dòng. `WARN` cho mỗi c
 
 ## 10. Test bắt buộc
 
-Fixture: feed thu nhỏ `common/src/testFixtures/resources/gtfs/mini/` (tuyến 18 và 901, 2 ngày lịch, khoảng 2.000 `stop_times`) và các biến thể hỏng sinh từ nó (DOC-44).
+Fixture: feed thu nhỏ `backend/common/src/testFixtures/resources/gtfs/mini/` (tuyến 18 và 901, 2 ngày lịch, khoảng 2.000 `stop_times`) và các biến thể hỏng sinh từ nó (DOC-44).
 
 | ID | Kịch bản | Kỳ vọng |
 | --- | --- | --- |

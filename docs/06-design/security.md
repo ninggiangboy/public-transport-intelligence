@@ -28,7 +28,7 @@ Ranh giới TB-0…TB-3 theo DOC-07 §5. Tài liệu này chi tiết hóa TB-0 �
 
 ### 3.1 Keycloak (realm `pti`)
 
-Keycloak 26.7.4 chạy `start-dev`, import `infra/compose/keycloak/realm-pti.json` mỗi lần container được tạo (DOC-39). Nội dung realm:
+Keycloak 26.7.4 chạy `start-dev`, import `deploy/compose/keycloak/realm-pti.json` mỗi lần container được tạo (DOC-39). Nội dung realm:
 
 | Thành phần | Cấu hình |
 | --- | --- |

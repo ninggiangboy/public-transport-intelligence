@@ -1,6 +1,6 @@
 # Dữ liệu nguồn
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-26 · DOC-13
+> Trạng thái: **Review** · Cập nhật: 2026-09-28 · DOC-13
 > Phụ thuộc: [DR](../00-decision-register.md) (DR-01, 02, 06, 08, 09, 28, 60, 64), [DOC-09](../03-architecture/messaging-contracts.md), [DOC-14](warehouse-model.md), [DOC-17](db-roles-and-grants.md)
 > Người dùng chính: người viết `common` (P1-07), simulator (P1-08…P1-11), `GtfsStaticLoadJob` (P2), experiment runner (P3)
 
@@ -174,7 +174,7 @@ Test bắt buộc (simulator, trên feed thật): (a) ngày thường 2026-09-29
 
 ### 5.2 DDL
 
-File `db/src/main/resources/db/migration/ticketing/V1__ticketing_schema.sql`:
+File `backend/db/src/main/resources/db/migration/ticketing/V1__ticketing_schema.sql`:
 
 ```sql
 -- ticketing_source, run by ticketing_owner. Simulated ticketing system of record (DR-06).
@@ -254,7 +254,7 @@ Giải thích các lựa chọn:
 
 Publication `pti_ticketing` do migration tạo, connector đặt `publication.autocreate.mode=disabled` (DOC-09 §5.1). User `debezium` có `LOGIN REPLICATION` (script bootstrap), `SELECT` trên ba bảng và `UPDATE (ts)` trên `debezium_heartbeat`. Quyền này đủ để chụp snapshot ban đầu, đọc slot và chạy `heartbeat.action.query`. User này không có quyền ghi dữ liệu nghiệp vụ.
 
-File `db/src/main/resources/db/migration/ticketing/R__grants.sql`:
+File `backend/db/src/main/resources/db/migration/ticketing/R__grants.sql`:
 
 ```sql
 -- ticketing_source grants (DOC-17). Repeatable: Flyway re-runs it whenever this file changes.
@@ -321,7 +321,7 @@ Ticketing không ghi ledger. Ground truth của ticketing chính là `ticketing_
 
 ### 6.3 DDL
 
-File `db/src/main/resources/db/migration/sim/V1__sim_ledger.sql`:
+File `backend/db/src/main/resources/db/migration/sim/V1__sim_ledger.sql`:
 
 ```sql
 -- pti_sim, run by sim_owner. Ground truth for loss and duplicate measurement (DR-28, DR-64).
@@ -426,7 +426,7 @@ REVOKE ALL ON FUNCTION sim.drop_ledger_partitions_before(DATE)   FROM PUBLIC;
 SELECT sim.ensure_ledger_partitions(current_date - 1, current_date + 2);
 ```
 
-File `db/src/main/resources/db/migration/sim/R__grants.sql`:
+File `backend/db/src/main/resources/db/migration/sim/R__grants.sql`:
 
 ```sql
 -- pti_sim grants (DOC-17). Repeatable.

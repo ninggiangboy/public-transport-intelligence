@@ -1,6 +1,6 @@
 # Rule chất lượng dữ liệu
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-27 · DOC-16
+> Trạng thái: **Review** · Cập nhật: 2026-09-28 · DOC-16
 > Phụ thuộc: [DOC-03](../01-product/requirements.md) (FR-02, FR-03, FR-04.4), [DOC-09](../03-architecture/messaging-contracts.md), [DOC-14](warehouse-model.md), [DOC-15](ops-and-insight-model.md), [DOC-19](../06-design/batch-and-chunk-processing.md), [DOC-20](../06-design/etl-streaming.md), [DOC-25](../06-design/source-simulator.md) §7.3, [DR](../00-decision-register.md) (DR-13, 23, 25, 63, 67, 69)
 > Người dùng chính: `etl` (P2-04, P2-15), `analytics`, DOC-28 (alert), DOC-45 (EXP-03)
 
@@ -112,7 +112,7 @@ Một record chỉ sinh **một** dòng DLQ, ứng với vi phạm đầu tiên.
 
 ## 3. Rule post-write
 
-Chạy bởi `DataQualityJob` (etl-batch, tasklet, `@Scheduled` + ShedLock, DOC-19). Mỗi rule là một file SQL `etl/src/main/resources/sql/dq/DQ-xx.sql` trả về `violation_count` và tối đa 10 dòng mẫu.
+Chạy bởi `DataQualityJob` (etl-batch, tasklet, `@Scheduled` + ShedLock, DOC-19). Mỗi rule là một file SQL `backend/etl/src/main/resources/sql/dq/DQ-xx.sql` trả về `violation_count` và tối đa 10 dòng mẫu.
 
 | ID | Bảng | Phạm vi | Lịch | Mô tả | Ngưỡng alert |
 | --- | --- | --- | --- | --- | --- |
@@ -232,7 +232,7 @@ Các key được thêm vào DOC-29 §3.
 
 ## 8. Test bắt buộc
 
-Mỗi rule có unit test với bảng dữ liệu bên dưới (fixture là tuyến 18 của feed thu nhỏ trong `common/src/testFixtures`, DOC-44). Mốc `businessNow = 2026-09-29T21:20:00Z`.
+Mỗi rule có unit test với bảng dữ liệu bên dưới (fixture là tuyến 18 của feed thu nhỏ trong `backend/common/src/testFixtures`, DOC-44). Mốc `businessNow = 2026-09-29T21:20:00Z`.
 
 | # | Rule | Input | Kỳ vọng |
 | --- | --- | --- | --- |

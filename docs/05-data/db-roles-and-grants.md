@@ -1,6 +1,6 @@
 # Role database và phân quyền
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-26 · DOC-17
+> Trạng thái: **Review** · Cập nhật: 2026-09-28 · DOC-17
 > Phụ thuộc: [DR](../00-decision-register.md) (DR-20, 62, 64), [ADR-0024](../04-adr/0024-flyway-migration-job.md), [DOC-10](../03-architecture/quality-attributes.md) §4, [DOC-13](source-data.md), [DOC-14](warehouse-model.md), [DOC-15](ops-and-insight-model.md)
 > Người dùng chính: module `db` (P1-05, P1-06), compose (P1-04), Helm/CNPG (P7), DOC-27
 
@@ -191,7 +191,7 @@ Chung cho cả ba:
 
 `db-migrate` là một app Java nhỏ trong module `db`. App chạy lần lượt ba bộ migration rồi thoát với mã 0; bộ nào lỗi thì thoát với mã khác 0 và ghi log bằng tiếng Anh. Mật khẩu của ba owner lấy từ biến môi trường `PTI_OWNER_PASSWORD`, `TICKETING_OWNER_PASSWORD`, `SIM_OWNER_PASSWORD`.
 
-File `db/src/main/resources/db/migration/warehouse/R__grants.sql`:
+File `backend/db/src/main/resources/db/migration/warehouse/R__grants.sql`:
 
 ```sql
 -- pti_warehouse grants (DOC-17). Repeatable: Flyway re-runs it after the versioned migrations

@@ -17,7 +17,7 @@ SDD §12.4 tách workload thành ETL consumer (scale theo lag), batch/scheduler 
 
 Chọn **phương án 3**.
 
-- Gradle module: `build-logic`, `common`, `analytics` (thư viện), `etl` (app), `triage-worker` (app), `api` (app), `source-simulator` (app), `db` (Flyway runner). Không có module `engine`.
+- Gradle module (trong `backend/`, ADR-0030): `build-logic`, `common`, `analytics` (thư viện), `etl` (app), `triage-worker` (app), `api` (app), `source-simulator` (app), `db` (Flyway runner). Không có module `engine`.
 - `etl` profile `stream`: Kafka listener, `StreamChunkTemplate`, analytics micro-batch qua `MicroBatchCommitted` (in-process, AFTER_COMMIT), publisher sự kiện UI. **Không** bật `@Scheduled`.
 - `etl` profile `batch`: Spring Batch, `@Scheduled` + ShedLock, job batch và replay, job analytics theo lịch (ETA, OTP, ticketing), xử lý `job_request`/`replay_request`.
 - Cả hai profile: `spring.batch.job.enabled=false`. Bật cả hai cùng lúc (`stream,batch`) là cấu hình hợp lệ cho chế độ `lite` (DOC-10 §5).

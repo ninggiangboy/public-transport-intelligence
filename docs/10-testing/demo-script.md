@@ -18,7 +18,7 @@ Giao diện hiển thị tiếng Anh; chuỗi trong ngoặc kép là chuỗi đ�
 ### 1.1 Một ngày trước
 
 - [ ] Commit sạch, đã tag phiên bản demo; `full-stack.yml` xanh trên đúng commit (DOC-41 §10.3).
-- [ ] `make images` và `make k8s-images` đã chạy trên commit đó; `make tiles` đã có `infra/tiles/twin-cities.pmtiles`.
+- [ ] `make images` và `make k8s-images` đã chạy trên commit đó; `make tiles` đã có `deploy/tiles/twin-cities.pmtiles`.
 - [ ] Dựng k3d một lần: `make down && make k8s-up ENV=lite`, `make k8s-smoke` pass, rồi `make k8s-stop`.
 - [ ] Diễn tập toàn bộ ít nhất một lần theo §7 (P8-05 yêu cầu ba lần trước buổi thật); ghi thời gian từng bước vào §8.
 - [ ] Bản ghi màn hình bước 7 (phương án dự phòng, §5) đã quay ở lần diễn tập gần nhất, lưu ở `~/pti-demo/recordings/step7.mp4` (ngoài repo).
@@ -202,7 +202,7 @@ Một dòng với tọa độ đã sửa, và `batch_id` của lần replay (kh�
 
 **Thao tác 7b: mất một Kafka broker**
 
-1. `kubectl apply -f chaos/kafka-broker-kill.yaml`.
+1. `kubectl apply -f deploy/chaos/kafka-broker-kill.yaml`.
 2. Terminal: pod `pti-dual-N` bị kill rồi Strimzi tạo lại; bản đồ vẫn cập nhật.
 3. Grafana "Kafka": lỗi producer của simulator bằng 0; under-replicated partition tăng rồi về 0.
 
@@ -251,7 +251,7 @@ Demo không cần Internet nếu các điều kiện sau đã đúng từ hôm t
 | Thành phần | Điều kiện | Kiểm |
 | --- | --- | --- |
 | Image compose | Đã build hoặc pull mọi image (`make images`, `docker compose pull` cho image hạ tầng) | `make demo-preflight` kiểm `docker image inspect` từng image trong `deploy/versions.env` |
-| Bản đồ | PMTiles, font và sprite nằm trong `infra/tiles` (DR-47, ADR-0021) | Tắt Wi-Fi, mở Live map: nền bản đồ đầy đủ |
+| Bản đồ | PMTiles, font và sprite nằm trong `deploy/tiles` (DR-47, ADR-0021) | Tắt Wi-Fi, mở Live map: nền bản đồ đầy đủ |
 | Đăng nhập | Keycloak cục bộ, realm import từ file | — |
 | AI triage | `PTI_TRIAGE_PROVIDER=fake`, mặc định của `make up-demo` (ADR-0018) | Drawer Dead letters có "Model fake@2026.09 · …" (DOC-24 §4.3) |
 | k3d | Cluster đã dựng rồi `make k8s-stop`: image nằm sẵn trong node và registry cục bộ; `make k8s-start` không kéo image hay chart nào. `lite` gọi `jev-stub` trong cluster, không gọi Jev thật | Tắt Wi-Fi ở lần diễn tập cuối, chạy `make demo-switch-k3d` |

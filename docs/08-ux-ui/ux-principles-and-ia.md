@@ -270,7 +270,7 @@ Luồng:
 
 ### 9.4 Client API
 
-- `openapi-fetch` với `baseUrl: '/api/v1'`, type từ `src/api/generated/schema.d.ts` (`pnpm gen:api` đọc `api/openapi.json`, DR-44).
+- `openapi-fetch` với `baseUrl: '/api/v1'`, type từ `src/api/generated/schema.d.ts` (`pnpm gen:api` đọc `../backend/api/openapi.json`, DR-44).
 - Middleware theo thứ tự: gắn `Authorization` khi có token; gắn `Idempotency-Key` (UUIDv4 sinh một lần cho mỗi lần người dùng bấm, giữ nguyên khi retry) cho các request trong danh sách của DOC-31 §8; đọc `X-Data-As-Of`; đổi response lỗi thành `ApiError` chứa Problem Details (DOC-30) và `traceId`.
 - Query function trả `{ data, asOf }` để `FreshnessIndicator` dùng (P-1).
 - Query key lấy từ `src/api/keys.ts`, khớp bảng DOC-26 §9 (ví dụ `keys.dlq.list(filters)` → `['etl', 'dlq', 'list', filters]`).

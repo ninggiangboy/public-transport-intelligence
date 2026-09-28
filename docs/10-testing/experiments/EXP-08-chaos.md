@@ -1,6 +1,6 @@
 # EXP-08: Chịu lỗi khi triển khai trên k3d
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-27 · DOC-45 / EXP-08
+> Trạng thái: **Review** · Cập nhật: 2026-09-28 · DOC-45 / EXP-08
 >
 > Phụ thuộc: [protocol chung](README.md), [EXP-01](EXP-01-crash-recovery.md), [EXP-04](EXP-04-full-replay.md), [DOC-40](../../09-operations/deploy-k8s.md) §6, §7.2, §9.5, §13, §17 (KD-08, KD-09, KD-10), DOC-10 §6, DOC-19 §7.2, DOC-20 §5, §7, DOC-24 §11 (TG-35), DOC-26 §7, DR-20, DR-24, DR-55, ADR-0003, ADR-0004, ADR-0028
 >
@@ -39,7 +39,7 @@ Không chạy baseline DR-27. EXP-08 không so sánh hai cơ chế mà kiểm c�
 ## 4. Môi trường
 
 - Như EXP-07 §4: `make k8s-up ENV=lite`, smoke pass, ấm máy 10 phút; runner dùng `env/k3d.py` (kubectl, port-forward, Prometheus `localhost:9090`, Alertmanager `localhost:9093`, Toxiproxy `localhost:18474`).
-- Sự cố được tiêm bằng các manifest trong `chaos/` (DOC-40 §13.1) hoặc bằng lệnh `kubectl`/`kubectl cnpg` nêu trong bảng §5. Runner áp CR, chờ CR `AllInjected`, và xóa CR khi xong lần chạy.
+- Sự cố được tiêm bằng các manifest trong `deploy/chaos/` (DOC-40 §13.1) hoặc bằng lệnh `kubectl`/`kubectl cnpg` nêu trong bảng §5. Runner áp CR, chờ CR `AllInjected`, và xóa CR khi xong lần chạy.
 - Thời điểm pod sẵn sàng lấy từ `kubectl get pod -w` (sự kiện `Ready`), thời điểm restart từ `status.containerStatuses[].restartCount`.
 - Runner mở 10 kết nối SSE (như README §2) và gửi 5 request/giây `GET /api/v1/vehicles/live` qua `localhost:8080` suốt lần chạy (probe khả dụng).
 
@@ -70,13 +70,13 @@ Vòng đời chung của một lần chạy (khoảng 17 phút) theo README §2.
 | Biến thể | Hành động | Kết thúc sự cố (`t_fault_end`) | Alert dự kiến |
 | --- | --- | --- | --- |
 | `control` | Không làm gì | — | — |
-| F1 `etl-pod-kill` | `chaos/pod-kill-etl-stream.yaml` (một pod ngẫu nhiên, `gracePeriod: 0`) | Pod thay thế `Ready` | `ConsumerLagHigh`, `ConsumerStopped`, `TargetDown` |
-| F2 `api-pod-failure` | `chaos/pod-failure-api.yaml` (một pod, 60 s) | Hết 60 s và pod `Ready` | `TargetDown` |
-| F3 `kafka-broker-kill` | `chaos/kafka-broker-kill.yaml` (một broker ngẫu nhiên) | Broker `Ready` và không còn partition under-replicated (`kafka_topic_partition_under_replicated_partition` = 0) | `ConsumerLagHigh`, `TargetDown` |
+| F1 `etl-pod-kill` | `deploy/chaos/pod-kill-etl-stream.yaml` (một pod ngẫu nhiên, `gracePeriod: 0`) | Pod thay thế `Ready` | `ConsumerLagHigh`, `ConsumerStopped`, `TargetDown` |
+| F2 `api-pod-failure` | `deploy/chaos/pod-failure-api.yaml` (một pod, 60 s) | Hết 60 s và pod `Ready` | `TargetDown` |
+| F3 `kafka-broker-kill` | `deploy/chaos/kafka-broker-kill.yaml` (một broker ngẫu nhiên) | Broker `Ready` và không còn partition under-replicated (`kafka_topic_partition_under_replicated_partition` = 0) | `ConsumerLagHigh`, `TargetDown` |
 | F4 `pg-failover` | `kubectl -n pti delete pod <primary của pti-warehouse> --grace-period=0 --force` | `cluster/pti-warehouse` có primary mới và `readyInstances = 2` | `CircuitBreakerOpen`, `DatabaseBottleneck`, `ConsumerLagHigh`, `ConsumerPaused`, `TargetDown` |
 | F4b `pg-switchover` | `kubectl cnpg promote pti-warehouse <replica> -n pti` | Như F4 | Như F4 |
-| F5 `pg-network` | `chaos/pg-network-delay.yaml` (200 ms ± 50 ms, 120 s) hoặc `chaos/pg-network-partition.yaml` (60 s) | Hết `duration` | Như F4, trừ `TargetDown` |
-| F6 `connect-kill` | `chaos/connect-kill.yaml` | Task của hai connector `RUNNING` lại | `ConnectorDown`, `DebeziumWalRetained` |
+| F5 `pg-network` | `deploy/chaos/pg-network-delay.yaml` (200 ms ± 50 ms, 120 s) hoặc `deploy/chaos/pg-network-partition.yaml` (60 s) | Hết `duration` | Như F4, trừ `TargetDown` |
+| F6 `connect-kill` | `deploy/chaos/connect-kill.yaml` | Task của hai connector `RUNNING` lại | `ConnectorDown`, `DebeziumWalRetained` |
 | F7 `jev-timeout` | Toxic `timeout` (`timeout: 0`) trên proxy `jev` qua `POST localhost:18474/proxies/jev/toxics`, 5 phút. Trước bước 1, bật `bad-data` (`rate 0.002`) để có dead letter mới cho triage | Xóa toxic | `CircuitBreakerOpen`, `TriageBacklogHigh` |
 | F8 `batch-pod-kill` | Trước bước 1, tạo replay raw zone 1 giờ (`POST /etl/replays`, token operator) cho một giờ nghiệp vụ đã qua; khi `RawZoneReplayJob` đã xử lý ≥ 30% item (`pti_replay_records_total`), `kubectl delete pod <etl-batch> --grace-period=0 --force` | `StaleExecutionRecoverer` restart job và job `COMPLETED` | `BatchJobFailed`, `BatchExecutionRecovered`, `TargetDown` |
 | R1 `etl-rollout` | `kubectl -n pti rollout restart deploy/etl-stream` (chiến lược DOC-40 §7.2) | Rollout xong (`rollout status`) | `TargetDown` |

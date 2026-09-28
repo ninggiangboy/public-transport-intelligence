@@ -1,6 +1,6 @@
 # CI/CD
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-27 · DOC-41
+> Trạng thái: **Review** · Cập nhật: 2026-09-28 · DOC-41
 > Phụ thuộc: [DOC-11](../03-architecture/tech-stack-and-versions.md), [DOC-38](local-dev.md), [DOC-39](deploy-compose.md), [DOC-40](deploy-k8s.md), [DOC-44](../10-testing/test-strategy.md), [ADR-0028](../04-adr/0028-kubernetes-tooling.md), [DR](../00-decision-register.md) (DR-44, 53, 56, 61)
 > Người dùng chính: P1-03, P2-19, P4-15, P5-01, P7-01, P8-01, P8-02, P8-07
 
@@ -38,12 +38,14 @@ flowchart LR
 | --- | --- | --- |
 | `changes` | Luôn chạy | Xuất các cờ `backend`, `frontend`, `experiments`, `deploy`, `docs` |
 | `lint` | `backend` hoặc `frontend` | `./gradlew spotlessCheck checkstyleMain checkstyleTest`; `pnpm -C frontend lint && pnpm -C frontend typecheck` |
-| `backend` | `backend` = `**/*.gradle.kts`, `gradle/**`, `build-logic/**`, `common/**`, `analytics/**`, `etl/**`, `api/**`, `triage-worker/**`, `source-simulator/**`, `db/**` | `./gradlew build -x integrationTest` (compile, unit test, JaCoCo); rồi `./gradlew integrationTest` **chỉ cho module bị ảnh hưởng** (task `affectedIntegrationTest` trong `build-logic`: module đổi và các module phụ thuộc vào nó). Testcontainers dùng Docker có sẵn trên runner |
-| `frontend` | `frontend/**`, `api/openapi.json` | `pnpm install --frozen-lockfile`, `pnpm gen:api` rồi `git diff --exit-code` (type sinh ra phải khớp với file đã commit), `pnpm test --run`, `pnpm build` |
+| `backend` | `backend` = `backend/**`, `deploy/topics.yaml`, `deploy/connect/**` (test backend đọc hai chỗ này, ADR-0030) | `./gradlew build -x integrationTest` (compile, unit test, JaCoCo); rồi `./gradlew integrationTest` **chỉ cho module bị ảnh hưởng** (task `affectedIntegrationTest` trong `build-logic`: module đổi và các module phụ thuộc vào nó). Testcontainers dùng Docker có sẵn trên runner |
+| `frontend` | `frontend/**`, `backend/api/openapi.json` | `pnpm install --frozen-lockfile`, `pnpm gen:api` rồi `git diff --exit-code` (type sinh ra phải khớp với file đã commit), `pnpm test --run`, `pnpm build` |
 | `experiments` | `experiments/**` | `uv sync --frozen`, `uv run ruff check`, `uv run pytest -q` |
-| `k8s-render` | `deploy/k3d/**`, `deploy/helm/**`, `deploy/helmfile.yaml.gotmpl`, `deploy/topics.yaml`, `connect/connectors/**`, `chaos/**`, `deploy/compose/observability/prometheus/rules/**` | §10.2 (KD-01, KD-02, KD-07 của DOC-40) |
-| `compose-config` | `deploy/**`, `connect/**` | `docker compose config -q` với mọi tổ hợp profile (C-01, DOC-39 §9); `shellcheck` cho `deploy/**/*.sh`; kiểm tra `deploy/topics.yaml` theo schema; `promtool check rules` và `promtool test rules` cho `deploy/compose/observability/prometheus/` (DOC-28 §6.1); `amtool check-config` cho Alertmanager |
+| `k8s-render` | `deploy/k3d/**`, `deploy/helm/**`, `deploy/helmfile.yaml.gotmpl`, `deploy/topics.yaml`, `deploy/connect/connectors/**`, `deploy/chaos/**`, `deploy/compose/observability/prometheus/rules/**` | §10.2 (KD-01, KD-02, KD-07 của DOC-40) |
+| `compose-config` | `deploy/**` | `docker compose config -q` với mọi tổ hợp profile (C-01, DOC-39 §9); `shellcheck` cho `deploy/**/*.sh`; kiểm tra `deploy/topics.yaml` theo schema; `promtool check rules` và `promtool test rules` cho `deploy/compose/observability/prometheus/` (DOC-28 §6.1); `amtool check-config` cho Alertmanager |
 | `secrets-scan` | Luôn chạy | `gitleaks detect --redact` trên diff của PR. `.env.example` không được có giá trị. `.gitleaks.toml` bỏ qua `deploy/k3d/sealed/**` (đã mã hóa, DOC-40 §8.2) và **không** bỏ qua `deploy/k3d/.generated/**` |
+
+Gradle build nằm trọn trong `backend/` (ADR-0030), nên mọi bước `./gradlew` trong workflow chạy với `working-directory: backend`; bước `pnpm` dùng `pnpm -C frontend`, bước `uv` chạy trong `experiments/`.
 
 PR chỉ sửa `docs/**` thì chỉ `changes` và `secrets-scan` chạy (thêm một job `markdown-links` kiểm tra link nội bộ bằng `lychee --offline`).
 
@@ -53,13 +55,13 @@ Chạy lại mọi job ở §2 trên toàn repo, rồi thêm:
 
 | Job | Bước | Có từ |
 | --- | --- | --- |
-| `contract` | `./gradlew contractTest`: JSON Schema ↔ producer (simulator) và consumer (etl); Debezium thật trong Testcontainers (DR-44); `openapi-diff` giữa `api/openapi.json` của commit này và của tag phát hành gần nhất. Có breaking change mà PR không có nhãn `breaking-api` thì job fail | P2-19, P4-15 |
+| `contract` | `./gradlew contractTest`: JSON Schema ↔ producer (simulator) và consumer (etl); Debezium thật trong Testcontainers (DR-44); `openapi-diff` giữa `backend/api/openapi.json` của commit này và của tag phát hành gần nhất. Có breaking change mà PR không có nhãn `breaking-api` thì job fail | P2-19, P4-15 |
 | `security` | SpotBugs (`./gradlew spotbugsMain`); OWASP Dependency-Check (`./gradlew dependencyCheckAggregate`, cache NVD, fail khi CVSS ≥ 9); `pnpm audit --prod --audit-level=critical`; Trivy quét image vừa build (fail khi có CVE CRITICAL đã có bản sửa) | P3 |
 | `images` | Build và đẩy image (§5) | P1-14 |
 
 Nếu `contract` hoặc `security` fail trên `main`, PR tiếp theo bị chặn (§4) cho tới khi có PR sửa. Cách này đẩy các job đắt ra khỏi PR mà vẫn không để lỗi tồn tại lâu.
 
-`openapi-diff` cũng chạy ở PR khi `api/**` đổi (chỉ tốn khoảng 1 phút), để breaking change bị phát hiện trước khi merge.
+`openapi-diff` cũng chạy ở PR khi `backend/api/**` đổi (chỉ tốn khoảng 1 phút), để breaking change bị phát hiện trước khi merge.
 
 ## 4. Điều kiện chặn merge (branch protection cho `main`)
 
@@ -74,9 +76,9 @@ Nếu `contract` hoặc `security` fail trên `main`, PR tiếp theo bị chặn
 | Image | Build bằng | Nguồn |
 | --- | --- | --- |
 | `pti-etl`, `pti-api`, `pti-triage-worker`, `pti-source-simulator`, `pti-db-migrate` | Jib (`./gradlew jib`), base `eclipse-temurin:25-jre` pin digest, `linux/amd64` + `linux/arm64` | Module Gradle |
-| `pti-connect` | `docker buildx build --platform linux/amd64,linux/arm64` | `connect/Dockerfile` |
+| `pti-connect` | `docker buildx build --platform linux/amd64,linux/arm64` | `deploy/connect/Dockerfile` |
 | `pti-frontend` | `docker buildx build`, multi-stage (`node:24` build → `nginx` alpine) | `frontend/Dockerfile` |
-| `pti-connect-strimzi` (P7) | `docker buildx build`, plugin tải theo `deploy/versions.env` và kiểm SHA-256 | `connect/Dockerfile.strimzi` (DOC-40 §6.3) |
+| `pti-connect-strimzi` (P7) | `docker buildx build`, plugin tải theo `deploy/versions.env` và kiểm SHA-256 | `deploy/connect/Dockerfile.strimzi` (DOC-40 §6.3) |
 
 Tag, registry `ghcr.io/<owner>/`:
 
@@ -126,11 +128,11 @@ Nightly vẫn thoát sớm khi không có commit mới trên `main`, để lịc
 
 | Ecosystem | Thư mục | Lịch | Gom nhóm |
 | --- | --- | --- | --- |
-| `gradle` | `/` | Hằng tuần | `spring-boot`, `testcontainers`, `others` |
+| `gradle` | `/backend` | Hằng tuần | `spring-boot`, `testcontainers`, `others` |
 | `npm` | `/frontend` | Hằng tuần | `react`, `tanstack`, `dev-dependencies` |
 | `uv` | `/experiments` | Hằng tháng | Một nhóm |
 | `github-actions` | `/` | Hằng tháng | Một nhóm |
-| `docker` | `/connect`, `/frontend` | Hằng tháng | — |
+| `docker` | `/deploy/connect`, `/frontend` | Hằng tháng | — |
 
 Image hạ tầng trong `deploy/versions.env` không do Dependabot quản lý. Việc cập nhật làm tay theo quy trình ở DOC-39 §7.
 
@@ -174,7 +176,7 @@ Không cần cluster; khoảng 2 phút.
 2. `helm lint deploy/helm/pti-infra deploy/helm/pti` với từng file `values-{dev,staging,lite}.yaml`.
 3. `helmfile -e <env> template --skip-deps > $RUNNER_TEMP/<env>.yaml` cho ba môi trường (chart bên thứ ba lấy từ cache `~/.cache/helm`, key theo hash của `deploy/versions.env`).
 4. `kubeconform -strict -summary -schema-location default -schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json'` trên ba file (KD-01). CR không có schema trong catalog thì bị bỏ qua có ghi log, không fail.
-5. `deploy/k3d/scripts/check-render.py` (KD-02): số `KafkaTopic` bằng số topic trong `deploy/topics.yaml`; số `KafkaConnector` bằng số file trong `connect/connectors/`; mọi `alert:` và `record:` trong `deploy/compose/observability/prometheus/rules/pti-*.yml` có trong `PrometheusRule` `pti-rules`; không còn chuỗi `${env:` trong `KafkaConnector`.
+5. `deploy/k3d/scripts/check-render.py` (KD-02): số `KafkaTopic` bằng số topic trong `deploy/topics.yaml`; số `KafkaConnector` bằng số file trong `deploy/connect/connectors/`; mọi `alert:` và `record:` trong `deploy/compose/observability/prometheus/rules/pti-*.yml` có trong `PrometheusRule` `pti-rules`; không còn chuỗi `${env:` trong `KafkaConnector`.
 6. `deploy/k3d/scripts/check-roles.py` (KD-07): `connectionLimit` trong `managed.roles` bằng `CONNECTION LIMIT` trong `deploy/compose/postgres/10-bootstrap.sh`.
 7. `kubeseal --validate` trên mọi file `deploy/k3d/sealed/**` bằng `deploy/k3d/sealed/pub-cert.pem` (không cần khóa bí mật).
 
@@ -201,7 +203,7 @@ Không cần cluster; khoảng 2 phút.
 3. `make k8s-smoke` (DOC-40 §15).
 4. `helmfile -e lite diff --detailed-exitcode` phải trả 0 (KD-04: apply lần hai không đổi gì).
 5. Từ P8: `make demo-pg-failover` rồi `make demo-check ENV=k3d SINCE=10m`, và số restart của pod app không đổi (E2E-DEMO-13, DOC-46 §9.2).
-6. Chạy thử một lần mỗi manifest trong `chaos/` với `duration` 30 giây, chờ mọi pod `Ready` lại, rồi `make k8s-smoke` lần nữa. Đây là kiểm tra manifest còn áp được (P7-08), không phải EXP-08.
+6. Chạy thử một lần mỗi manifest trong `deploy/chaos/` với `duration` 30 giây, chờ mọi pod `Ready` lại, rồi `make k8s-smoke` lần nữa. Đây là kiểm tra manifest còn áp được (P7-08), không phải EXP-08.
 7. `always()`: `kubectl get events -A --sort-by=.lastTimestamp` và log mọi pod trong `pti` làm artifact (không gồm Secret); xóa `$RUNNER_TEMP/sealing`.
 
 ### 10.4 Release (`release.yml`, P8-07)

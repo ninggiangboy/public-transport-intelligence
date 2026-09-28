@@ -1,6 +1,6 @@
 # ETL streaming
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-27 · DOC-20
+> Trạng thái: **Review** · Cập nhật: 2026-09-28 · DOC-20
 > Phụ thuộc: [DOC-19](batch-and-chunk-processing.md), [DOC-09](../03-architecture/messaging-contracts.md), [DOC-14](../05-data/warehouse-model.md) §7–8, [DOC-16](../05-data/data-quality-rules.md), [DOC-18](../05-data/data-lifecycle.md) §4, [ADR-0003](../04-adr/0003-effectively-once-upsert.md), [ADR-0004](../04-adr/0004-offset-commit-after-transaction.md), [ADR-0006](../04-adr/0006-error-classification.md), [DR](../00-decision-register.md) (DR-07, 13, 19, 22, 23, 27, 35, 41, 42, 57, 59, 67)
 > Người dùng chính: `etl` profile `stream` (P2-08, P2-09, P2-12…14, P2-18), DOC-23 (analytics), DOC-28 (metric)
 
@@ -169,7 +169,7 @@ Snapshot (`__op = r`) đi cùng đường với `c`. Snapshot ban đầu của D
 Writer ghi placeholder **trước** fact, trong cùng transaction:
 
 ```sql
--- etl/src/main/resources/sql/insert_dim_vehicle_realtime.sql
+-- backend/etl/src/main/resources/sql/insert_dim_vehicle_realtime.sql
 INSERT INTO dw.dim_vehicle (vehicle_id, source)
 VALUES (:vehicle_id, 'REALTIME')
 ON CONFLICT (vehicle_id) DO NOTHING

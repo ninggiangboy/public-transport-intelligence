@@ -2,7 +2,7 @@
 
 > DOC-12 · Quy ước: [ADR-0001](0001-record-architecture-decisions.md) · Nguồn: [Decision Register](../00-decision-register.md), [Master plan §3.2](../00-master-plan.md)
 
-Cột **Gate** là phase cần ADR ở trạng thái Accepted trước khi bắt đầu. Mọi ADR 0001–0029 đã có file.
+Cột **Gate** là phase cần ADR ở trạng thái Accepted trước khi bắt đầu. Mọi ADR 0001–0030 đã có file.
 
 | ADR | Tiêu đề | Trạng thái | Gate | Nguồn |
 | --- | --- | --- | --- | --- |
@@ -35,8 +35,9 @@ Cột **Gate** là phase cần ADR ở trạng thái Accepted trước khi bắt
 | [0027](0027-contract-testing.md) | Contract testing bằng JSON Schema + OpenAPI diff | Accepted | P2 | DR-44 |
 | [0028](0028-kubernetes-tooling.md) | K8s: k3d, helmfile, Strimzi, CNPG, KEDA, Chaos Mesh | Accepted | P7 | DR-54 |
 | [0029](0029-spring-boot-4-java-25.md) | Nền tảng Spring Boot 4.1 và Java 25 | Accepted (xác minh S-06) | P1 | DR-53 |
+| [0030](0030-monorepo-layout.md) | Monorepo, chia thư mục gốc theo stack: `backend/`, `frontend/`, `deploy/` | Accepted | P1 | DR-85, DR-26 |
 
-Gate P1 đã đủ: 0001, 0002, 0003, 0007, 0008, 0009, 0011, 0012, 0014, 0024, 0029.
+Gate P1 đã đủ: 0001, 0002, 0003, 0007, 0008, 0009, 0011, 0012, 0014, 0024, 0029, 0030.
 
 Gate P2 đã đủ: 0004, 0005, 0006, 0013, 0015, 0027.
 

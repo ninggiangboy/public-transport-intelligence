@@ -198,7 +198,7 @@ Cột "Gate" là phase cần tài liệu ở trạng thái Approved trước khi
 | --- | --- | --- | --- |
 | 07 | system-context-and-containers | C4 level 1 (hệ thống, người dùng, hệ thống ngoài: Jev, Keycloak, SMTP). C4 level 2 (mọi container và luồng giữa chúng). Bảng đơn vị triển khai (DR-26). **Bảng quyền sở hữu dữ liệu: bảng nào do service nào ghi, service nào đọc.** Ranh giới tin cậy (trust boundary) | P1 |
 | 08 | data-flows | Sequence diagram (Mermaid) cho từng luồng: GTFS-rt ingest; CDC ingest; nạp GTFS static; analytics micro-batch; job theo lịch; DLQ triage và auto-replay; DLQ replay thủ công; replay từ raw zone; SSE tới client; và các luồng lỗi: DB chết giữa chunk, pod bị kill trước ack, Jev timeout, feed stale | P2 |
-| 09 | messaging-contracts | Bảng topic (DR-05), envelope (DR-04), JSON Schema v1/v2 cho từng entity (tham chiếu tới file trong `common/`), hợp đồng CDC (DR-07), sự kiện UI nội bộ, Kafka headers, quy tắc thay đổi tương thích ngược, quy tắc tính payload hash | P1 |
+| 09 | messaging-contracts | Bảng topic (DR-05), envelope (DR-04), JSON Schema v1/v2 cho từng entity (tham chiếu tới file trong `backend/common/`), hợp đồng CDC (DR-07), sự kiện UI nội bộ, Kafka headers, quy tắc thay đổi tương thích ngược, quy tắc tính payload hash | P1 |
 | 10 | quality-attributes | Với mỗi NFR: chiến thuật → cơ chế cụ thể → nơi hiện thực → cách kiểm chứng. **Ngân sách độ trễ NFR-03** chia theo chặng. **Ước lượng dung lượng:** event/s, dòng/ngày, GB/ngày cho mỗi bảng và raw zone, ở tải nền và gấp 10 lần. **Ngân sách tài nguyên compose** (RAM theo container) | P1 |
 | 11 | tech-stack-and-versions | Bảng thư viện và công cụ kèm phiên bản cố định, lý do chọn, license (DR-53, DR-46). Công cụ dev (mise, pnpm, uv). Tuân theo version catalog | P1 |
 
@@ -302,7 +302,7 @@ Mỗi tài liệu trong nhóm này có khung chung: **Mục đích → Phạm vi
 
 | DOC | Tài liệu | Nội dung bắt buộc | Gate |
 | --- | --- | --- | --- |
-| 44 | test-strategy | Tháp kiểm thử. Mỗi module test gì ở tầng nào. Công cụ. Quy ước đặt tên. Dữ liệu test (fixture GTFS thu nhỏ, trong `common/src/testFixtures`). Chỉ tiêu coverage (`StreamChunkTemplate`, `ErrorClassifier`, `SkipPolicy` và processor/writer dùng chung ≥ 90% line, core ETL ≥ 80%, analytics ≥ 85%). Test tiêm lỗi. Contract test (DR-44). Test hiệu năng. Test nào chạy trên CI ở stage nào | P2 |
+| 44 | test-strategy | Tháp kiểm thử. Mỗi module test gì ở tầng nào. Công cụ. Quy ước đặt tên. Dữ liệu test (fixture GTFS thu nhỏ, trong `backend/common/src/testFixtures`). Chỉ tiêu coverage (`StreamChunkTemplate`, `ErrorClassifier`, `SkipPolicy` và processor/writer dùng chung ≥ 90% line, core ETL ≥ 80%, analytics ≥ 85%). Test tiêm lỗi. Contract test (DR-44). Test hiệu năng. Test nào chạy trên CI ở stage nào | P2 |
 | 45 | experiments/EXP-xx | Mỗi EXP theo template ở phụ lục A.6: giả thuyết, biến độc lập và biến phụ thuộc, baseline (DR-27), môi trường, **các bước tự động**, số lần lặp, chỉ số và công thức (DR-28, DR-57, DR-58), tiêu chí đạt, script phân tích, mẫu bảng kết quả, mối đe dọa tới tính hợp lệ | P3 (01–05), P6 (06), P7 (07–08) |
 | 46 | demo-script | Kịch bản 7 bước (SDD 14.1) kèm lời thoại, thao tác, kết quả mong đợi, phương án dự phòng khi hỏng, checklist trước buổi demo, cách reset | P8 |
 
@@ -418,8 +418,8 @@ Mục tiêu: không còn câu hỏi nào có thể chặn P1–P2.
 | ID | Việc | Đầu ra và nghiệm thu | Phụ thuộc | Tài liệu |
 | --- | --- | --- | --- | --- |
 | P1-00 | Doc gate | Các tài liệu gate P1 đều Approved | M0 | — |
-| P1-01 | Khởi tạo repo: `git init`, `.gitignore`, `.editorconfig`, `.tool-versions`, README, LICENSE, quy ước commit (Conventional Commits), `CONTRIBUTING.md` | Repo có commit đầu tiên | — | DOC-38 |
-| P1-02 | Gradle multi-module với `build-logic` (convention plugin: Java 25 toolchain, Spotless, Checkstyle, SpotBugs, JaCoCo, Jib), `gradle/libs.versions.toml`, các module rỗng theo DR-26 | `./gradlew build` pass | P1-01 | DOC-11 |
+| P1-01 | Khởi tạo repo theo bố cục monorepo của ADR-0030 (`backend/`, `frontend/`, `deploy/`, `experiments/`): `git init`, `.gitignore`, `.editorconfig`, `mise.toml`, `Makefile` rỗng, README, LICENSE, quy ước commit (Conventional Commits), `CONTRIBUTING.md` | Repo có commit đầu tiên | — | DOC-38 |
+| P1-02 | Gradle multi-module trong `backend/` với `build-logic` (convention plugin: Java 25 toolchain, Spotless, Checkstyle, SpotBugs, JaCoCo, Jib), `backend/gradle/libs.versions.toml`, các module rỗng theo DR-26 | `./gradlew build` pass | P1-01 | DOC-11 |
 | P1-03 | CI tối thiểu (GitHub Actions): spotlessCheck, build, unit test, cache Gradle | Workflow xanh trên PR | P1-02 | DOC-41 |
 | P1-04 | Compose `core`: `pg-warehouse` (PG17), `pg-source` (`wal_level=logical`, chứa `ticketing_source` và `pti_sim`, DR-64), `kafka` (KRaft, 1 node), `kafka-connect` (image tự build từ S-04), `seaweedfs` (S3, credential riêng cho `connect` và `etl` trong `s3.json`) và job `s3-init` (tạo bucket `raw`, bật versioning, đặt lifecycle; DR-66), `kafka-init` (tạo topic theo DR-05), healthcheck, `mem_limit`, `.env.example` | `docker compose --profile core up -d` → mọi container healthy trong ≤ 3 phút | P0-05 | DOC-39 |
 | P1-05 | Module `db`: Flyway warehouse (V1 schemas, V2 feed_version và dimension, V3 bảng lịch GTFS, V4 fact partitioned cùng partition ban đầu, V5_1 schema Spring Batch, V5_2 ops tables, V6 dim_date seed, `R__grants`). Bộ `ticketing` và `sim` cho `pg-source`. V7 insight để sang P4-01. Container `db-migrate` chạy xong rồi thoát | Migration chạy sạch trên DB trống và chạy lại lần hai không lỗi. Có test Testcontainers | P1-04 | DOC-13, 14, 15, 17 |
@@ -429,7 +429,7 @@ Mục tiêu: không còn câu hỏi nào có thể chặn P1–P2.
 | P1-09 | Simulator: mô hình chuyển động và mô hình trễ, publish VehiclePosition và TripUpdate (key `route_id`, `acks=all`, idempotent producer), tốc độ cấu hình được | Thấy message trên topic (kcat hoặc kafka-ui), message hợp lệ theo schema | P1-08 | DOC-25 |
 | P1-10 | Simulator: TicketingSeeder ghi giao dịch và hoàn vé vào `ticketing_source` trên `pg-source` | Số dòng tăng theo tốc độ đã cấu hình | P1-05 | DOC-25 |
 | P1-11 | Simulator: ledger (DR-28) và REST `/sim/status`, `/sim/rate` | Ledger có số dòng bằng số message đã gửi | P1-09 | DOC-25 |
-| P1-12 | Cấu hình Debezium (`connect/connectors/debezium-ticketing.json`) và script đăng ký idempotent (PUT config) | Event xuất hiện trên `ticketing.sales.cdc` đúng định dạng unwrap | P1-04, P1-10 | DOC-09 |
+| P1-12 | Cấu hình Debezium (`deploy/connect/connectors/debezium-ticketing.json`) và script đăng ký idempotent (PUT config) | Event xuất hiện trên `ticketing.sales.cdc` đúng định dạng unwrap | P1-04, P1-10 | DOC-09 |
 | P1-13 | Cấu hình S3 sink cho `gtfs.*` và `ticketing.sales.cdc` → `raw/…` (ADR-0012) | File `.json.gz` trong bucket `raw` đúng bố cục đường dẫn, giữ key và headers | P1-04 | DOC-18 |
 | P1-14 | Đóng gói simulator bằng Jib, đưa vào compose | `make up` chạy luôn simulator | P1-09 | DOC-39 |
 | P1-15 | `Makefile`: `up, down, reset, logs, ps, psql-wh, psql-src, topics, tail-<topic>` | Có trong DOC-38 | P1-04 | DOC-38 |
@@ -572,7 +572,7 @@ Mục tiêu: không còn câu hỏi nào có thể chặn P1–P2.
 | P7-05 | Flyway Job chạy ở hook pre-install/pre-upgrade | Upgrade không làm lỗi pod cũ (kiểm tra với một migration expand) | P7-04 | ADR-0024 |
 | P7-06 | KEDA: `ScaledObject` cho etl-stream (lag, cùng trigger Prometheus theo độ trễ ghi DB), tối đa 4 pod; cho triage-worker (PostgreSQL scaler trên `ops.dead_letter`, 1→3, DR-74); HPA cho API; kiểm tra `maxReplica × pool ≤ giới hạn PgBouncer` (DOC-40 §9) | Tăng tải → pod tăng; DB chậm → không scale thêm và phát alert | P7-04 | DOC-40 |
 | P7-07 | Kiểm tra graceful shutdown và rebalance (rolling update khi đang có tải) | Không mất và không trùng (so với ledger) | P7-04 | DOC-20 |
-| P7-08 | Manifest Chaos Mesh trong `chaos/` (pod kill, broker kill, NetworkChaos tới Postgres), lệnh failover CNPG, Toxiproxy và `jev-stub` cho Jev (DOC-40 §13) | Từng kịch bản chạy được riêng lẻ | P7-04 | DOC-40, DOC-45 |
+| P7-08 | Manifest Chaos Mesh trong `deploy/chaos/` (pod kill, broker kill, NetworkChaos tới Postgres), lệnh failover CNPG, Toxiproxy và `jev-stub` cho Jev (DOC-40 §13) | Từng kịch bản chạy được riêng lẻ | P7-04 | DOC-40, DOC-45 |
 | P7-09 | Runner EXP-07 (LoadRamp 1→10×) và EXP-08 (tổ hợp sự cố), dùng `kubectl` | `summary.json` | P7-06, P7-08 | DOC-45 |
 | P7-10 | Chạy thực nghiệm, phân tích, cập nhật DOC-45 | Có bảng và biểu đồ | P7-09 | DOC-45 |
 

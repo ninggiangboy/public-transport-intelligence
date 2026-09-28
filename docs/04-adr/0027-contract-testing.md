@@ -23,16 +23,16 @@ SDD gốc đề xuất Spring Cloud Contract. Nhưng công cụ đó thiên về
 
 Chọn **phương án 3**.
 
-- **Message Kafka:** JSON Schema (draft 2020-12) ở `common/src/main/resources/schemas/` là nguồn sự thật (DOC-09 §10). Fixture hợp lệ và không hợp lệ ở `common/src/test/resources/contract-examples/<schema>/`.
+- **Message Kafka:** JSON Schema (draft 2020-12) ở `backend/common/src/main/resources/schemas/` là nguồn sự thật (DOC-09 §10). Fixture hợp lệ và không hợp lệ ở `backend/common/src/test/resources/contract-examples/<schema>/`.
   - Producer test (simulator): mọi message sinh ra trong test đều được validate theo schema.
   - Consumer test (ETL): fixture hợp lệ phải map được; fixture không hợp lệ phải vào DLQ `SCHEMA`.
   - File schema đã phát hành thì bất biến: mọi thay đổi payload tạo `schema_version` mới (ADR-0007, DOC-09 §10). Job CI `contract` so thư mục schema với `main` và fail nếu một file đã có ở `main` bị sửa.
 - **CDC:** chạy Debezium thật trong Testcontainers (Postgres nguồn + Kafka + Connect) và cho event thật đi qua parser; không mock định dạng Debezium.
-- **REST:** `openapi.json` được sinh khi build (springdoc) và commit vào `api/openapi.json`. CI:
+- **REST:** `openapi.json` được sinh khi build (springdoc) và commit vào `backend/api/openapi.json`. CI:
   - kiểm tra file đã commit khớp với file sinh ra (quên cập nhật thì fail);
-  - `openapi-diff` với `api/openapi.json` của tag phát hành gần nhất, fail nếu có breaking change mà PR không có nhãn `breaking-api` (DOC-41);
+  - `openapi-diff` với `backend/api/openapi.json` của tag phát hành gần nhất, fail nếu có breaking change mà PR không có nhãn `breaking-api` (DOC-41);
   - frontend sinh type bằng `openapi-typescript` và chạy `tsc --noEmit`.
-- **SSE:** payload mỗi loại event có JSON Schema ở `common/src/main/resources/schemas/ui-events/`, được validate trong test của `api` và dùng để sinh type cho frontend.
+- **SSE:** payload mỗi loại event có JSON Schema ở `backend/common/src/main/resources/schemas/ui-events/`, được validate trong test của `api` và dùng để sinh type cho frontend.
 - Chi tiết job CI ở DOC-41, chiến lược test ở DOC-44.
 
 ## Hệ quả

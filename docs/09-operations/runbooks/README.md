@@ -1,6 +1,6 @@
 # Runbook
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-27 · DOC-42
+> Trạng thái: **Review** · Cập nhật: 2026-09-28 · DOC-42
 >
 > Phụ thuộc: DOC-28 §6 (alert), DOC-38 §4 (lệnh `make`), DOC-40 (k3d), DOC-43 (backup và khôi phục), DOC-22 (DLQ, replay), DOC-24 (triage)
 >
@@ -114,7 +114,7 @@ Chỉ thử lại các alert có đường đi khác compose (scrape qua Service
 | --- | --- |
 | `TargetDown` | `kubectl -n pti scale deployment triage-worker --replicas=0` sau khi pause KEDA (§2.1), 3 phút; job `pti-triage-worker` mất target |
 | `ConsumerLagHigh` | `kubectl -n pti annotate scaledobject etl-stream autoscaling.keda.sh/paused-replicas=1 --overwrite` rồi `make k8s-load STEPS='10' STEP=PT10M` |
-| `DatabaseBottleneck`, `CircuitBreakerOpen` | `kubectl apply -f chaos/pg-network-delay.yaml` với `latency` 3 s, `duration` 8m |
+| `DatabaseBottleneck`, `CircuitBreakerOpen` | `kubectl apply -f deploy/chaos/pg-network-delay.yaml` với `latency` 3 s, `duration` 8m |
 | `DlqRateHigh` | `make scenario PTI_ENV=k3d NAME=bad-data ARGS='{"ratio":0.05,"duration":"PT10M"}'` |
 | `ConnectorDown` | `kubectl -n pti patch kafkaconnector debezium-ticketing --type merge -p '{"spec":{"state":"paused"}}'` 3 phút, rồi `running` |
 | `BatchJobFailed` | `make job-run PTI_ENV=k3d NAME=GtfsStaticLoadJob PARAMS='sourceUri=s3://raw/gtfs-static/missing.zip'` |

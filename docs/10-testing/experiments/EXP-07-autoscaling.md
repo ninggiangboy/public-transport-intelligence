@@ -1,6 +1,6 @@
 # EXP-07: Mở rộng theo tải trên k3d
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-27 · DOC-45 / EXP-07
+> Trạng thái: **Review** · Cập nhật: 2026-09-28 · DOC-45 / EXP-07
 >
 > Phụ thuộc: [protocol chung](README.md), [EXP-05](EXP-05-load.md), [DOC-40](../../09-operations/deploy-k8s.md) §2, §5.3, §9, §13, DOC-10 §2–4, DOC-20 §1, §7, DOC-25 §7.8 (`load-ramp`), DOC-28 §3, §6 (alert #7), ADR-0028, DR-74
 >
@@ -68,7 +68,7 @@ Một lần chạy (khoảng 95 phút):
 2. Mở 10 kết nối SSE và giữ tới hết lần chạy.
 3. Silence 100 phút: `ConsumerLagHigh`, `EndToEndLatencyHigh`, `LatencyStageSlow`, `ThroughputDrop`, `SimulatorLagging`, `TargetDown` (pod bị xóa khi scale xuống). `DatabaseBottleneck` **không** bị silence ở `db-slow` vì là biến quan sát của H3; ở biến thể khác thì silence.
 4. `POST /sim/scenarios/load-ramp {"steps": [1, 2, 3, 5, 7, 10], "stepDuration": "PT10M", "rampDown": false, "includeTicketing": false}`. `t_step[i]` như EXP-05.
-5. Riêng `db-slow`: tại `t_step[3]` (đầu bậc ×5) áp `chaos/pg-network-delay.yaml` với `duration: 20m` và độ trễ 150 ms ± 30 ms. Độ trễ được chọn ở P7-10 bằng một lần chạy thử sao cho `pti:chunk_duration:p95_5m` vượt 2 giây trong khi lag tăng. Giá trị cuối cùng ghi vào `config.json` và §11.
+5. Riêng `db-slow`: tại `t_step[3]` (đầu bậc ×5) áp `deploy/chaos/pg-network-delay.yaml` với `duration: 20m` và độ trễ 150 ms ± 30 ms. Độ trễ được chọn ở P7-10 bằng một lần chạy thử sao cho `pti:chunk_duration:p95_5m` vượt 2 giây trong khi lag tăng. Giá trị cuối cùng ghi vào `config.json` và §11.
 6. Lấy mẫu:
    - mỗi 2 giây: lag đã commit;
    - mỗi 15 giây (Prometheus): số pod `kube_deployment_status_replicas_available{deployment="etl-stream"}`, số pod mong muốn `kube_horizontalpodautoscaler_status_desired_replicas{horizontalpodautoscaler="keda-hpa-etl-stream"}`, giá trị trigger `keda_scaler_metrics_value{scaledObject="etl-stream"}`, `pti:chunk_duration:p95_5m`, CPU và RAM từng pod, `hikaricp_connections_pending`, `kafka_consumer_coordinator_rebalance_total`, số pod `api`;

@@ -1,6 +1,6 @@
 # Bối cảnh hệ thống và container
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-26 · DOC-07
+> Trạng thái: **Review** · Cập nhật: 2026-09-28 · DOC-07
 > Phụ thuộc: SDD gốc §4, §12.4, [DR](../00-decision-register.md) (DR-05, 20, 26, 40, 41, 50, 51, 62, 64), [ADR-0002](../04-adr/0002-spring-batch-and-spring-kafka.md), [ADR-0014](../04-adr/0014-deployment-units.md)
 
 Tài liệu này mô tả **hệ thống gồm những khối nào, khối nào nói chuyện với khối nào, và dữ liệu nào thuộc về ai**. Luồng chi tiết theo thời gian nằm ở DOC-08; hợp đồng message nằm ở DOC-09.
@@ -139,7 +139,7 @@ Nguyên tắc xuyên suốt (SDD §4.2):
 
 ## 3. Đơn vị triển khai
 
-Tất cả image Java build bằng Jib từ một repo Gradle multi-module (DR-26). `etl` là **một image, hai profile**.
+Tất cả image Java build bằng Jib từ một Gradle multi-module nằm trong `backend/` của monorepo (DR-26, [ADR-0030](../04-adr/0030-monorepo-layout.md)); cột *Module* ghi tên module Gradle. `etl` là **một image, hai profile**.
 
 | Container | Module / image | Công nghệ | Trách nhiệm | Profile compose | K8s (SDD §12.4) |
 | --- | --- | --- | --- | --- | --- |
@@ -152,7 +152,7 @@ Tất cả image Java build bằng Jib từ một repo Gradle multi-module (DR-2
 | `db-migrate` | `db` | Flyway CLI (Java main) | Chạy migration cho `pti_warehouse`, `ticketing_source`, `pti_sim` rồi thoát | core (chạy một lần) | Job, Helm pre-upgrade hook |
 | `kafka` | `apache/kafka` | Kafka 4 KRaft | Backbone | core | Strimzi, 3 broker |
 | `kafka-init` | `apache/kafka` | Script `kafka-topics.sh` | Tạo topic theo DOC-09, idempotent | core (chạy một lần) | `KafkaTopic` CR |
-| `kafka-connect` | image riêng (`connect/Dockerfile`) | Kafka Connect + Debezium PostgreSQL + S3 sink | CDC ticketing; ghi raw zone | core | Strimzi `KafkaConnect` × 2 |
+| `kafka-connect` | image riêng (`deploy/connect/Dockerfile`) | Kafka Connect + Debezium PostgreSQL + S3 sink | CDC ticketing; ghi raw zone | core | Strimzi `KafkaConnect` × 2 |
 | `kafka-connect-init` | `curlimages/curl` | Script PUT config | Đăng ký connector, idempotent | core (chạy một lần) | `KafkaConnector` CR |
 | `pg-warehouse` | `postgres:17` | PostgreSQL | Warehouse, ops, insight, metadata batch | core | CNPG 1 primary + 1 replica, PgBouncer |
 | `pg-source` | `postgres:17` | PostgreSQL, `wal_level=logical` | DB nguồn ticketing và ledger | core | StatefulSet đơn lẻ (DR-55) |

@@ -1,6 +1,6 @@
 # Sự kiện SSE
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-27 · DOC-33
+> Trạng thái: **Review** · Cập nhật: 2026-09-28 · DOC-33
 >
 > Phụ thuộc: [DOC-09](../03-architecture/messaging-contracts.md) §6, [DOC-26](../06-design/realtime-delivery.md), [DOC-23](../06-design/analytics.md) §10, [DOC-20](../06-design/etl-streaming.md) §8, [DOC-32](api-endpoints.md), DR-41, DR-42, ADR-0016, ADR-0023, ADR-0026
 >
@@ -328,7 +328,7 @@ Mỗi 15 giây trên mọi kết nối. Client coi kết nối chết nếu 45 g
 
 - Thêm khóa vào `data`, thêm kiểu sự kiện mới: tương thích, làm tại chỗ. Kiểu mới phải được thêm vào bảng §3 và projection §4 (nếu audience có thể là `PUBLIC`).
 - Đổi tên, xóa khóa, đổi nghĩa: tạo kiểu mới (`…v2`), phát song song một phiên bản, rồi bỏ kiểu cũ.
-- Contract test (DR-44): mỗi kiểu có JSON Schema trong `common/src/main/resources/schemas/ui-events/<type>.schema.json`. Test của publisher kiểm payload nó sinh ra; test của api kiểm projection; frontend sinh type TypeScript từ cùng schema (P5-02).
+- Contract test (DR-44): mỗi kiểu có JSON Schema trong `backend/common/src/main/resources/schemas/ui-events/<type>.schema.json`. Test của publisher kiểm payload nó sinh ra; test của api kiểm projection; frontend sinh type TypeScript từ cùng schema (P5-02).
 
 ## 7. Metrics
 

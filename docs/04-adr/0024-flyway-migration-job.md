@@ -17,7 +17,7 @@ Nhiều app (etl hai profile, triage-worker, api, simulator) dùng chung databas
 
 Chọn **phương án 3**.
 
-- Module `db` đóng gói Flyway và toàn bộ script; image `pti-db-migrate`. Script nằm ở `db/src/main/resources/db/migration/<bộ>/`, Flyway đọc qua `classpath:db/migration/<bộ>`.
+- Module `db` đóng gói Flyway và toàn bộ script; image `pti-db-migrate`. Script nằm ở `backend/db/src/main/resources/db/migration/<bộ>/`, Flyway đọc qua `classpath:db/migration/<bộ>`.
 - Ba bộ migration, mỗi bộ có `flyway_schema_history` riêng (đặt trong schema `public`):
   - `warehouse` → `pti_warehouse` (schema `dw`, `ops`, `insight`, `batch`, `exp`), user `pti_owner`.
   - `ticketing` → `ticketing_source`, user `ticketing_owner`.

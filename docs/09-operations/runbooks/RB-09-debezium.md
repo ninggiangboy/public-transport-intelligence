@@ -1,6 +1,6 @@
 # RB-09: Debezium: WAL bị giữ lại, connector dừng
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-27 · DOC-42 / RB-09
+> Trạng thái: **Review** · Cập nhật: 2026-09-28 · DOC-42 / RB-09
 >
 > Alert: `DebeziumWalRetained` (warning > 2 GB, critical > 3,2 GB; 5 phút), `ConnectorDown` (critical, 2 phút) · Dashboard: `pti-kafka` (connector), `pti-postgres` (slot) · Liên quan: DOC-09 §5 (cấu hình connector), DOC-13 §5.3, DOC-14 §8.3 (guard LSN), DOC-43 §4.4
 
@@ -54,7 +54,7 @@ curl -s -X POST 'localhost:18083/connectors/debezium-ticketing/restart?includeTa
 
 Kiểm tra lại `status` sau 30 giây. Connector đọc tiếp từ offset đã lưu, không mất dữ liệu.
 
-**B. Cấu hình hoặc quyền sai.** Mật khẩu: RB-12 (phần Debezium). Publication thiếu: `make up` (chạy lại `db-migrate` cho `ticketing_source`). Đổi cấu hình connector: sửa `connect/connectors/debezium-ticketing.json` rồi `make up` (`kafka-connect-init` PUT lại config, DOC-39). Sau đó làm như nhánh A.
+**B. Cấu hình hoặc quyền sai.** Mật khẩu: RB-12 (phần Debezium). Publication thiếu: `make up` (chạy lại `db-migrate` cho `ticketing_source`). Đổi cấu hình connector: sửa `deploy/connect/connectors/debezium-ticketing.json` rồi `make up` (`kafka-connect-init` PUT lại config, DOC-39). Sau đó làm như nhánh A.
 
 **C. Slot mồ côi** (tên khác `pti_ticketing`, `active = false`, thường do thử nghiệm cũ): xóa để giải phóng WAL. Xóa slot cần quyền `REPLICATION` hoặc superuser, nên chạy bằng superuser của `pg-source`: `make psql-src SU=1`.
 
@@ -95,7 +95,7 @@ Không bao giờ xóa slot `pti_ticketing` khi `wal_status` khác `lost`.
   - dừng / chạy lại: `kubectl -n pti patch kafkaconnector debezium-ticketing --type merge -p '{"spec":{"state":"stopped"}}'` (`running` để chạy lại);
   - xóa offset (thay cho `DELETE …/offsets`): khi connector đang `stopped`, `kubectl -n pti annotate kafkaconnector debezium-ticketing strimzi.io/connector-offsets=reset`.
 - SQL trên nguồn: `make psql-src PTI_ENV=k3d [SU=1]`. `psql` chạy trong pod, nên file của `\copy` nằm trong pod; lấy ra bằng `kubectl -n pti cp pti-source-1:/tmp/src_ids.csv ./src_ids.csv` (thay cho `docker cp`).
-- Config connector đổi trong `connect/connectors/*.json` rồi `make k8s-apply`.
+- Config connector đổi trong `deploy/connect/connectors/*.json` rồi `make k8s-apply`.
 - `pti-source` chỉ có 1 instance (DR-55), nên không có failover làm mất replication slot.
 
 ## Xác nhận đã xong

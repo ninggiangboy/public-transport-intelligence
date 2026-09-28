@@ -25,13 +25,13 @@ Yêu cầu:
 
 Chọn **phương án 4**; phương án 1 (OpenFreeMap) chỉ dùng khi dev.
 
-- **Tạo file:** `make tiles` chạy `infra/tiles/fetch.sh`, script này làm ba việc:
+- **Tạo file:** `make tiles` chạy `deploy/tiles/fetch.sh`, script này làm ba việc:
   - Chọn bản build hằng ngày mới nhất của Protomaps: thử `https://build.protomaps.com/<YYYYMMDD>.pmtiles` từ hôm qua lùi tối đa 7 ngày, lấy bản đầu tiên trả 200. Có thể ép bằng `BUILD=<YYYYMMDD>`.
-  - Chạy `pmtiles extract <build> infra/tiles/twin-cities.pmtiles --bbox=-93.730,44.707,-92.806,45.330 --maxzoom=15`. S-05 đo được khoảng **84 MB** (9.403 tile), mất khoảng 23 giây.
-  - Tải font và sprite từ `protomaps/basemaps-assets` tại commit pin `028c18f713baecad011301ff7a69acc39bcc2ae7` vào `infra/tiles/fonts/` (Noto Sans Regular, Medium, Italic, đủ mọi dải glyph, khoảng 13 MB, license OFL) và `infra/tiles/sprites/v4/` (khoảng 180 KB).
+  - Chạy `pmtiles extract <build> deploy/tiles/twin-cities.pmtiles --bbox=-93.730,44.707,-92.806,45.330 --maxzoom=15`. S-05 đo được khoảng **84 MB** (9.403 tile), mất khoảng 23 giây.
+  - Tải font và sprite từ `protomaps/basemaps-assets` tại commit pin `028c18f713baecad011301ff7a69acc39bcc2ae7` vào `deploy/tiles/fonts/` (Noto Sans Regular, Medium, Italic, đủ mọi dải glyph, khoảng 13 MB, license OFL) và `deploy/tiles/sprites/v4/` (khoảng 180 KB).
 
-  Mọi thứ nằm trong `.gitignore`. Ngày build và `SHA256SUMS` được ghi vào `infra/tiles/BUILD.txt`; lần chạy sau thấy file đã có thì không tải lại.
-- **Phục vụ:** compose mount `infra/tiles/` vào `/usr/share/nginx/html/tiles/` của container `frontend` (chỉ đọc). Nginx trả `Accept-Ranges: bytes` mặc định; thêm `location /tiles/ { add_header Cache-Control "public, max-age=86400"; }`.
+  Mọi thứ nằm trong `.gitignore`. Ngày build và `SHA256SUMS` được ghi vào `deploy/tiles/BUILD.txt`; lần chạy sau thấy file đã có thì không tải lại.
+- **Phục vụ:** compose mount `deploy/tiles/` vào `/usr/share/nginx/html/tiles/` của container `frontend` (chỉ đọc). Nginx trả `Accept-Ranges: bytes` mặc định; thêm `location /tiles/ { add_header Cache-Control "public, max-age=86400"; }`.
 - **Style:** dựng lúc chạy bằng `@protomaps/basemaps` 5.x (thư viện runtime, khoảng 7 KB gzip): `layers("protomaps", namedFlavor(flavor), { lang: "en" })`, với `flavor` là **`grayscale`** cho theme sáng và **`black`** cho theme tối. Đây là hai flavor trung tính có sẵn nên không cần tự ghi đè màu, và màu tuyến cùng màu trạng thái nổi bật trên nền (DOC-35 §6; S-05 đã chụp cả hai). Code nằm ở `frontend/src/features/map/baseStyle.ts`. Glyph lấy từ `/tiles/fonts/{fontstack}/{range}.pbf`, sprite từ `/tiles/sprites/v4/<flavor>`. Không có request nào ra ngoài (S-05).
 - **Worker của MapLibre 6:** MapLibre 6 chỉ phát hành dạng ESM, và mặc định tìm worker ở `./maplibre-gl-worker.mjs` cạnh bundle. Sau khi Vite build thì file này không tồn tại. `main.tsx` gọi `maplibregl.setWorkerUrl(workerUrl)` với `import workerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url"`: Vite gom worker cùng phần code dùng chung thành một asset cùng origin (S-05).
 - **Chọn nguồn lúc chạy:** biến `PTI_MAP_STYLE` của container `frontend` (`offline` mặc định, hoặc `online`) được render vào `env.js`. `online` dùng `https://tiles.openfreemap.org/styles/positron` và yêu cầu `PTI_MAP_TILE_ORIGINS=https://tiles.openfreemap.org` cho CSP (DOC-27 §5.3). Vite dev server dùng `frontend/public/env.js` đã commit với `mapStyle: "online"` (DOC-29 §3.5); muốn thử offline khi dev thì sửa thành `offline` và chạy `make tiles` (Vite phục vụ `/tiles/` qua symlink `public/tiles → ../../infra/tiles`, cũng gitignored).

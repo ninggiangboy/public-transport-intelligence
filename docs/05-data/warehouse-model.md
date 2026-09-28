@@ -1,6 +1,6 @@
 # Mô hình dữ liệu warehouse
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-26 · DOC-14
+> Trạng thái: **Review** · Cập nhật: 2026-09-28 · DOC-14
 > Phụ thuộc: [DR](../00-decision-register.md) (DR-09…15, 21, 63, 64, 65), [ADR-0003](../04-adr/0003-effectively-once-upsert.md), [ADR-0009](../04-adr/0009-gtfs-feed-versioning.md), [ADR-0011](../04-adr/0011-fact-partitioning.md), [ADR-0024](../04-adr/0024-flyway-migration-job.md), [DOC-13](source-data.md), [DOC-17](db-roles-and-grants.md)
 > Người dùng chính: module `db` (P1-05), `etl` (P2), `api` (P4)
 
@@ -19,7 +19,7 @@ Tài liệu này định nghĩa schema `dw` của `pti_warehouse`: phiên bản 
 | `V7__insight.sql` | DOC-15 | P4-01 |
 | `R__grants.sql` | DOC-17 | P1-06 |
 
-Thư mục: `db/src/main/resources/db/migration/warehouse/`. Flyway chạy với user `pti_owner`, `defaultSchema=public`, `createSchemas=false` (DOC-17 §5).
+Thư mục: `backend/db/src/main/resources/db/migration/warehouse/`. Flyway chạy với user `pti_owner`, `defaultSchema=public`, `createSchemas=false` (DOC-17 §5).
 
 ## 2. Quy ước
 
@@ -64,7 +64,7 @@ Nét liền là khóa ngoại thật, chỉ có giữa các bảng cùng một p
 
 ## 4. Phiên bản feed và dimension (V1, V2)
 
-File `db/src/main/resources/db/migration/warehouse/V1__schemas.sql`:
+File `backend/db/src/main/resources/db/migration/warehouse/V1__schemas.sql`:
 
 ```sql
 -- pti_warehouse, run by pti_owner. Login roles already exist (bootstrap, DOC-17 §3);
@@ -79,7 +79,7 @@ CREATE SCHEMA exp     AUTHORIZATION pti_owner;  -- baseline shadow tables (DR-27
 REVOKE ALL ON SCHEMA public FROM PUBLIC;
 ```
 
-File `db/src/main/resources/db/migration/warehouse/V2__feed_version_and_dimensions.sql`:
+File `backend/db/src/main/resources/db/migration/warehouse/V2__feed_version_and_dimensions.sql`:
 
 ```sql
 -- Feed versions and dimensions (DR-10, ADR-0009).
@@ -222,7 +222,7 @@ stateDiagram-v2
 
 ## 5. Bảng lịch GTFS (V3)
 
-File `db/src/main/resources/db/migration/warehouse/V3__gtfs_schedule.sql`:
+File `backend/db/src/main/resources/db/migration/warehouse/V3__gtfs_schedule.sql`:
 
 ```sql
 -- Versioned GTFS schedule tables, headway, and time helpers (DR-09, DR-10, DR-12).
@@ -386,7 +386,7 @@ Bước này chạy sau khi mọi file đã được nạp vào phiên bản `ST
    - **Tại sao không dùng trạm đầu:** tuyến có nhánh bắt đầu ở nhiều trạm khác nhau (tuyến 18 có 4 trạm đầu), nên hiệu giờ khởi hành giữa các "trạm đầu" không phải là headway.
 3. `dim_route.typical_headway_seconds` = median của headway ngày thường từ 07:00 tới 19:00, gộp cả hai chiều. Chỉ để hiển thị.
 
-File `etl/src/main/resources/sql/gtfs_finalize.sql`:
+File `backend/etl/src/main/resources/sql/gtfs_finalize.sql`:
 
 ```sql
 -- GtfsStaticLoadJob, step "finalize" (DOC-21). Runs after all files are loaded as STAGED and
@@ -478,7 +478,7 @@ Kết quả trên feed thật (1,85 giây): 8.177 dòng `route_headway`, trong �
 
 ### 6.2 Bước activate
 
-File `etl/src/main/resources/sql/gtfs_activate.sql`:
+File `backend/etl/src/main/resources/sql/gtfs_activate.sql`:
 
 ```sql
 -- GtfsStaticLoadJob, step "activate": one transaction. Retire first, then activate, because the
@@ -510,7 +510,7 @@ PK phải chứa cột partition (giới hạn của PostgreSQL), nên business 
 
 ### 7.2 DDL
 
-File `db/src/main/resources/db/migration/warehouse/V4__facts.sql`:
+File `backend/db/src/main/resources/db/migration/warehouse/V4__facts.sql`:
 
 ```sql
 -- Facts (partitioned, ADR-0011), latest positions (DR-14), partition maintenance, baseline shadow tables (DR-27).
@@ -786,7 +786,7 @@ Tính đúng đắn (không mất, không trùng) dựa vào **upsert theo busin
 
 ### 8.1 VehiclePosition
 
-File `etl/src/main/resources/sql/upsert_vehicle_position.sql`:
+File `backend/etl/src/main/resources/sql/upsert_vehicle_position.sql`:
 
 ```sql
 INSERT INTO dw.fact_vehicle_position AS t (
@@ -808,7 +808,7 @@ WHERE t.payload_hash <> excluded.payload_hash   -- same key, different content: 
 
 ### 8.2 TripUpdate
 
-File `etl/src/main/resources/sql/upsert_trip_update.sql`:
+File `backend/etl/src/main/resources/sql/upsert_trip_update.sql`:
 
 ```sql
 INSERT INTO dw.fact_trip_update AS t (
@@ -838,7 +838,7 @@ Guard theo event time (FR-03.2): chỉ ghi khi dữ liệu mới hơn. Khi cùng
 
 ### 8.3 Giao dịch vé
 
-File `etl/src/main/resources/sql/upsert_ticket_sales.sql`:
+File `backend/etl/src/main/resources/sql/upsert_ticket_sales.sql`:
 
 ```sql
 INSERT INTO dw.fact_ticket_sales AS t (
@@ -860,7 +860,7 @@ WHERE excluded.source_lsn > t.source_lsn                            -- LSN guard
 
 ### 8.4 Vị trí hiện tại
 
-File `etl/src/main/resources/sql/upsert_vehicle_position_latest.sql`:
+File `backend/etl/src/main/resources/sql/upsert_vehicle_position_latest.sql`:
 
 ```sql
 INSERT INTO dw.vehicle_position_latest AS t (
@@ -883,7 +883,7 @@ Không có tham số `:replay`: replay dữ liệu cũ không được kéo xe "
 
 ### 8.5 Điểm bán
 
-File `etl/src/main/resources/sql/upsert_dim_sale_point.sql`:
+File `backend/etl/src/main/resources/sql/upsert_dim_sale_point.sql`:
 
 ```sql
 INSERT INTO dw.dim_sale_point AS t (
@@ -899,7 +899,7 @@ WHERE t.source_lsn IS NULL                                          -- INFERRED 
    OR (excluded.source_lsn = t.source_lsn AND :replay)
 ```
 
-File `etl/src/main/resources/sql/insert_dim_sale_point_inferred.sql`:
+File `backend/etl/src/main/resources/sql/insert_dim_sale_point_inferred.sql`:
 
 ```sql
 INSERT INTO dw.dim_sale_point (sale_point_id, source, batch_id)
@@ -941,7 +941,7 @@ Module `etl` phải có integration test (Testcontainers) lặp lại đúng b�
 
 ## 9. Lịch ngày (V6)
 
-File `db/src/main/resources/db/migration/warehouse/V6__dim_date.sql`:
+File `backend/db/src/main/resources/db/migration/warehouse/V6__dim_date.sql`:
 
 ```sql
 -- Calendar dimension 2024-2030 (DR-11). Holidays are the days Metro Transit runs its Sunday

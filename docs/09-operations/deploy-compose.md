@@ -20,16 +20,18 @@ deploy/
     kafka/create-topics.sh          # đọc topics.yaml, tạo hoặc sửa config topic (idempotent)
     seaweedfs/s3.json.tmpl          # mẫu identity; make secrets render ra .generated/s3.json
     seaweedfs/s3-init.sh            # tạo bucket raw, versioning, lifecycle (DR-66)
-    connect/register.sh             # PUT /connectors/<name>/config cho mọi file trong connect/connectors/
+    connect/register.sh             # PUT /connectors/<name>/config cho mọi file trong deploy/connect/connectors/
     keycloak/realm-pti.json         # realm, client, role, user demo (DOC-27)
     observability/                  # prometheus.yml, rules/, alertmanager.yml, loki, tempo, alloy, otel, grafana/provisioning
     toxiproxy/toxiproxy.json        # proxy cho profile experiment
     scripts/backup.sh, restore-warehouse.sh, ensure-partitions.sh, replay.sh   # DOC-43, DOC-38 §4
     .generated/                     # (gitignored) s3.json, webhook-token
-connect/
-  Dockerfile                        # FROM quay.io/debezium/connect:3.6.3.Final + Aiven S3 sink (S-04)
-  connectors/debezium-ticketing.json
-  connectors/s3-sink-raw.json
+  connect/
+    Dockerfile                      # FROM quay.io/debezium/connect:3.6.3.Final + Aiven S3 sink (S-04)
+    connectors/debezium-ticketing.json
+    connectors/s3-sink-raw.json
+  tiles/
+    fetch.sh                        # make tiles (ADR-0021); PMTiles, fonts/, sprites/ đều gitignored
 Makefile                            # DOC-38 §4
 .env                                # (gitignored) sinh bởi make secrets
 ```
@@ -65,8 +67,8 @@ Image hạ tầng lấy tag và digest từ `deploy/versions.env` (DOC-11). Imag
 | `seaweedfs` | `chrislusf/seaweedfs:4.47` | `server -dir=/data -s3 -s3.config=/etc/seaweedfs/s3.json -s3.port=8333 -master.volumeSizeLimitMB=1024 -volume.max=0` | `seaweedfs-data:/data`; `./.generated/s3.json:/etc/seaweedfs/s3.json:ro` | 384 MB / 0,5 |
 | `s3-init` | `amazon/aws-cli` (pin digest) | `s3-init.sh`, credential `admin` | `./seaweedfs/s3-init.sh:/s3-init.sh:ro` | 128 MB |
 | `db-migrate` | `ghcr.io/<owner>/pti-db-migrate` | Chạy ba bộ Flyway rồi thoát (DOC-17 §5) | — | 384 MB |
-| `kafka-connect` | `ghcr.io/<owner>/pti-connect` (build từ `connect/Dockerfile`) | §3.4 | — (state nằm trong topic `connect-*`) | 1.280 MB / 1,0; `-Xmx512m`. S-04 đo đỉnh 1.009 MiB khi S3 sink chạy bù 1 triệu record (DR-81) |
-| `kafka-connect-init` | `curlimages/curl` (pin digest) | `register.sh` | `../../connect/connectors:/connectors:ro` | 64 MB |
+| `kafka-connect` | `ghcr.io/<owner>/pti-connect` (build từ `deploy/connect/Dockerfile`) | §3.4 | — (state nằm trong topic `connect-*`) | 1.280 MB / 1,0; `-Xmx512m`. S-04 đo đỉnh 1.009 MiB khi S3 sink chạy bù 1 triệu record (DR-81) |
+| `kafka-connect-init` | `curlimages/curl` (pin digest) | `register.sh` | `../connect/connectors:/connectors:ro` | 64 MB |
 | `keycloak` | `quay.io/keycloak/keycloak:26.7.4` | `start-dev --import-realm --http-port=8080`. Env `KC_BOOTSTRAP_ADMIN_USERNAME=admin`, `KC_BOOTSTRAP_ADMIN_PASSWORD=${KEYCLOAK_ADMIN_PASSWORD}`, `KC_HOSTNAME=http://localhost:${HOST_PORT_KEYCLOAK:-8180}`, `KC_HOSTNAME_BACKCHANNEL_DYNAMIC=true`, `KC_HEALTH_ENABLED=true` | `./keycloak/realm-pti.json:/opt/keycloak/data/import/realm-pti.json:ro` | 768 MB / 1,0 |
 
 Keycloak chạy `start-dev` với H2 trong container và không có volume: mỗi lần tạo lại container, realm được import lại từ file. Như vậy cấu hình realm luôn khớp với file đã commit; đổi realm thì sửa file, không sửa qua console.
@@ -112,7 +114,7 @@ x-spring-app: &spring-app
 | `etl-stream` | `pti-etl` | `SPRING_PROFILES_ACTIVE: stream${PTI_ETL_EXTRA_PROFILES:-}`; `SPRING_DATASOURCE_URL=jdbc:postgresql://${PTI_WAREHOUSE_HOST:-pg-warehouse}:5432/pti_warehouse`, `etl_writer`; `PTI_DQ_MAX_CLOCK_SKEW=${PTI_DQ_MAX_CLOCK_SKEW:-1h}` (`make up-demo` đặt `5m` để demo auto-replay bằng `late-delivery`, DOC-24, DOC-46) | 9082 | 768 MB / 2,0 |
 | `etl-batch` | `pti-etl` | `SPRING_PROFILES_ACTIVE: batch`; datasource như trên; `PTI_S3_ENDPOINT=http://seaweedfs:8333`, `PTI_S3_ACCESS_KEY=${S3_ETL_ACCESS_KEY}`, `PTI_S3_SECRET_KEY=${S3_ETL_SECRET_KEY}`, `SPRING_CLOUD_AWS_S3_PATH_STYLE_ACCESS_ENABLED=true`, `SPRING_CLOUD_AWS_REGION_STATIC=us-east-1`; `PTI_GTFS_BOOTSTRAP_LOCATION=file:/feed/metrotransit-mn-20260926.zip` | 9083 | 640 MB / 1,0 |
 | `api` | `pti-api` | `SPRING_PROFILES_INCLUDE: ${PTI_EXTRA_PROFILES:-}`; hai datasource `api_reader`, `replay_operator` (DOC-29 §3.1); `SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI=http://keycloak:8080/realms/pti/protocol/openid-connect/certs`, `PTI_API_SECURITY_ISSUER=http://localhost:${HOST_PORT_KEYCLOAK:-8180}/realms/pti` | 8081, 9081 | 640 MB / 1,0 |
-| `frontend` | `pti-frontend` (nginx) | `PTI_KEYCLOAK_URL=http://localhost:${HOST_PORT_KEYCLOAK:-8180}`, `PTI_KEYCLOAK_REALM=pti`, `PTI_KEYCLOAK_CLIENT_ID=pti-web`, `PTI_MAP_TILE_ORIGINS=` (rỗng khi dùng PMTiles cục bộ), `PTI_MAP_STYLE=${PTI_MAP_STYLE:-offline}`, `PTI_EXTRA_PROFILES=${PTI_EXTRA_PROFILES:-}` (chứa `demo` thì bật Demo control); volume `../../infra/tiles:/usr/share/nginx/html/tiles:ro` (ADR-0021); entrypoint render `env.js` và header CSP (DOC-27 §5.3) từ các biến này (P5-15; bảng đầy đủ ở DOC-29 §3.5) | 8080 | 32 MB / 0,25 |
+| `frontend` | `pti-frontend` (nginx) | `PTI_KEYCLOAK_URL=http://localhost:${HOST_PORT_KEYCLOAK:-8180}`, `PTI_KEYCLOAK_REALM=pti`, `PTI_KEYCLOAK_CLIENT_ID=pti-web`, `PTI_MAP_TILE_ORIGINS=` (rỗng khi dùng PMTiles cục bộ), `PTI_MAP_STYLE=${PTI_MAP_STYLE:-offline}`, `PTI_EXTRA_PROFILES=${PTI_EXTRA_PROFILES:-}` (chứa `demo` thì bật Demo control); volume `../tiles:/usr/share/nginx/html/tiles:ro` (ADR-0021); entrypoint render `env.js` và header CSP (DOC-27 §5.3) từ các biến này (P5-15; bảng đầy đủ ở DOC-29 §3.5) | 8080 | 32 MB / 0,25 |
 | `triage-worker` | `pti-triage-worker` | `SPRING_DATASOURCE_*` với `triage_writer`; `PTI_TRIAGE_PROVIDER=${PTI_TRIAGE_PROVIDER:-fake}`, `TYPESAFE_API_KEY`; health etl-stream dùng mặc định `http://etl-stream:9080` (DOC-24 §6.6) | 9085 | 384 MB / 0,5 |
 | `etl-stream-baseline` | `pti-etl` | `SPRING_PROFILES_ACTIVE: stream,experiment`; `PTI_ETL_BASELINE_*` (DR-27), group id `pti-exp-baseline`; chỉ ghi `exp.*` | 9086 | 768 MB / 2,0 |
 
@@ -155,7 +157,7 @@ kafka:
 
 ### 3.4 Kafka Connect
 
-Image `connect/Dockerfile`:
+Image `deploy/connect/Dockerfile`:
 
 ```dockerfile
 FROM quay.io/debezium/connect:3.6.3.Final
@@ -337,7 +339,7 @@ Quy tắc:
 | Code app | `make images && make up`. Compose chỉ tạo lại container có image đổi. `db-migrate` luôn chạy lại (idempotent) trước các app |
 | Migration mới | Theo expand/contract (ADR-0024): migration mở rộng tương thích với code cũ, merge trước; code mới dùng cột mới; migration thu hẹp ở PR sau. Nhờ vậy thứ tự `db-migrate` → app không gây lỗi giữa chừng |
 | Đổi topic (thêm partition, đổi config) | Sửa `deploy/topics.yaml` rồi `make up` (`kafka-init` áp lại config). Giảm partition không được hỗ trợ; phải `make reset` |
-| Đổi connector | Sửa file trong `connect/connectors/` rồi `make up`; `kafka-connect-init` PUT lại config. Đổi `slot.name` hay `topic.prefix` là thay đổi phá vỡ: xóa connector, xóa replication slot, snapshot lại |
+| Đổi connector | Sửa file trong `deploy/connect/connectors/` rồi `make up`; `kafka-connect-init` PUT lại config. Đổi `slot.name` hay `topic.prefix` là thay đổi phá vỡ: xóa connector, xóa replication slot, snapshot lại |
 | Nâng phiên bản image hạ tầng | Sửa `deploy/versions.env` (tag và digest) trong một PR riêng, chạy smoke test (§8). Postgres major version: `pg_dump` → `make reset` → restore (DOC-43); không hỗ trợ `pg_upgrade` trên compose |
 | Đổi realm Keycloak | Sửa `realm-pti.json`, `make restart S=keycloak` (import lại vì không có volume) |
 

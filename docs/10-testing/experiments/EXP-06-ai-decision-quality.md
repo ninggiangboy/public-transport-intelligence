@@ -1,6 +1,6 @@
 # EXP-06: Chất lượng quyết định của Jev so với bộ luật
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-27 · DOC-45 / EXP-06
+> Trạng thái: **Review** · Cập nhật: 2026-09-28 · DOC-45 / EXP-06
 >
 > Phụ thuộc: [protocol chung](README.md), [DOC-24](../../06-design/ai-triage.md) §6, §7, §8, §11, §13, §14.1, §15, [DOC-25](../../06-design/source-simulator.md) §7.3, §7.4, §7.6, §7.7, §7.9, [ADR-0018](../../04-adr/0018-decision-model-port.md), [ADR-0019](../../04-adr/0019-code-owned-automation-thresholds.md), DR-36, DR-52, DR-73, G8 (DOC-01)
 >
@@ -224,7 +224,7 @@ DOC-24 §3 để API batch của SDK ngoài phạm vi P6 (vẫn gọi từng sta
 | Từng state, `parallelism` 8 | 1 | 100 | | | — |
 | Batch | 20 | 5 | | | Tỷ lệ dòng khác label top-1 |
 
-Đo bằng một test tay ngoài `decide` (script trong `experiments/pti_exp/experiments/exp06_batch.py` gọi SDK qua jshell hoặc một main class trong `triage-worker/src/contractTest`), vì profile `eval` chỉ có đường gọi từng state. Nếu S-01 kết luận batch không dùng được, ghi "Không áp dụng" cùng lý do.
+Đo bằng một test tay ngoài `decide` (script trong `experiments/pti_exp/experiments/exp06_batch.py` gọi SDK qua jshell hoặc một main class trong `backend/triage-worker/src/contractTest`), vì profile `eval` chỉ có đường gọi từng state. Nếu S-01 kết luận batch không dùng được, ghi "Không áp dụng" cùng lý do.
 
 ## 11. Mối đe dọa tới tính hợp lệ
 
