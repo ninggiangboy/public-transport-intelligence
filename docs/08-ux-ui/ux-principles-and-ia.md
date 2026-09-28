@@ -1,6 +1,6 @@
 # Nguyên tắc UX và kiến trúc thông tin
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-27 · DOC-34
+> Trạng thái: **Review** · Cập nhật: 2026-09-28 · DOC-34
 > Phụ thuộc: DOC-02, DOC-03 (FR-11, NFR-11, NFR-12), DOC-04, DOC-26 §8–9, DOC-27 §3, DOC-31, DOC-32, DOC-33, ADR-0020, ADR-0021
 > Người dùng chính: P5-01…P5-15; người viết DOC-35, DOC-36, DOC-37
 
@@ -200,7 +200,6 @@ frontend/
   public/
     env.js                      # dev defaults; replaced by the nginx entrypoint at startup (§10)
     auth/silent.html  auth/silent.js
-    map/style-light.json  map/style-dark.json  map/fonts/  map/sprites/
   src/
     main.tsx                    # mounts providers and the router
     env.ts                      # reads and validates window.__PTI_ENV__ (zod)

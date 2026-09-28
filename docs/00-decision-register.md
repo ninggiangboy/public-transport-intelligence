@@ -41,6 +41,7 @@ Tài liệu gốc mô tả tốt *cái gì* và *vì sao*, nhưng còn nhiều c
 | 2026-09-27 | Owner | **Repo chuyển sang GitHub public** (thay quyết định private): runner chuẩn của GitHub đủ 16 GB để chạy E2E và k3d, không cần self-hosted runner; image GHCR để public | DR-56, DR-76 |
 | 2026-09-28 | Claude (Owner ủy quyền) | **S-06 xong:** Boot 4.1.1 + Java 25 dùng được với mọi thư viện đã chọn, không cần lối lui. Chunk step của job batch dựng bằng builder fault-tolerant cũ của Spring Batch 6, vì `ChunkOrientedStep` mới làm mất DLQ và bỏ sót item khi crash giữa lúc scan | DR-53, DR-80 |
 | 2026-09-28 | Claude (Owner ủy quyền) | **S-04 xong:** image Connect = Debezium 3.6.3 + Aiven S3 sink 3.4.3. Raw zone lưu value dạng base64 để giữ đúng từng byte; thư mục giờ theo CreateTime; `file.max.records=2000` và `mem_limit` 1.280 MB để S3 sink không OOM khi chạy bù. Debezium chạy được trên PostgreSQL 18.6; vẫn dùng 17.11 tới khi kiểm xong CNPG | DR-81, DR-53, DR-66 |
+| 2026-09-28 | Claude (Owner ủy quyền) | **S-05 xong:** bản đồ nền Twin Cities 84 MB, render offline không có request ra ngoài. Dùng MapLibre 6 (worker cùng origin, CSP không cần `blob:`); font và sprite tải bằng `make tiles` thay vì commit vào repo | DR-47, DR-82 |
 
 ---
 
@@ -513,8 +514,9 @@ Tài liệu gốc mô tả tốt *cái gì* và *vì sao*, nhưng còn nhiều c
 - **Quyết định:** Vite, React 19, TypeScript strict, pnpm. TanStack Router (search params có kiểu, tiện đồng bộ bộ lọc lên URL). TanStack Query. Tailwind CSS cùng shadcn/ui (Radix). Apache ECharts cho biểu đồ chuỗi thời gian. TanStack Table + TanStack Virtual cho bảng DLQ. MapLibre GL JS qua `react-map-gl/maplibre`. react-hook-form + zod. CodeMirror 6 để sửa payload JSON. `react-oidc-context`. Zustand cho state UI. Test bằng Vitest, React Testing Library, MSW và Playwright.
 - **Ghi vào:** ADR-0020, DOC-11.
 
-### DR-47 · Bản đồ khi demo offline — **Chốt** (kích thước file xác nhận ở S-05)
-- **Quyết định:** Dùng MapLibre với file PMTiles cắt riêng vùng thành phố của feed, serve qua nginx của frontend, để demo không phụ thuộc internet. Khi dev có thể dùng style từ nhà cung cấp tile miễn phí (ví dụ OpenFreeMap). 🔬 spike S-05.
+### DR-47 · Bản đồ khi demo offline — **Chốt** (đã xác minh ở S-05)
+- **Quyết định:** Dùng MapLibre với file PMTiles cắt riêng vùng thành phố của feed, serve qua nginx của frontend, để demo không phụ thuộc internet. Khi dev có thể dùng style từ nhà cung cấp tile miễn phí (ví dụ OpenFreeMap).
+- **Kết quả spike S-05** (2026-09-28): file cắt cho bbox của feed ở maxzoom 15 nặng 84 MB. Bản đồ render hoàn toàn offline, không có request ra ngoài, ở cả nền sáng lẫn tối. Chi tiết ở ADR-0021; các thay đổi kéo theo ở DR-82.
 - **Ghi vào:** ADR-0021.
 
 ### DR-48 · Ngôn ngữ và hiển thị thời gian — **Chốt**
@@ -697,6 +699,15 @@ Tài liệu gốc mô tả tốt *cái gì* và *vì sao*, nhưng còn nhiều c
 - **Hệ quả:** File raw zone không đọc được bằng mắt, nên thêm `make raw-cat`. Số object nhiều hơn: VehiclePosition khoảng 48.000 object mỗi 7 ngày ở tải nền, nên `pti.replay.max-objects` tăng lên 100.000. Aiven không ghi trường `partition`, nên reader lấy partition từ tên file.
 - **Ghi vào:** ADR-0012, DOC-09 §7, DOC-10 §5, DOC-11, DOC-18 §2, DOC-22 §4.3–4.4, DOC-38, DOC-39 §3.4, DOC-40 §6.3.
 
+
+### DR-82 · MapLibre 6, font bản đồ và CSP — **Chốt** (sau S-05)
+- **Vấn đề:** DOC-11 ghi MapLibre 5.x. Lúc spike, bản mới nhất là 6.11.2 (6.0.0 ra ngày 2026-07-22). Bản 6 chỉ phát hành ESM và tải worker từ một file riêng, nên hành vi khác bản 5 ở hai điểm: đường dẫn worker sau khi Vite build, và CSP (bản 5 tạo worker từ blob URL, nên DOC-27 phải mở `worker-src blob:`). Ngoài ra, ADR-0021 định commit font và sprite vào `frontend/public/map/`, nhưng ba font Noto Sans đủ mọi dải glyph nặng 13 MB (771 file).
+- **Quyết định:**
+  - Dùng **MapLibre GL JS 6.x** (theo DR-53). `@vis.gl/react-maplibre` 8.1.3 (phần maplibre của `react-map-gl`) chấp nhận `maplibre-gl >=4`. Worker được đặt bằng `setWorkerUrl` với import `?worker&url` của Vite (ADR-0021).
+  - CSP bỏ `blob:` khỏi `worker-src`, `child-src` và `img-src`. S-05 chạy được dưới CSP chặt hơn này.
+  - Font và sprite không commit. `make tiles` tải chúng từ `protomaps/basemaps-assets` (commit pin) vào `infra/tiles/`; nginx phục vụ cùng chỗ với file PMTiles (`/tiles/`).
+  - Style dựng lúc chạy bằng `@protomaps/basemaps` 5.x, không sinh file JSON lúc build. Theme sáng dùng flavor `grayscale`, theme tối dùng `black`; cả hai là nền không màu có sẵn nên không cần tự chỉnh màu.
+- **Ghi vào:** ADR-0021, DOC-11, DOC-27 §5.3, DOC-34 §9, DOC-35 §6, DOC-38.
 ---
 
 ## Tổng hợp theo mức ảnh hưởng
@@ -707,7 +718,7 @@ Tài liệu gốc mô tả tốt *cái gì* và *vì sao*, nhưng còn nhiều c
 | Chặn P2 | DR-07, 13, 14, 15, 16, 18, 21, 22, 23, 24, 25, 62, 63, 65, 69, 70, 80 | Quyết định ngữ nghĩa đúng đắn của pipeline |
 | Chặn P3 | DR-27, 28, 50, 57, 58, 71 | Thiếu thì không đo được thực nghiệm |
 | Chặn P4 | DR-12, 17, 19, 20, 29–35, 39–45 | Analytics và API |
-| Chặn P5 | DR-46–49 | Frontend |
+| Chặn P5 | DR-46–49, 82 | Frontend |
 | Chặn P6 | DR-36, 37, 38, 60, 72, 73, 74 | AI triage |
 | Chặn P7 | DR-54, 55, 56, 75, 76 | Kubernetes |
 | Chặn P8 | DR-77, 78, 79 | Demo, runbook k3d, báo cáo |

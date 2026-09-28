@@ -1,6 +1,6 @@
 # Bảo mật
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-27 · DOC-27
+> Trạng thái: **Review** · Cập nhật: 2026-09-28 · DOC-27
 >
 > Phụ thuộc: [DOC-07](../03-architecture/system-context-and-containers.md) §5, [DOC-17](../05-data/db-roles-and-grants.md), [DOC-18](../05-data/data-lifecycle.md) §4, [DOC-31](../07-api/api-guidelines.md), [DOC-32](../07-api/api-endpoints.md), [DOC-26](realtime-delivery.md), [DOC-39](../09-operations/deploy-compose.md), [DOC-41](../09-operations/ci-cd.md), DR-20, DR-40, DR-45, DR-60, [ADR-0017](../04-adr/0017-keycloak-oauth2-resource-server.md)
 >
@@ -163,10 +163,10 @@ add_header X-Frame-Options "DENY" always;
 add_header Referrer-Policy "strict-origin-when-cross-origin" always;
 add_header Permissions-Policy "geolocation=(self), camera=(), microphone=(), payment=()" always;
 add_header Cross-Origin-Opener-Policy "same-origin" always;
-add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; worker-src 'self' blob:; child-src blob:; connect-src 'self' ${PTI_KEYCLOAK_URL} ${PTI_MAP_TILE_ORIGINS}; frame-src ${PTI_KEYCLOAK_URL}; frame-ancestors 'none'; base-uri 'self'; form-action 'self' ${PTI_KEYCLOAK_URL}; object-src 'none'" always;
+add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; worker-src 'self'; connect-src 'self' ${PTI_KEYCLOAK_URL} ${PTI_MAP_TILE_ORIGINS}; frame-src ${PTI_KEYCLOAK_URL}; frame-ancestors 'none'; base-uri 'self'; form-action 'self' ${PTI_KEYCLOAK_URL}; object-src 'none'" always;
 ```
 
-- `worker-src blob:` và `child-src blob:`: MapLibre tạo web worker từ blob URL.
+- `worker-src 'self'`, không có `blob:`: MapLibre 6 tạo module worker từ file cùng origin (`setWorkerUrl`, ADR-0021). S-05 chạy bản đồ dưới đúng CSP này (DR-82). Nếu `PTI_MAP_STYLE=online` thì style và tile đến từ `PTI_MAP_TILE_ORIGINS`, còn worker vẫn cùng origin.
 - `style-src 'unsafe-inline'`: MapLibre và ECharts đặt style inline trên phần tử; chấp nhận vì script vẫn bị khóa chặt.
 - `connect-src` và `frame-src` có origin Keycloak (`PTI_KEYCLOAK_URL`, mặc định `http://localhost:8180`) cho `signinSilent` và gọi token endpoint. `PTI_MAP_TILE_ORIGINS` rỗng khi dùng PMTiles cục bộ (DR-47), là origin tile server khi dev.
 - Giá trị `${…}` được entrypoint của image frontend thay lúc khởi động (cùng cơ chế với `env.js`, DOC-39).

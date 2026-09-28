@@ -26,7 +26,7 @@ Cột **Gate** là phase cần ADR ở trạng thái Accepted trước khi bắt
 | [0018](0018-decision-model-port.md) | Cổng `DecisionModel` với adapter Jev/Fake/Disabled | Accepted | P6 | DR-36 |
 | [0019](0019-code-owned-automation-thresholds.md) | Ngưỡng tự động hóa do code sở hữu, AI chỉ phán đoán | Accepted | P6 | SDD 9.6 |
 | [0020](0020-frontend-stack.md) | Stack frontend: React SPA + Vite, TanStack, shadcn/ui | Accepted | P5 | DR-46 |
-| [0021](0021-maplibre-pmtiles-offline.md) | Bản đồ MapLibre và PMTiles offline | Accepted | P5 | DR-47 |
+| [0021](0021-maplibre-pmtiles-offline.md) | Bản đồ MapLibre và PMTiles offline | Accepted (đã xác minh S-05) | P5 | DR-47, DR-82 |
 | [0022](0022-observability-stack.md) | Observability: Prometheus, Tempo, Loki, Alloy | Accepted | P3 | DR-50, DR-71 |
 | [0023](0023-unified-alert-event.md) | Bảng `alert_event` hợp nhất, định tuyến theo audience | Accepted | P4 | DR-17 |
 | [0024](0024-flyway-migration-job.md) | Flyway chạy như job riêng; expand/contract | Accepted | P1 | SDD 12.4 |

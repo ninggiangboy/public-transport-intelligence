@@ -87,7 +87,7 @@ Offset được làm tròn tới phút. Mọi app dùng chung một giá trị. 
 | Lệnh | Việc |
 | --- | --- |
 | `make doctor` | Kiểm tra môi trường (§2) |
-| `make tiles` | Cắt bản đồ nền Twin Cities bằng `pmtiles extract` vào `infra/tiles/twin-cities.pmtiles` (~60–90 MB, gitignored; ADR-0021). Bỏ qua nếu file đã có |
+| `make tiles` | Chạy `infra/tiles/fetch.sh`: cắt bản đồ nền Twin Cities bằng `pmtiles extract` từ bản build Protomaps mới nhất vào `infra/tiles/twin-cities.pmtiles` (khoảng 84 MB), tải font và sprite vào `infra/tiles/fonts/`, `infra/tiles/sprites/` (khoảng 13 MB); tất cả gitignored (ADR-0021). Phần nào đã có thì bỏ qua |
 | `make secrets` | Tạo `.env` nếu chưa có; điền biến trống bằng `openssl rand -base64 24`; sinh `deploy/compose/.generated/s3.json`. Chạy lại không ghi đè giá trị đã có |
 | `make images` | Build mọi image: `./gradlew jibDockerBuild` (các app Java), `docker build` cho `connect/` và `frontend/` |
 | `make up` | `images` (nếu code đổi) rồi `docker compose --profile core up -d --wait`. Lệnh chỉ trả về khi mọi service healthy và mọi job một lần (`db-migrate`, `kafka-init`, `s3-init`, `kafka-connect-init`) đã xong |

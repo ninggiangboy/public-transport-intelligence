@@ -84,7 +84,7 @@
 | OpenTelemetry Collector | `otel/opentelemetry-collector-contrib` | Nhận OTLP, xuất sang Tempo | Apache-2.0 | 🔬 |
 | Mailpit | `axllent/mailpit:1.x` | | MIT | 🔬 |
 | Toxiproxy | `ghcr.io/shopify/toxiproxy:2.x` | Profile `experiment` | MIT | 🔬 |
-| nginx | `nginx:1.2x-alpine` | Phục vụ SPA và PMTiles | BSD-2 | 🔬 |
+| nginx | `nginx:1.30-alpine` (1.30.5, nhánh stable) | Phục vụ SPA và PMTiles (range request đã kiểm ở S-05). `mime.types` không có `.mjs`; build Vite chỉ ra `.js` nên không ảnh hưởng | BSD-2 | ✅ (S-05) |
 
 ### 2.1 Kubernetes (P7)
 
@@ -112,13 +112,13 @@ Mọi phiên bản trong bảng này được pin ở P7-02 vào `deploy/version
 | Node.js | **24 LTS** | Runtime build | ✅ (DR-53) |
 | pnpm | 10.x | Package manager | 🔬 |
 | TypeScript | 5.x, `strict: true` | | 🔬 |
-| Vite | bản ổn định mới nhất | Build, dev server | 🔬 |
+| Vite | 8.x (S-05 build được với 8.3.1) | Build, dev server | ✅ (S-05) |
 | React / React DOM | **19.x** | | ✅ |
 | TanStack Router / Query / Table / Virtual | 1.x / 5.x / 8.x / 3.x | Router có search params định kiểu; data fetching; bảng DLQ | 🔬 |
 | Tailwind CSS | 4.x | | 🔬 |
 | shadcn/ui (Radix primitives) | CLI mới nhất | Component có a11y | 🔬 |
 | Apache ECharts (+ `echarts-for-react`) | bản mới nhất | Biểu đồ | 🔬 |
-| MapLibre GL JS / `react-map-gl` / `pmtiles` | 5.x / 8.x / 4.x | Bản đồ offline (DR-47) | 🔬 |
+| MapLibre GL JS / `react-map-gl` / `pmtiles` / `@protomaps/basemaps` | **6.x** / 8.x / 4.x / 5.x | Bản đồ offline (DR-47, DR-82). S-05 chạy với 6.11.2 / — / 4.5.0 / 5.7.2. MapLibre 6 chỉ có ESM; worker đặt bằng `setWorkerUrl` (ADR-0021) | ✅ (S-05) |
 | react-hook-form + zod | 7.x + 4.x | Form | 🔬 |
 | CodeMirror 6 (`@uiw/react-codemirror`, `@codemirror/lang-json`) | 6.x | Sửa payload DLQ | 🔬 |
 | `react-oidc-context` + `oidc-client-ts` | 3.x | OIDC PKCE | 🔬 |
@@ -134,7 +134,6 @@ Mọi phiên bản trong bảng này được pin ở P7-02 vào `deploy/version
 | `sonner` | 2.x | Toast (DOC-35 §5) | 🔬 |
 | `@fontsource-variable/inter`, `@fontsource-variable/jetbrains-mono` | 5.x | Font tự host, không gọi Google Fonts (DOC-35 §4) | 🔬 |
 | `eslint-plugin-i18next` | 6.x | Luật `no-literal-string` (DR-48, DOC-37 CP-02) | 🔬 |
-| `protomaps-themes-base` (dev) | 4.x | Sinh `style-light.json`/`style-dark.json` cho bản đồ nền (ADR-0021) | 🔬 |
 | ESLint (flat config) + Prettier | 9.x + 3.x | Lint, format | 🔬 |
 
 ## 4. Thực nghiệm (Python)
@@ -147,7 +146,7 @@ Mọi phiên bản trong bảng này được pin ở P7-02 vào `deploy/version
 
 ## 5. Công cụ dev (`mise.toml`)
 
-`java = "temurin-25"`, `node = "24"`, `pnpm = "10"`, `python = "3.12"`, `uv`, `kubectl`, `k3d`, `helm`, `helmfile`, `kubeseal`, `kubectl-cnpg`, `jq`, `kcat`, `gh`, `pmtiles` (go-pmtiles CLI, dùng cho `make tiles`, ADR-0021). Docker Desktop hoặc OrbStack cài riêng (DOC-38).
+`java = "temurin-25"`, `node = "24"`, `pnpm = "10"`, `python = "3.12"`, `uv`, `kubectl`, `k3d`, `helm`, `helmfile`, `kubeseal`, `kubectl-cnpg`, `jq`, `kcat`, `gh`, `pmtiles = "1.31.2"` (go-pmtiles CLI, dùng cho `make tiles`, ADR-0021; S-05). Docker Desktop hoặc OrbStack cài riêng (DOC-38).
 
 ## 6. Thay đổi so với Spring Boot 3 cần biết
 

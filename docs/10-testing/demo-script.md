@@ -1,6 +1,6 @@
 # Kịch bản demo
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-27 · DOC-46
+> Trạng thái: **Review** · Cập nhật: 2026-09-28 · DOC-46
 > Phụ thuộc: SDD §14.1, [DOC-25](../06-design/source-simulator.md) §7, [DOC-24](../06-design/ai-triage.md) §6.4, [DOC-27](../06-design/security.md) §3.1, [DOC-36](../08-ux-ui/screens/README.md) (Live map, Alert feed, Route scorecard, Dead letters, Jobs, Demo control), [DOC-38](../09-operations/local-dev.md) §4, [DOC-39](../09-operations/deploy-compose.md) §2, [DOC-40](../09-operations/deploy-k8s.md) §13–14, [DOC-45](experiments/README.md), [EXP-07](experiments/EXP-07-autoscaling.md), [EXP-08](experiments/EXP-08-chaos.md), [DR](../00-decision-register.md) (DR-47, DR-49)
 > Người dùng chính: người trình bày (PS-5), P8-04, P8-05
 
@@ -251,7 +251,7 @@ Demo không cần Internet nếu các điều kiện sau đã đúng từ hôm t
 | Thành phần | Điều kiện | Kiểm |
 | --- | --- | --- |
 | Image compose | Đã build hoặc pull mọi image (`make images`, `docker compose pull` cho image hạ tầng) | `make demo-preflight` kiểm `docker image inspect` từng image trong `deploy/versions.env` |
-| Bản đồ | PMTiles, font và sprite nằm trong `infra/tiles` và bundle frontend (DR-47, ADR-0021) | Tắt Wi-Fi, mở Live map: nền bản đồ đầy đủ |
+| Bản đồ | PMTiles, font và sprite nằm trong `infra/tiles` (DR-47, ADR-0021) | Tắt Wi-Fi, mở Live map: nền bản đồ đầy đủ |
 | Đăng nhập | Keycloak cục bộ, realm import từ file | — |
 | AI triage | `PTI_TRIAGE_PROVIDER=fake`, mặc định của `make up-demo` (ADR-0018) | Drawer Dead letters có "Model fake@2026.09 · …" (DOC-24 §4.3) |
 | k3d | Cluster đã dựng rồi `make k8s-stop`: image nằm sẵn trong node và registry cục bộ; `make k8s-start` không kéo image hay chart nào. `lite` gọi `jev-stub` trong cluster, không gọi Jev thật | Tắt Wi-Fi ở lần diễn tập cuối, chạy `make demo-switch-k3d` |

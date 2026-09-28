@@ -1,0 +1,7 @@
+site/lib/
+site/tiles/
+site/vite/
+node_modules/
+chrome/
+*.png
+pnpm-lock.yaml

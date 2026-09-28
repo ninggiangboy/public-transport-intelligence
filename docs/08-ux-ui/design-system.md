@@ -1,6 +1,6 @@
 # Design system
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-27 · DOC-35
+> Trạng thái: **Review** · Cập nhật: 2026-09-28 · DOC-35
 > Phụ thuộc: DOC-34, DOC-15 (enum), DOC-23 §7.3 (mức tin cậy ETA), DOC-32, ADR-0020, ADR-0021, NFR-11
 > Người dùng chính: P5-03 (token và component nền), P5-06…P5-14, người viết `screens/*`
 
@@ -354,8 +354,8 @@ Component ở `features/map/`, dùng chung `MapCanvas` (bọc `react-map-gl/mapl
 
 ### 6.1 Nền
 
-- Style `offline` (PMTiles) hoặc `online` theo `env.js` (ADR-0021). Theme sáng và tối dùng hai file style riêng; đổi theme gọi `map.setStyle` rồi thêm lại các lớp dữ liệu.
-- Nền được giảm độ bão hòa để màu tuyến và màu độ trễ nổi bật. Nhãn đường và địa danh bằng tiếng Anh.
+- Style `offline` (PMTiles) hoặc `online` theo `env.js` (ADR-0021). Style `offline` dựng lúc chạy bằng `@protomaps/basemaps` (`frontend/src/features/map/baseStyle.ts`; flavor `grayscale` cho theme sáng, `black` cho theme tối, không ghi đè màu). Đổi theme gọi `map.setStyle` với style của theme mới rồi thêm lại các lớp dữ liệu.
+- Nền không màu (hai flavor trên), nên màu tuyến và màu độ trễ nổi bật. Nhãn đường và địa danh bằng tiếng Anh (`lang: "en"`).
 - Camera mặc định: fit bbox `-93.730, 44.707, -92.806, 45.330` (S-05), `minZoom` 9, `maxZoom` 18, `maxBounds` = bbox nới 10%.
 - Attribution luôn hiện: "© OpenStreetMap contributors · Protomaps".
 
