@@ -1,7 +1,7 @@
 # Màn hình: Ops console — Replay raw zone
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-27 · DOC-36
-> Phụ thuộc: DOC-34, DOC-35, DOC-37 §2.3, §2.7, §3, DOC-32 (E-50…E-53, E-32, E-35, E-60), DOC-22 §4, §6, ADR-0013
+> Trạng thái: **Review** · Cập nhật: 2026-09-28 · DOC-36
+> Phụ thuộc: DR-88, DOC-34, DOC-35, DOC-37 §2.3, §2.7, §3, DOC-32 (E-50…E-53, E-32, E-35, E-60), DOC-22 §4, §6, ADR-0013
 > Người dùng chính: P5-11
 
 ## 1. Persona, use case, quyền
@@ -28,29 +28,46 @@
 ## 3. Wireframe
 
 ```text
-┌────────────┬──────────────────────────────────────────────────────────────────┐
-│ Jobs       │ Replay                                                           │
-│ Dead lett. │ [New replay] [History]                                           │
-│ Replay   ◀ │ Source        (•) Trip updates ( ) Vehicle positions             │
-│ Controls   │               ( ) Ticket sales ( ) Sale points                   │
-│ Ticketing  │ Record time   [Sep 28, 12:00 AM] → [Sep 29, 12:00 AM]  CDT        │
-│            │               Presets: [Last hour] [Last 24 hours] [Yesterday]   │
-│            │               ≈ business time Sep 28, 2:30 PM → Sep 29, 2:30 PM   │
-│            │ [✓] Recompute analytics for this period                          │
-│            │ ┌ Estimate ──────────────────────────────────────────────────┐   │
-│            │ │ ~1.15M messages · about 6 min · history coverage 100%      │   │
-│            │ │ ⚠ A replay for this source is already running.             │   │
-│            │ └────────────────────────────────────────────────────────────┘   │
-│            │                                             [Start replay]       │
-└────────────┴──────────────────────────────────────────────────────────────────┘
+┌ sidebar ┬──────────────────────────────────────────────────────────────────────────────┐
+│         │ Operations / Replay                                                            │
+│         │ Replay from the raw zone                                                       │
+│         │ Re-run stored messages through the pipeline after a fix, an outage or a schema change. │
+│         │ [New replay] [History ● 1 running]                                             │
+│         │ ┌ ① What to replay ──────────────────────────────┐ ┌ Estimated work ─────────┐ │
+│         │ │ ┌ Trip updates ●┐┌ Vehicle pos. ┐┌ Ticket sales┐│ │ ≈ 1.15M messages        │ │
+│         │ │ │gtfs.trip_upd… ││gtfs.vehicle… ││ticketing.…  ││ │ Source   Trip updates   │ │
+│         │ │ │3.8M / 24 h    ││8.3M / 24 h   ││164K / 24 h  ││ │ Range    24 hours       │ │
+│         │ │ └───────────────┘└──────────────┘└─────────────┘│ │ Duration about 6 min    │ │
+│         │ │ + Sale points · To reload a GTFS schedule, …    │ │ Raw zone coverage 100%  │ │
+│         │ ├ ② Record time range ────────────────────────────┤ │ Then recompute  Yes     │ │
+│         │ │ [Last hour][Last 24 hours][Yesterday]           │ │ ┌ ⚠ A replay for this  ┐│ │
+│         │ │ From [Sep 28, 12:00 AM] → To [Sep 29, 12:00 AM] CDT │ │ source is already…   ││ │
+│         │ │ Processed per hour · last 24 h  ▂▃▅▇▇▆▅▃▂▂▃▅▆  │ │ └──────────────────────┘│ │
+│         │ │ Matches business time Sep 28, 2:30 PM → Sep 29, │ │ [Start replay]          │ │
+│         │ │ 2:30 PM (offset +14 h 30 min).                  │ └─────────────────────────┘ │
+│         │ ├ ③ Options ──────────────────────────────────────┤                             │
+│         │ │ Recompute analytics for this period   [●━━ On]  │                             │
+│         │ │ Re-runs bunching, disruption and ticketing …    │                             │
+│         │ └─────────────────────────────────────────────────┘                             │
+└─────────┴──────────────────────────────────────────────────────────────────────────────┘
 ```
 
-Drawer (560 px):
+Tab "History":
+
+```text
+│ Status    Kind        Source            Range                    Progress       Recompute Requested         │
+│ ● Running Time range  Trip updates      Sep 28 00:00 → Sep 29 …  ▬▬▬▭▭ 412K/1.15M Yes     operator · 3:39 PM│
+│ ● Done    Dead letter Vehicle positions 0192f5b2                 1 written      No      operator · 2:10 PM│
+│ ● Failed  Time range  Ticket sales      Sep 27 00:00 → Sep 28 …  —              Yes     viewer… · 9:02 AM │
+```
+
+Drawer (520 px):
 
 ```text
 ┌──────────────────────────────────────────────┐
-│ Replay 0192f5a0 ⧉                  ● Running │
-│ Trip updates · Sep 28 12:00 AM → Sep 29 …    │
+│ ● Running  Replay 0192f5a0 ⧉            [×]  │
+│ Time range · Trip updates                    │
+│ Sep 28 12:00 AM → Sep 29 12:00 AM CDT        │
 │ Requested by operator · 3:39 PM              │
 │ Step: replayRecords                          │
 │ [███████████░░░░░░░] ~36%   412K of ~1.15M   │
@@ -63,14 +80,15 @@ Drawer (560 px):
 
 | Vùng | Component | Ghi chú |
 | --- | --- | --- |
-| Form | react-hook-form + zod | Schema `rawReplayForm` trong `src/features/ops/replay/schema.ts` |
-| Nguồn | `RadioGroup` | 4 nguồn của DOC-22 §4.1 với nhãn DOC-37 §3; `GTFS_STATIC` không có trong danh sách mà có ghi chú "To reload a GTFS schedule, run GtfsStaticLoadJob from Controls." (link `/ops/controls`) |
-| Khoảng | `TimeRangePicker granularity="minute"` | Presets "Last hour", "Last 24 hours", "Yesterday" (theo giờ agency). Dòng phụ khoảng event time ước tính = khoảng record + `clockOffset` của E-60, tooltip `help.replayRecordTime` |
-| Tính lại analytics | `Checkbox` | Mặc định bật |
-| Ước lượng | khối `KeyValueList` + danh sách cảnh báo `warning` | Tự tải lại khi form hợp lệ và thay đổi (debounce 500 ms) |
-| Nút | `Button` "Start replay" | Disable khi form sai hoặc đang gửi |
-| Lịch sử | `DataTable` + infinite (trang 50) | Cột: "Status" (`StatusPill domain="replay"`), "Kind", "Source", "Range" (record time; `DLQ_RECORD` → `IdText` của dead letter), "Recompute", "Requested by", "Requested", "Duration" |
-| Drawer | `DetailDrawer` 560 px | §6.1 |
+| Đầu trang | `PageHeader` | Tiêu đề "Replay from the raw zone" + một câu giải thích. Tab "History" có badge "{n} running" khi có replay `PENDING`/`RUNNING` |
+| Form | react-hook-form + zod, ba thẻ đánh số ①②③ | Schema `rawReplayForm` trong `src/features/ops/replay/schema.ts` |
+| ① Nguồn | Nhóm thẻ radio (`RadioGroup` hiển thị dạng thẻ) | 4 nguồn của DOC-22 §4.1 (nhãn DOC-37 §3), mỗi thẻ có topic (mono) và "{n} / 24 h" (tổng `read` của nguồn trong 24 giờ, E-31). `GTFS_STATIC` không có; ghi chú "To reload a GTFS schedule, run GtfsStaticLoadJob from Controls." (link `/ops/controls#run-job`) |
+| ② Khoảng | Chip preset + `TimeRangePicker granularity="minute"` | Presets "Last hour", "Last 24 hours", "Yesterday" (theo giờ agency). Biểu đồ cột nhỏ "Processed per hour · last 24 h" (E-31 `bucket=1h` của nguồn đang chọn), tô đậm phần giao với khoảng đã chọn; khoảng nằm ngoài 24 giờ thì không tô. Dòng phụ khoảng event time ước tính = khoảng record + `clockOffset` của E-60, tooltip `help.replayRecordTime` |
+| ③ Tùy chọn | `Switch` + mô tả | "Recompute analytics for this period", mặc định bật |
+| Ước lượng | thẻ dính bên phải (320 px): số lớn "≈ {messages}", `KeyValueList` (Source, Range, Duration, Raw zone coverage, Then recompute) + `Callout warning` cho từng `warnings[]` | Tự tải lại khi form hợp lệ và thay đổi (debounce 500 ms) |
+| Nút | `Button` primary "Start replay" trong thẻ ước lượng | Disable khi form sai, đang gửi, hoặc E-53 báo đang có replay cùng nguồn |
+| Lịch sử | `DataTable` + infinite (trang 50) | Cột: "Status" (`StatusPill domain="replay"`), "Kind", "Source", "Range" (record time; `DLQ_RECORD` → `IdText` của dead letter), "Progress" (`Progress` + "{read} / {estimate}" khi đang chạy; "{written} written" khi xong; lỗi thì `message` rút gọn), "Recompute", "Requested" ("{name} · {time}") |
+| Drawer | `DetailDrawer` 520 px | §6.1 |
 
 Kiểm tra phía client (lặp lại quy tắc của API để phản hồi ngay; API vẫn là nơi quyết định):
 
@@ -86,6 +104,7 @@ Kiểm tra phía client (lặp lại quy tắc của API để phản hồi ngay
 | Dữ liệu | Endpoint | Query key | Refetch |
 | --- | --- | --- | --- |
 | Ước lượng | E-53 `?source&fromTs&toTs` | `['etl', 'replay', 'estimate', params]` | `staleTime` 30 s; không refetch nền |
+| Khối lượng theo nguồn, biểu đồ theo giờ | E-31 `?from=now−24h&bucket=1h` | `['etl', 'jobs', 'summary', { window: '24h', bucket: '1h' }]` | 5 phút |
 | Tạo | E-50 | mutation | — |
 | Lịch sử | E-51 `?kind&status&from&to&limit=50` (mặc định 7 ngày) | `['etl', 'replays', filters]` (infinite) | 60 s; khi có replay `PENDING`/`RUNNING` trong trang đầu: 5 s |
 | Chi tiết | E-52 | `['etl', 'replay', id]` | **2 s** khi `PENDING`/`RUNNING` và drawer mở (ADR-0013); dừng khi `DONE`/`FAILED` |
@@ -98,7 +117,7 @@ Không có kênh SSE riêng: `job.run` của `RawZoneReplayJob` không mang `rep
 
 | Hành động | Kết quả | Lỗi |
 | --- | --- | --- |
-| Điền form hợp lệ | Khối ước lượng tải E-53: "~{messages} messages · about {duration} · history coverage {percent}" và mọi `warnings[]` nguyên văn | `basis = UNAVAILABLE` → "No estimate available" + cảnh báo của API; E-53 lỗi → "Couldn't estimate this replay." (vẫn cho gửi) |
+| Điền form hợp lệ | Thẻ "Estimated work" tải E-53: "≈ {messages}", "about {duration}", "Raw zone coverage {percent}" và mọi `warnings[]` nguyên văn | `basis = UNAVAILABLE` → "No estimate available" + cảnh báo của API; E-53 lỗi → "Couldn't estimate this replay." (vẫn cho gửi) |
 | "Start replay" | `ConfirmDialog` "Replay {source} from {from} to {to}?" · "About {messages} messages will be reprocessed. Newer data is never overwritten." (+ "Analytics for this period will be recomputed." khi bật) → E-50 với `Idempotency-Key` sinh khi mở dialog → toast "Request sent" + "View replay"; chuyển `tab=history&replay=<id>` | 409 `replay-already-running` → dialog đổi thành "A replay is already running" + "View running replay" (`replay=<existingReplayId>`); 422 `replay-window-invalid` → lỗi gắn vào trường theo `errors[].field`; 422 `unsupported-source`, `analytics-recompute-unavailable` → dải lỗi trên form với `detail` |
 | Bấm dòng lịch sử | `replay=<id>` (`push`), drawer | 404 → "This replay no longer exists." |
 | Lọc lịch sử | `kind`, `status` trên URL | — |
@@ -128,14 +147,14 @@ Không có kênh SSE riêng: `job.run` của `RawZoneReplayJob` không mang `rep
 
 | Vị trí | Chuỗi |
 | --- | --- |
-| Tiêu đề | "Replay" |
+| Tiêu đề | "Replay from the raw zone" · "Re-run stored messages through the pipeline after a fix, an outage or a schema change." · "{n} running" |
 | Tab | "New replay", "History" |
-| Form | "Source" · "Record time" · "Last hour", "Last 24 hours", "Yesterday" · "≈ business time {from} → {to}" · "Recompute analytics for this period" · "To reload a GTFS schedule, run GtfsStaticLoadJob from Controls." · "Start replay" |
+| Form | "What to replay" · "{n} / 24 h" · "Record time range" · "From", "To" · "Processed per hour · last 24 h" · "Matches business time {from} → {to} (offset {offset})." · "Options" · "Re-runs bunching, disruption and ticketing detection for the replayed period." · "Last hour", "Last 24 hours", "Yesterday" · "Recompute analytics for this period" · "To reload a GTFS schedule, run GtfsStaticLoadJob from Controls." · "Start replay" |
 | Lỗi trường | "End must be after start." · "Max range is 7 days." · "End must be at least 10 minutes ago, so all raw files are written." · "Start must be within the last 29 days." |
-| Ước lượng | "Estimate" · "~{messages} messages · about {duration} · history coverage {percent}" · "No estimate available" · "Couldn't estimate this replay." |
+| Ước lượng | "Estimated work" · "≈ {messages}" · "messages" · "Source", "Range", "Duration", "Raw zone coverage", "Then recompute" · "about {duration}" · "No estimate available" · "Couldn't estimate this replay." |
 | Dialog | "Replay {source} from {from} to {to}?" · "About {messages} messages will be reprocessed. Newer data is never overwritten." · "Analytics for this period will be recomputed." · "Start replay" |
 | Phản hồi | "Request sent" + "View replay" · "A replay is already running" + "View running replay" |
-| Lịch sử | cột "Status", "Kind", "Source", "Range", "Recompute", "Requested by", "Requested", "Duration" |
+| Lịch sử | cột "Status", "Kind", "Source", "Range", "Progress", "Recompute", "Requested" · "{read} / {estimate}" · "{n} written" |
 | Drawer | "Replay {id}" · "Requested by {name} · {time}" · "Recompute analytics: {yes/no}" · "Step: {step}" · "{read} of ~{estimate}" · "Written {n} · Skipped {n} · updated {relative}" · "Finished {time} · {duration}" · nhãn `stats` ở §6.1 · "Run #{id}" · "Restart run" · "Replay again" · "View resolved dead letters" |
 | Không còn | "This replay no longer exists." |
 | Empty | "No replays in the last 7 days" · "Replays you start appear here." |
@@ -150,6 +169,7 @@ Tooltip `help.replayRecordTime` và `help.replayEstimate` ở DOC-37 §5.
 - **AC-4** Given một replay đang chạy cho cùng nguồn, When gửi lần hai, Then dialog "A replay is already running" có link tới replay hiện có (FR-12.3).
 - **AC-5** Given replay xong, Then drawer có bảng `stats` và link tới lần chạy.
 - **AC-6** Given viewer, Then chỉ có tab "History".
+- **AC-7** Given chọn nguồn "Trip updates" và "Last 24 hours", Then biểu đồ "Processed per hour" tô đậm toàn bộ 24 cột và thẻ ước lượng có "Raw zone coverage".
 
 ## 10. Ca kiểm thử E2E
 

@@ -1,7 +1,7 @@
 # Màn hình: Route scorecard và chi tiết tuyến
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-27 · DOC-36
-> Phụ thuộc: DOC-34, DOC-35 §5.7, §7, DOC-37, DOC-32 (E-01, E-03, E-04, E-12, E-13, E-14), DOC-23 §6–8
+> Trạng thái: **Review** · Cập nhật: 2026-09-28 · DOC-36
+> Phụ thuộc: DR-88, DOC-34, DOC-35 §5.7, §7, DOC-37, DOC-32 (E-01, E-03, E-04, E-12, E-13, E-14), DOC-23 §6–8
 > Người dùng chính: P5-08
 
 ## 1. Persona, use case, quyền
@@ -12,7 +12,7 @@
 
 ## 2. URL và search params
 
-- `/scorecard` — `from`, `to` (ngày, mặc định 7 ngày kết thúc hôm qua theo giờ agency), `routeType` (list), `sort` (`otp` \| `route`).
+- `/scorecard` — `from`, `to` (ngày, mặc định 7 ngày kết thúc hôm qua theo giờ agency), `routeType` (list), `sort` (`otp` \| `route`), `route` (routeId, mở drawer tóm tắt tuyến).
 - `/scorecard/$routeId` — `tab` (`delays` \| `profile` \| `disruptions`), `from`, `to` (**ngày**, cùng mặc định), `dir`, `bucket` (`hour-of-week` \| `hour` \| `day`), `dow`, `hour` (tab `profile`; mặc định thứ và giờ hiện tại theo `businessNow`), `disruption` (id, mở drawer ở tab `disruptions`).
 - Khoảng ngày chuyển sang thời điểm cho E-03/E-12: `from` = 00:00 giờ agency của ngày đầu, `to` = 00:00 của ngày sau ngày cuối.
 - Khoảng > 31 ngày (sửa tay trên URL) → cắt còn 31 ngày tính ngược từ `to`, dải `info` "Max range is 31 days. Showing {from} – {to}." (UC-06 2a).
@@ -22,49 +22,79 @@
 Bảng xếp hạng:
 
 ```text
-┌──────────────────────────────────────────────────────────────────────────────┐
-│ Route scorecard                         [Sep 22 – Sep 28 ▾] [All modes ▾]     │
-│ On-time window: 5 min early to 5 min late · As of Sep 29, 3:00 AM CDT          │
-├────┬───────────────────────────────┬────────┬──────────┬────────┬──────┬──────┤
-│ #  │ Route                          │ OTP    │ Trend    │ Early  │ Late │ Obs. │
-├────┼───────────────────────────────┼────────┼──────────┼────────┼──────┼──────┤
-│ 1  │ [18] Nicollet Av - …           │ 78.4%  │ ╲_╱‾     │ 2.8%   │18.8% │ 76.9K│
-│ 2  │ [5]  Chicago Av - Fremont …    │ 80.1%  │ ‾╲_      │ 1.9%   │18.0% │ 81.2K│
-└────┴───────────────────────────────┴────────┴──────────┴────────┴──────┴──────┘
+┌ sidebar ┬──────────────────────────────────────────────────────────────────────────────┐
+│         │ Analytics / Scorecard                                                         │
+│         │ Route scorecard                     [Week|Month] [Sep 22 – 28, 2026 ▾] [Export]│
+│         │ On time means no more than 5 min early or 5 min late · data through Sep 29, 3:00 AM CDT │
+│         │ ┌ System on-time ─┐┌ Early ──────────┐┌ Late ───────────┐┌ Trips observed ─┐  │
+│         │ │ 79.6%  ▲1.3 pts ││ 2.4%  ▼0.3 pts  ││ 18.0%  ▼1.0 pts ││ 12,480  ▲2%     │  │
+│         │ │ ╱‾╲_╱‾ vs prev. ││ vs previous week││ vs previous week││ vs previous week│  │
+│         │ └─────────────────┘└─────────────────┘└─────────────────┘└─────────────────┘  │
+│         │ ┌ Daily on-time performance ───────────────────────────── ● Bus  ● Rail ┐     │
+│         │ │ 95% ┤          ╱‾‾╲                                                  │     │
+│         │ │ 75% ┤ ‾‾╲__╱‾‾    ╲__                                                │     │
+│         │ │      Mon Tue Wed Thu Fri Sat Sun                                     │     │
+│         │ └──────────────────────────────────────────────────────────────────────┘     │
+│         │ [All routes 124 | Bus 118 | Rail 6]                    Sort [Worst first ▾]   │
+│         │ #  Route                          On time        Trend   Early  Late  Obs. Trips│
+│         │ 1  [21] Lake St – Selby Ave       64.8% ▬▬▬▬     ╲_╱‾    2.1%  33.1% 41.2K 1,190│
+│         │ 2  [18] Nicollet Ave              71.2% ▬▬▬▬▬    ‾╲_     1.9%  26.9% 76.9K 2,170│
+│         │ …                                                                             │
+└─────────┴──────────────────────────────────────────────────────────────────────────────┘
 ```
 
-Chi tiết tuyến, tab "Delays":
+Drawer tóm tắt tuyến (`route=<id>`, 520 px):
 
 ```text
-┌──────────────────────────────────────────────────────────────────────────────┐
-│ ← Scorecard   [18] Nicollet Av - Nicollet Mall - 1st Av       [Sep 22 – 28 ▾] │
-│ ┌───────────┐ ┌───────────┐ ┌───────────┐ ┌───────────┐                       │
-│ │ OTP 78.4% │ │ Early 2.8%│ │ Late 18.8%│ │ Obs 76.9K │                       │
-│ └───────────┘ └───────────┘ └───────────┘ └───────────┘                       │
-│ [Delays] [Stop profile] [Disruptions]                                         │
-│ Direction [Both ▾]  View [Hour × weekday | Hourly | Daily]                    │
-│ Average delay by hour and weekday                         [View as table]     │
-│      12AM 1AM … 11PM                                                          │
-│ Mon  ░░▒▒▓▓…                                                                  │
-│ …                                                                              │
-│ Daily on-time performance                                                     │
-│ ‾‾╲__╱‾‾                                                                      │
-└──────────────────────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────────────────┐
+│ [21] Lake St – Selby Ave                  [×] │
+│ Sep 22 – 28 · 1,190 trips observed            │
+│ On time 64.8% │ Late 33.1% │ Early 2.1%       │
+│ Typical delay along the route                 │
+│ Tuesdays around 4 PM · Eastbound [▾]          │
+│ Hiawatha Ave   ▬▬▬▬|    +1m 10s               │  bar = average · tick = p90
+│ 28th Ave       ▬▬▬▬▬▬|  +2m 05s               │
+│ …                                             │
+│ Disruptions in this period                    │
+│ Sat, Sep 27 · 3:58 PM – ongoing  ⬣ Urgent     │
+│   Eastbound · peak +6m 50s · Traffic          │
+│ Thu, Sep 25 · 8:12 – 8:41 AM     Ended        │
+│ [See route live]          [Open route details]│
+└───────────────────────────────────────────────┘
+```
+
+Chi tiết tuyến `/scorecard/$routeId`, tab "Delays" (cùng ngôn ngữ thị giác: `PageHeader` có `RouteBadge size="xl"`, hàng `KpiCard`, thẻ biểu đồ):
+
+```text
+┌ sidebar ┬──────────────────────────────────────────────────────────────────────────────┐
+│         │ Analytics / Scorecard / 18                                                    │
+│         │ [18] Nicollet Av - Nicollet Mall - 1st Av                 [Sep 22 – 28 ▾]      │
+│         │ ┌ On-time 78.4% ┐┌ Early 2.8% ┐┌ Late 18.8% ┐┌ Observations 76.9K ┐              │
+│         │ [Delays] [Stop profile] [Disruptions]                                         │
+│         │ Direction [Both|Northbound|Southbound]  View [Hour × weekday|Hourly|Daily]    │
+│         │ ┌ Average delay by hour and weekday ──────────── Less ▢▢▢▢▢ More late ┐       │
+│         │ │ Mon ▢▢▢▣▣▣■■▣▢…                                     [View as table] │       │
+│         │ └─────────────────────────────────────────────────────────────────────┘       │
+│         │ ┌ Daily on-time performance ──────────────────────────────────────────┐       │
+└─────────┴──────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ## 4. Vùng và component
 
 | Vùng | Component | Ghi chú |
 | --- | --- | --- |
-| Bộ lọc | `TimeRangePicker granularity="date"` (presets `7d`, `14d`, `31d`; tối đa 31 ngày; ngày cuối ≤ hôm qua), `MultiSelectFilter` "Mode" theo `routeType` | |
-| Ghi chú ngưỡng | chữ phụ | Từ `earlyToleranceSeconds`/`lateToleranceSeconds`; có `mixedTolerances` thì "The on-time window changed during this period." + tooltip `help.otpMixed` |
-| Bảng xếp hạng | `DataTable` (không virtual) | Cột: "#", "Route" (`RouteBadge` + `longName`), "OTP", "Trend" (`Sparkline` từ `daily`), "Early", "Late", "Observations", "Trips". Dòng là link tới `/scorecard/<routeId>` |
-| Thẻ tóm tắt | `StatCard` × 4 | Từ E-14 với `routeId` |
-| Tab | shadcn `Tabs` | Đổi tab là `push` |
+| Đầu trang | `PageHeader` + `SegmentedControl` "Week" (7 ngày) / "Month" (31 ngày) + `TimeRangePicker granularity="date"` (tối đa 31 ngày; ngày cuối ≤ hôm qua) + nút "Export" | "Export" tải CSV của bảng đang hiện (sinh phía client từ dữ liệu E-14 đã tải, tên file `scorecard-{from}-{to}.csv`) |
+| Ghi chú ngưỡng | dòng phụ của `PageHeader` | "On time means no more than {early} early or {late} late · data through {asOf}" từ `earlyToleranceSeconds`/`lateToleranceSeconds` và `X-Data-As-Of`; có `mixedTolerances` thì "The on-time window changed during this period." + tooltip `help.otpMixed` |
+| KPI | `KpiCard` × 4 | "System on-time" (sparkline OTP toàn mạng theo ngày), "Early", "Late", "Trips observed". Delta so với kỳ trước cùng độ dài ("vs previous week" / "vs previous month"); OTP lên là tốt, Early/Late xuống là tốt |
+| OTP theo ngày | `TimeSeriesChart` | Một đường cho mỗi nhóm mode có dữ liệu (theo `routeType`: "Bus" = 3, 11; "Rail" = 0, 1, 2), OTP có trọng số theo `observationCount` của `daily` |
+| Lọc mode | `SegmentedControl` "All routes {n}", "Bus {n}", "Rail {n}" | Ghi `routeType` lên URL; số là số tuyến có dữ liệu. Chỉ hiện nhóm có tuyến |
+| Bảng xếp hạng | `DataTable` (không virtual) | Cột: "#", "Route" (`RouteBadge` + `longName`), "On time" (số + thanh ngang tông < 70% `danger`, < 80% `warning`, còn lại `success`), "Trend" (`Sparkline` từ `daily`), "Early", "Late", "Observations", "Trips". Bấm dòng → drawer (`route=<id>`) |
+| Drawer tóm tắt | `DetailDrawer` 520 px | Đầu: `RouteBadge size="xl"`, `longName`, "{range} · {trips} trips observed". Ba số "On time", "Late", "Early". "Typical delay along the route": E-04 theo chiều (chọn được), thứ và giờ hiện tại; mỗi trạm một thanh (trung bình) có vạch p90, trạm `NONE` để trống. "Disruptions in this period": tối đa 5 episode (E-12), mỗi dòng "{start} – {end \| ongoing}", chiều, đỉnh trễ, nguyên nhân, `SeverityBadge` hoặc "Ended". Chân: "See route live" (`/map?route=<id>`), "Open route details" (`/scorecard/<id>` giữ `from`, `to`) |
+| Tab (trang chi tiết) | shadcn `Tabs` | Đổi tab là `push` |
 | Heatmap | `HeatmapChart scale="delay"` 7 × 24 | Ô: `avgDelaySeconds`; tooltip: trung bình, trung vị, p90, số quan sát, OTP |
 | Biểu đồ theo giờ | `TimeSeriesChart` (avg, median, p90) | `bucket=hour` |
 | Biểu đồ theo ngày | `TimeSeriesChart type="bar"` (avg) + đường OTP | `bucket=day` |
-| OTP theo ngày | `TimeSeriesChart` | Từ `daily` của E-14 |
+| OTP theo ngày (chi tiết) | `TimeSeriesChart` | Từ `daily` của E-14 |
 | Hồ sơ trạm | `TimeSeriesChart type="bar"` theo thứ tự trạm + bảng | Mỗi trạm: trung bình, p90, `ConfidenceChip level sampleCount`; trạm `NONE` để trống |
 | Danh sách gián đoạn | `DataTable` | Cột: "Started", "Ended", "Direction", "Peak delay", "Peak z", "Cause", "Outcome"; dòng mở drawer |
 | Drawer gián đoạn | `DetailDrawer` | E-13 (viewer view) |
@@ -75,6 +105,9 @@ Chi tiết tuyến, tab "Delays":
 | --- | --- | --- | --- |
 | Tuyến | E-01 | `['routes']` | như Live map |
 | Xếp hạng OTP | E-14 `?fromDate&toDate&routeType` | `['insights', 'otp', { from, to, routeTypes }]` | 5 phút (dữ liệu tổng hợp theo ngày) |
+| Kỳ trước (delta KPI) | E-14 với khoảng liền trước cùng độ dài | `['insights', 'otp', { from, to, routeTypes }]` | 5 phút |
+| Drawer: hồ sơ trạm | E-04 `?directionId` (thứ, giờ mặc định) | `['routes', id, 'delay-profile', params]` | Khi mở drawer |
+| Drawer: gián đoạn | E-12 `?routeId&from&to&limit=5` | `['insights', 'disruption', { routeIds: [id], from, to }]` | Khi mở drawer |
 | OTP một tuyến | E-14 `?routeId=` | `['insights', 'otp', { from, to, routeIds: [id] }]` | 5 phút |
 | Độ trễ | E-03 `?from&to&bucket&directionId` | `['routes', id, 'delays', params]` | 5 phút |
 | Hồ sơ trạm | E-02 (tên chiều) + E-04 `?directionId&dayOfWeek&hourOfDay` | `['routes', id, 'delay-profile', params]` | 5 phút |
@@ -88,7 +121,10 @@ Không có kênh SSE riêng ngoài kênh `alerts` của khung.
 | Hành động | Kết quả | Lỗi |
 | --- | --- | --- |
 | Đổi khoảng ngày, mode, sort | URL (`replace`); bảng mờ trong lúc tải, giữ dữ liệu cũ | 400 (khoảng sai) không xảy ra vì UI kiểm trước; nếu có → inline error |
-| Bấm dòng | Tới `/scorecard/<routeId>` giữ `from`, `to` | — |
+| Bấm dòng | `route=<routeId>` (`push`), drawer tóm tắt | — |
+| "Open route details" | Tới `/scorecard/<routeId>` giữ `from`, `to` | — |
+| "Week" / "Month" | Đặt `from`, `to` = 7 hoặc 31 ngày kết thúc hôm qua | — |
+| "Export" | Tải CSV của bảng (cột như bảng, số không định dạng) | — |
 | Đổi tab / chiều / kiểu xem | URL; tải dữ liệu tab mới | — |
 | Tab "Stop profile": chọn thứ và giờ | `dow`, `hour` trên URL | Chiều không tồn tại (404) → chọn chiều đầu tiên có trong E-02 |
 | "View as table" | Bảng số liệu tương đương biểu đồ; nút đổi thành "View as chart" | — |
@@ -111,11 +147,13 @@ Không có kênh SSE riêng ngoài kênh `alerts` của khung.
 
 | Vị trí | Chuỗi |
 | --- | --- |
-| Tiêu đề | "Route scorecard" · chi tiết: tên tuyến |
-| Ghi chú ngưỡng | "On-time window: {early} early to {late} late" · "The on-time window changed during this period." |
-| Bộ lọc | "Date range" · "Mode" · "All modes" · "Sort by" · "Worst on-time first" · "Route number" |
-| Cột bảng | "#", "Route", "OTP", "Trend", "Early", "Late", "Observations", "Trips" |
-| Thẻ | "On-time performance", "Early", "Late", "Observations" |
+| Tiêu đề | "Route scorecard" · breadcrumb "Analytics" / "Scorecard" · chi tiết: tên tuyến |
+| Ghi chú ngưỡng | "On time means no more than {early} early or {late} late" · "data through {time}" · "The on-time window changed during this period." |
+| Bộ lọc | "Week", "Month" · "Date range" · "All routes {n}", "Bus {n}", "Rail {n}" · "Sort" · "Worst first" · "Route number" · "Export" |
+| Cột bảng | "#", "Route", "On time", "Trend", "Early", "Late", "Observations", "Trips" |
+| Thẻ | Trang xếp hạng: "System on-time", "Early", "Late", "Trips observed" · "{d} pts" · "vs previous week" / "vs previous month" / "vs previous period" · trang chi tiết: "On-time performance", "Early", "Late", "Observations" |
+| Biểu đồ trang xếp hạng | "Daily on-time performance" · "Bus", "Rail" |
+| Drawer tuyến | "{range} · {n} trips observed" · "On time", "Late", "Early" · "Typical delay along the route" · "{weekday}s around {hour}" · "Bar = average · tick = 90th percentile" · "Disruptions in this period" · "ongoing" · "Ended" · "No disruptions in this period" · "See route live" · "Open route details" |
 | Tab | "Delays", "Stop profile", "Disruptions" |
 | Tab Delays | "Direction" · "Both directions" · "View" · "Hour × weekday" · "Hourly" · "Daily" · "Average delay by hour and weekday" · "Delay over time" · "Daily on-time performance" · chú giải "Average", "Median", "90th percentile" |
 | Tab Stop profile | "Typical delay at each stop" · "Weekday" · "Hour" · "Based on the last 4 weeks ({windowStart} – {windowEnd})" · cột "Stop", "Average", "90th percentile", "Confidence" |
@@ -125,18 +163,20 @@ Không có kênh SSE riêng ngoài kênh `alerts` của khung.
 
 ## 9. Tiêu chí nghiệm thu
 
-- **AC-1** Given viewer, When mở `/scorecard`, Then bảng sắp OTP tăng dần (tệ nhất lên đầu), mỗi dòng có sparkline theo ngày.
+- **AC-1** Given viewer, When mở `/scorecard`, Then bảng sắp OTP tăng dần (tệ nhất lên đầu), mỗi dòng có sparkline theo ngày; KPI "System on-time" bằng OTP gộp (cộng dồn bộ đếm) của mọi tuyến đang lọc.
 - **AC-2** Given đổi khoảng thành 14 ngày, Then URL có `from`/`to` mới và copy URL sang tab khác cho cùng bảng.
 - **AC-3** Given chi tiết tuyến tab "Delays", Then heatmap 7 × 24 theo giờ địa phương; "View as table" cho bảng cùng số liệu.
 - **AC-4** Given tab "Stop profile", Then mỗi trạm có mức tin cậy; trạm không có mẫu hiển thị "Schedule only" và không có cột số.
 - **AC-5** Given URL `from`/`to` cách 60 ngày, Then UI cắt còn 31 ngày và hiện "Max range is 31 days…".
 - **AC-6** Given ngưỡng OTP đổi giữa khoảng (`mixedTolerances`), Then ghi chú ngưỡng đổi thành câu cảnh báo.
+- **AC-7** Given bấm một dòng, Then drawer mở với URL `route=<id>`, có hồ sơ trạm và danh sách gián đoạn; "Open route details" tới trang chi tiết giữ `from`/`to`.
+- **AC-8** Given "Export", Then file CSV có đúng số dòng và cột của bảng đang lọc.
 
 ## 10. Ca kiểm thử E2E
 
 | ID | Kịch bản | Kỳ vọng |
 | --- | --- | --- |
-| E2E-SCORE-01 | Đăng nhập `viewer`; chạy `OtpScorecardJob` cho hôm qua qua E-33 (nếu có dữ liệu); mở `/scorecard` → đổi khoảng → bấm tuyến đầu → tab "Delays" → "View as table" → tab "Stop profile"; axe | AC-1…AC-4 (chấp nhận trạng thái rỗng của bảng xếp hạng khi môi trường chưa có dữ liệu hôm qua) |
+| E2E-SCORE-01 | Đăng nhập `viewer`; chạy `OtpScorecardJob` cho hôm qua qua E-33 (nếu có dữ liệu); mở `/scorecard` → đổi khoảng → bấm tuyến đầu → drawer → "Open route details" → tab "Delays" → "View as table" → tab "Stop profile"; axe | AC-1…AC-4 (chấp nhận trạng thái rỗng của bảng xếp hạng khi môi trường chưa có dữ liệu hôm qua) |
 | E2E-SCORE-02 | Mở `/scorecard?from=2026-07-01&to=2026-08-30` | AC-5 |
 
 ## 11. Câu hỏi còn mở

@@ -1,7 +1,7 @@
 # Trạng thái UI và microcopy
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-27 · DOC-37
-> Phụ thuộc: DOC-34, DOC-35, DOC-15 (enum), DOC-23, DOC-30 (slug lỗi), DOC-32, DOC-33, DR-48, DR-61
+> Trạng thái: **Review** · Cập nhật: 2026-09-28 · DOC-37
+> Phụ thuộc: DOC-34, DOC-35, DOC-15 (enum), DOC-23, DOC-30 (slug lỗi), DOC-32, DOC-33, DR-48, DR-61, DR-88
 > Người dùng chính: P5-03…P5-14 (mọi màn hình), người viết `src/i18n/en.ts`
 
 ## 1. Mục đích và quy ước
@@ -24,12 +24,15 @@ Quy tắc viết:
 
 ## 2. Mẫu trạng thái
 
+Mọi màn hình chỉ dùng các mẫu dưới đây, không tự tạo biến thể riêng. Hình ảnh tham chiếu là bảng "Shared states" của prototype (DR-88): loading, đang xử lý, rỗng (lần đầu và do bộ lọc), lỗi (còn dữ liệu cũ và chưa có gì), không có quyền, độ tươi, toast.
+
 ### 2.1 Loading
 
-- Lần tải đầu của một panel: `PanelSkeleton` đúng hình dạng nội dung (bảng: 8 dòng xám; biểu đồ: khung trục; danh sách: 5 dòng). Skeleton chỉ hiện nếu request chưa xong sau **150 ms** (tránh nhấp nháy); `aria-busy="true"` trên panel.
+- Lần tải đầu của một panel: `PanelSkeleton` giữ đúng hình dạng nội dung (bảng: tiêu đề cột thật + 8 dòng thanh shimmer; biểu đồ: khung trục; danh sách: 5 dòng; KPI: nhãn thật + thanh số). Skeleton chỉ hiện nếu request chưa xong sau **150 ms** (tránh nhấp nháy); `aria-busy="true"` trên panel.
 - Chuyển trang: giữ trang cũ, thanh tiến độ mảnh 2 px ở đỉnh sau 150 ms (`pendingMs` của TanStack Router).
 - Refetch nền (SSE, 60 s, đổi bộ lọc): **không** hiện skeleton; dữ liệu cũ giữ nguyên (`keepPreviousData`), bảng mờ 0,6 trong lúc đổi bộ lọc và chấm tiến độ nhỏ cạnh `FreshnessIndicator`.
-- Nút đang gửi: spinner thay icon, chữ giữ nguyên, nút disable.
+- Nút đang gửi: spinner thay icon, chữ đổi sang dạng tiếp diễn khi có ("Queuing replay…"), nút disable; có nút "Cancel" nếu request hủy được.
+- Thao tác dài (replay, job): tiến độ hiện **tại chỗ** — `Progress` 6 px, "{done} / {total}", dòng phụ "About {n} min left · you can leave this page".
 - Không có spinner toàn trang, trừ `/auth/callback` ("Signing you in…").
 
 ### 2.2 Rỗng
@@ -42,14 +45,14 @@ Quy tắc viết:
 | Trạm không còn chuyến trong khung giờ | "No upcoming departures" | "No trips are scheduled at this stop in the next {horizon}." | — |
 | Chưa có feed ACTIVE (E-60 không có `activeFeed`) | "No schedule loaded yet" | "The GTFS schedule hasn't been loaded. Routes and stops will appear once it is." | — |
 
-`EmptyState` có icon trung tính (`Inbox`), không dùng hình minh họa.
+`EmptyState`: icon trung tính (`Inbox`, `SearchX`…) trong ô 44 px bo 12 px nền `--card` có viền và bóng nhẹ, tiêu đề 14,5 px/600, mô tả tối đa 320 px, một nút nếu có hành động. Không dùng hình minh họa. Rỗng do bộ lọc thì các chip bộ lọc đang áp vẫn hiện phía trên để người dùng thấy lý do.
 
 ### 2.3 Lỗi
 
 Nguyên tắc (DOC-34 P-3):
 
-- Đã có dữ liệu → `ErrorState variant="inline"`: dải `warning` phía trên dữ liệu cũ, dạng "{error title}. Showing data from {relative time}." cùng nút "Retry".
-- Chưa có dữ liệu → `ErrorState variant="block"` thay cho nội dung panel.
+- Đã có dữ liệu → `ErrorState variant="inline"`: dải `warning` bo 10 px phía trên dữ liệu cũ, dạng "{error title}. Showing data from {relative time}." (ví dụ "Can't reach the server. Showing data from 2 min ago.") cùng nút "Retry".
+- Chưa có dữ liệu → `ErrorState variant="block"` thay cho nội dung panel: icon, tiêu đề ("Couldn't load {panel}" khi lỗi mạng hoặc 5xx), mô tả, trace id dạng mono kèm nút "Copy", nút "Retry".
 - Lỗi của thao tác ghi → toast lỗi (hoặc hiển thị trong dialog nếu thao tác đi qua `ConfirmDialog`).
 - Mọi lỗi từ API hiện "Trace ID" kèm nút copy (`traceId` của Problem Details, DOC-30). Lỗi mạng không có trace id.
 
@@ -87,7 +90,7 @@ Slug riêng của simulator (qua E-90) nằm ở `screens/demo-control.md`.
 
 ### 2.4 Dữ liệu cũ và realtime
 
-`StaleBanner` là một dải duy nhất dưới thanh trên, ưu tiên theo thứ tự (chỉ hiện điều kiện cao nhất):
+`StaleBanner` là một dải duy nhất ở đầu vùng nội dung (trên `PageHeader`, DOC-34 §4.2), ưu tiên theo thứ tự (chỉ hiện điều kiện cao nhất):
 
 | Ưu tiên | Điều kiện | Tông | Nội dung |
 | --- | --- | --- | --- |
@@ -98,7 +101,8 @@ Slug riêng của simulator (qua E-90) nằm ở `screens/demo-control.md`.
 | 5 | SSE `reconnecting` quá 5 s | `info` | "Reconnecting to live updates…" |
 
 - Banner có `role="status"`, không có nút đóng (tự biến mất khi điều kiện hết). Chỉ hiện ở trang có dữ liệu realtime hoặc event time (mọi trang trừ Scorecard, Controls).
-- `RealtimeStatusDot`: "Live" (`success`), "Reconnecting…" (`warning`), "Polling" (`warning`), "Offline" (`neutral`). Tooltip: "Receiving live updates." / "Trying to reconnect to live updates." / "Live updates unavailable. Refreshing every {interval} s." / "You're offline."
+- `RealtimeStatusDot` (thẻ "Live feed" ở chân sidebar và thanh trên mobile): "Live" (`success`) · "Reconnecting…" (`warning`) · "Polling" (`neutral`) · "Offline" (`neutral`); chữ phụ lần lượt "updated {relative}", "attempt {n}", "every {interval} s", "last update {relative}". Tooltip: "Receiving live updates." / "Trying to reconnect to live updates." / "Live updates unavailable. Refreshing every {interval} s." / "You're offline."
+- `FreshnessIndicator` quá `staleAfterSeconds`: chấm và chữ chuyển `warning`, nhãn "Stale" + "last update {relative}".
 - Nguồn ticketing stale (`TICKETING_SALES.stale`) chỉ hiện trên màn Ticketing bằng `SourceStaleNotice`: "No ticket sales received for {age}. Anomaly detection may be behind."
 
 ### 2.5 Không có quyền
@@ -107,7 +111,7 @@ Slug riêng của simulator (qua E-90) nằm ở `screens/demo-control.md`.
 | --- | --- | --- | --- |
 | Anonymous mở trang cần viewer | "Sign in to view this page" | "This page is for operations staff." | "Sign in" |
 | Anonymous mở trang cần operator | "Sign in to view this page" | "This page requires the operator role." | "Sign in" |
-| Viewer mở trang cần operator | "You don't have access to this page" | "This page requires the operator role. Ask an administrator for access." | "Go to Jobs" |
+| Viewer mở trang cần operator | "You don't have access to this page" | "This page requires the operator role. Ask an administrator for access." | "Go to overview" |
 | Viewer trong Ops console (badge) | "Read-only" | Tooltip: "You can view everything here. Actions require the operator role." | — |
 | UI không có Keycloak (`env.js` rỗng, k3d `lite`) | "Sign-in isn't available" | "This deployment only shows public pages." | — |
 
@@ -305,8 +309,10 @@ Caption biểu đồ (đọc bởi screen reader) theo mẫu: "{Chart title}. {n
 | --- | --- |
 | Tên sản phẩm | "Public Transport Intelligence" (ngắn: "PTI") |
 | `document.title` | "{Page} — PTI" (ví dụ "Nicollet Ave & 46th St — PTI"; "Dead letters — PTI") |
-| Điều hướng | "Map", "Stops", "Alerts", "Scorecard", "Ops", "Jobs", "Dead letters", "Replay", "Controls", "Ticketing", "Demo", "More" |
-| Tài khoản | "Sign in", "Sign out", "Signed in as {displayName}", "Role: {role}", "Keyboard shortcuts" |
+| Điều hướng | Nhóm "Network", "Analytics", "Operations" · mục "Overview", "Live map", "Stops", "Alerts", "Scorecard", "Pipeline", "Dead letters", "Replay", "Ticketing", "Controls", "Demo" · mobile: "Map", "Stops", "Alerts", "More" |
+| Sidebar | Tên "Transit Intelligence" · agency "Metro Transit · Twin Cities" (`app.agency`) · "Search" + `⌘K` · thẻ "Live feed": "Live feed", "Updated {relative}", "{rate} msg/s" (viewer) · vai trò "Operator · on duty", "Viewer" · `aria-label` "Account menu", "Primary" |
+| Tìm kiếm chung | Placeholder "Search pages, routes and stops" · nhóm "Pages", "Routes", "Stops" · rỗng "No matches for "{q}"" |
+| Tài khoản | "Sign in", "Sign out", "Signed in as {displayName}", "Role: {role}", "Keyboard shortcuts", "Theme" |
 | Theme | "Theme", "Light", "Dark", "System" |
 | Nút chung | "Retry", "Reload", "Cancel", "Close", "Save", "Discard changes", "Clear filters", "Load more", "Show", "Copy ID", "Copied", "View as table", "View as chart", "Legend", "Follow", "Stop following", "Go back" |
 | Link bỏ qua | "Skip to content" |

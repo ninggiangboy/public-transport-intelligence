@@ -1,6 +1,6 @@
 # Danh mục tính năng
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-26 · DOC-05
+> Trạng thái: **Review** · Cập nhật: 2026-09-28 · DOC-05
 > Phụ thuộc: [DOC-03](requirements.md), [DOC-04](use-cases.md), [Master plan §4–5](../00-master-plan.md), [DR](../00-decision-register.md)
 
 ## 0. Quy ước
@@ -112,11 +112,12 @@
 | F-UI-01 | Live map | MapLibre + PMTiles; xe real-time, gom cụm, lọc tuyến; ở chế độ operator có tô nổi bunching và gợi ý | FR-11.1 | UC-01, UC-04 | P5 | M | — | F-API-04 | — |
 | F-UI-02 | Stop detail | Arrivals kèm mức tin cậy, banner disruption, tìm trạm; ưu tiên mobile | FR-11.2 | UC-02, UC-03 | P5 | M | — | F-API-01 | — |
 | F-UI-03 | Route scorecard | Xếp hạng OTP, heatmap delay theo giờ × thứ, lịch sử disruption | FR-11.3 | UC-06 | P5 | M | — | F-ANL-04 | Bước 4 |
-| F-UI-04 | Ops console: Jobs | Timeline micro-batch, danh sách job batch, chi tiết step, link trace/log, restart | FR-11.4 | UC-07 | P5 | M | — | F-API-01 | — |
+| F-UI-04 | Ops console: Pipeline (jobs) | Sơ đồ chặng, throughput micro-batch, danh sách job batch, chi tiết step, link trace/log, restart | FR-11.4 | UC-07 | P5 | M | — | F-API-01 | — |
 | F-UI-05 | Ops console: DLQ và Replay | Bảng DLQ virtualized, chi tiết, sửa payload, replay, discard, confirm queue, nhật ký auto-replay, form replay raw zone | FR-11.4 | UC-08–10 | P5 | M | — | F-DLQ-04, F-REPLAY-02 | — |
 | F-UI-06 | Ops console: Controls và Ticketing | Switch cờ vận hành, bảng bất thường ticketing | FR-11.4 | UC-11, UC-12 | P5 | M | — | F-OPS-04 | Bước 3 (phần ticketing) |
 | F-UI-07 | Alert feed | Danh sách alert theo audience, toast, ack | FR-11.5 | UC-03, 04, 05 | P5 | M | — | F-OPS-03 | — |
-| F-UI-08 | Demo control và trạng thái lỗi | Màn điều khiển kịch bản (profile `demo`); stale banner, trạng thái lỗi và rỗng trên mọi màn hình | FR-11.6, FR-11.7 | UC-16 | P5 | S (demo) / M (trạng thái) | profile `demo` | F-SIM-03 | — |
+| F-UI-08 | Demo scenarios và trạng thái lỗi | Màn điều khiển kịch bản (profile `demo`); stale banner, trạng thái lỗi và rỗng trên mọi màn hình | FR-11.6, FR-11.7 | UC-16 | P5 | S (demo) / M (trạng thái) | profile `demo` | F-SIM-03 | — |
+| F-UI-09 | Overview mạng lưới | Trang mặc định của viewer: KPI, network pulse, alert cần chú ý, OTP theo ngày, tuyến cần theo dõi, tình trạng pipeline (DR-88) | FR-11.8 | UC-03, 06, 07 | P5 | S | — | F-UI-01, F-UI-03 | — |
 
 ## 10. SIM: simulator
 

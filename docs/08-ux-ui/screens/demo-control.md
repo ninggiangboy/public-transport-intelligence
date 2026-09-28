@@ -1,14 +1,14 @@
 # Màn hình: Demo control
 
 > Trạng thái: **Review** · Cập nhật: 2026-09-28 · DOC-36
-> Phụ thuộc: DOC-34, DOC-35, DOC-37 §2.3, DOC-32 E-90, DOC-25 §3, §6.5, §7–8, DOC-30 §3
+> Phụ thuộc: DR-88, DOC-34, DOC-35, DOC-37 §2.3, DOC-32 E-90, DOC-25 §3, §6.5, §7–8, DOC-30 §3
 > Người dùng chính: P5-13
 
 ## 1. Persona, use case, quyền
 
 - **Persona:** PS-5 (người trình bày demo, desktop, thường chiếu màn hình).
 - **Use case:** UC-16 (chạy kịch bản simulator), demo script DOC-46 bước 2–7.
-- **Quan hệ với demo console (DOC-48):** màn này là tính năng sản phẩm, chạy mọi kịch bản với tham số tùy ý. Demo console là công cụ trình diễn ngoài sản phẩm: nó chỉ có các hành động cố định của DOC-46, cộng thao tác hạ tầng, và liên kết sang màn này bằng "Open Demo control". Hai nơi cùng gọi `/sim/*`, nên lần chạy bắt đầu từ console vẫn hiện trong "Running scenarios" và "History" ở đây, với `requestedBy` là `cli` ("Command line").
+- **Quan hệ với demo console (DOC-48):** màn này là tính năng sản phẩm, chạy mọi kịch bản với tham số tùy ý. Demo console là công cụ trình diễn ngoài sản phẩm: nó chỉ có các hành động cố định của DOC-46, cộng thao tác hạ tầng, và liên kết sang màn này bằng "Open Demo control". Hai nơi cùng gọi `/sim/*`, nên lần chạy bắt đầu từ console vẫn hiện thành thẻ lần chạy và trong "History" ở đây, với `requestedBy` là `cli` ("Command line").
 - **Quyền:** operator **và** `demoControl = true` trong `env.js` (profile `demo`, DOC-34 §12). Thiếu một trong hai: mục "Demo" không có trong menu; mở URL trực tiếp → viewer: DOC-37 §2.5 "You don't have access to this page"; operator khi `demoControl = false` hoặc API trả 404 → trạng thái "Demo control is not enabled on this server."
 
 ## 2. URL và search params
@@ -18,40 +18,62 @@
 ## 3. Wireframe
 
 ```text
-┌────────────┬──────────────────────────────────────────────────────────────────┐
-│ …          │ Demo control                                                     │
-│ Demo     ◀ │ ┌ Simulator ───────────────────────────────────────────────────┐ │
-│            │ │ Business time  Oct 2, 4:40 PM CDT (offset +14h 30m)          │ │
-│            │ │ Service dates  Oct 1 → feed Sep 30 · Oct 2 → feed Oct 1       │ │
-│            │ │ Vehicles 598 · trips 466 · 141 msg/s · ticketing 1.9/s        │ │
-│            │ │ Rate  GTFS-rt [1.0 ▾]  Ticketing [1.0 ▾]      [Apply]         │ │
-│            │ └──────────────────────────────────────────────────────────────┘ │
-│            │ Running scenarios                              [Stop all ▾]      │
-│            │ ● bunching · route 18 · 12:40 left [███████░░░]      [Stop]      │
-│            │ Scenarios                                                        │
-│            │ ┌ Bus bunching ─────────────┐ ┌ Service disruption ─────────┐    │
-│            │ │ Route [18 ▾] Dir [0 ▾]    │ │ Route [21 ▾] …              │    │
-│            │ │ Pairs [1] Gap ratio [0.2] │ │                             │    │
-│            │ │ Duration [20 min]         │ │                             │    │
-│            │ │               [Start]     │ │               [Start]       │    │
-│            │ └───────────────────────────┘ └─────────────────────────────┘    │
-│            │ … bad data, duplicates, ticket spike, refund burst, load ramp   │
-│            │ History                                                          │
-│            │ Scenario   Status     Started   Ended   Requested by   Params    │
-└────────────┴──────────────────────────────────────────────────────────────────┘
+┌ sidebar ┬──────────────────────────────────────────────────────────────────────────────┐
+│         │ Operations / Demo                                                              │
+│         │ Demo scenarios                                                 [Stop all ▾]    │
+│         │ Inject realistic problems into the simulated network and watch the platform react. │
+│         │ ┌ Simulator ● Running │ Business time Oct 2 · 4:40 PM (+14 h 30 min) │ Vehicles 598 │
+│         │ │ GTFS-rt 141 msg/s │ Ticketing 1.9 sales/s │ Speed [Paused|0.5×|1×|2×|5×|10×|…] ┐│
+│         │ └──────────────────────────────────────────────────────────────────────────────┘│
+│         │ ┌ ● Running · started 4:27 PM by operator ─────────────────────────── (◔ 12:40) ┐│
+│         │ │ [18] Bus bunching · Route 18                                                ││
+│         │ │ Northbound · 1 pair · target gap 20% of headway · 20 min                    ││
+│         │ │ What happened: ● Bus bunching on route 18 alert · 38 s after start          ││
+│         │ │                ● Suggested action ready (74%)                               ││
+│         │ │                                                  [Watch on map] [Stop]      ││
+│         │ └─────────────────────────────────────────────────────────────────────────────┘│
+│         │ Scenarios · Each scenario stops by itself when its duration ends.             │
+│         │ ┌ ▒▒ illus. ▒▒ ┐ ┌ ▒▒ illus. ▒▒ ┐ ┌ ▒▒ illus. ▒▒ ┐ ┌ ▒▒ illus. ▒▒ ┐               │
+│         │ │ Bus bunching │ │ Service      │ │ Bad data     │ │ Ticket spike │  …           │
+│         │ │ Two consec…  │ │ disruption   │ │ burst        │ │ A burst of … │               │
+│         │ │ ● Running    │ │ [Start scenario]│[Start scenario]│[Start scenario]│             │
+│         │ └──────────────┘ └──────────────┘ └──────────────┘ └──────────────┘               │
+│         │ History                                                                        │
+│         │ Scenario   Status     Started   Ended   Requested by   Parameters              │
+└─────────┴──────────────────────────────────────────────────────────────────────────────┘
+```
+
+Dialog bắt đầu (form sinh từ catalog, §6.1):
+
+```text
+┌ Start Service disruption? ──────────────────────┐
+│ Slow one segment of a route until a disruption  │
+│ episode opens. Stops by itself after 15 min.    │
+│ Route        [21 ▾]                             │
+│ Direction    [0 ▾]                              │
+│ Extra delay  [300] sec                          │
+│ Duration     [15] min                           │
+├─────────────────────────────────────────────────┤
+│                    [Reset] [Cancel] [Start scenario] │
+└─────────────────────────────────────────────────┘
 ```
 
 ## 4. Vùng và component
 
 | Vùng | Component | Ghi chú |
 | --- | --- | --- |
-| Khối "Simulator" | `KeyValueList` + hai `Select` hệ số | Từ `GET /sim/status`. Giờ nghiệp vụ chạy theo `businessNow` + thời gian trôi (như khung, DOC-34 §8) |
-| Hệ số tốc độ | `Select` giá trị `0` ("Paused"), `0.5`, `1`, `2`, `5`, `10`, `20` và "Custom…" (ô số 0,1–20) | Nút "Apply" chỉ bật khi giá trị đổi; disable kèm tooltip khi có `load-ramp` đang chạy |
-| Kịch bản đang chạy | danh sách `ScenarioRunRow` | Tên, tham số chính (route/sale point), `Progress` theo `startedAt`–`plannedEndAt`, "{mm:ss} left", nút "Stop" |
-| "Stop all" | `DropdownMenu` | Mỗi mục là một tên kịch bản đang có lần chạy → `DELETE /sim/scenarios/{name}` |
-| Thẻ kịch bản | `ScenarioCard` × 7, form **sinh từ catalog** | §6.1 |
+| Đầu trang | `PageHeader` + `DropdownMenu` "Stop all" | "Stop all" liệt kê tên kịch bản đang có lần chạy → `DELETE /sim/scenarios/{name}` |
+| Dải "Simulator" | `Card` một hàng, các ô ngăn bằng vạch | Từ `GET /sim/status`: trạng thái ("Running" / "Paused" khi cả hai hệ số là 0), "Business time" (`businessNow` + thời gian trôi, DOC-34 §8) kèm offset, "Service dates" ở tooltip ("{realDate} → feed {feedDate}"), "Vehicles", "GTFS-rt {n} msg/s", "Ticketing {n} sales/s" |
+| Tốc độ | `SegmentedControl` "Speed": "Paused" (0), "0.5×", "1×", "2×", "5×", "10×", "…" | Chọn một mức → `PUT /sim/rate` với cả `gtfsRt` và `ticketing`. "…" mở popover "Custom rate" với hai ô số riêng "GTFS-rt", "Ticketing" (0,1–20) + "Apply". Hai hệ số khác nhau thì segmented hiện "Custom". Disable kèm tooltip khi có `load-ramp` đang chạy |
+| Kịch bản đang chạy | `ScenarioRunCard` × N (mới nhất trên) | "Running · started {time} by {requester}", `RouteBadge` khi có `routeId`, "{title} · {target}", tóm tắt tham số một dòng, vòng tiến độ theo `startedAt`–`plannedEndAt` + "{mm:ss} left", "What happened" (§4.1), nút "Watch on map"/"Open dead letters"/"Open ticketing"/"Open pipeline" (theo kịch bản, như toast §6) và "Stop" |
+| Thư viện kịch bản | `ScenarioCard` × N theo thứ tự catalog, lưới 4 cột ≥ 1440 px, 2 cột nhỏ hơn | Hình minh họa nhỏ vẽ bằng SVG theo tên kịch bản (motif `LineStrip`: hai xe sát nhau, đoạn tuyến đỏ, payload lỗi, cột bán vé tăng vọt…; kịch bản lạ dùng hình chung), `title`, `description`, chip tham số chính với giá trị mặc định, nút "Start scenario" hoặc badge "Running" khi đã có lần chạy cho mục tiêu mặc định |
+| Dialog bắt đầu | `Dialog` với form sinh từ catalog | §6.1 |
 | Lịch sử | `DataTable` (≤ 100 dòng) | Cột: "Scenario", "Status" (`StatusPill domain="scenarioRun"`), "Started", "Ended", "Requested by", "Parameters" (tóm tắt 1 dòng, tooltip JSON) |
-| Drawer lần chạy | `DetailDrawer` 560 px | `GET /sim/scenario-runs/{runId}`: tham số đầy đủ (`JsonViewer`), `progress` khi đang chạy, thời gian, người yêu cầu; nút "Stop" |
+| Drawer lần chạy | `DetailDrawer` 520 px | `GET /sim/scenario-runs/{runId}`: tham số đầy đủ (`JsonViewer`), `progress` khi đang chạy, thời gian, người yêu cầu; nút "Stop", "Run again" |
+
+### 4.1 "What happened"
+
+Danh sách hệ quả quan sát được từ lúc lần chạy bắt đầu, để người xem thấy nền tảng phản ứng (DOC-46): alert mới (E-20 `since=startedAt`, lọc `routeId` hoặc `salePointId` của lần chạy) với tiêu đề và "{duration} after start"; với bunching, gợi ý điều phối khi có ("Suggested action ready ({percent})", E-17 `bunchingId`); với bad-data, "+{n} dead letters" (chênh lệch `open` của E-41 so với lúc bắt đầu). Tối đa 3 dòng; chưa có gì thì "Waiting for the platform to react…".
 
 ## 5. Dữ liệu
 
@@ -94,13 +116,13 @@ Catalog (định nghĩa ở DOC-25 §8):
 
 | Hành động | Kết quả | Lỗi |
 | --- | --- | --- |
-| Đổi hệ số → "Apply" | Hệ số `0` → `ConfirmDialog` "Stop sending {stream} data?" · "Live data will go stale in about 2 minutes. Set the rate back to resume."; khác → không hỏi. `PUT /sim/rate` → khối Simulator cập nhật; toast "Rate updated" | 409 `load-ramp-running` → toast "Rate is controlled by the running load ramp. Stop it first."; 400 `invalid-param` → lỗi dưới ô |
-| "Start" trên thẻ | Kiểm tra theo catalog (§6.1) → `POST /sim/scenarios/{name}` → 201 → dòng mới trong "Running scenarios"; toast "{title} started" với nút "Open map" (bunching, disruption: `/map?route=<routeId>`), "Open dead letters" (bad-data, late-delivery), "Open ticketing" (ticket-spike, refund-burst), "Open jobs" (load-ramp, duplicates) | 400 `invalid-param` → lỗi theo trường (`errors[].field`); 409 `scenario-conflict` → "{title} is already running for this target."; 409 `no-eligible-vehicles` → "No suitable buses on this route right now. Try another route or direction."; 404 `unknown-scenario` → "This scenario isn't available." và refetch catalog; 502 `simulator-unavailable` → DOC-37 §2.3 |
-| "Stop" trên dòng | Không hỏi (dừng là an toàn) → `DELETE /sim/scenario-runs/{runId}` → dòng mờ, rời danh sách khi status khác `RUNNING`; toast "{title} stopped" | 404 `scenario-run-not-found` → gỡ dòng |
+| Chọn "Speed" hoặc "Custom rate" → "Apply" | Hệ số `0` ("Paused") → `ConfirmDialog` "Stop sending {stream} data?" · "Live data will go stale in about 2 minutes. Set the rate back to resume."; khác → không hỏi. `PUT /sim/rate` → khối Simulator cập nhật; toast "Rate updated" | 409 `load-ramp-running` → toast "Rate is controlled by the running load ramp. Stop it first."; 400 `invalid-param` → lỗi dưới ô |
+| "Start scenario" trên thẻ | Mở dialog với form (§6.1); "Start scenario" trong dialog kiểm tra theo catalog → `POST /sim/scenarios/{name}` → 201 → dialog đóng, thẻ lần chạy mới xuất hiện trên đầu; toast "{title} started" với nút "Watch on map" (bunching, disruption: `/map?route=<routeId>`), "Open dead letters" (bad-data, late-delivery), "Open ticketing" (ticket-spike, refund-burst), "Open pipeline" (load-ramp, duplicates) | 400 `invalid-param` → lỗi theo trường (`errors[].field`); 409 `scenario-conflict` → "{title} is already running for this target."; 409 `no-eligible-vehicles` → "No suitable buses on this route right now. Try another route or direction."; 404 `unknown-scenario` → "This scenario isn't available." và refetch catalog; 502 `simulator-unavailable` → DOC-37 §2.3 |
+| "Stop" trên thẻ lần chạy | Không hỏi (dừng là an toàn) → `DELETE /sim/scenario-runs/{runId}` → thẻ mờ, biến mất khi status khác `RUNNING`; toast "{title} stopped" | 404 `scenario-run-not-found` → gỡ thẻ |
 | "Stop all" → chọn kịch bản | `ConfirmDialog` "Stop all {title} runs?" · "{n} runs will stop now." → `DELETE /sim/scenarios/{name}` | Như trên |
-| Lần chạy hết giờ | Dòng rời "Running scenarios"; lịch sử có `COMPLETED` | — |
+| Lần chạy hết giờ | Thẻ lần chạy biến mất; lịch sử có `COMPLETED` | — |
 | Bấm dòng lịch sử | `run=<runId>` (`push`), drawer | 404 → "This run no longer exists." |
-| "Run again" trong drawer | Điền thẻ kịch bản tương ứng bằng `params` của lần chạy, cuộn tới thẻ | — |
+| "Run again" trong drawer | Mở dialog bắt đầu của kịch bản tương ứng, điền sẵn `params` của lần chạy | — |
 
 ### 6.1 Form sinh từ catalog
 
@@ -121,16 +143,16 @@ Mỗi `params[]` sinh một trường theo `type`:
 - Giá trị mặc định điền sẵn từ `default`. Nhãn trường là `label` của catalog (tiếng Anh, do simulator cung cấp); mô tả thẻ là `description`.
 - Nút "Reset" trả form về mặc định.
 - `load-ramp` hiện thêm dòng "Total duration {duration}" tính từ `steps`, `stepDuration`, `rampDown` (DOC-25 §7.8).
-- Thứ tự thẻ theo thứ tự catalog; lưới 2 cột ≥ 1280 px, 1 cột nhỏ hơn.
+- Dialog rộng 480 px; mô tả là `description` của catalog cộng "Stops by itself after {duration}."; nút "Reset", "Cancel", "Start scenario". Lỗi 4xx hiện trong dialog, dialog không đóng.
 
 ## 7. Trạng thái
 
 | Trạng thái | Hiển thị |
 | --- | --- |
-| Loading | Khối Simulator skeleton; thẻ kịch bản skeleton 4 dòng |
-| Empty (đang chạy) | "No scenarios running" |
+| Loading | Dải Simulator skeleton; thẻ kịch bản skeleton |
+| Empty (đang chạy) | Không có thẻ lần chạy; dòng chữ "No scenarios running" |
 | Empty (lịch sử) | "No scenario runs yet" |
-| Error | `GET /sim/status` 502 → khối Simulator `ErrorState` "Simulator isn't responding" + "Retry"; thẻ kịch bản disable. Mỗi khối độc lập (DOC-37 §2.6) |
+| Error | `GET /sim/status` 502 → dải Simulator `ErrorState` "Simulator isn't responding" + "Retry"; nút "Start scenario" disable. Mỗi khối độc lập (DOC-37 §2.6) |
 | Không bật | 404 từ `/sim/*` hoặc `demoControl = false` → trang `EmptyState` "Demo control is not enabled on this server." · "Start the stack with the demo profile to use this page." |
 | Không có quyền | DOC-37 §2.5 (cần operator) |
 
@@ -138,15 +160,16 @@ Mỗi `params[]` sinh một trường theo `type`:
 
 | Vị trí | Chuỗi |
 | --- | --- |
-| Tiêu đề | "Demo control" |
-| Khối Simulator | "Simulator" · "Business time" · "(offset {duration})" · "Service dates" · "{realDate} → feed {feedDate}" · "Vehicles {n} · trips {n} · {n} msg/s · ticketing {n}/s" · "Rate" · "GTFS-rt" · "Ticketing" · "Paused" · "Custom…" · "Apply" |
+| Tiêu đề | "Demo scenarios" · breadcrumb "Operations" / "Demo" · "Inject realistic problems into the simulated network and watch the platform react." |
+| Dải Simulator | "Simulator" · "Running" · "Paused" · "Business time" · "{offset}" · "Service dates" · "{realDate} → feed {feedDate}" · "Vehicles" · "GTFS-rt" · "msg/s" · "Ticketing" · "sales/s" · "Speed" · "0.5×", "1×", "2×", "5×", "10×" · "Custom" · "Custom rate" · "Apply" |
 | Tooltip | "Rate is controlled by the running load ramp." |
-| Đang chạy | "Running scenarios" · "{mm:ss} left" · "Stop" · "Stop all" · "No scenarios running" |
-| Thẻ | "Start" · "Reset" · "Any" · "Total duration {duration}" · đơn vị "sec", "min", "h" |
+| Đang chạy | "Running · started {time} by {requester}" · "{mm:ss} left" · "What happened" · "{duration} after start" · "Suggested action ready ({percent})" · "+{n} dead letters" · "Waiting for the platform to react…" · "Watch on map" · "Stop" · "Stop all" · "No scenarios running" |
+| Thư viện | "Scenarios" · "Each scenario stops by itself when its duration ends." · "Start scenario" · "Running" |
+| Dialog bắt đầu | "Start {title}?" · "Stops by itself after {duration}." · "Reset" · "Cancel" · "Start scenario" · "Any" · "Total duration {duration}" · đơn vị "sec", "min", "h" |
 | Lịch sử | "History" · cột "Scenario", "Status", "Started", "Ended", "Requested by", "Parameters" · "No scenario runs yet" |
 | Drawer | "Scenario run {id}" · "Parameters" · "Progress" · "Requested by {requester}" · "Run again" |
 | Dialog | "Stop sending {stream} data?" · "Live data will go stale in about 2 minutes. Set the rate back to resume." · "Stop all {title} runs?" · "{n} runs will stop now." |
-| Phản hồi | "Rate updated" · "{title} started" · "{title} stopped" · "Open map" · "Open dead letters" · "Open ticketing" · "Open jobs" |
+| Phản hồi | "Rate updated" · "{title} started" · "{title} stopped" · "Watch on map" · "Open dead letters" · "Open ticketing" · "Open pipeline" |
 | Lỗi | "Rate is controlled by the running load ramp. Stop it first." · "{title} is already running for this target." · "No suitable buses on this route right now. Try another route or direction." · "This scenario isn't available." · "This run no longer exists." |
 | Không bật | "Demo control is not enabled on this server." · "Start the stack with the demo profile to use this page." |
 
@@ -155,9 +178,9 @@ Mỗi `params[]` sinh một trường theo `type`:
 ## 9. Tiêu chí nghiệm thu
 
 - **AC-1** Given operator trên stack `demo`, Then menu Ops có "Demo" và trang hiện giờ nghiệp vụ, số xe, msg/s cập nhật mỗi 2 s.
-- **AC-2** Given thẻ "Bus bunching" với tuyến 18 → "Start", Then dòng đang chạy xuất hiện với thời gian còn lại, và trong ≤ 10 phút Live map có halo bunching trên tuyến 18.
+- **AC-2** Given thẻ "Bus bunching" → "Start scenario" với tuyến 18, Then thẻ lần chạy xuất hiện với thời gian còn lại, "What happened" có alert bunching khi episode mở, và trong ≤ 10 phút Live map có halo bunching trên tuyến 18.
 - **AC-3** Given đang chạy `bunching` cho tuyến 18, When bắt đầu lần hai cùng tuyến và chiều, Then lỗi "Bus bunching is already running for this target."
-- **AC-4** Given `load-ramp` đang chạy, Then ô hệ số disable với tooltip; `PUT /sim/rate` (nếu gửi) trả 409 và có toast đúng.
+- **AC-4** Given `load-ramp` đang chạy, Then "Speed" disable với tooltip; `PUT /sim/rate` (nếu gửi) trả 409 và có toast đúng.
 - **AC-5** Given nhập `pairs = 5`, Then lỗi phía client "Must be at most 3." và không gửi request.
 - **AC-6** Given stack không có profile `demo`, When operator mở `/ops/demo`, Then "Demo control is not enabled on this server."
 - **AC-7** Given viewer, Then không có mục "Demo" và URL trực tiếp cho "You don't have access to this page".
@@ -166,9 +189,9 @@ Mỗi `params[]` sinh một trường theo `type`:
 
 | ID | Kịch bản | Kỳ vọng |
 | --- | --- | --- |
-| E2E-DEMO-01 | `operator`: mở `/ops/demo`; chạy "Service disruption" tuyến 18 `PT5M`; "Open map"; quay lại "Stop"; axe | AC-1, lần chạy `STOPPED` trong lịch sử |
+| E2E-DEMO-01 | `operator`: mở `/ops/demo`; chạy "Service disruption" tuyến 18 `PT5M`; "Watch on map"; quay lại "Stop"; axe | AC-1, lần chạy `STOPPED` trong lịch sử |
 | E2E-DEMO-02 | `operator`: chạy "Bus bunching" tuyến 18; chạy lần hai cùng tham số; nhập `pairs = 5` | AC-3, AC-5 |
-| E2E-DEMO-03 | `operator`: "Load ramp" với `steps = 1, 2`, `stepDuration = 1 min`; thử đổi hệ số; "Stop all" → "Load ramp" | AC-4; hệ số trở về giá trị trước |
+| E2E-DEMO-03 | `operator`: "Load ramp" với `steps = 1, 2`, `stepDuration = 1 min`; thử đổi "Speed"; "Stop all" → "Load ramp" | AC-4; hệ số trở về giá trị trước |
 | E2E-DEMO-04 | `viewer`: mở `/ops/demo` | AC-7 |
 
 AC-2 nằm trong E2E-MAP-02; AC-6 kiểm ở component test (MSW trả 404).

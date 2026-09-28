@@ -1,7 +1,7 @@
 # Demo console
 
 > Trạng thái: **Review** · Cập nhật: 2026-09-28 · DOC-48
-> Phụ thuộc: [DR](../00-decision-register.md) (DR-77, DR-78, DR-85, DR-87), [ADR-0020](../04-adr/0020-frontend-stack.md), [ADR-0025](../04-adr/0025-python-experiment-runner.md), [ADR-0030](../04-adr/0030-monorepo-layout.md), [DOC-25](source-simulator.md) §7–8, [DOC-27](security.md) §6, §12, [DOC-28](observability.md) §6–7, [DOC-35](../08-ux-ui/design-system.md), [DOC-38](../09-operations/local-dev.md) §4.6, §5, [DOC-40](../09-operations/deploy-k8s.md) §7.6, §13, [DOC-45](../10-testing/experiments/README.md) §2, [DOC-46](../10-testing/demo-script.md)
+> Phụ thuộc: [DR](../00-decision-register.md) (DR-77, DR-78, DR-85, DR-87, DR-88), [ADR-0020](../04-adr/0020-frontend-stack.md), [ADR-0025](../04-adr/0025-python-experiment-runner.md), [ADR-0030](../04-adr/0030-monorepo-layout.md), [DOC-25](source-simulator.md) §7–8, [DOC-27](security.md) §6, §12, [DOC-28](observability.md) §6–7, [DOC-35](../08-ux-ui/design-system.md), [DOC-38](../09-operations/local-dev.md) §4.6, §5, [DOC-40](../09-operations/deploy-k8s.md) §7.6, §13, [DOC-45](../10-testing/experiments/README.md) §2, [DOC-46](../10-testing/demo-script.md)
 > Người dùng chính: người trình bày (PS-5), P8-08
 
 ## 1. Mục đích
@@ -106,40 +106,46 @@ frontend/
 
 ## 4. Màn hình
 
-Một trang duy nhất, thiết kế cho màn hình chiếu 1920×1080 ở zoom 110% (DOC-46 §1.1). Chữ và số lớn hơn ops console: tối thiểu `text-base`, số liệu chính `text-2xl`. Theme tối mặc định, vì sơ đồ có màu dễ đọc hơn trên máy chiếu; nút đổi theme như sản phẩm (DOC-35 §9).
+Một trang duy nhất, thiết kế cho màn hình chiếu 1920×1080 ở zoom 110% (DOC-46 §1.1). Chữ và số lớn hơn ops console: tối thiểu `text-base` (14 px), số liệu chính 34 px. Theme tối mặc định (token dark của DOC-35 §3), vì sơ đồ có màu dễ đọc hơn trên máy chiếu; nút đổi theme như sản phẩm (DOC-35 §9).
 
 ### 4.1 Bố cục
 
+Hình ảnh tham chiếu là artboard "Demo — Console (1920 × 1080)" của prototype (DR-88), theme tối của DOC-35.
+
 ```text
-┌──────────────────────────────────────────────────────────────────────────────────────┐
-│ PTI demo console   ● compose   Business time 4:32 PM CDT   Sim ×1.0 · 598 vehicles   │
-├───────────────┬──────────────────────────────────────────────────────────────────────┤
-│ Runbook       │                           TOPOLOGY (§4.2)                            │
-│               │                                                                      │
-│ 1 Live map  ↗ │  [Simulator]══141/s══▶[Kafka ●]══lag 1.2k══▶[etl-stream ▣]══▶[Warehouse]│
-│ 2 Bunching ✓  │       │                     ▲                     │            │     │
-│ 3 Disruption  │  [pg-source]──CDC──▶[Connect]──▶[Raw zone]   [etl-batch]   [API ▣]──▶ │
-│ 4 Bad data  ▶ │                                                   [Triage]  [Frontend]│
-│ 5 Kill ETL  ▶ │                                                                      │
-│ 6 Fix+replay↗ ├──────────────────────────────────────────────────────────────────────┤
-│ 7a Load ×10 ▶ │ Throughput 142/s │ Lag 1,204 │ p95 e2e 3.1 s │ DLQ open 37 │ Replicas 1/4│
-│ 7b Broker   ▶ ├──────────────────────────────────────────────────────────────────────┤
-│ 7c PG fail  ▶ │ Timeline                                                             │
-│ ✓ Reconcile ▶ │ 16:32:05  ● etl-stream killed (SIGKILL, exit 137)                    │
-│               │ 16:32:10  ● etl-stream started                                       │
-│ Stop all      │ 16:32:31  ● etl-stream healthy · 1,806 messages waited               │
-│ Open Grafana ↗│ 16:32:58  ✓ Reconcile PASS · lost 0 · duplicates 0                   │
-└───────────────┴──────────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────────────────────────────┐
+│ [◆] Demo console  ● compose · 14 containers   Business time 4:32:08 PM CDT   Simulator ×1.0 · 598 vehicles │
+│                                        [Open app ↗] [Open Demo control ↗] [Grafana ↗] [Stop all] │
+├──────────────────┬─────────────────────────────────────────────────────────┬─────────────────┤
+│ Runbook          │ Topology                      Edges animate while data flows │ Throughput      │
+│ 4 of 10 done     │  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·    │ 142/s  ▁▂▃▄▅▅▆ │
+│ ✓ Live map  Open │  ┌Simulator ●┐ ══▶ ┌Kafka    ●┐ ══▶ ┌etl-stream●┐ ══▶ ┌Warehouse●┐ ══▶ ┌API ●┐ │ msg/s in      │
+│ ✓ Bunching Replay│  │GTFS-rt 141/s│    │3 brokers  │    │4 replicas │    │38 ms     │    │2 pods│ ├───────────────┤
+│ ③ Disruption Run │  └────────────┘    │lag 1.2k   │    │p95 3.1 s  │    └──────────┘    └─────┘ │ Kafka lag      │
+│ ④ Bad data   Run │  ┌pg-source ●┐ ─▶ ┌Kafka     ●┐ ─▶ ┌Raw zone  ●┐    ┌etl-batch○┐    ┌Web app●┐│ 1,204 steady   │
+│ ⑤ Kill ETL   Run │  │ticketing DB│    │Connect    │    │12.4 GB    │    │idle      │    │SSE    ││├───────────────┤
+│ ⑥ Fix+replay Open│  └────────────┘    └───────────┘    └───────────┘    └──────────┘    └───────┘│ p95 end-to-end │
+│ 7a Load ×10  Run │                                   ┌Triage    ●┐                        │ 3.1 s < 10 s   │
+│ 7b Broker    Run │                                   │backlog 0  │                        ├───────────────┤
+│ 7c PG fail   Run │                                   └───────────┘                        │ Dead letters   │
+│ ✓ Reconcile View ├─────────────────────────────────────────────────────────┤ open 214 +37/h │
+│                  │ Timeline                                      Newest first │├───────────────┤
+│                  │ 16:32:31 ● etl-stream-2 healthy · 1,806 messages waited  │ etl-stream     │
+│                  │ 16:32:10 ● etl-stream-2 restarting (exit 137)            │ replicas 4 / 4 │
+│                  │ 16:32:05 ● etl-stream-2 killed (SIGKILL)                 │ ┌ Last reconcile┐│
+│                  │ 16:29:12 ● Reconcile PASS · lost 0 · duplicates 0         │ │ PASS · 0 lost │││
+│                  │                                                           │ │ view details  │││
+└──────────────────┴─────────────────────────────────────────────────────────┴─────────────────┘
 ```
 
 | Vùng | Nội dung |
 | --- | --- |
-| Thanh trên | Môi trường ("compose" hoặc "k3d"), giờ nghiệp vụ (từ `/sim/status`), hệ số tải, số xe. Chấm đỏ kèm "Prometheus unreachable" hoặc "Simulator unreachable" khi nguồn lỗi (§12) |
-| Runbook (trái, 280 px) | Các bước của DOC-46 theo thứ tự. Mỗi bước là một nút hành động (§7) hoặc một liên kết ↗ sang màn hình sản phẩm (bước 1, 2, 3, 6). Trạng thái mỗi nút: sẵn sàng, đang chạy (spinner, thời gian đã chạy), xong (✓), lỗi (✕ kèm thông báo). Bước chỉ có ở một môi trường thì ẩn ở môi trường kia |
-| Topology (giữa) | §4.2 |
-| Dải chỉ số | 5 ô số lớn kèm sparkline 10 phút (§5.1) |
-| Timeline (dưới) | §4.3, mới nhất ở trên, 12 dòng hiển thị, cuộn được |
-| Kết quả đối chiếu | Khi `check` xong: dialog không chặn thao tác, gồm bảng theo bảng đích (`expected`, `lost`, `duplicates`, `wrong_value`, `unexpected`, `replayed`) và nhãn lớn "PASS" hoặc "FAIL" |
+| Thanh trên (64 px) | Logo và "Demo console"; môi trường kèm số container/pod ("compose · 14 containers", "k3d · 23 pods"); giờ nghiệp vụ có giây (từ `/sim/status`); "Simulator ×{rate} · {n} vehicles". Bấm chip môi trường mở menu "Switch to k3d" / "Switch to compose" (`switch-env`, §7). Bên phải: "Open app" (`http://localhost:8080`), "Open Demo control", "Grafana", "Stop all" (`stop-scenarios`, có xác nhận). Chấm đỏ kèm "Prometheus unreachable" hoặc "Simulator unreachable" khi nguồn lỗi (§12) |
+| Runbook (trái, 360 px, nền `--surface`) | Tiêu đề "Runbook" + "{n} of {total} done". Dòng đầu là "Seed scenarios" (`prewarm`, dùng ở T−12). Sau đó mỗi bước của DOC-46 theo thứ tự: vòng số (✓ khi xong, spinner khi đang chạy), tên bước, một dòng mô tả ("SIGKILL one replica"), nút bên phải: hành động (nhãn ngắn "Run"; `aria-label` và tooltip là nhãn đầy đủ ở §7; đang chạy thì hiện thời gian đã chạy; lỗi thì "Retry" kèm thông báo) hoặc liên kết sang sản phẩm ("Open", bước 1, 2, 3, 6); bước 7a khi đang chạy đổi nút thành "Back to ×1" (`load-stop`); bước đối chiếu là "View" khi đã có kết quả. Bước đang chạy có viền `--primary`. Bước chỉ có ở một môi trường thì ẩn ở môi trường kia |
+| Topology (giữa) | §4.2. Nền lưới chấm 24 px; tiêu đề "Topology" + "Edges animate while data flows" |
+| Timeline (giữa, dưới, 250 px) | §4.3, mới nhất ở trên, cuộn được; mỗi dòng: giờ mono, chấm tông, nội dung |
+| Chỉ số (phải, 380 px) | 5 ô dọc: số lớn (34 px), nhãn, ghi chú ("msg/s in", "steady"/"rising", "target < 10 s", "+{n} / h", "{n} restarting") và sparkline 10 phút có vùng tô (§5.1). Ô chuyển tông `warning`/`danger` theo ngưỡng giống cạnh lag |
+| Kết quả đối chiếu | Thẻ "Last reconcile" ở chân cột chỉ số: nhãn lớn "PASS"/"FAIL" (tông `success`/`danger`), "{lost} lost · {duplicates} duplicates", "{n} records checked · view details". Bấm mở dialog không chặn thao tác, rộng 600 px: câu giải thích ("Compares what the simulator sent with what reached the warehouse…"), bảng theo bảng đích (`expected`, `written`, `lost`, `duplicates`, `wrong_value`, `unexpected`, `replayed`) |
 
 ### 4.2 Topology
 
@@ -173,7 +179,7 @@ Keycloak và stack observability không được vẽ: chúng không tham gia lu
 | `degraded` | — | Nhóm có ít nhất một ô `down` hoặc `starting` nhưng vẫn còn ô `healthy` (ví dụ 2/3 broker) | `warning` |
 | `unknown` | Chưa nhận được trạng thái | Như compose | `neutral` |
 
-Khi trạng thái đổi, node nhấp nháy viền 2 giây (như highlight dòng mới, DOC-35 §4).
+Mỗi node là thẻ 180 × 78 px bo 14 px nền `--card`: tên node, một dòng chỉ số (cột "Hiển thị trong node"), chấm trạng thái ở góc phải trên. Node `down` có viền `danger` 2 px và quầng sáng; node vừa hồi phục có viền `success` và dòng chỉ số tông `success` (ví dụ "recovered · +1,806 caught up"). Khi trạng thái đổi, node nhấp nháy viền 2 giây (như highlight dòng mới, DOC-35 §4.4).
 
 **Cạnh (luồng dữ liệu)**
 
@@ -185,7 +191,7 @@ Khi trạng thái đổi, node nhấp nháy viền 2 giây (như highlight dòng
 | pg-source → Connect → Kafka | sự kiện CDC/s | `sum(rate(pti_etl_records_total{mode="stream", source=~"TICKETING_.*"}[1m]))` |
 | API → Frontend | sự kiện SSE/s | `sum(rate(pti_api_sse_events_emitted_total[1m]))` |
 
-- Cạnh vẽ nét đứt chạy theo chiều dữ liệu. Tốc độ chạy tỷ lệ với `log10(1 + rate)` và bị chặn trong khoảng 0,5–4 giây mỗi chu kỳ. Rate bằng 0 thì cạnh đứng yên và mờ đi.
+- Cạnh vẽ nét đứt màu `--primary` chạy theo chiều dữ liệu; cạnh không có dữ liệu là nét liền `--border-strong`. Tốc độ chạy tỷ lệ với `log10(1 + rate)` và bị chặn trong khoảng 0,5–4 giây mỗi chu kỳ. Rate bằng 0 thì cạnh đứng yên và mờ đi.
 - Cạnh lag có màu theo ngưỡng của `ConsumerLagHigh` (DOC-28 §6.3): dưới 1.000 là `neutral`, 1.000–3.000 là `warning`, trên 3.000 là `danger`.
 - `prefers-reduced-motion: reduce` thì cạnh không chạy, chỉ hiện số.
 
@@ -308,7 +314,7 @@ Hành động là **danh sách cố định trong code** (`actions.py`). Không 
 | `stop-scenarios` | "Stop all scenarios" | cả hai | `DELETE /sim/scenarios/{name}` cho mọi kịch bản đang chạy | — | ✓ | Demo control "Stop all" |
 | `switch-env` | "Switch to k3d" / "Switch to compose" | cả hai | Đổi adapter (§6 `POST /console-api/env`), không động tới hạ tầng | — | — | — |
 
-Liên kết sang sản phẩm (không phải hành động): bước 1 → `/map?route=18`, bước 2 → `/map?route=<routeId>`, bước 3 → `/alerts` và `/scorecard/21?tab=disruptions`, bước 4 → `/ops/dlq`, bước 6 → `/ops/dlq?status=MANUAL`; cùng "Open Demo control" và "Open Grafana" (`pti-overview` trên compose, `pti-k8s` trên k3d). Mọi liên kết mở tab mới trên `http://localhost:8080` hoặc `:3000`.
+Liên kết sang sản phẩm (không phải hành động): bước 1 → `/map?route=18`, bước 2 → `/map?route=<routeId>`, bước 3 → `/alerts` và `/scorecard/21?tab=disruptions`, bước 4 → `/ops/dlq`, bước 6 → `/ops/dlq?status=MANUAL`; cùng "Open app", "Open Demo control" và "Grafana" trên thanh trên (`pti-overview` trên compose, `pti-k8s` trên k3d). Mọi liên kết mở tab mới trên `http://localhost:8080` hoặc `:3000`.
 
 **Xác nhận:** hành động có ✓ không mở dialog, vì dialog che topology đúng lúc khán giả cần nhìn. Thay vào đó, bấm lần đầu thì nút đổi thành "Confirm: Kill etl-stream" (tông `danger`) trong 5 giây; bấm lần hai mới gửi request với `"confirmed": true`.
 

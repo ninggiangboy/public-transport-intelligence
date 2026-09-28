@@ -147,6 +147,7 @@ docs/
     design-system.md                # DOC-35
     screens/                        # DOC-36 (mỗi màn hình một file)
       shell-and-navigation.md
+      overview.md
       live-map.md
       stop-detail.md
       route-scorecard.md
@@ -534,8 +535,9 @@ Mục tiêu: không còn câu hỏi nào có thể chặn P1–P2.
 | P5-11 | Ops console: form replay raw zone và danh sách replay; bật/tắt cờ | Như trên | P5-05 | screens/ops-console-replay |
 | P5-12 | Alert feed (theo audience, ack) | Như trên | P5-05 | screens/alert-feed |
 | P5-13 | Demo control (profile demo) | Như trên | P5-04 | screens/demo-control |
-| P5-14 | Trạng thái loading/empty/error/stale cho mọi màn hình; kiểm tra a11y (axe) | Không màn hình nào bị trắng khi API chết | P5-06…13 | DOC-37 |
+| P5-14 | Trạng thái loading/empty/error/stale cho mọi màn hình; kiểm tra a11y (axe) | Không màn hình nào bị trắng khi API chết | P5-06…13, P5-16 | DOC-37 |
 | P5-15 | Image Nginx (static, cấu hình runtime qua `env.js`, serve PMTiles), đưa vào compose | `make up` → mở `http://localhost:8080` | P5-01 | DOC-39 |
+| P5-16 | Overview: KPI mạng lưới, network pulse, alert cần chú ý, OTP theo ngày, tuyến cần theo dõi, tình trạng pipeline | Như trên | P5-04, P5-05 | screens/overview |
 
 **Tiêu chí thoát (M5):** chạy được bước 1–6 của kịch bản demo trên UI (bước 2 và 4 tạm chưa có phần AI).
 

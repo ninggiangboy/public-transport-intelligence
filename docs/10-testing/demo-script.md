@@ -1,7 +1,7 @@
 # Kịch bản demo
 
 > Trạng thái: **Review** · Cập nhật: 2026-09-28 · DOC-46
-> Phụ thuộc: SDD §14.1, [DOC-25](../06-design/source-simulator.md) §7, [DOC-24](../06-design/ai-triage.md) §6.4, [DOC-27](../06-design/security.md) §3.1, [DOC-36](../08-ux-ui/screens/README.md) (Live map, Alert feed, Route scorecard, Dead letters, Jobs, Demo control), [DOC-38](../09-operations/local-dev.md) §4, [DOC-39](../09-operations/deploy-compose.md) §2, [DOC-40](../09-operations/deploy-k8s.md) §13–14, [DOC-45](experiments/README.md), [EXP-07](experiments/EXP-07-autoscaling.md), [EXP-08](experiments/EXP-08-chaos.md), [DOC-48](../06-design/demo-console.md), [DR](../00-decision-register.md) (DR-47, DR-49, DR-87)
+> Phụ thuộc: SDD §14.1, [DOC-25](../06-design/source-simulator.md) §7, [DOC-24](../06-design/ai-triage.md) §6.4, [DOC-27](../06-design/security.md) §3.1, [DOC-36](../08-ux-ui/screens/README.md) (Live map, Alert feed, Route scorecard, Dead letters, Pipeline, Demo scenarios), [DOC-38](../09-operations/local-dev.md) §4, [DOC-39](../09-operations/deploy-compose.md) §2, [DOC-40](../09-operations/deploy-k8s.md) §13–14, [DOC-45](experiments/README.md), [EXP-07](experiments/EXP-07-autoscaling.md), [EXP-08](experiments/EXP-08-chaos.md), [DOC-48](../06-design/demo-console.md), [DR](../00-decision-register.md) (DR-47, DR-49, DR-87)
 > Người dùng chính: người trình bày (PS-5), P8-04, P8-05, P8-08
 
 Buổi demo có hai phần trên cùng một máy 16 GB:
@@ -34,18 +34,18 @@ Giao diện hiển thị tiếng Anh; chuỗi trong ngoặc kép là chuỗi đ�
 | T−45 | `make demo-reset`: `make reset`, `make clock-offset AT=16:20` (giờ nghiệp vụ cao điểm chiều, ≥ 500 xe; DOC-38 §3.1), `make up-demo`, `make smoke` | `make smoke` pass; `make sim-status` có `activeVehicles ≥ 500` |
 | T−40 | `make demo-console` trong một terminal riêng; mở sẵn các tab trình duyệt (§1.3); đăng nhập `operator` / `operator` (DOC-27 §3.1) ở cửa sổ chính, cửa sổ ẩn danh để xem góc nhìn hành khách | UI hiện "Demo Operator" ở góc phải; console hiện "compose", mọi node xanh, không có chấm đỏ ở thanh trên |
 | T−30 | Ấm máy: để hệ thống chạy ở ×1 | Grafana "Pipeline overview": lag ổn định, p95 end-to-end < 10 s |
-| T−12 | Console: "Seed scenarios" (`make demo-prewarm`, §1.4) | Timeline có hai dòng "Scenario … started"; Demo control có hai dòng trong "Running scenarios" |
+| T−12 | Console: "Seed scenarios" (`make demo-prewarm`, §1.4) | Timeline có hai dòng "Scenario … started"; Demo scenarios (`/ops/demo`) có hai thẻ lần chạy đang chạy |
 | T−2 | Chạy E2E-DEMO-11 (§9): `make demo-preflight` | In "READY" |
 
 ### 1.3 Tab mở sẵn
 
 0. `http://localhost:8095` (Demo console), tab chiếu chính.
 1. `http://localhost:8080/map?route=18` (Live map, tuyến 18).
-2. `http://localhost:8080/ops/demo` (Demo control).
+2. `http://localhost:8080/ops/demo` (Demo scenarios).
 3. `http://localhost:8080/alerts`.
 4. `http://localhost:8080/scorecard/21?tab=disruptions` (Route scorecard, tuyến 21).
 5. `http://localhost:8080/ops/dlq`.
-6. `http://localhost:8080/ops/jobs`.
+6. `http://localhost:8080/ops/jobs` (Pipeline).
 7. `http://localhost:3000/d/pti-overview` (Grafana "Pipeline overview").
 8. Terminal ở thư mục repo, font lớn, lịch sử lệnh đã xóa. Dùng cho bước 6 và khi phải quay về lệnh `make` (§5).
 9. Cửa sổ ẩn danh: `http://localhost:8080/map` (anonymous).
@@ -70,8 +70,8 @@ Nếu `bunching` trả 409 `no-eligible-vehicles`, lệnh thử lần lượt c�
 | 1. Khởi động và live map | T+0 | 2 phút | Demo console, Live map |
 | 2. Bunching và gợi ý điều phối | T+2 | 3 phút | Demo console, Live map |
 | 3. Gián đoạn | T+5 | 3 phút | Alerts, Route scorecard |
-| 4. Dữ liệu lỗi, DLQ, auto-replay | T+8 | 4 phút | Demo console, Dead letters, Jobs |
-| 5. Kill consumer, phục hồi, đối chiếu | T+12 | 3 phút | Demo console, Jobs |
+| 4. Dữ liệu lỗi, DLQ, auto-replay | T+8 | 4 phút | Demo console, Dead letters, Pipeline |
+| 5. Kill consumer, phục hồi, đối chiếu | T+12 | 3 phút | Demo console, Pipeline |
 | 6. Sửa record và replay | T+15 | 3 phút | Dead letters, terminal |
 | Chuyển sang k3d (trình bày kết quả EXP trong lúc chờ) | T+18 | ≤ 5 phút | Slide |
 | 7. Scale và chịu lỗi trên k3d | T+23 | 8 phút | Demo console, Grafana, Live map |
@@ -99,7 +99,7 @@ Nếu `bunching` trả 409 `no-eligible-vehicles`, lệnh thử lần lượt c�
 **Thao tác**
 
 1. Tab 0 (Demo console): chỉ vào dòng "Scenario bunching · route 18 started" trên timeline, đã gieo từ T−12.
-2. Để minh họa thao tác, bấm "Start bunching" (tuyến `5`, mặc định). Timeline có "Scenario bunching · route 5 started". Làm thay trên tab 2 (Demo control) cũng được: thẻ "Bus bunching", tuyến `5`, "Start".
+2. Để minh họa thao tác, bấm "Start bunching" (tuyến `5`, mặc định). Timeline có "Scenario bunching · route 5 started". Làm thay trên tab 2 (Demo scenarios) cũng được: thẻ "Bus bunching" → "Start scenario", tuyến `5` trong dialog → "Start scenario".
 3. **Đồng thời** (không nói tới lúc này): bấm "Start late delivery" (`ratio` `0.005`, `delay` 6 min, `duration` 1 min; trên Demo control là thẻ "Late delivery"). Kịch bản này phục vụ bước 4.
 4. Tab 1, tuyến 18. Bấm xe có vòng halo. Panel "Bus bunching · Route 18 …" mở, với dòng "Suggested action".
 5. Bấm "Accept". Toast "Feedback saved".
@@ -118,7 +118,7 @@ Nếu `bunching` trả 409 `no-eligible-vehicles`, lệnh thử lần lượt c�
 
 **Thao tác**
 
-1. Tab 3 (Alerts). Dòng "Service disruption" trên tuyến 21 (cột "Audience"), mở drawer: "Average delay", "Peak delay", "z-score", "Likely cause" kèm độ tin cậy, "Data issue probability".
+1. Tab 3 (Alerts). Chọn mục "Service disruption" trên tuyến 21 (audience ở tooltip), khung chi tiết bên phải: "Average delay", "Peak delay", "z-score", dải "Where", khối "AI analysis" với "Likely cause" kèm độ tin cậy và "Data issue probability".
 2. Cửa sổ ẩn danh (Live map anonymous): toast "Delays on Route 21 (avg ~{n} min late)". Hành khách thấy cùng gián đoạn.
 3. Tab 4 (Route scorecard, tuyến 21), tab "Disruptions": dòng "Ongoing" với "Peak delay", "Peak z", "Cause".
 
@@ -138,7 +138,7 @@ Nếu `bunching` trả 409 `no-eligible-vehicles`, lệnh thử lần lượt c�
 
 1. Tab 0: bấm "Inject bad data" (`ratio` `0.01`, `kinds` `out_of_bbox`, `schema_violation`, `unknown_route`, `duration` 3 min; trên Demo control là thẻ "Bad data"). Ô "DLQ open" bắt đầu tăng và timeline có "DLQ +{n}". Bấm liên kết bước 4 sang Dead letters.
 2. Tab 5 (Dead letters). Thẻ "Open" và "New in last hour" tăng. Trong vài giây cột "Category" chuyển từ "Unclassified" sang "Schema violation" / "Unknown reference". Trạng thái "Needs manual review" hoặc "Awaiting confirmation".
-3. Tab 6 (Jobs): "Streaming throughput" vẫn đều, có cột "Skipped". Pipeline không dừng vì record lỗi.
+3. Tab 6 (Pipeline): biểu đồ "Throughput" vẫn đều; chuyển "By source" với chỉ số "Skipped" thì thấy cột skipped. Pipeline không dừng vì record lỗi.
 4. Quay lại Dead letters, tab "Action log", lọc "Actor" = "Auto-triage". Các record của `late-delivery` (bật ở bước 2, trễ 6 phút) có "Auto-replay scheduled" rồi "Replayed".
 
 **Kết quả mong đợi**
@@ -157,7 +157,7 @@ Nếu `bunching` trả 409 `no-eligible-vehicles`, lệnh thử lần lượt c�
 
 1. Tab 0: bấm "Kill etl-stream", rồi "Confirm: Kill etl-stream" (`make demo-kill-consumer`, tức `docker compose kill -s KILL etl-stream`, chờ 5 giây, rồi `docker compose start etl-stream`, như EXP-01 `kill-external`).
 2. Vẫn ở tab 0: node `etl-stream` chuyển đỏ, cạnh Kafka → etl-stream hiện "consumer down"; timeline có "etl-stream killed (SIGKILL, exit 137)". Sau 5 giây node chuyển vàng ("etl-stream started"), rồi xanh với dòng "etl-stream healthy · {n} messages waited". Lag hiện lại ở mức cao rồi giảm về mức cũ trong khoảng 20–40 giây. Không có console thì xem tab 7 (Grafana "Pipeline overview").
-3. Tab 6 (Jobs): bucket phút vừa qua thấp hơn hẳn. Tooltip các bucket ngay sau đó có "Duplicates" > 0: message đã được giao lại và bị bỏ qua vì trùng.
+3. Tab 6 (Pipeline): bucket phút vừa qua trên biểu đồ "Throughput" thấp hơn hẳn. Tooltip các bucket ngay sau đó có "Duplicates" > 0: message đã được giao lại và bị bỏ qua vì trùng.
 4. Tab 0: bấm "Reconcile" (`make demo-check SINCE=10m`). Kết quả hiện thành bảng trên console.
 
 **Kết quả mong đợi**
@@ -169,13 +169,13 @@ Nếu `bunching` trả 409 `no-eligible-vehicles`, lệnh thử lần lượt c�
 
 > "Tôi kill tiến trình ETL bằng SIGKILL giữa lúc đang xử lý, tương đương mất điện. Chunk đang dở bị rollback nên không để lại gì trong kho. Offset chỉ được commit sau khi transaction thành công, nên Kafka giao lại đúng những message đó. Upsert theo business key làm cho lần ghi lại không tạo bản trùng. Cột Duplicates chính là những message được giao lại. Lệnh cuối so từng business key trong kho với sổ cái của simulator: không mất, không trùng. EXP-01 lặp lại việc này 30 lần cho mỗi biến thể."
 
-Ghi chú: SDD viết "ops console hiển thị batch failed". Với SIGKILL, transaction bị rollback nên không có dòng `FAILED` (DOC-15 §4.2 chỉ ghi `FAILED` khi tiến trình còn sống). Dấu vết trên ops console là khoảng trống trên timeline và cột "Duplicates" sau khi chạy lại.
+Ghi chú: SDD viết "ops console hiển thị batch failed". Với SIGKILL, transaction bị rollback nên không có dòng `FAILED` (DOC-15 §4.2 chỉ ghi `FAILED` khi tiến trình còn sống). Dấu vết trên ops console là khoảng trống trên biểu đồ throughput và cột "Duplicates" sau khi chạy lại.
 
 ### Bước 6. Sửa một record trong DLQ và replay → dữ liệu vào warehouse
 
 **Thao tác**
 
-1. Tab 5, lọc "Status" = "Needs manual review" và "Rule" = rule bbox (DOC-16). Mở một record `out_of_bbox`.
+1. Tab 5, tab "Review", lọc "Status" = "Needs manual review" và "Error" → "Rule" = rule bbox (DOC-16). Chọn một record `out_of_bbox`.
 2. "Edit payload": đổi `latitude`, `longitude` thành `44.9778`, `-93.2650` (trung tâm Minneapolis). Bấm "Save", toast "Payload saved".
 3. "Replay", dialog "Replay this record?", bấm "Replay". Toast "Request sent", rồi "Record replayed". "History" có "Payload edited", "Replay requested", "Replayed".
 4. Terminal, chép `vehicle_id` và `event_timestamp` từ payload:

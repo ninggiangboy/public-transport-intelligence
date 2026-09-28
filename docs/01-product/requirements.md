@@ -1,6 +1,6 @@
 # Yêu cầu
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-27 · DOC-03
+> Trạng thái: **Review** · Cập nhật: 2026-09-28 · DOC-03
 > Phụ thuộc: SDD gốc §3, [DR](../00-decision-register.md), [Glossary](../02-glossary.md), [DOC-01](vision-and-scope.md)
 
 ## 0. Quy ước
@@ -130,6 +130,7 @@
 | FR-11.5 | Alert feed theo audience, có ack | `screens/alert-feed.md` | M | E2E |
 | FR-11.6 | Không màn hình nào bị trắng khi API hoặc SSE lỗi; có stale banner | Tắt API → mọi màn hình hiện trạng thái lỗi hoặc dữ liệu cũ kèm thời điểm | M | E2E |
 | FR-11.7 | Demo control (chỉ ở profile `demo`) | `screens/demo-control.md` | S | E2E |
+| FR-11.8 | Overview mạng lưới cho viewer: KPI, alert cần chú ý, tuyến kém, tình trạng pipeline, mỗi khối dẫn sang màn chuyên trách (DR-88) | `screens/overview.md` | S | E2E |
 
 ### FR-12 · Replay
 

@@ -130,9 +130,9 @@ Mọi phiên bản trong bảng này được pin ở P7-02 vào `deploy/version
 | `@lhci/cli` (Lighthouse CI) | 0.x | Đo LCP trong nightly (NFR-12, DOC-44 §10) | 🔬 |
 | `json-schema-to-zod` | 2.x | Sinh zod schema cho sự kiện UI từ `schemas/ui-events/` lúc build (DOC-44 §9.1) | 🔬 |
 | `@vitest/coverage-v8` | theo Vitest | Coverage frontend (DOC-44 §7) | 🔬 |
-| `lucide-react` | bản mới nhất | Icon (DOC-35 §4) | 🔬 |
+| `lucide-react` | bản mới nhất | Icon (DOC-35 §2.2) | 🔬 |
 | `sonner` | 2.x | Toast (DOC-35 §5) | 🔬 |
-| `@fontsource-variable/inter`, `@fontsource-variable/jetbrains-mono` | 5.x | Font tự host, không gọi Google Fonts (DOC-35 §4) | 🔬 |
+| `@fontsource-variable/geist`, `@fontsource-variable/geist-mono` | 5.x | Font tự host, không gọi Google Fonts (DOC-35 §4.1, DR-88) | 🔬 |
 | `eslint-plugin-i18next` | 6.x | Luật `no-literal-string` (DR-48, DOC-37 CP-02) | 🔬 |
 | ESLint (flat config) + Prettier | 9.x + 3.x | Lint, format | 🔬 |
 
