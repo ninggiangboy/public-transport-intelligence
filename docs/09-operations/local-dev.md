@@ -94,7 +94,7 @@ Offset được làm tròn tới phút. Mọi app dùng chung một giá trị. 
 | `make tiles` | Chạy `deploy/tiles/fetch.sh`: cắt bản đồ nền Twin Cities bằng `pmtiles extract` từ bản build Protomaps mới nhất vào `deploy/tiles/twin-cities.pmtiles` (khoảng 84 MB), tải font và sprite vào `deploy/tiles/fonts/`, `deploy/tiles/sprites/` (khoảng 13 MB); tất cả gitignored (ADR-0021). Phần nào đã có thì bỏ qua |
 | `make secrets` | Tạo `.env` nếu chưa có; điền biến trống bằng `openssl rand -base64 24`; sinh `deploy/compose/.generated/s3.json`. Chạy lại không ghi đè giá trị đã có |
 | `make images` | Build mọi image: `./gradlew jibDockerBuild` (các app Java), `docker build` cho `deploy/connect/` và `frontend/` |
-| `make up` | `images` (nếu code đổi) rồi `docker compose --profile core up -d --wait`. Lệnh chỉ trả về khi mọi service healthy và mọi job một lần (`db-migrate`, `kafka-init`, `s3-init`, `kafka-connect-init`) đã xong |
+| `make up` | `images` (nếu code đổi) rồi `docker compose --profile core up -d` và `deploy/compose/scripts/wait-stack.sh`. Lệnh chỉ trả về khi mọi service healthy và mọi job một lần (`db-migrate`, `kafka-init`, `s3-init`, `kafka-connect-init`) đã thoát mã 0 (tối đa 300 giây, `WAIT_TIMEOUT_SECONDS`). Không dùng `up --wait`: Compose 5.1 báo lỗi khi một job một lần không có service nào phụ thuộc thoát, kể cả với mã 0 |
 | `make up-obs` | Thêm profile `observability` |
 | `make up-triage` | Thêm profile `triage` (triage-worker; cần `TYPESAFE_API_KEY` hoặc `PTI_TRIAGE_PROVIDER=fake`) |
 | `make up-all` | `core` + `observability` + `triage` |

@@ -27,9 +27,13 @@ images: .env ## Build every image: Jib for the Java apps, Dockerfiles through co
 	cd backend && ./gradlew --quiet jibDockerBuild
 	$(COMPOSE) --profile '*' build
 
+# One-shot jobs; wait-stack.sh requires them to exit 0 (compose's own --wait mishandles them).
+JOBS := kafka-init s3-init db-migrate kafka-connect-init
+
 .PHONY: up
-up: images ## Build images if needed, start the core profile and wait until every service is healthy
-	$(COMPOSE) $(PROFILES) up -d --wait
+up: images ## Build images if needed, start the core profile, wait for health and for every one-shot job
+	$(COMPOSE) $(PROFILES) up -d
+	@JOBS="$(JOBS)" deploy/compose/scripts/wait-stack.sh $(COMPOSE) --profile '*'
 
 .PHONY: down
 down: .env ## Stop and remove containers, keep volumes

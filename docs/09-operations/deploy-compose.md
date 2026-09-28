@@ -26,6 +26,7 @@ deploy/
     observability/                  # prometheus.yml, rules/, alertmanager.yml, loki, tempo, alloy, otel, grafana/provisioning
     toxiproxy/toxiproxy.json        # proxy cho profile experiment
     scripts/secrets.sh              # make secrets (§5)
+    scripts/wait-stack.sh           # make up: chờ service healthy và job một lần thoát 0 (§4)
     scripts/backup.sh, restore-warehouse.sh, ensure-partitions.sh, replay.sh   # DOC-43, DOC-38 §4
     .generated/                     # (gitignored) s3.json, webhook-token
   connect/
@@ -195,7 +196,7 @@ File connector tham chiếu secret bằng `${env:DEBEZIUM_PASSWORD}`, `${env:S3_
 
 Healthcheck: `curl -fs http://localhost:8083/connectors` (image Debezium có `curl`), `start_period: 60s`.
 
-`register.sh` duyệt `connectors/*.json`. Mỗi file có dạng `{"name": "...", "config": {...}}`. Script gọi `PUT /connectors/<name>/config` với phần `config` (tạo mới hoặc cập nhật, idempotent), rồi chờ tới khi `GET /connectors/<name>/status` báo connector và mọi task `RUNNING` (tối đa 120 giây). Task nào `FAILED` thì in trace và thoát 1.
+`register.sh` duyệt `connectors/*.json`. Mỗi file có dạng `{"name": "...", "config": {...}}`. Script gọi `PUT /connectors/<name>/config` với phần `config` (tạo mới hoặc cập nhật, idempotent), rồi chờ tới khi `GET /connectors/<name>/status` báo connector và mọi task `RUNNING` (tối đa 120 giây). Task nào `FAILED` thì in trace và thoát 1. Image curl không có `jq`, nên script tách `name` và `config` bằng một bộ quét JSON nhỏ viết bằng awk; file connector phải là JSON hợp lệ với `name` và `config` ở cấp cao nhất.
 
 ### 3.5 SeaweedFS và raw zone
 
@@ -276,7 +277,7 @@ flowchart LR
 Quy ước `depends_on`:
 
 - Tới service chạy lâu: `condition: service_healthy`.
-- Tới job một lần: `condition: service_completed_successfully`. Job thoát khác 0 thì các service phụ thuộc không khởi động, và `make up` (`--wait`) báo lỗi.
+- Tới job một lần: `condition: service_completed_successfully`. Job thoát khác 0 thì các service phụ thuộc không khởi động, và `make up` (`wait-stack.sh`) báo lỗi. `make up` không dùng `docker compose up --wait`, vì lệnh này báo lỗi khi một job lá như `kafka-connect-init` thoát, kể cả với mã 0.
 - `kafka-connect-init` phụ thuộc `pg-source` healthy và `db-migrate` completed, vì Debezium cần publication `pti_ticketing` và bảng `debezium_heartbeat` (DOC-13 §5) có sẵn trước khi đăng ký.
 - Service `etl-stream` **không** phụ thuộc `kafka-connect`: topic CDC đã do `kafka-init` tạo, nên consumer chỉ chờ tới khi có event.
 

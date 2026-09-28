@@ -183,6 +183,7 @@ services:
     depends_on:
       kafka-init: { condition: service_completed_successfully }
       s3-init: { condition: service_completed_successfully }
+      db-migrate: { condition: service_completed_successfully }
     environment:
       BOOTSTRAP_SERVERS: kafka:9092
       GROUP_ID: pti-connect
@@ -211,6 +212,23 @@ services:
       start_period: 60s
     mem_limit: 1280m
     cpus: 1.0
+    logging: *default-logging
+
+  kafka-connect-init:
+    profiles: [core]
+    image: ${CURL_IMAGE:?deploy/versions.env is not loaded}
+    restart: "no"
+    depends_on:
+      kafka-connect: { condition: service_healthy }
+      pg-source: { condition: service_healthy }
+      # Debezium needs the pti_ticketing publication and the heartbeat table from the ticketing migration.
+      db-migrate: { condition: service_completed_successfully }
+    entrypoint: ["/bin/sh", "/register.sh"]
+    volumes:
+      - ./connect/register.sh:/register.sh:ro
+      - ../connect/connectors:/connectors:ro
+    mem_limit: 64m
+    cpus: 0.25
     logging: *default-logging
 
 volumes:
