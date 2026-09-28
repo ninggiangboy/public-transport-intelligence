@@ -64,7 +64,7 @@
 | `com.diffplug.spotless` 8.10.3 (palantir-java-format) | Format | ✅ (S-06) |
 | `checkstyle` (tool 14.3.0), `com.github.spotbugs` 6.5.12 (SpotBugs 4.10.4) | Lint, bug pattern. SpotBugs báo `EI_EXPOSE_REP`/`EI_EXPOSE_REP2` ở mọi bean nhận dependency qua constructor, nên `config/spotbugs/exclude.xml` loại hai pattern này | ✅ (S-06: chạy trên bytecode Java 25) |
 | `jacoco` (tool 0.8.15) | Coverage gate (NFR-13) | ✅ (S-06: đọc được bytecode Java 25) |
-| `com.google.cloud.tools.jib` 3.5.4 | Build image (DR-56), base `eclipse-temurin:25-jre`. `jibDockerBuild` chỉ nạp một platform vào Docker cục bộ: mặc định theo máy (`linux/arm64` trên máy dev); CI đẩy cả `linux/amd64,linux/arm64` bằng `jib` (DOC-41 §5). Image amd64 chạy giả lập trên Mac khởi động chậm gấp 4 lần (10,6 s so với 2,7 s) | ✅ (S-06) |
+| `com.google.cloud.tools.jib` 3.5.4 | Build image (DR-56), base `eclipse-temurin:25-jre`. `jibDockerBuild` chỉ nạp một platform vào Docker cục bộ: mặc định theo máy (`linux/arm64` trên máy dev); CI đẩy cả `linux/amd64,linux/arm64` bằng `jib` (DOC-41 §5). Image amd64 chạy giả lập trên Mac khởi động chậm gấp 4 lần (10,6 s so với 2,7 s). Task `jib*` không tương thích configuration cache (Jib 3.5 đọc `Task.project` lúc chạy), nên `build-logic` đánh dấu `notCompatibleWithConfigurationCache`; các task khác vẫn dùng cache | ✅ (S-06, P1-02) |
 | `org.owasp.dependencycheck` 13.0.0 | Quét CVE (CI main) | 🔬 (áp dụng được; lần chạy đầy đủ cần `NVD_API_KEY`, kiểm ở P1-03) |
 | `org.openapi.generator` *không dùng*; OpenAPI xuất bằng `org.springdoc.openapi-gradle-plugin` 1.9.0 | `openapi.json` (DR-44) | 🔬 (kiểm ở P4 khi có module `api`) |
 
