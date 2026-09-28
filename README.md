@@ -8,7 +8,7 @@ The core of the project is the **ETL pipeline**. It answers one question:
 
 The answer is effectively-once delivery, fault isolation, a dead letter queue and replay across both streaming and batch processing, backed by a set of measurable experiments.
 
-> **Status: design phase.** The design documents are written and under review. Implementation has not started yet, so the repository currently contains documentation and sample data only. See the [roadmap](#roadmap).
+> **Status: phase 1 (infrastructure and data sources) in progress.** The design documents are approved; implementation follows the [roadmap](#roadmap).
 
 ## What it does
 
@@ -94,22 +94,29 @@ Protocols are in [docs/10-testing/experiments/](docs/10-testing/experiments/).
 
 ```
 .
-├── public-transport-intelligence.md   # Original system design document
+├── backend/                           # Gradle multi-module build (Java 25, Spring Boot 4)
+├── frontend/                          # React + Vite dashboard
+├── deploy/                            # Compose, k3d, Helm, Kafka Connect, Chaos Mesh, base map tiles
+├── experiments/                       # Python experiment runner
 ├── docs/                              # Detailed design documentation
 │   ├── 00-master-plan.md              # Master plan, phases, traceability matrix
 │   ├── 00-decision-register.md        # All decisions made so far
 │   ├── 01-product/                    # Vision, personas, requirements, use cases
 │   ├── 03-architecture/               # Containers, data flows, message contracts
 │   ├── 04-adr/                        # Architecture decision records
-│   ├── 05-data/ … 11-report/          # Data, design, API, UX, operations, testing
-└── sample-data/gtfs/                  # Pinned GTFS static feed and profiling scripts
+│   └── 05-data/ … 11-report/          # Data, design, API, UX, operations, testing
+├── sample-data/gtfs/                  # Pinned GTFS static feed and profiling scripts
+├── spikes/                            # Phase 0 spikes, not part of the build
+├── Makefile                           # Entry point for every stack (`make help`)
+├── mise.toml                          # Pinned developer tools
+└── public-transport-intelligence.md   # Original system design document
 ```
 
-The documentation is written in Vietnamese. Everything else (code, UI, logs, API messages, commits) is in English. Start with [docs/README.md](docs/README.md).
+The documentation is written in Vietnamese. Everything else (code, UI, logs, API messages, commits) is in English. Start with [docs/README.md](docs/README.md). The layout is explained in [ADR-0030](docs/04-adr/0030-monorepo-layout.md), and the contribution rules in [CONTRIBUTING.md](CONTRIBUTING.md).
 
-## Getting started (planned)
+## Getting started
 
-The local environment is specified but not built yet. Once phase 1 lands, it will look like this:
+The local environment is being built in phase 1. Once it lands:
 
 ```bash
 mise install     # Java 25, Node 24, pnpm, Python, uv and Kubernetes tooling
@@ -137,3 +144,7 @@ Requirements: 16 GB RAM (12 GB allocated to the Docker VM with every profile ena
 ## Data attribution
 
 Schedule data: Metro Transit / Metropolitan Council (Minneapolis–St. Paul, MN, USA), published as public data under the Minnesota Government Data Practices Act. See [sample-data/gtfs/README.md](sample-data/gtfs/README.md).
+
+## License
+
+[MIT](LICENSE). The GTFS feed under `sample-data/` keeps its own terms (see above).

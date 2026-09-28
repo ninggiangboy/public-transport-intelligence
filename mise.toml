@@ -1,0 +1,26 @@
+# Pinned developer tools (DOC-11 §5). Run `mise install` in the repo root.
+# Docker (OrbStack or Docker Desktop), make, git and openssl are installed separately (DOC-38 §2).
+
+[tools]
+java = "temurin-25"
+node = "24"
+pnpm = "10"
+python = "3.12"
+uv = "latest"
+jq = "latest"
+gh = "latest"
+gitleaks = "latest"
+shellcheck = "latest"
+"github:protomaps/go-pmtiles" = "1.31.2"
+
+# Kubernetes tooling (P7). Exact versions are pinned in P7-02 together with deploy/versions.env.
+kubectl = "latest"
+k3d = "latest"
+helm = "latest"
+helmfile = "latest"
+kubeseal = "latest"
+"aqua:cloudnative-pg/cloudnative-pg/kubectl-cnpg" = "latest"
+
+[settings]
+# Only the tools listed above; do not pick up .tool-versions or .java-version files from elsewhere.
+idiomatic_version_file_enable_tools = []

@@ -1,0 +1,12 @@
+# gitleaks configuration (DOC-41 §2, NFR-06).
+title = "public-transport-intelligence"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Encrypted Sealed Secrets and pinned sample data"
+paths = [
+  '''^deploy/k3d/sealed/''',
+  '''^sample-data/''',
+]

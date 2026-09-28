@@ -2,14 +2,42 @@
 .DS_Store
 .idea/
 .vscode/
+*.iml
 *.swp
+
+# Java / Gradle
+.gradle/
+build/
+out/
+.kotlin/
+hs_err_pid*.log
+
+# Node / frontend
+node_modules/
+dist/
+coverage/
+playwright-report/
+test-results/
+.lighthouseci/
 
 # Python
 __pycache__/
 *.pyc
 .venv/
+.ruff_cache/
+.pytest_cache/
 
 # Secrets / local env
 .env
 .env.*
 !.env.example
+.envrc
+deploy/compose/.generated/
+deploy/k3d/.generated/
+
+# Local data and generated assets
+backups/
+deploy/tiles/*.pmtiles
+deploy/tiles/fonts/
+deploy/tiles/sprites/
+experiments/results/
