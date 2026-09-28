@@ -17,6 +17,8 @@
 
 ## 3. Wireframe
 
+Prototype (DR-88): [Demo — Scenarios](assets/demo-control.html).
+
 ```text
 ┌ sidebar ┬──────────────────────────────────────────────────────────────────────────────┐
 │         │ Operations / Demo                                                              │

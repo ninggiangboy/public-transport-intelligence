@@ -21,6 +21,8 @@
 
 ## 3. Wireframe
 
+Prototype (DR-88): [Live map — desktop](assets/live-map.html) · [Live map — mobile](assets/live-map-mobile.html).
+
 Desktop (≥ 1024 px). Bản đồ tràn hết vùng nội dung; mọi điều khiển là panel nổi (DOC-34 §4.2):
 
 ```text

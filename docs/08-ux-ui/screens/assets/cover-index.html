@@ -1,0 +1,241 @@
+<!DOCTYPE html><html lang="en"><head><title>Cover & index</title><meta charset="utf-8"><link rel="stylesheet" href="shared.css">
+<meta charset="utf-8">
+<title>PTI screen designs</title>
+
+<style data-dc-tpl="2">/* PTI — "Wayfinding" theme, light. Mirrors the PTI Design System tokens.json (light). */
+:root, :host {
+  --background: #F4F5F7;
+  --surface: #FAFAFB;
+  --card: #FFFFFF;
+  --popover: #FFFFFF;
+  --muted: #F0F1F4;
+  --muted-2: #E6E8EC;
+  --foreground: #17181C;
+  --foreground-2: #3A3D45;
+  --muted-foreground: #676B75;
+  --subtle-foreground: #8E929B;
+  --border: #E4E5E9;
+  --border-strong: #D4D6DC;
+  --input: #DADCE1;
+  --ring: #5B63E6;
+
+  --primary: #4F57D9;
+  --primary-hover: #444BC6;
+  --primary-foreground: #FFFFFF;
+  --primary-soft: #EEEFFD;
+  --primary-soft-fg: #3A41B5;
+  --destructive: #D93A45;
+  --destructive-foreground: #FFFFFF;
+
+  --tone-neutral-bg: #F0F1F3;  --tone-neutral-fg: #4A4E57;  --tone-neutral-border: #E0E2E6;  --tone-neutral-solid: #9AA0A9;
+  --tone-info-bg: #EBF2FE;     --tone-info-fg: #2458C6;     --tone-info-border: #D3E2FB;     --tone-info-solid: #3B7BEA;
+  --tone-success-bg: #E8F6EE;  --tone-success-fg: #1C7548;  --tone-success-border: #CDEBDA;  --tone-success-solid: #2FA36B;
+  --tone-teal-bg: #E6F5F3;     --tone-teal-fg: #16706A;     --tone-teal-border: #CBEAE5;     --tone-teal-solid: #22A39A;
+  --tone-warning-bg: #FDF4E3;  --tone-warning-fg: #92560A;  --tone-warning-border: #F6E1B8;  --tone-warning-solid: #E59A1A;
+  --tone-danger-bg: #FDECED;   --tone-danger-fg: #B1242E;   --tone-danger-border: #F8D2D5;   --tone-danger-solid: #E0454F;
+  --tone-progress-bg: #F3EEFE; --tone-progress-fg: #6A3FC6; --tone-progress-border: #E3D8FB; --tone-progress-solid: #8B5CF6;
+
+  --delay-early: #3B7BEA;
+  --delay-on-time: #2FA36B;
+  --delay-late: #E59A1A;
+  --delay-very-late: #E0454F;
+  --delay-unknown: #A4A8B0;
+  --bunching: #C026D3;
+  --bunching-soft: #FBEAFD;
+
+  --chart-1: #4F57D9; --chart-2: #22A39A; --chart-3: #E59A1A; --chart-4: #C026D3;
+  --chart-5: #3B7BEA; --chart-6: #E0454F; --chart-7: #84A83A; --chart-8: #9AA0A9;
+
+  --heat-1: #EAF6EF; --heat-2: #CFEBDC; --heat-3: #F5E9C7; --heat-4: #F3D293;
+  --heat-5: #EDAA6E; --heat-6: #E0735D; --heat-7: #B9424C;
+
+  --map-land: #F1F0EB; --map-water: #D4E3EE; --map-park: #DDEAD4; --map-block: #E8E6DF;
+  --map-road: #FFFFFF; --map-casing: #DEDBD2; --map-label: #8B8F97;
+
+  --radius-sm: 6px; --radius-md: 9px; --radius-lg: 12px; --radius-xl: 16px;
+  --shadow-xs: 0 1px 2px rgba(16,18,27,0.05);
+  --shadow-sm: 0 1px 3px rgba(16,18,27,0.06), 0 1px 2px rgba(16,18,27,0.03);
+  --shadow-md: 0 6px 16px -4px rgba(16,18,27,0.10), 0 2px 5px -2px rgba(16,18,27,0.06);
+  --shadow-lg: 0 20px 48px -12px rgba(16,18,27,0.22), 0 6px 14px -6px rgba(16,18,27,0.10);
+
+  --font-sans: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+</style><style data-dc-tpl="4">
+  .sw { display: flex; flex-direction: column; gap: 6px; }
+  .sw i { display: block; height: 44px; border-radius: 10px; border: 1px solid rgba(0,0,0,.06); }
+  .sw span { font-size: 11.5px; color: var(--muted-foreground); }
+  .grp { font-size: 12px; font-weight: 500; color: var(--subtle-foreground); padding: 10px 0 3px; }
+  .lnk { display: grid; grid-template-columns: 30px minmax(0, 1fr) 16px; gap: 12px; align-items: center; padding: 5px 10px; margin: 0 -10px; border-radius: 10px; text-decoration: none; color: inherit; }
+  .lnk .pti-ibox { width: 30px; height: 30px; border-radius: 8px; }
+  .lnk:hover { background: var(--surface); }
+  .lnk:hover .arr { color: var(--foreground); transform: translateX(2px); }
+  .lnk__t { font-size: 13.5px; font-weight: 500; letter-spacing: -0.01em; }
+  .lnk__d { font-size: 12px; color: var(--muted-foreground); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .arr { color: var(--subtle-foreground); transition: transform .12s ease-out; }
+</style></head>
+<body>
+<div id="dc-root"><div class="sc-host" data-sc-name="dfb4b7d9-c2ad-4290-81bd-df7244a4c0a9"><div data-dc-tpl="5" class="pti-root" style="width: 1440px; height: 900px; overflow: hidden; display: grid; grid-template-columns: minmax(0px, 1fr) 560px;">
+  <section data-dc-tpl="6" style="padding: 56px 64px; display: flex; flex-direction: column; position: relative; overflow: hidden;">
+    <svg data-dc-tpl="7" viewBox="0 0 880 900" width="880" height="900" aria-hidden="true" style="position: absolute; right: -40px; top: 0px; opacity: 0.5;">
+      <defs data-dc-tpl="8"><pattern data-dc-tpl="9" id="cd" width="18" height="18" patternUnits="userSpaceOnUse"><circle data-dc-tpl="10" cx="1" cy="1" r="1" fill="var(--border-strong)"></circle></pattern></defs>
+      <rect data-dc-tpl="11" width="880" height="900" fill="url(#cd)"></rect>
+    </svg>
+    <div data-dc-tpl="12" style="position: relative; display: flex; flex-direction: column; gap: 22px; height: 100%;">
+      <div data-dc-tpl="13" style="display: flex; align-items: center; gap: 12px;">
+        <div data-dc-tpl="14" class="pti-logo" style="width: 40px; height: 40px; border-radius: 12px;"><svg data-dc-tpl="15" class="i" viewBox="0 0 24 24" style="width: 24px; height: 24px; stroke-width: 2.2;"><path data-dc-tpl="16" d="M5 17.5h4l6-11h4"></path><circle data-dc-tpl="17" cx="5" cy="17.5" r="2.2" fill="currentColor"></circle><circle data-dc-tpl="18" cx="19" cy="6.5" r="2.2" fill="currentColor"></circle></svg></div>
+        <span data-dc-tpl="19" class="pti-badge pti-badge--round" style="background: var(--card); border-color: var(--border);">Screen designs · v3</span>
+      </div>
+      <div data-dc-tpl="20">
+        <h1 data-dc-tpl="21" style="margin: 0px; font-size: 60px; font-weight: 600; letter-spacing: -0.05em; line-height: 1;">Transit<br data-dc-tpl="22">Intelligence</h1>
+        <p data-dc-tpl="23" style="margin: 18px 0px 0px; font-size: 17px; line-height: 1.5; color: var(--foreground-2); max-width: 540px; text-wrap: pretty;">Live vehicles, reliability and the data pipeline behind them — one product for riders, analysts and the operators on duty.</p>
+      </div>
+
+      <div data-dc-tpl="24" class="pti-card" style="padding: 18px 20px; max-width: 700px; display: flex; flex-direction: column; gap: 18px;">
+        <div data-dc-tpl="25" style="display: flex; justify-content: space-between; align-items: baseline;"><span data-dc-tpl="26" style="font-size: 14px; font-weight: 600;">Direction: Wayfinding</span><span data-dc-tpl="27" style="font-size: 12.5px; color: var(--muted-foreground);">borrowed from transit signage</span></div>
+        <div data-dc-tpl="28" style="display: grid; grid-template-columns: repeat(7, minmax(0px, 1fr)); gap: 10px;">
+          <div data-dc-tpl="29" class="sw"><i data-dc-tpl="30" style="background: var(--background);"></i><span data-dc-tpl="31">Canvas</span></div>
+          <div data-dc-tpl="32" class="sw"><i data-dc-tpl="33" style="background: var(--foreground);"></i><span data-dc-tpl="34">Ink</span></div>
+          <div data-dc-tpl="35" class="sw"><i data-dc-tpl="36" style="background: var(--primary);"></i><span data-dc-tpl="37">Indigo</span></div>
+          <div data-dc-tpl="38" class="sw"><i data-dc-tpl="39" style="background: var(--delay-on-time);"></i><span data-dc-tpl="40">On time</span></div>
+          <div data-dc-tpl="41" class="sw"><i data-dc-tpl="42" style="background: var(--delay-late);"></i><span data-dc-tpl="43">Late</span></div>
+          <div data-dc-tpl="44" class="sw"><i data-dc-tpl="45" style="background: var(--delay-very-late);"></i><span data-dc-tpl="46">Very late</span></div>
+          <div data-dc-tpl="47" class="sw"><i data-dc-tpl="48" style="background: var(--bunching);"></i><span data-dc-tpl="49">Bunching</span></div>
+        </div>
+        <div data-dc-tpl="50" style="display: grid; grid-template-columns: minmax(0px, 1fr) minmax(0px, 1fr); gap: 20px; align-items: center;">
+          <div data-dc-tpl="51" style="display: flex; align-items: baseline; gap: 14px;">
+            <span data-dc-tpl="52" style="font-size: 44px; font-weight: 600; letter-spacing: -0.04em; line-height: 1;">Aa</span>
+            <div data-dc-tpl="53"><div data-dc-tpl="54" style="font-size: 13px; font-weight: 600;">Geist</div><div data-dc-tpl="55" class="pti-mono" style="font-size: 12.5px; color: var(--muted-foreground);">Geist Mono · 4:34 PM · +3 min</div></div>
+          </div>
+          <div data-dc-tpl="56" style="display: flex; align-items: center; gap: 6px;">
+            <span data-dc-tpl="57" class="pti-route pti-route--lg" style="background: rgb(47, 111, 208);">18</span>
+            <span data-dc-tpl="58" class="pti-route pti-route--lg" style="background: rgb(227, 162, 26); color: rgb(58, 42, 0);">21</span>
+            <span data-dc-tpl="59" class="pti-route pti-route--lg" style="background: rgb(22, 144, 122);">6</span>
+            <svg data-dc-tpl="60" viewBox="0 0 120 32" width="120" height="32" aria-hidden="true"><line data-dc-tpl="61" x1="6" y1="16" x2="114" y2="16" stroke="#2F6FD0" stroke-width="4" stroke-linecap="round"></line><g data-dc-tpl="62" fill="#fff" stroke="#2F6FD0" stroke-width="2.5"><circle data-dc-tpl="63" cx="10" cy="16" r="4.5"></circle><circle data-dc-tpl="64" cx="46" cy="16" r="4.5"></circle><circle data-dc-tpl="65" cx="82" cy="16" r="4.5"></circle><circle data-dc-tpl="66" cx="110" cy="16" r="6"></circle></g></svg>
+          </div>
+        </div>
+      </div>
+
+      <div data-dc-tpl="67" style="margin-top: auto; display: flex; gap: 28px; font-size: 12.5px; color: var(--muted-foreground);">
+        <span data-dc-tpl="68">Metro Transit · Twin Cities sample data</span>
+        <span data-dc-tpl="69">Desktop 1440 × 900 · mobile 390 × 844 · console 1920 × 1080</span>
+      </div>
+    </div>
+  </section>
+
+  <aside data-dc-tpl="70" style="background: var(--card); border-left: 1px solid var(--border); padding: 40px 40px 28px; overflow: hidden; display: flex; flex-direction: column;">
+    <div data-dc-tpl="71" style="display: flex; justify-content: space-between; align-items: baseline;">
+      <h2 data-dc-tpl="72" style="margin: 0px; font-size: 17px; font-weight: 600; letter-spacing: -0.02em;">Screens</h2>
+      <span data-dc-tpl="73" style="font-size: 12.5px; color: var(--muted-foreground);">16 artboards · click to open</span>
+    </div>
+    
+      <div data-dc-tpl="75" class="grp"><span class="sc-interp">Network</span></div>
+      
+        <a data-dc-tpl="77" class="lnk" href="Overview.dc.html">
+          <div data-dc-tpl="78" class="pti-ibox" style="background: var(--surface); border: 1px solid var(--border); color: var(--foreground-2);"><svg data-dc-tpl="79" class="i" viewBox="0 0 24 24"><path data-dc-tpl="80" d="M4 4h6.5v7.5H4zM13.5 4H20v4.5h-6.5zM13.5 11.5H20V20h-6.5zM4 14.5h6.5V20H4z"></path></svg></div>
+          <div data-dc-tpl="81" style="min-width: 0px;"><div data-dc-tpl="82" class="lnk__t"><span class="sc-interp">Overview</span></div><div data-dc-tpl="83" class="lnk__d"><span class="sc-interp">Network pulse, alerts and pipeline at a glance</span></div></div>
+          <svg data-dc-tpl="84" class="i arr" viewBox="0 0 24 24"><path data-dc-tpl="85" d="M5 12h14M13 6l6 6-6 6"></path></svg>
+        </a>
+      
+        <a data-dc-tpl="77" class="lnk" href="LiveMap.dc.html">
+          <div data-dc-tpl="78" class="pti-ibox" style="background: var(--surface); border: 1px solid var(--border); color: var(--foreground-2);"><svg data-dc-tpl="79" class="i" viewBox="0 0 24 24"><path data-dc-tpl="80" d="M9 4 3.5 6.5v13L9 17l6 3 5.5-2.5v-13L15 7 9 4zM9 4v13M15 7v13"></path></svg></div>
+          <div data-dc-tpl="81" style="min-width: 0px;"><div data-dc-tpl="82" class="lnk__t"><span class="sc-interp">Live map</span></div><div data-dc-tpl="83" class="lnk__d"><span class="sc-interp">Vehicles, bunching and disruptions in real time</span></div></div>
+          <svg data-dc-tpl="84" class="i arr" viewBox="0 0 24 24"><path data-dc-tpl="85" d="M5 12h14M13 6l6 6-6 6"></path></svg>
+        </a>
+      
+        <a data-dc-tpl="77" class="lnk" href="StopDetail.dc.html">
+          <div data-dc-tpl="78" class="pti-ibox" style="background: var(--surface); border: 1px solid var(--border); color: var(--foreground-2);"><svg data-dc-tpl="79" class="i" viewBox="0 0 24 24"><path data-dc-tpl="80" d="M12 21s6.5-5.8 6.5-11.2a6.5 6.5 0 0 0-13 0C5.5 15.2 12 21 12 21zM12 7.4a2.4 2.4 0 1 1 0 4.8 2.4 2.4 0 0 1 0-4.8z"></path></svg></div>
+          <div data-dc-tpl="81" style="min-width: 0px;"><div data-dc-tpl="82" class="lnk__t"><span class="sc-interp">Stop</span></div><div data-dc-tpl="83" class="lnk__d"><span class="sc-interp">Departures board with confidence and reliability</span></div></div>
+          <svg data-dc-tpl="84" class="i arr" viewBox="0 0 24 24"><path data-dc-tpl="85" d="M5 12h14M13 6l6 6-6 6"></path></svg>
+        </a>
+      
+        <a data-dc-tpl="77" class="lnk" href="Alerts.dc.html">
+          <div data-dc-tpl="78" class="pti-ibox" style="background: var(--surface); border: 1px solid var(--border); color: var(--foreground-2);"><svg data-dc-tpl="79" class="i" viewBox="0 0 24 24"><path data-dc-tpl="80" d="M6 9a6 6 0 1 1 12 0c0 6.2 2.5 8 2.5 8h-17S6 15.2 6 9zM10.2 20.5a2 2 0 0 0 3.6 0"></path></svg></div>
+          <div data-dc-tpl="81" style="min-width: 0px;"><div data-dc-tpl="82" class="lnk__t"><span class="sc-interp">Alerts</span></div><div data-dc-tpl="83" class="lnk__d"><span class="sc-interp">Triage list with AI analysis and activity</span></div></div>
+          <svg data-dc-tpl="84" class="i arr" viewBox="0 0 24 24"><path data-dc-tpl="85" d="M5 12h14M13 6l6 6-6 6"></path></svg>
+        </a>
+      
+    
+      <div data-dc-tpl="75" class="grp"><span class="sc-interp">Analytics</span></div>
+      
+        <a data-dc-tpl="77" class="lnk" href="Scorecard.dc.html">
+          <div data-dc-tpl="78" class="pti-ibox" style="background: var(--surface); border: 1px solid var(--border); color: var(--foreground-2);"><svg data-dc-tpl="79" class="i" viewBox="0 0 24 24"><path data-dc-tpl="80" d="M4 4v16h16M8.5 16v-4.5M13 16V8M17.5 16v-6.5"></path></svg></div>
+          <div data-dc-tpl="81" style="min-width: 0px;"><div data-dc-tpl="82" class="lnk__t"><span class="sc-interp">Scorecard</span></div><div data-dc-tpl="83" class="lnk__d"><span class="sc-interp">On-time performance, heatmap and route drill-down</span></div></div>
+          <svg data-dc-tpl="84" class="i arr" viewBox="0 0 24 24"><path data-dc-tpl="85" d="M5 12h14M13 6l6 6-6 6"></path></svg>
+        </a>
+      
+    
+      <div data-dc-tpl="75" class="grp"><span class="sc-interp">Operations</span></div>
+      
+        <a data-dc-tpl="77" class="lnk" href="OpsPipeline.dc.html">
+          <div data-dc-tpl="78" class="pti-ibox" style="background: var(--surface); border: 1px solid var(--border); color: var(--foreground-2);"><svg data-dc-tpl="79" class="i" viewBox="0 0 24 24"><path data-dc-tpl="80" d="M3 12h3.5l2.5-6 4 12 2.5-6H21"></path></svg></div>
+          <div data-dc-tpl="81" style="min-width: 0px;"><div data-dc-tpl="82" class="lnk__t"><span class="sc-interp">Pipeline</span></div><div data-dc-tpl="83" class="lnk__d"><span class="sc-interp">Stage health, lag and job runs</span></div></div>
+          <svg data-dc-tpl="84" class="i arr" viewBox="0 0 24 24"><path data-dc-tpl="85" d="M5 12h14M13 6l6 6-6 6"></path></svg>
+        </a>
+      
+        <a data-dc-tpl="77" class="lnk" href="OpsDlq.dc.html">
+          <div data-dc-tpl="78" class="pti-ibox" style="background: var(--surface); border: 1px solid var(--border); color: var(--foreground-2);"><svg data-dc-tpl="79" class="i" viewBox="0 0 24 24"><path data-dc-tpl="80" d="M3 13h5l1.5 2.5h5L16 13h5M5.2 5.6 3 13v5a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-5l-2.2-7.4A2 2 0 0 0 16.9 4H7.1a2 2 0 0 0-1.9 1.6z"></path></svg></div>
+          <div data-dc-tpl="81" style="min-width: 0px;"><div data-dc-tpl="82" class="lnk__t"><span class="sc-interp">Dead letters</span></div><div data-dc-tpl="83" class="lnk__d"><span class="sc-interp">AI triage inbox with payload diff</span></div></div>
+          <svg data-dc-tpl="84" class="i arr" viewBox="0 0 24 24"><path data-dc-tpl="85" d="M5 12h14M13 6l6 6-6 6"></path></svg>
+        </a>
+      
+        <a data-dc-tpl="77" class="lnk" href="OpsReplay.dc.html">
+          <div data-dc-tpl="78" class="pti-ibox" style="background: var(--surface); border: 1px solid var(--border); color: var(--foreground-2);"><svg data-dc-tpl="79" class="i" viewBox="0 0 24 24"><path data-dc-tpl="80" d="M3.5 12a8.5 8.5 0 1 0 2.6-6.1L3.5 8.5M3.5 3.5v5h5"></path></svg></div>
+          <div data-dc-tpl="81" style="min-width: 0px;"><div data-dc-tpl="82" class="lnk__t"><span class="sc-interp">Replay</span></div><div data-dc-tpl="83" class="lnk__d"><span class="sc-interp">Re-run stored messages with an estimate</span></div></div>
+          <svg data-dc-tpl="84" class="i arr" viewBox="0 0 24 24"><path data-dc-tpl="85" d="M5 12h14M13 6l6 6-6 6"></path></svg>
+        </a>
+      
+        <a data-dc-tpl="77" class="lnk" href="OpsTicketing.dc.html">
+          <div data-dc-tpl="78" class="pti-ibox" style="background: var(--surface); border: 1px solid var(--border); color: var(--foreground-2);"><svg data-dc-tpl="79" class="i" viewBox="0 0 24 24"><path data-dc-tpl="80" d="M3 8.5a2.5 2.5 0 0 1 0 5V17a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-3.5a2.5 2.5 0 0 1 0-5V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2zM14 5v14"></path></svg></div>
+          <div data-dc-tpl="81" style="min-width: 0px;"><div data-dc-tpl="82" class="lnk__t"><span class="sc-interp">Ticketing</span></div><div data-dc-tpl="83" class="lnk__d"><span class="sc-interp">Sales anomalies against the expected range</span></div></div>
+          <svg data-dc-tpl="84" class="i arr" viewBox="0 0 24 24"><path data-dc-tpl="85" d="M5 12h14M13 6l6 6-6 6"></path></svg>
+        </a>
+      
+        <a data-dc-tpl="77" class="lnk" href="OpsControls.dc.html">
+          <div data-dc-tpl="78" class="pti-ibox" style="background: var(--surface); border: 1px solid var(--border); color: var(--foreground-2);"><svg data-dc-tpl="79" class="i" viewBox="0 0 24 24"><path data-dc-tpl="80" d="M20 5h-8M8 5H4M20 12h-5M11 12H4M20 19h-10M6 19H4M10 3v4M13 10v4M8 17v4"></path></svg></div>
+          <div data-dc-tpl="81" style="min-width: 0px;"><div data-dc-tpl="82" class="lnk__t"><span class="sc-interp">Controls</span></div><div data-dc-tpl="83" class="lnk__d"><span class="sc-interp">Consumers, AI features, feed and jobs</span></div></div>
+          <svg data-dc-tpl="84" class="i arr" viewBox="0 0 24 24"><path data-dc-tpl="85" d="M5 12h14M13 6l6 6-6 6"></path></svg>
+        </a>
+      
+    
+      <div data-dc-tpl="75" class="grp"><span class="sc-interp">Demo</span></div>
+      
+        <a data-dc-tpl="77" class="lnk" href="DemoControl.dc.html">
+          <div data-dc-tpl="78" class="pti-ibox" style="background: var(--surface); border: 1px solid var(--border); color: var(--foreground-2);"><svg data-dc-tpl="79" class="i" viewBox="0 0 24 24"><path data-dc-tpl="80" d="M12 3a9 9 0 1 1 0 18 9 9 0 0 1 0-18zM10 8.5v7l5.5-3.5z"></path></svg></div>
+          <div data-dc-tpl="81" style="min-width: 0px;"><div data-dc-tpl="82" class="lnk__t"><span class="sc-interp">Scenarios</span></div><div data-dc-tpl="83" class="lnk__d"><span class="sc-interp">Inject bunching, disruptions and bad data</span></div></div>
+          <svg data-dc-tpl="84" class="i arr" viewBox="0 0 24 24"><path data-dc-tpl="85" d="M5 12h14M13 6l6 6-6 6"></path></svg>
+        </a>
+      
+        <a data-dc-tpl="77" class="lnk" href="DemoConsole.dc.html">
+          <div data-dc-tpl="78" class="pti-ibox" style="background: var(--surface); border: 1px solid var(--border); color: var(--foreground-2);"><svg data-dc-tpl="79" class="i" viewBox="0 0 24 24"><path data-dc-tpl="80" d="M3 5h18v12H3zM8 21h8M12 17v4"></path></svg></div>
+          <div data-dc-tpl="81" style="min-width: 0px;"><div data-dc-tpl="82" class="lnk__t"><span class="sc-interp">Console</span></div><div data-dc-tpl="83" class="lnk__d"><span class="sc-interp">Mission control for the live demo · 1920 × 1080</span></div></div>
+          <svg data-dc-tpl="84" class="i arr" viewBox="0 0 24 24"><path data-dc-tpl="85" d="M5 12h14M13 6l6 6-6 6"></path></svg>
+        </a>
+      
+    
+      <div data-dc-tpl="75" class="grp"><span class="sc-interp">Mobile &amp; patterns</span></div>
+      
+        <a data-dc-tpl="77" class="lnk" href="MobileMap.dc.html">
+          <div data-dc-tpl="78" class="pti-ibox" style="background: var(--surface); border: 1px solid var(--border); color: var(--foreground-2);"><svg data-dc-tpl="79" class="i" viewBox="0 0 24 24"><path data-dc-tpl="80" d="M7 3h10v18H7zM11 18h2"></path></svg></div>
+          <div data-dc-tpl="81" style="min-width: 0px;"><div data-dc-tpl="82" class="lnk__t"><span class="sc-interp">Mobile map</span></div><div data-dc-tpl="83" class="lnk__d"><span class="sc-interp">Nearby stops in a three-step bottom sheet</span></div></div>
+          <svg data-dc-tpl="84" class="i arr" viewBox="0 0 24 24"><path data-dc-tpl="85" d="M5 12h14M13 6l6 6-6 6"></path></svg>
+        </a>
+      
+        <a data-dc-tpl="77" class="lnk" href="MobileStop.dc.html">
+          <div data-dc-tpl="78" class="pti-ibox" style="background: var(--surface); border: 1px solid var(--border); color: var(--foreground-2);"><svg data-dc-tpl="79" class="i" viewBox="0 0 24 24"><path data-dc-tpl="80" d="M7 3h10v18H7zM11 18h2"></path></svg></div>
+          <div data-dc-tpl="81" style="min-width: 0px;"><div data-dc-tpl="82" class="lnk__t"><span class="sc-interp">Mobile stop</span></div><div data-dc-tpl="83" class="lnk__d"><span class="sc-interp">Big ETAs and reminders</span></div></div>
+          <svg data-dc-tpl="84" class="i arr" viewBox="0 0 24 24"><path data-dc-tpl="85" d="M5 12h14M13 6l6 6-6 6"></path></svg>
+        </a>
+      
+        <a data-dc-tpl="77" class="lnk" href="States.dc.html">
+          <div data-dc-tpl="78" class="pti-ibox" style="background: var(--surface); border: 1px solid var(--border); color: var(--foreground-2);"><svg data-dc-tpl="79" class="i" viewBox="0 0 24 24"><path data-dc-tpl="80" d="m12 3 9 5-9 5-9-5 9-5zM3 13l9 5 9-5"></path></svg></div>
+          <div data-dc-tpl="81" style="min-width: 0px;"><div data-dc-tpl="82" class="lnk__t"><span class="sc-interp">Shared states</span></div><div data-dc-tpl="83" class="lnk__d"><span class="sc-interp">Loading, empty, error, access, freshness</span></div></div>
+          <svg data-dc-tpl="84" class="i arr" viewBox="0 0 24 24"><path data-dc-tpl="85" d="M5 12h14M13 6l6 6-6 6"></path></svg>
+        </a>
+      
+    
+  </aside></div></div></div>
+
+
+
+</body></html>

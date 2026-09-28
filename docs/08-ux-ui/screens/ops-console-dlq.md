@@ -30,6 +30,8 @@
 
 ## 3. Wireframe
 
+Prototype (DR-88): [Ops — Dead letters](assets/ops-console-dlq.html).
+
 Bố cục danh sách + khung chi tiết (`SplitView`, DOC-34 P-11):
 
 ```text

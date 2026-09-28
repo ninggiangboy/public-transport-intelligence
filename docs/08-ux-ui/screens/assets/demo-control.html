@@ -1,0 +1,272 @@
+<!DOCTYPE html><html lang="en"><head><title>Demo — Scenarios</title><meta charset="utf-8"><link rel="stylesheet" href="shared.css">
+<meta charset="utf-8">
+<title>Ops — Demo scenarios</title>
+
+<style data-dc-tpl="2">/* PTI — "Wayfinding" theme, light. Mirrors the PTI Design System tokens.json (light). */
+:root, :host {
+  --background: #F4F5F7;
+  --surface: #FAFAFB;
+  --card: #FFFFFF;
+  --popover: #FFFFFF;
+  --muted: #F0F1F4;
+  --muted-2: #E6E8EC;
+  --foreground: #17181C;
+  --foreground-2: #3A3D45;
+  --muted-foreground: #676B75;
+  --subtle-foreground: #8E929B;
+  --border: #E4E5E9;
+  --border-strong: #D4D6DC;
+  --input: #DADCE1;
+  --ring: #5B63E6;
+
+  --primary: #4F57D9;
+  --primary-hover: #444BC6;
+  --primary-foreground: #FFFFFF;
+  --primary-soft: #EEEFFD;
+  --primary-soft-fg: #3A41B5;
+  --destructive: #D93A45;
+  --destructive-foreground: #FFFFFF;
+
+  --tone-neutral-bg: #F0F1F3;  --tone-neutral-fg: #4A4E57;  --tone-neutral-border: #E0E2E6;  --tone-neutral-solid: #9AA0A9;
+  --tone-info-bg: #EBF2FE;     --tone-info-fg: #2458C6;     --tone-info-border: #D3E2FB;     --tone-info-solid: #3B7BEA;
+  --tone-success-bg: #E8F6EE;  --tone-success-fg: #1C7548;  --tone-success-border: #CDEBDA;  --tone-success-solid: #2FA36B;
+  --tone-teal-bg: #E6F5F3;     --tone-teal-fg: #16706A;     --tone-teal-border: #CBEAE5;     --tone-teal-solid: #22A39A;
+  --tone-warning-bg: #FDF4E3;  --tone-warning-fg: #92560A;  --tone-warning-border: #F6E1B8;  --tone-warning-solid: #E59A1A;
+  --tone-danger-bg: #FDECED;   --tone-danger-fg: #B1242E;   --tone-danger-border: #F8D2D5;   --tone-danger-solid: #E0454F;
+  --tone-progress-bg: #F3EEFE; --tone-progress-fg: #6A3FC6; --tone-progress-border: #E3D8FB; --tone-progress-solid: #8B5CF6;
+
+  --delay-early: #3B7BEA;
+  --delay-on-time: #2FA36B;
+  --delay-late: #E59A1A;
+  --delay-very-late: #E0454F;
+  --delay-unknown: #A4A8B0;
+  --bunching: #C026D3;
+  --bunching-soft: #FBEAFD;
+
+  --chart-1: #4F57D9; --chart-2: #22A39A; --chart-3: #E59A1A; --chart-4: #C026D3;
+  --chart-5: #3B7BEA; --chart-6: #E0454F; --chart-7: #84A83A; --chart-8: #9AA0A9;
+
+  --heat-1: #EAF6EF; --heat-2: #CFEBDC; --heat-3: #F5E9C7; --heat-4: #F3D293;
+  --heat-5: #EDAA6E; --heat-6: #E0735D; --heat-7: #B9424C;
+
+  --map-land: #F1F0EB; --map-water: #D4E3EE; --map-park: #DDEAD4; --map-block: #E8E6DF;
+  --map-road: #FFFFFF; --map-casing: #DEDBD2; --map-label: #8B8F97;
+
+  --radius-sm: 6px; --radius-md: 9px; --radius-lg: 12px; --radius-xl: 16px;
+  --shadow-xs: 0 1px 2px rgba(16,18,27,0.05);
+  --shadow-sm: 0 1px 3px rgba(16,18,27,0.06), 0 1px 2px rgba(16,18,27,0.03);
+  --shadow-md: 0 6px 16px -4px rgba(16,18,27,0.10), 0 2px 5px -2px rgba(16,18,27,0.06);
+  --shadow-lg: 0 20px 48px -12px rgba(16,18,27,0.22), 0 6px 14px -6px rgba(16,18,27,0.10);
+
+  --font-sans: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+</style><style data-dc-tpl="4">
+  .simstat { display: flex; flex-direction: column; gap: 2px; padding: 0 20px; border-left: 1px solid var(--border); }
+  .simstat:first-child { border-left: none; padding-left: 0; }
+  .simstat__l { font-size: 12px; color: var(--muted-foreground); }
+  .simstat__v { font-size: 15px; font-weight: 600; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+  .scen { display: flex; flex-direction: column; overflow: hidden; }
+  .scen__art { height: 118px; background: var(--surface); border-bottom: 1px solid var(--border); display: grid; place-items: center; }
+  .scen__body { padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 10px; flex: 1; }
+  .scen__t { font-size: 14.5px; font-weight: 600; letter-spacing: -0.015em; }
+  .scen__d { font-size: 12.5px; color: var(--muted-foreground); line-height: 1.5; }
+  .effect { display: flex; align-items: center; gap: 8px; font-size: 13px; padding: 5px 0; }
+</style><style data-dc-tpl="4">
+  .side-status { margin-top: auto; border: 1px solid var(--border); background: var(--card); border-radius: 12px; padding: 11px 12px; box-shadow: var(--shadow-xs); }
+  .side-bars { display: flex; align-items: flex-end; gap: 2px; height: 22px; margin-top: 9px; }
+  .side-bars span { flex: 1; background: var(--tone-success-border); border-radius: 1.5px; }
+  .side-bars span:last-child { background: var(--tone-success-solid); }
+  .side-user { display: flex; align-items: center; gap: 10px; padding: 12px 4px 0; }
+</style></head>
+<body>
+<div id="dc-root"><div class="sc-host" data-sc-name="536f6a1f-0948-451c-bf9b-ce9b16e200e3"><div data-dc-tpl="5" class="pti-app pti-root">
+  <div class="sc-host" data-sc-name="Sidebar" data-dc-tpl="6"><nav data-dc-tpl="5" class="pti-side pti-root" aria-label="Primary">
+  <div data-dc-tpl="6" class="pti-side__brand">
+    <div data-dc-tpl="7" class="pti-logo">
+      <svg data-dc-tpl="8" class="i" viewBox="0 0 24 24" style="width: 18px; height: 18px; stroke-width: 2.2;"><path data-dc-tpl="9" d="M5 17.5h4l6-11h4"></path><circle data-dc-tpl="10" cx="5" cy="17.5" r="2.2" fill="currentColor"></circle><circle data-dc-tpl="11" cx="19" cy="6.5" r="2.2" fill="currentColor"></circle></svg>
+    </div>
+    <div data-dc-tpl="12" style="min-width: 0px; flex: 1 1 0%;">
+      <div data-dc-tpl="13" class="pti-side__name">Transit Intelligence</div>
+      <div data-dc-tpl="14" class="pti-side__ws">Metro Transit · Twin Cities</div>
+    </div>
+    <button data-dc-tpl="15" class="pti-btn pti-btn--ghost pti-btn--icon pti-btn--sm" aria-label="Switch workspace"><svg data-dc-tpl="16" class="i i--sm" viewBox="0 0 24 24"><path data-dc-tpl="17" d="m7 15 5 5 5-5M7 9l5-5 5 5"></path></svg></button>
+  </div>
+
+  <button data-dc-tpl="18" class="pti-side__search"><svg data-dc-tpl="19" class="i" viewBox="0 0 24 24"><path data-dc-tpl="20" d="M11 3a8 8 0 1 1 0 16 8 8 0 0 1 0-16zM21 21l-4.3-4.3"></path></svg><span data-dc-tpl="21">Search</span><span data-dc-tpl="22" class="pti-kbd" style="margin-left: auto;">⌘K</span></button>
+
+  <div data-dc-tpl="23" class="pti-side__label">Network</div>
+  
+    <a data-dc-tpl="25" class="pti-nav" href="Overview.dc.html"><svg data-dc-tpl="26" class="i" viewBox="0 0 24 24"><path data-dc-tpl="27" d="M4 4h6.5v7.5H4zM13.5 4H20v4.5h-6.5zM13.5 11.5H20V20h-6.5zM4 14.5h6.5V20H4z"></path></svg><span class="sc-interp">Overview</span></a>
+  
+    <a data-dc-tpl="25" class="pti-nav" href="LiveMap.dc.html"><svg data-dc-tpl="26" class="i" viewBox="0 0 24 24"><path data-dc-tpl="27" d="M9 4 3.5 6.5v13L9 17l6 3 5.5-2.5v-13L15 7 9 4zM9 4v13M15 7v13"></path></svg><span class="sc-interp">Live map</span></a>
+  
+    <a data-dc-tpl="25" class="pti-nav" href="StopDetail.dc.html"><svg data-dc-tpl="26" class="i" viewBox="0 0 24 24"><path data-dc-tpl="27" d="M12 21s6.5-5.8 6.5-11.2a6.5 6.5 0 0 0-13 0C5.5 15.2 12 21 12 21zM12 7.4a2.4 2.4 0 1 1 0 4.8 2.4 2.4 0 0 1 0-4.8z"></path></svg><span class="sc-interp">Stops</span></a>
+  
+    <a data-dc-tpl="25" class="pti-nav" href="Alerts.dc.html"><svg data-dc-tpl="26" class="i" viewBox="0 0 24 24"><path data-dc-tpl="27" d="M6 9a6 6 0 1 1 12 0c0 6.2 2.5 8 2.5 8h-17S6 15.2 6 9zM10.2 20.5a2 2 0 0 0 3.6 0"></path></svg><span class="sc-interp">Alerts</span><span data-dc-tpl="29" class="pti-nav__count is-hot"><span class="sc-interp">3</span></span></a>
+  
+
+  <div data-dc-tpl="30" class="pti-side__label">Analytics</div>
+  
+    <a data-dc-tpl="32" class="pti-nav" href="Scorecard.dc.html"><svg data-dc-tpl="33" class="i" viewBox="0 0 24 24"><path data-dc-tpl="34" d="M4 4v16h16M8.5 16v-4.5M13 16V8M17.5 16v-6.5"></path></svg><span class="sc-interp">Scorecard</span></a>
+  
+
+  <div data-dc-tpl="35" class="pti-side__label" style="display: flex; align-items: center; justify-content: space-between; padding-right: 6px;">Operations</div>
+  
+    <a data-dc-tpl="39" class="pti-nav" href="OpsPipeline.dc.html"><svg data-dc-tpl="40" class="i" viewBox="0 0 24 24"><path data-dc-tpl="41" d="M3 12h3.5l2.5-6 4 12 2.5-6H21"></path></svg><span class="sc-interp">Pipeline</span></a>
+  
+    <a data-dc-tpl="39" class="pti-nav" href="OpsDlq.dc.html"><svg data-dc-tpl="40" class="i" viewBox="0 0 24 24"><path data-dc-tpl="41" d="M3 13h5l1.5 2.5h5L16 13h5M5.2 5.6 3 13v5a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-5l-2.2-7.4A2 2 0 0 0 16.9 4H7.1a2 2 0 0 0-1.9 1.6z"></path></svg><span class="sc-interp">Dead letters</span><span data-dc-tpl="43" class="pti-nav__count"><span class="sc-interp">214</span></span></a>
+  
+    <a data-dc-tpl="39" class="pti-nav" href="OpsReplay.dc.html"><svg data-dc-tpl="40" class="i" viewBox="0 0 24 24"><path data-dc-tpl="41" d="M3.5 12a8.5 8.5 0 1 0 2.6-6.1L3.5 8.5M3.5 3.5v5h5"></path></svg><span class="sc-interp">Replay</span></a>
+  
+    <a data-dc-tpl="39" class="pti-nav" href="OpsTicketing.dc.html"><svg data-dc-tpl="40" class="i" viewBox="0 0 24 24"><path data-dc-tpl="41" d="M3 8.5a2.5 2.5 0 0 1 0 5V17a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-3.5a2.5 2.5 0 0 1 0-5V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2zM14 5v2.5M14 16.5V19M14 10.5v3"></path></svg><span class="sc-interp">Ticketing</span><span data-dc-tpl="43" class="pti-nav__count"><span class="sc-interp">2</span></span></a>
+  
+    <a data-dc-tpl="39" class="pti-nav" href="OpsControls.dc.html"><svg data-dc-tpl="40" class="i" viewBox="0 0 24 24"><path data-dc-tpl="41" d="M20 5h-8M8 5H4M20 12h-5M11 12H4M20 19h-10M6 19H4M10 3v4M13 10v4M8 17v4"></path></svg><span class="sc-interp">Controls</span></a>
+  
+    <a data-dc-tpl="39" class="pti-nav is-active" href="DemoControl.dc.html"><svg data-dc-tpl="40" class="i" viewBox="0 0 24 24"><path data-dc-tpl="41" d="M12 3a9 9 0 1 1 0 18 9 9 0 0 1 0-18zM10 8.5v7l5.5-3.5z"></path></svg><span class="sc-interp">Demo</span></a>
+  
+
+  <div data-dc-tpl="44" class="side-status">
+    <div data-dc-tpl="45" style="display: flex; align-items: center; justify-content: space-between;">
+      <span data-dc-tpl="46" class="pti-live" style="color: var(--foreground); font-weight: 500;">Live feed</span>
+      <span data-dc-tpl="47" class="pti-mono" style="font-size: 11.5px; color: var(--muted-foreground);">3s ago</span>
+    </div>
+    <div data-dc-tpl="48" style="font-size: 12px; color: var(--muted-foreground); margin-top: 4px;"><span data-dc-tpl="49" class="pti-num" style="color: var(--foreground-2); font-weight: 500;">598</span> vehicles · <span data-dc-tpl="50" class="pti-num" style="color: var(--foreground-2); font-weight: 500;">142</span> msg/s</div>
+    <div data-dc-tpl="51" class="side-bars" aria-hidden="true">
+      <span data-dc-tpl="53" style="height: 9px;"></span><span data-dc-tpl="53" style="height: 11px;"></span><span data-dc-tpl="53" style="height: 10px;"></span><span data-dc-tpl="53" style="height: 12px;"></span><span data-dc-tpl="53" style="height: 14px;"></span><span data-dc-tpl="53" style="height: 13px;"></span><span data-dc-tpl="53" style="height: 12px;"></span><span data-dc-tpl="53" style="height: 15px;"></span><span data-dc-tpl="53" style="height: 16px;"></span><span data-dc-tpl="53" style="height: 14px;"></span><span data-dc-tpl="53" style="height: 13px;"></span><span data-dc-tpl="53" style="height: 15px;"></span><span data-dc-tpl="53" style="height: 17px;"></span><span data-dc-tpl="53" style="height: 16px;"></span><span data-dc-tpl="53" style="height: 18px;"></span><span data-dc-tpl="53" style="height: 17px;"></span><span data-dc-tpl="53" style="height: 15px;"></span><span data-dc-tpl="53" style="height: 16px;"></span><span data-dc-tpl="53" style="height: 19px;"></span><span data-dc-tpl="53" style="height: 18px;"></span><span data-dc-tpl="53" style="height: 20px;"></span><span data-dc-tpl="53" style="height: 19px;"></span><span data-dc-tpl="53" style="height: 21px;"></span><span data-dc-tpl="53" style="height: 22px;"></span>
+    </div>
+  </div>
+
+  <div data-dc-tpl="54" class="side-user">
+    <div data-dc-tpl="55" class="pti-avatar" style="background: rgb(34, 163, 154);"><span class="sc-interp">LT</span></div>
+    <div data-dc-tpl="56" style="min-width: 0px; flex: 1 1 0%;">
+      <div data-dc-tpl="57" style="font-size: 13px; font-weight: 500; line-height: 1.2;"><span class="sc-interp">Linh Tran</span></div>
+      <div data-dc-tpl="58" style="font-size: 12px; color: var(--muted-foreground);"><span class="sc-interp">Operator · on duty</span></div>
+    </div>
+    <button data-dc-tpl="59" class="pti-btn pti-btn--ghost pti-btn--icon pti-btn--sm" aria-label="Account menu"><svg data-dc-tpl="60" class="i" viewBox="0 0 24 24"><path data-dc-tpl="61" d="M12 11.2a.8.8 0 1 1 0 1.6.8.8 0 0 1 0-1.6zM19 11.2a.8.8 0 1 1 0 1.6.8.8 0 0 1 0-1.6zM5 11.2a.8.8 0 1 1 0 1.6.8.8 0 0 1 0-1.6z"></path></svg></button>
+  </div></nav></div>
+
+  <main data-dc-tpl="7" class="pti-main" style="position: relative;">
+    <div data-dc-tpl="8" class="pti-page">
+      <div data-dc-tpl="9" class="pti-header">
+        <div data-dc-tpl="10">
+          <div data-dc-tpl="11" class="pti-crumbs"><span data-dc-tpl="12">Operations</span><span data-dc-tpl="13" class="sep">/</span><span data-dc-tpl="14">Demo</span></div>
+          <h1 data-dc-tpl="15" class="pti-title">Demo scenarios</h1>
+          <div data-dc-tpl="16" class="pti-subtitle" style="margin-top: 5px;">Inject realistic problems into the simulated network and watch the platform react.</div>
+        </div>
+        <div data-dc-tpl="17" style="display: flex; gap: 8px;">
+          <a data-dc-tpl="18" class="pti-btn" href="DemoConsole.dc.html"><svg data-dc-tpl="19" class="i" viewBox="0 0 24 24"><path data-dc-tpl="20" d="M3 5h18v12H3zM8 21h8M12 17v4"></path></svg>Demo console</a>
+          <button data-dc-tpl="21" class="pti-btn pti-btn--danger"><svg data-dc-tpl="22" class="i" viewBox="0 0 24 24"><path data-dc-tpl="23" d="M6 6h12v12H6z"></path></svg>Stop all</button>
+        </div>
+      </div>
+
+      <div data-dc-tpl="24" class="pti-card" style="padding: 14px 18px; display: flex; align-items: center; justify-content: space-between;">
+        <div data-dc-tpl="25" style="display: flex; align-items: center;">
+          <div data-dc-tpl="26" class="simstat"><span data-dc-tpl="27" class="simstat__l">Simulator</span><span data-dc-tpl="28" class="pti-live" style="color: var(--foreground); font-weight: 600; font-size: 14px;">Running</span></div>
+          <div data-dc-tpl="29" class="simstat"><span data-dc-tpl="30" class="simstat__l">Business time</span><span data-dc-tpl="31" class="simstat__v">Oct 2 · 4:40 PM <span data-dc-tpl="32" style="font-size: 12px; color: var(--muted-foreground); font-weight: 500;">+14 h 30 min</span></span></div>
+          <div data-dc-tpl="33" class="simstat"><span data-dc-tpl="34" class="simstat__l">Vehicles</span><span data-dc-tpl="35" class="simstat__v">598</span></div>
+          <div data-dc-tpl="36" class="simstat"><span data-dc-tpl="37" class="simstat__l">GTFS-rt</span><span data-dc-tpl="38" class="simstat__v">141 <span data-dc-tpl="39" style="font-size: 12px; color: var(--muted-foreground); font-weight: 500;">msg/s</span></span></div>
+          <div data-dc-tpl="40" class="simstat"><span data-dc-tpl="41" class="simstat__l">Ticketing</span><span data-dc-tpl="42" class="simstat__v">1.9 <span data-dc-tpl="43" style="font-size: 12px; color: var(--muted-foreground); font-weight: 500;">sales/s</span></span></div>
+        </div>
+        <div data-dc-tpl="44" style="display: flex; align-items: center; gap: 10px;">
+          <span data-dc-tpl="45" style="font-size: 12.5px; color: var(--muted-foreground);">Speed</span>
+          <div data-dc-tpl="46" class="pti-seg">
+            <button data-dc-tpl="48" class=""><span class="sc-interp">×0.5</span></button><button data-dc-tpl="48" class="is-active"><span class="sc-interp">×1</span></button><button data-dc-tpl="48" class=""><span class="sc-interp">×2</span></button><button data-dc-tpl="48" class=""><span class="sc-interp">×5</span></button>
+          </div>
+        </div>
+      </div>
+
+      <div data-dc-tpl="49" class="pti-card" style="display: grid; grid-template-columns: 300px minmax(0px, 1fr) 260px; overflow: hidden;">
+        <div data-dc-tpl="50" style="background: var(--bunching-soft); display: grid; place-items: center; padding: 16px;">
+          <svg data-dc-tpl="51" viewBox="0 0 260 120" width="260" height="120" aria-hidden="true">
+            <line data-dc-tpl="52" x1="10" y1="64" x2="250" y2="64" stroke="#2F6FD0" stroke-width="6" stroke-linecap="round"></line>
+            <g data-dc-tpl="53" fill="#fff" stroke="#2F6FD0" stroke-width="2.5"><circle data-dc-tpl="54" cx="30" cy="64" r="5"></circle><circle data-dc-tpl="55" cx="100" cy="64" r="5"></circle><circle data-dc-tpl="56" cx="170" cy="64" r="5"></circle><circle data-dc-tpl="57" cx="240" cy="64" r="5"></circle></g>
+            <ellipse data-dc-tpl="58" cx="96" cy="64" rx="38" ry="24" fill="#fff" fill-opacity=".6" stroke="var(--bunching)" stroke-width="2" stroke-dasharray="5 4"></ellipse>
+            <g data-dc-tpl="59" stroke="#fff" stroke-width="3"><circle data-dc-tpl="60" cx="80" cy="64" r="12" fill="var(--delay-late)"></circle><circle data-dc-tpl="61" cx="110" cy="64" r="12" fill="var(--delay-late)"></circle><circle data-dc-tpl="62" cx="220" cy="64" r="12" fill="var(--delay-on-time)"></circle></g>
+            <text data-dc-tpl="63" x="96" y="30" text-anchor="middle" style="font: 600 12px var(--font-mono); fill: var(--bunching);">0:40 apart</text>
+          </svg>
+        </div>
+        <div data-dc-tpl="64" style="padding: 18px 20px; display: flex; flex-direction: column; gap: 8px;">
+          <div data-dc-tpl="65" style="display: flex; align-items: center; gap: 8px;"><span data-dc-tpl="66" class="pti-badge tone-progress"><span data-dc-tpl="67" class="dot"></span>Running</span><span data-dc-tpl="68" style="font-size: 12.5px; color: var(--muted-foreground);">Started 4:27 PM by Linh Tran</span></div>
+          <div data-dc-tpl="69" style="display: flex; align-items: center; gap: 10px;"><span data-dc-tpl="70" class="pti-route pti-route--lg" style="background: rgb(47, 111, 208);">18</span><span data-dc-tpl="71" style="font-size: 18px; font-weight: 600; letter-spacing: -0.022em;">Bus bunching on Nicollet</span></div>
+          <div data-dc-tpl="72" style="font-size: 12.5px; color: var(--muted-foreground);">Northbound · 1 pair · target gap 20% of headway · 20 min</div>
+          <div data-dc-tpl="73" style="display: flex; flex-direction: column; margin-top: 4px;">
+            <div data-dc-tpl="74" class="effect"><svg data-dc-tpl="75" class="i" viewBox="0 0 24 24" style="color: var(--tone-success-solid);"><path data-dc-tpl="76" d="M12 3a9 9 0 1 1 0 18 9 9 0 0 1 0-18zM8 12l3 3 5-6"></path></svg>Buses 1742 and 1738 bunched at 4:28 PM</div>
+            <div data-dc-tpl="77" class="effect"><svg data-dc-tpl="78" class="i" viewBox="0 0 24 24" style="color: var(--tone-success-solid);"><path data-dc-tpl="79" d="M12 3a9 9 0 1 1 0 18 9 9 0 0 1 0-18zM8 12l3 3 5-6"></path></svg>Alert raised within 38 s</div>
+            <div data-dc-tpl="80" class="effect"><svg data-dc-tpl="81" class="i" viewBox="0 0 24 24" style="color: var(--tone-success-solid);"><path data-dc-tpl="82" d="M12 3a9 9 0 1 1 0 18 9 9 0 0 1 0-18zM8 12l3 3 5-6"></path></svg>Dispatch suggestion ready (74%)</div>
+          </div>
+        </div>
+        <div data-dc-tpl="83" style="padding: 18px 20px; border-left: 1px solid var(--border); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;">
+          <svg data-dc-tpl="84" viewBox="0 0 96 96" width="96" height="96" aria-label="65% complete">
+            <circle data-dc-tpl="85" cx="48" cy="48" r="40" fill="none" stroke="var(--muted-2)" stroke-width="8"></circle>
+            <circle data-dc-tpl="86" cx="48" cy="48" r="40" fill="none" stroke="var(--tone-progress-solid)" stroke-width="8" stroke-linecap="round" stroke-dasharray="163 251" transform="rotate(-90 48 48)"></circle>
+            <text data-dc-tpl="87" x="48" y="46" text-anchor="middle" style="font: 600 17px var(--font-sans); fill: var(--foreground);">12:40</text>
+            <text data-dc-tpl="88" x="48" y="62" text-anchor="middle" style="font: 500 10.5px var(--font-sans); fill: var(--muted-foreground);">left</text>
+          </svg>
+          <div data-dc-tpl="89" style="display: flex; gap: 8px;">
+            <a data-dc-tpl="90" class="pti-btn pti-btn--sm" href="LiveMap.dc.html">Watch on map</a>
+            <button data-dc-tpl="91" class="pti-btn pti-btn--sm pti-btn--danger">Stop</button>
+          </div>
+        </div>
+      </div>
+
+      <div data-dc-tpl="92">
+        <div data-dc-tpl="93" style="display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 10px;">
+          <h2 data-dc-tpl="94" class="pti-h2">Scenarios</h2>
+          <span data-dc-tpl="95" style="font-size: 12.5px; color: var(--muted-foreground);">Each scenario resets itself when its duration ends.</span>
+        </div>
+        <div data-dc-tpl="96" style="display: grid; grid-template-columns: repeat(4, minmax(0px, 1fr)); gap: 12px;">
+          <div data-dc-tpl="97" class="pti-card scen">
+            <div data-dc-tpl="98" class="scen__art">
+              <svg data-dc-tpl="99" viewBox="0 0 200 80" width="200" height="80" aria-hidden="true"><line data-dc-tpl="100" x1="10" y1="44" x2="190" y2="44" stroke="#2F6FD0" stroke-width="5" stroke-linecap="round"></line><g data-dc-tpl="101" stroke="#fff" stroke-width="2.5"><circle data-dc-tpl="102" cx="70" cy="44" r="9" fill="var(--delay-late)"></circle><circle data-dc-tpl="103" cx="92" cy="44" r="9" fill="var(--delay-late)"></circle><circle data-dc-tpl="104" cx="168" cy="44" r="9" fill="var(--delay-on-time)"></circle></g><ellipse data-dc-tpl="105" cx="81" cy="44" rx="26" ry="17" fill="none" stroke="var(--bunching)" stroke-width="1.75" stroke-dasharray="4 3"></ellipse></svg>
+            </div>
+            <div data-dc-tpl="106" class="scen__body">
+              <div data-dc-tpl="107" class="scen__t">Bus bunching</div>
+              <div data-dc-tpl="108" class="scen__d">Two consecutive buses on a route catch up with each other.</div>
+              <div data-dc-tpl="109" style="display: flex; gap: 6px;"><select data-dc-tpl="110" class="pti-select" aria-label="Route" style="height: 30px; flex: 1 1 0%;"><option data-dc-tpl="111">Route 18</option></select><select data-dc-tpl="112" class="pti-select" aria-label="Duration" style="height: 30px; width: 86px;"><option data-dc-tpl="113">20 min</option></select></div>
+              <button data-dc-tpl="114" class="pti-btn pti-btn--sm" style="margin-top: auto;">Running</button>
+            </div>
+          </div>
+          <div data-dc-tpl="115" class="pti-card scen">
+            <div data-dc-tpl="116" class="scen__art">
+              <svg data-dc-tpl="117" viewBox="0 0 200 80" width="200" height="80" aria-hidden="true"><path data-dc-tpl="118" d="M60 44 H140" stroke="var(--tone-danger-solid)" stroke-opacity=".18" stroke-width="20" stroke-linecap="round"></path><line data-dc-tpl="119" x1="10" y1="44" x2="190" y2="44" stroke="#E3A21A" stroke-width="5" stroke-linecap="round"></line><g data-dc-tpl="120" stroke="#fff" stroke-width="2.5"><circle data-dc-tpl="121" cx="80" cy="44" r="9" fill="var(--delay-very-late)"></circle><circle data-dc-tpl="122" cx="122" cy="44" r="9" fill="var(--delay-very-late)"></circle><circle data-dc-tpl="123" cx="30" cy="44" r="9" fill="var(--delay-on-time)"></circle></g><text data-dc-tpl="124" x="100" y="18" text-anchor="middle" style="font: 600 11px var(--font-mono); fill: var(--tone-danger-fg);">+6 min</text></svg>
+            </div>
+            <div data-dc-tpl="125" class="scen__body">
+              <div data-dc-tpl="126" class="scen__t">Service disruption</div>
+              <div data-dc-tpl="127" class="scen__d">Slow one segment of a route until a disruption episode opens.</div>
+              <div data-dc-tpl="128" style="display: flex; gap: 6px;"><select data-dc-tpl="129" class="pti-select" aria-label="Route" style="height: 30px; flex: 1 1 0%;"><option data-dc-tpl="130">Route 21</option></select><select data-dc-tpl="131" class="pti-select" aria-label="Severity" style="height: 30px; width: 86px;"><option data-dc-tpl="132">High</option></select></div>
+              <button data-dc-tpl="133" class="pti-btn pti-btn--sm pti-btn--primary" style="margin-top: auto;">Start scenario</button>
+            </div>
+          </div>
+          <div data-dc-tpl="134" class="pti-card scen">
+            <div data-dc-tpl="135" class="scen__art">
+              <svg data-dc-tpl="136" viewBox="0 0 200 80" width="200" height="80" aria-hidden="true"><g data-dc-tpl="137" fill="var(--card)" stroke="var(--border-strong)" stroke-width="1.5"><rect data-dc-tpl="138" x="40" y="16" width="36" height="46" rx="5"></rect><rect data-dc-tpl="139" x="82" y="16" width="36" height="46" rx="5"></rect><rect data-dc-tpl="140" x="124" y="16" width="36" height="46" rx="5"></rect></g><g data-dc-tpl="141" stroke="var(--muted-2)" stroke-width="3" stroke-linecap="round"><path data-dc-tpl="142" d="M48 28h20M48 36h14M132 28h20M132 36h14"></path></g><rect data-dc-tpl="143" x="82" y="16" width="36" height="46" rx="5" fill="var(--tone-danger-bg)" stroke="var(--tone-danger-solid)" stroke-width="1.5"></rect><path data-dc-tpl="144" d="M92 31l16 16M108 31 92 47" stroke="var(--tone-danger-solid)" stroke-width="3" stroke-linecap="round"></path></svg>
+            </div>
+            <div data-dc-tpl="145" class="scen__body">
+              <div data-dc-tpl="146" class="scen__t">Bad data burst</div>
+              <div data-dc-tpl="147" class="scen__d">Send malformed records so the dead-letter queue and AI triage kick in.</div>
+              <div data-dc-tpl="148" style="display: flex; gap: 6px;"><select data-dc-tpl="149" class="pti-select" aria-label="Error type" style="height: 30px; flex: 1 1 0%;"><option data-dc-tpl="150">Mixed errors</option></select><select data-dc-tpl="151" class="pti-select" aria-label="Count" style="height: 30px; width: 86px;"><option data-dc-tpl="152">200</option></select></div>
+              <button data-dc-tpl="153" class="pti-btn pti-btn--sm pti-btn--primary" style="margin-top: auto;">Start scenario</button>
+            </div>
+          </div>
+          <div data-dc-tpl="154" class="pti-card scen">
+            <div data-dc-tpl="155" class="scen__art">
+              <svg data-dc-tpl="156" viewBox="0 0 200 80" width="200" height="80" aria-hidden="true"><g data-dc-tpl="157" fill="var(--muted-2)"><rect data-dc-tpl="158" x="20" y="50" width="14" height="16" rx="2"></rect><rect data-dc-tpl="159" x="40" y="46" width="14" height="20" rx="2"></rect><rect data-dc-tpl="160" x="60" y="52" width="14" height="14" rx="2"></rect><rect data-dc-tpl="161" x="80" y="48" width="14" height="18" rx="2"></rect><rect data-dc-tpl="162" x="100" y="44" width="14" height="22" rx="2"></rect><rect data-dc-tpl="163" x="120" y="50" width="14" height="16" rx="2"></rect></g><rect data-dc-tpl="164" x="140" y="12" width="14" height="54" rx="2" fill="var(--tone-info-solid)"></rect><rect data-dc-tpl="165" x="160" y="30" width="14" height="36" rx="2" fill="var(--tone-info-border)"></rect></svg>
+            </div>
+            <div data-dc-tpl="166" class="scen__body">
+              <div data-dc-tpl="167" class="scen__t">Ticket spike</div>
+              <div data-dc-tpl="168" class="scen__d">A burst of sales or refunds at one sale point for the anomaly detector.</div>
+              <div data-dc-tpl="169" style="display: flex; gap: 6px;"><select data-dc-tpl="170" class="pti-select" aria-label="Sale point" style="height: 30px; flex: 1 1 0%;"><option data-dc-tpl="171">SP-0142 kiosk</option></select><select data-dc-tpl="172" class="pti-select" aria-label="Pattern" style="height: 30px; width: 86px;"><option data-dc-tpl="173">Refunds</option></select></div>
+              <button data-dc-tpl="174" class="pti-btn pti-btn--sm pti-btn--primary" style="margin-top: auto;">Start scenario</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    
+  </main></div></div></div>
+
+
+
+</body></html>

@@ -28,6 +28,8 @@ Khoảng là **trục event** (`detected_at` = cuối cửa sổ, giờ nghiệp
 
 ## 3. Wireframe
 
+Prototype (DR-88): [Ops — Ticketing anomalies](assets/ops-console-ticketing.html).
+
 ```text
 ┌ sidebar ┬──────────────────────────────────────────────────────────────────────────────┐
 │         │ Operations / Ticketing                                                         │

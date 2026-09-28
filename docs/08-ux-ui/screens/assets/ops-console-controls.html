@@ -1,0 +1,323 @@
+<!DOCTYPE html><html lang="en"><head><title>Ops — Controls</title><meta charset="utf-8"><link rel="stylesheet" href="shared.css">
+<meta charset="utf-8">
+<title>Ops — Controls</title>
+
+<style data-dc-tpl="2">/* PTI — "Wayfinding" theme, light. Mirrors the PTI Design System tokens.json (light). */
+:root, :host {
+  --background: #F4F5F7;
+  --surface: #FAFAFB;
+  --card: #FFFFFF;
+  --popover: #FFFFFF;
+  --muted: #F0F1F4;
+  --muted-2: #E6E8EC;
+  --foreground: #17181C;
+  --foreground-2: #3A3D45;
+  --muted-foreground: #676B75;
+  --subtle-foreground: #8E929B;
+  --border: #E4E5E9;
+  --border-strong: #D4D6DC;
+  --input: #DADCE1;
+  --ring: #5B63E6;
+
+  --primary: #4F57D9;
+  --primary-hover: #444BC6;
+  --primary-foreground: #FFFFFF;
+  --primary-soft: #EEEFFD;
+  --primary-soft-fg: #3A41B5;
+  --destructive: #D93A45;
+  --destructive-foreground: #FFFFFF;
+
+  --tone-neutral-bg: #F0F1F3;  --tone-neutral-fg: #4A4E57;  --tone-neutral-border: #E0E2E6;  --tone-neutral-solid: #9AA0A9;
+  --tone-info-bg: #EBF2FE;     --tone-info-fg: #2458C6;     --tone-info-border: #D3E2FB;     --tone-info-solid: #3B7BEA;
+  --tone-success-bg: #E8F6EE;  --tone-success-fg: #1C7548;  --tone-success-border: #CDEBDA;  --tone-success-solid: #2FA36B;
+  --tone-teal-bg: #E6F5F3;     --tone-teal-fg: #16706A;     --tone-teal-border: #CBEAE5;     --tone-teal-solid: #22A39A;
+  --tone-warning-bg: #FDF4E3;  --tone-warning-fg: #92560A;  --tone-warning-border: #F6E1B8;  --tone-warning-solid: #E59A1A;
+  --tone-danger-bg: #FDECED;   --tone-danger-fg: #B1242E;   --tone-danger-border: #F8D2D5;   --tone-danger-solid: #E0454F;
+  --tone-progress-bg: #F3EEFE; --tone-progress-fg: #6A3FC6; --tone-progress-border: #E3D8FB; --tone-progress-solid: #8B5CF6;
+
+  --delay-early: #3B7BEA;
+  --delay-on-time: #2FA36B;
+  --delay-late: #E59A1A;
+  --delay-very-late: #E0454F;
+  --delay-unknown: #A4A8B0;
+  --bunching: #C026D3;
+  --bunching-soft: #FBEAFD;
+
+  --chart-1: #4F57D9; --chart-2: #22A39A; --chart-3: #E59A1A; --chart-4: #C026D3;
+  --chart-5: #3B7BEA; --chart-6: #E0454F; --chart-7: #84A83A; --chart-8: #9AA0A9;
+
+  --heat-1: #EAF6EF; --heat-2: #CFEBDC; --heat-3: #F5E9C7; --heat-4: #F3D293;
+  --heat-5: #EDAA6E; --heat-6: #E0735D; --heat-7: #B9424C;
+
+  --map-land: #F1F0EB; --map-water: #D4E3EE; --map-park: #DDEAD4; --map-block: #E8E6DF;
+  --map-road: #FFFFFF; --map-casing: #DEDBD2; --map-label: #8B8F97;
+
+  --radius-sm: 6px; --radius-md: 9px; --radius-lg: 12px; --radius-xl: 16px;
+  --shadow-xs: 0 1px 2px rgba(16,18,27,0.05);
+  --shadow-sm: 0 1px 3px rgba(16,18,27,0.06), 0 1px 2px rgba(16,18,27,0.03);
+  --shadow-md: 0 6px 16px -4px rgba(16,18,27,0.10), 0 2px 5px -2px rgba(16,18,27,0.06);
+  --shadow-lg: 0 20px 48px -12px rgba(16,18,27,0.22), 0 6px 14px -6px rgba(16,18,27,0.10);
+
+  --font-sans: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+</style><style data-dc-tpl="4">
+  .subnav a { display: flex; align-items: center; height: 32px; padding: 0 10px; border-radius: 8px; font-size: 13px; font-weight: 500; color: var(--muted-foreground); text-decoration: none; }
+  .subnav a:hover { color: var(--foreground); background: var(--muted); }
+  .subnav a.is-active { color: var(--foreground); background: var(--card); box-shadow: var(--shadow-xs); border: 1px solid var(--border); }
+  .sec-title { font-size: 15px; font-weight: 600; letter-spacing: -0.015em; margin: 0; }
+  .sec-desc { font-size: 13px; color: var(--muted-foreground); margin-top: 3px; }
+  .setrow { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; gap: 14px; align-items: start; padding: 16px 18px; border-top: 1px solid var(--border); }
+  .setrow:first-child { border-top: none; }
+  .setrow__t { font-size: 14px; font-weight: 500; letter-spacing: -0.01em; }
+  .setrow__d { font-size: 12.5px; color: var(--muted-foreground); margin-top: 2px; }
+  .setrow__m { display: flex; flex-wrap: wrap; gap: 14px; font-size: 12px; color: var(--muted-foreground); margin-top: 8px; }
+  .drop { border: 1.5px dashed var(--border-strong); border-radius: 12px; padding: 18px; display: flex; align-items: center; gap: 14px; background: var(--surface); }
+</style><style data-dc-tpl="4">
+  .side-status { margin-top: auto; border: 1px solid var(--border); background: var(--card); border-radius: 12px; padding: 11px 12px; box-shadow: var(--shadow-xs); }
+  .side-bars { display: flex; align-items: flex-end; gap: 2px; height: 22px; margin-top: 9px; }
+  .side-bars span { flex: 1; background: var(--tone-success-border); border-radius: 1.5px; }
+  .side-bars span:last-child { background: var(--tone-success-solid); }
+  .side-user { display: flex; align-items: center; gap: 10px; padding: 12px 4px 0; }
+</style></head>
+<body>
+<div id="dc-root"><div class="sc-host" data-sc-name="e2bfd977-7e51-44b0-9a7a-f006a69f145c"><div data-dc-tpl="5" class="pti-app pti-root">
+  <div class="sc-host" data-sc-name="Sidebar" data-dc-tpl="6"><nav data-dc-tpl="5" class="pti-side pti-root" aria-label="Primary">
+  <div data-dc-tpl="6" class="pti-side__brand">
+    <div data-dc-tpl="7" class="pti-logo">
+      <svg data-dc-tpl="8" class="i" viewBox="0 0 24 24" style="width: 18px; height: 18px; stroke-width: 2.2;"><path data-dc-tpl="9" d="M5 17.5h4l6-11h4"></path><circle data-dc-tpl="10" cx="5" cy="17.5" r="2.2" fill="currentColor"></circle><circle data-dc-tpl="11" cx="19" cy="6.5" r="2.2" fill="currentColor"></circle></svg>
+    </div>
+    <div data-dc-tpl="12" style="min-width: 0px; flex: 1 1 0%;">
+      <div data-dc-tpl="13" class="pti-side__name">Transit Intelligence</div>
+      <div data-dc-tpl="14" class="pti-side__ws">Metro Transit · Twin Cities</div>
+    </div>
+    <button data-dc-tpl="15" class="pti-btn pti-btn--ghost pti-btn--icon pti-btn--sm" aria-label="Switch workspace"><svg data-dc-tpl="16" class="i i--sm" viewBox="0 0 24 24"><path data-dc-tpl="17" d="m7 15 5 5 5-5M7 9l5-5 5 5"></path></svg></button>
+  </div>
+
+  <button data-dc-tpl="18" class="pti-side__search"><svg data-dc-tpl="19" class="i" viewBox="0 0 24 24"><path data-dc-tpl="20" d="M11 3a8 8 0 1 1 0 16 8 8 0 0 1 0-16zM21 21l-4.3-4.3"></path></svg><span data-dc-tpl="21">Search</span><span data-dc-tpl="22" class="pti-kbd" style="margin-left: auto;">⌘K</span></button>
+
+  <div data-dc-tpl="23" class="pti-side__label">Network</div>
+  
+    <a data-dc-tpl="25" class="pti-nav" href="Overview.dc.html"><svg data-dc-tpl="26" class="i" viewBox="0 0 24 24"><path data-dc-tpl="27" d="M4 4h6.5v7.5H4zM13.5 4H20v4.5h-6.5zM13.5 11.5H20V20h-6.5zM4 14.5h6.5V20H4z"></path></svg><span class="sc-interp">Overview</span></a>
+  
+    <a data-dc-tpl="25" class="pti-nav" href="LiveMap.dc.html"><svg data-dc-tpl="26" class="i" viewBox="0 0 24 24"><path data-dc-tpl="27" d="M9 4 3.5 6.5v13L9 17l6 3 5.5-2.5v-13L15 7 9 4zM9 4v13M15 7v13"></path></svg><span class="sc-interp">Live map</span></a>
+  
+    <a data-dc-tpl="25" class="pti-nav" href="StopDetail.dc.html"><svg data-dc-tpl="26" class="i" viewBox="0 0 24 24"><path data-dc-tpl="27" d="M12 21s6.5-5.8 6.5-11.2a6.5 6.5 0 0 0-13 0C5.5 15.2 12 21 12 21zM12 7.4a2.4 2.4 0 1 1 0 4.8 2.4 2.4 0 0 1 0-4.8z"></path></svg><span class="sc-interp">Stops</span></a>
+  
+    <a data-dc-tpl="25" class="pti-nav" href="Alerts.dc.html"><svg data-dc-tpl="26" class="i" viewBox="0 0 24 24"><path data-dc-tpl="27" d="M6 9a6 6 0 1 1 12 0c0 6.2 2.5 8 2.5 8h-17S6 15.2 6 9zM10.2 20.5a2 2 0 0 0 3.6 0"></path></svg><span class="sc-interp">Alerts</span><span data-dc-tpl="29" class="pti-nav__count is-hot"><span class="sc-interp">3</span></span></a>
+  
+
+  <div data-dc-tpl="30" class="pti-side__label">Analytics</div>
+  
+    <a data-dc-tpl="32" class="pti-nav" href="Scorecard.dc.html"><svg data-dc-tpl="33" class="i" viewBox="0 0 24 24"><path data-dc-tpl="34" d="M4 4v16h16M8.5 16v-4.5M13 16V8M17.5 16v-6.5"></path></svg><span class="sc-interp">Scorecard</span></a>
+  
+
+  <div data-dc-tpl="35" class="pti-side__label" style="display: flex; align-items: center; justify-content: space-between; padding-right: 6px;">Operations</div>
+  
+    <a data-dc-tpl="39" class="pti-nav" href="OpsPipeline.dc.html"><svg data-dc-tpl="40" class="i" viewBox="0 0 24 24"><path data-dc-tpl="41" d="M3 12h3.5l2.5-6 4 12 2.5-6H21"></path></svg><span class="sc-interp">Pipeline</span></a>
+  
+    <a data-dc-tpl="39" class="pti-nav" href="OpsDlq.dc.html"><svg data-dc-tpl="40" class="i" viewBox="0 0 24 24"><path data-dc-tpl="41" d="M3 13h5l1.5 2.5h5L16 13h5M5.2 5.6 3 13v5a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-5l-2.2-7.4A2 2 0 0 0 16.9 4H7.1a2 2 0 0 0-1.9 1.6z"></path></svg><span class="sc-interp">Dead letters</span><span data-dc-tpl="43" class="pti-nav__count"><span class="sc-interp">214</span></span></a>
+  
+    <a data-dc-tpl="39" class="pti-nav" href="OpsReplay.dc.html"><svg data-dc-tpl="40" class="i" viewBox="0 0 24 24"><path data-dc-tpl="41" d="M3.5 12a8.5 8.5 0 1 0 2.6-6.1L3.5 8.5M3.5 3.5v5h5"></path></svg><span class="sc-interp">Replay</span></a>
+  
+    <a data-dc-tpl="39" class="pti-nav" href="OpsTicketing.dc.html"><svg data-dc-tpl="40" class="i" viewBox="0 0 24 24"><path data-dc-tpl="41" d="M3 8.5a2.5 2.5 0 0 1 0 5V17a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-3.5a2.5 2.5 0 0 1 0-5V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2zM14 5v2.5M14 16.5V19M14 10.5v3"></path></svg><span class="sc-interp">Ticketing</span><span data-dc-tpl="43" class="pti-nav__count"><span class="sc-interp">2</span></span></a>
+  
+    <a data-dc-tpl="39" class="pti-nav is-active" href="OpsControls.dc.html"><svg data-dc-tpl="40" class="i" viewBox="0 0 24 24"><path data-dc-tpl="41" d="M20 5h-8M8 5H4M20 12h-5M11 12H4M20 19h-10M6 19H4M10 3v4M13 10v4M8 17v4"></path></svg><span class="sc-interp">Controls</span></a>
+  
+    <a data-dc-tpl="39" class="pti-nav" href="DemoControl.dc.html"><svg data-dc-tpl="40" class="i" viewBox="0 0 24 24"><path data-dc-tpl="41" d="M12 3a9 9 0 1 1 0 18 9 9 0 0 1 0-18zM10 8.5v7l5.5-3.5z"></path></svg><span class="sc-interp">Demo</span></a>
+  
+
+  <div data-dc-tpl="44" class="side-status">
+    <div data-dc-tpl="45" style="display: flex; align-items: center; justify-content: space-between;">
+      <span data-dc-tpl="46" class="pti-live" style="color: var(--foreground); font-weight: 500;">Live feed</span>
+      <span data-dc-tpl="47" class="pti-mono" style="font-size: 11.5px; color: var(--muted-foreground);">3s ago</span>
+    </div>
+    <div data-dc-tpl="48" style="font-size: 12px; color: var(--muted-foreground); margin-top: 4px;"><span data-dc-tpl="49" class="pti-num" style="color: var(--foreground-2); font-weight: 500;">598</span> vehicles · <span data-dc-tpl="50" class="pti-num" style="color: var(--foreground-2); font-weight: 500;">142</span> msg/s</div>
+    <div data-dc-tpl="51" class="side-bars" aria-hidden="true">
+      <span data-dc-tpl="53" style="height: 9px;"></span><span data-dc-tpl="53" style="height: 11px;"></span><span data-dc-tpl="53" style="height: 10px;"></span><span data-dc-tpl="53" style="height: 12px;"></span><span data-dc-tpl="53" style="height: 14px;"></span><span data-dc-tpl="53" style="height: 13px;"></span><span data-dc-tpl="53" style="height: 12px;"></span><span data-dc-tpl="53" style="height: 15px;"></span><span data-dc-tpl="53" style="height: 16px;"></span><span data-dc-tpl="53" style="height: 14px;"></span><span data-dc-tpl="53" style="height: 13px;"></span><span data-dc-tpl="53" style="height: 15px;"></span><span data-dc-tpl="53" style="height: 17px;"></span><span data-dc-tpl="53" style="height: 16px;"></span><span data-dc-tpl="53" style="height: 18px;"></span><span data-dc-tpl="53" style="height: 17px;"></span><span data-dc-tpl="53" style="height: 15px;"></span><span data-dc-tpl="53" style="height: 16px;"></span><span data-dc-tpl="53" style="height: 19px;"></span><span data-dc-tpl="53" style="height: 18px;"></span><span data-dc-tpl="53" style="height: 20px;"></span><span data-dc-tpl="53" style="height: 19px;"></span><span data-dc-tpl="53" style="height: 21px;"></span><span data-dc-tpl="53" style="height: 22px;"></span>
+    </div>
+  </div>
+
+  <div data-dc-tpl="54" class="side-user">
+    <div data-dc-tpl="55" class="pti-avatar" style="background: rgb(34, 163, 154);"><span class="sc-interp">LT</span></div>
+    <div data-dc-tpl="56" style="min-width: 0px; flex: 1 1 0%;">
+      <div data-dc-tpl="57" style="font-size: 13px; font-weight: 500; line-height: 1.2;"><span class="sc-interp">Linh Tran</span></div>
+      <div data-dc-tpl="58" style="font-size: 12px; color: var(--muted-foreground);"><span class="sc-interp">Operator · on duty</span></div>
+    </div>
+    <button data-dc-tpl="59" class="pti-btn pti-btn--ghost pti-btn--icon pti-btn--sm" aria-label="Account menu"><svg data-dc-tpl="60" class="i" viewBox="0 0 24 24"><path data-dc-tpl="61" d="M12 11.2a.8.8 0 1 1 0 1.6.8.8 0 0 1 0-1.6zM19 11.2a.8.8 0 1 1 0 1.6.8.8 0 0 1 0-1.6zM5 11.2a.8.8 0 1 1 0 1.6.8.8 0 0 1 0-1.6z"></path></svg></button>
+  </div></nav></div>
+
+  <main data-dc-tpl="7" class="pti-main" style="position: relative;">
+    <div data-dc-tpl="8" class="pti-page" style="padding-bottom: 0px; gap: 0px;">
+      <div data-dc-tpl="9" class="pti-header" style="padding-bottom: 18px;">
+        <div data-dc-tpl="10">
+          <div data-dc-tpl="11" class="pti-crumbs"><span data-dc-tpl="12">Operations</span><span data-dc-tpl="13" class="sep">/</span><span data-dc-tpl="14">Controls</span></div>
+          <h1 data-dc-tpl="15" class="pti-title">Controls</h1>
+          <div data-dc-tpl="16" class="pti-subtitle" style="margin-top: 5px;">Changes apply immediately and are written to the audit log.</div>
+        </div>
+        <button data-dc-tpl="17" class="pti-btn"><svg data-dc-tpl="18" class="i" viewBox="0 0 24 24"><path data-dc-tpl="19" d="M12 3a9 9 0 1 1 0 18 9 9 0 0 1 0-18zM12 7v5l3 2"></path></svg>Audit log</button>
+      </div>
+
+      <div data-dc-tpl="20" style="flex: 1 1 0%; min-height: 0px; display: grid; grid-template-columns: 180px minmax(0px, 1fr); gap: 28px;">
+        <nav data-dc-tpl="21" class="subnav" aria-label="Control sections" style="display: flex; flex-direction: column; gap: 2px;">
+          <a data-dc-tpl="22" class="is-active" href="#pipeline">Pipeline</a>
+          <a data-dc-tpl="23" href="#ai">AI features</a>
+          <a data-dc-tpl="24" href="#feed">Schedule feed</a>
+          <a data-dc-tpl="25" href="#run">Run a job</a>
+        </nav>
+
+        <div data-dc-tpl="26" style="overflow: auto; display: flex; flex-direction: column; gap: 26px; padding-bottom: 32px; padding-right: 4px;">
+          <section data-dc-tpl="27" id="pipeline">
+            <h2 data-dc-tpl="28" class="sec-title">Pipeline</h2>
+            <div data-dc-tpl="29" class="sec-desc">Pause consumers during maintenance. Messages keep landing in Kafka and are processed on resume.</div>
+            <div data-dc-tpl="30" class="pti-card" style="margin-top: 12px;">
+              <div data-dc-tpl="31" class="setrow">
+                <div data-dc-tpl="32" class="pti-ibox tone-info" style="border-width: medium; border-style: none; border-color: currentcolor; border-image: none;"><svg data-dc-tpl="33" class="i" viewBox="0 0 24 24"><path data-dc-tpl="34" d="M4 11a9 9 0 0 1 9 9M4 4a16 16 0 0 1 16 16M5 19h.01"></path></svg></div>
+                <div data-dc-tpl="35">
+                  <div data-dc-tpl="36" class="setrow__t">GTFS-realtime consumer</div>
+                  <div data-dc-tpl="37" class="setrow__d">Vehicle positions and trip updates from the Metro Transit feed.</div>
+                  
+                    <div data-dc-tpl="39" class="setrow__m"><span data-dc-tpl="40" class="pti-live">Vehicle positions · 3s ago</span><span data-dc-tpl="41" class="pti-live">Trip updates · 4s ago</span></div>
+                  
+                  
+                </div>
+                <div data-dc-tpl="48" style="display: flex; align-items: center; gap: 10px; padding-top: 2px;"><span data-dc-tpl="49" style="font-size: 12.5px; color: var(--muted-foreground);"><span class="sc-interp">Running</span></span><button data-dc-tpl="50" class="pti-switch is-on" role="switch" aria-checked="true" aria-label="GTFS-realtime consumer running"></button></div>
+              </div>
+              <div data-dc-tpl="51" class="setrow">
+                <div data-dc-tpl="52" class="pti-ibox tone-success" style="border-width: medium; border-style: none; border-color: currentcolor; border-image: none;"><svg data-dc-tpl="53" class="i" viewBox="0 0 24 24"><path data-dc-tpl="54" d="M3 8.5a2.5 2.5 0 0 1 0 5V17a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-3.5a2.5 2.5 0 0 1 0-5V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2z"></path></svg></div>
+                <div data-dc-tpl="55">
+                  <div data-dc-tpl="56" class="setrow__t">Ticketing consumer</div>
+                  <div data-dc-tpl="57" class="setrow__d">Ticket sales and sale-point updates.</div>
+                  <div data-dc-tpl="58" class="setrow__m"><span data-dc-tpl="59" class="pti-live is-stale">Ticket sales · 18 min ago (source quiet)</span><span data-dc-tpl="60" class="pti-live">Sale points · 3 h ago</span></div>
+                </div>
+                <div data-dc-tpl="61" style="display: flex; align-items: center; gap: 10px; padding-top: 2px;"><span data-dc-tpl="62" style="font-size: 12.5px; color: var(--muted-foreground);">Running</span><button data-dc-tpl="63" class="pti-switch is-on" role="switch" aria-checked="true" aria-label="Ticketing consumer running"></button></div>
+              </div>
+            </div>
+          </section>
+
+          <section data-dc-tpl="64" id="ai">
+            <div data-dc-tpl="65" style="display: flex; justify-content: space-between; align-items: flex-end;">
+              <div data-dc-tpl="66"><h2 data-dc-tpl="67" class="sec-title">AI features</h2><div data-dc-tpl="68" class="sec-desc">Every AI decision is logged with its confidence. Turning a feature off falls back to rules.</div></div>
+              <span data-dc-tpl="69" style="font-size: 12.5px; color: var(--muted-foreground);">Today · 3,915 decisions</span>
+            </div>
+            <div data-dc-tpl="70" class="pti-card" style="margin-top: 12px;">
+              
+                <div data-dc-tpl="72" class="setrow" style="align-items: center;">
+                  <div data-dc-tpl="73" class="pti-ibox" style="background: var(--primary-soft); color: var(--primary);"><svg data-dc-tpl="74" class="i" viewBox="0 0 24 24"><path data-dc-tpl="75" d="M3 13h5l1.5 2.5h5L16 13h5M5.2 5.6 3 13v5a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-5l-2.2-7.4A2 2 0 0 0 16.9 4H7.1a2 2 0 0 0-1.9 1.6z"></path></svg></div>
+                  <div data-dc-tpl="76">
+                    <div data-dc-tpl="77" style="display: flex; align-items: center; gap: 8px;"><span data-dc-tpl="78" class="setrow__t"><span class="sc-interp">Triage dead letters</span></span><span data-dc-tpl="79" class="pti-mono" style="font-size: 11px; color: var(--muted-foreground); background: var(--muted); padding: 1px 6px; border-radius: 5px;"><span class="sc-interp">triage · v0.4.2</span></span></div>
+                    <div data-dc-tpl="80" class="setrow__d"><span class="sc-interp">Suggests a fix, retry or discard for each failed record.</span></div>
+                  </div>
+                  <div data-dc-tpl="81" style="display: flex; align-items: center; gap: 16px;">
+                    <div data-dc-tpl="82" style="text-align: right;">
+                      <div data-dc-tpl="83" class="pti-num" style="font-size: 13px; font-weight: 500;"><span class="sc-interp">1,204 decisions</span></div>
+                      <div data-dc-tpl="84" style="font-size: 11.5px; color: var(--muted-foreground);"><span class="sc-interp">96% accepted</span></div>
+                    </div>
+                    <button data-dc-tpl="85" class="pti-switch is-on" role="switch" aria-checked="true" aria-label="Triage dead letters"></button>
+                  </div>
+                </div>
+              
+                <div data-dc-tpl="72" class="setrow" style="align-items: center;">
+                  <div data-dc-tpl="73" class="pti-ibox" style="background: var(--primary-soft); color: var(--primary);"><svg data-dc-tpl="74" class="i" viewBox="0 0 24 24"><path data-dc-tpl="75" d="M3.5 12a8.5 8.5 0 1 0 2.6-6.1L3.5 8.5M3.5 3.5v5h5"></path></svg></div>
+                  <div data-dc-tpl="76">
+                    <div data-dc-tpl="77" style="display: flex; align-items: center; gap: 8px;"><span data-dc-tpl="78" class="setrow__t"><span class="sc-interp">Replay high-confidence fixes automatically</span></span><span data-dc-tpl="79" class="pti-mono" style="font-size: 11px; color: var(--muted-foreground); background: var(--muted); padding: 1px 6px; border-radius: 5px;"><span class="sc-interp">triage · v0.4.2</span></span></div>
+                    <div data-dc-tpl="80" class="setrow__d"><span class="sc-interp">Only when confidence is at least 90% and the fix passes validation.</span></div>
+                  </div>
+                  <div data-dc-tpl="81" style="display: flex; align-items: center; gap: 16px;">
+                    <div data-dc-tpl="82" style="text-align: right;">
+                      <div data-dc-tpl="83" class="pti-num" style="font-size: 13px; font-weight: 500;"><span class="sc-interp">612 replays</span></div>
+                      <div data-dc-tpl="84" style="font-size: 11.5px; color: var(--muted-foreground);"><span class="sc-interp">0 rolled back</span></div>
+                    </div>
+                    <button data-dc-tpl="85" class="pti-switch is-on" role="switch" aria-checked="true" aria-label="Replay high-confidence fixes automatically"></button>
+                  </div>
+                </div>
+              
+                <div data-dc-tpl="72" class="setrow" style="align-items: center;">
+                  <div data-dc-tpl="73" class="pti-ibox" style="background: var(--primary-soft); color: var(--primary);"><svg data-dc-tpl="74" class="i" viewBox="0 0 24 24"><path data-dc-tpl="75" d="M3 8.5a2.5 2.5 0 0 1 0 5V17a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-3.5a2.5 2.5 0 0 1 0-5V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2z"></path></svg></div>
+                  <div data-dc-tpl="76">
+                    <div data-dc-tpl="77" style="display: flex; align-items: center; gap: 8px;"><span data-dc-tpl="78" class="setrow__t"><span class="sc-interp">Classify ticketing anomalies</span></span><span data-dc-tpl="79" class="pti-mono" style="font-size: 11px; color: var(--muted-foreground); background: var(--muted); padding: 1px 6px; border-radius: 5px;"><span class="sc-interp">jev@0.2.0</span></span></div>
+                    <div data-dc-tpl="80" class="setrow__d"><span class="sc-interp">Labels each anomaly with a likely category and severity.</span></div>
+                  </div>
+                  <div data-dc-tpl="81" style="display: flex; align-items: center; gap: 16px;">
+                    <div data-dc-tpl="82" style="text-align: right;">
+                      <div data-dc-tpl="83" class="pti-num" style="font-size: 13px; font-weight: 500;"><span class="sc-interp">41 anomalies</span></div>
+                      <div data-dc-tpl="84" style="font-size: 11.5px; color: var(--muted-foreground);"><span class="sc-interp">88% accepted</span></div>
+                    </div>
+                    <button data-dc-tpl="85" class="pti-switch is-on" role="switch" aria-checked="true" aria-label="Classify ticketing anomalies"></button>
+                  </div>
+                </div>
+              
+                <div data-dc-tpl="72" class="setrow" style="align-items: center;">
+                  <div data-dc-tpl="73" class="pti-ibox" style="background: var(--primary-soft); color: var(--primary);"><svg data-dc-tpl="74" class="i" viewBox="0 0 24 24"><path data-dc-tpl="75" d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0zM12 9v4M12 17h.01"></path></svg></div>
+                  <div data-dc-tpl="76">
+                    <div data-dc-tpl="77" style="display: flex; align-items: center; gap: 8px;"><span data-dc-tpl="78" class="setrow__t"><span class="sc-interp">Explain service disruptions</span></span><span data-dc-tpl="79" class="pti-mono" style="font-size: 11px; color: var(--muted-foreground); background: var(--muted); padding: 1px 6px; border-radius: 5px;"><span class="sc-interp">enricher · v0.3.1</span></span></div>
+                    <div data-dc-tpl="80" class="setrow__d"><span class="sc-interp">Adds a likely cause and affected stops to each disruption.</span></div>
+                  </div>
+                  <div data-dc-tpl="81" style="display: flex; align-items: center; gap: 16px;">
+                    <div data-dc-tpl="82" style="text-align: right;">
+                      <div data-dc-tpl="83" class="pti-num" style="font-size: 13px; font-weight: 500;"><span class="sc-interp">9 episodes</span></div>
+                      <div data-dc-tpl="84" style="font-size: 11.5px; color: var(--muted-foreground);"><span class="sc-interp">7 confirmed</span></div>
+                    </div>
+                    <button data-dc-tpl="85" class="pti-switch is-on" role="switch" aria-checked="true" aria-label="Explain service disruptions"></button>
+                  </div>
+                </div>
+              
+                <div data-dc-tpl="72" class="setrow" style="align-items: center;">
+                  <div data-dc-tpl="73" class="pti-ibox" style="background: var(--primary-soft); color: var(--primary);"><svg data-dc-tpl="74" class="i" viewBox="0 0 24 24"><path data-dc-tpl="75" d="M4 16V7a3 3 0 0 1 3-3h4a3 3 0 0 1 3 3v9M4 12h10M4 16h10v3H4z"></path></svg></div>
+                  <div data-dc-tpl="76">
+                    <div data-dc-tpl="77" style="display: flex; align-items: center; gap: 8px;"><span data-dc-tpl="78" class="setrow__t"><span class="sc-interp">Suggest dispatch actions</span></span><span data-dc-tpl="79" class="pti-mono" style="font-size: 11px; color: var(--muted-foreground); background: var(--muted); padding: 1px 6px; border-radius: 5px;"><span class="sc-interp">dispatch · v0.2.0</span></span></div>
+                    <div data-dc-tpl="80" class="setrow__d"><span class="sc-interp">Recommends holds and short-turns for bunching. Never sends on its own.</span></div>
+                  </div>
+                  <div data-dc-tpl="81" style="display: flex; align-items: center; gap: 16px;">
+                    <div data-dc-tpl="82" style="text-align: right;">
+                      <div data-dc-tpl="83" class="pti-num" style="font-size: 13px; font-weight: 500;"><span class="sc-interp">2,049 checks</span></div>
+                      <div data-dc-tpl="84" style="font-size: 11.5px; color: var(--muted-foreground);"><span class="sc-interp">14 suggestions</span></div>
+                    </div>
+                    <button data-dc-tpl="85" class="pti-switch" role="switch" aria-checked="false" aria-label="Suggest dispatch actions"></button>
+                  </div>
+                </div>
+              
+            </div>
+          </section>
+
+          <section data-dc-tpl="86" id="feed">
+            <h2 data-dc-tpl="87" class="sec-title">Schedule feed</h2>
+            <div data-dc-tpl="88" class="sec-desc">The static GTFS timetable every prediction and scorecard is measured against.</div>
+            <div data-dc-tpl="89" class="pti-card" style="margin-top: 12px; padding: 16px 18px; display: flex; flex-direction: column; gap: 14px;">
+              <div data-dc-tpl="90" style="display: flex; align-items: center; gap: 14px;">
+                <div data-dc-tpl="91" class="pti-ibox pti-ibox--lg tone-success" style="border-width: medium; border-style: none; border-color: currentcolor; border-image: none;"><svg data-dc-tpl="92" class="i i--lg" viewBox="0 0 24 24"><path data-dc-tpl="93" d="M4 6h16v14H4zM4 10h16M9 3v4M15 3v4"></path></svg></div>
+                <div data-dc-tpl="94" style="flex: 1 1 0%;">
+                  <div data-dc-tpl="95" style="display: flex; align-items: center; gap: 8px;"><span data-dc-tpl="96" class="pti-mono" style="font-size: 14px; font-weight: 600;">2026-08-23</span><span data-dc-tpl="97" class="pti-badge tone-success"><span data-dc-tpl="98" class="dot"></span>Active</span></div>
+                  <div data-dc-tpl="99" style="font-size: 12.5px; color: var(--muted-foreground); margin-top: 3px;">Valid Aug 23 – Dec 12 · loaded Sep 27, 3:00 AM by run <a data-dc-tpl="100" class="pti-link" href="OpsPipeline.dc.html">#4127</a></div>
+                </div>
+                <div data-dc-tpl="101" style="text-align: right;"><div data-dc-tpl="102" style="font-size: 13px; font-weight: 500;">0 errors</div><a data-dc-tpl="103" class="pti-link" href="#" style="font-size: 12px;">14 warnings</a></div>
+              </div>
+              <div data-dc-tpl="104" class="drop">
+                <div data-dc-tpl="105" class="pti-ibox" style="background: var(--card); border: 1px solid var(--border);"><svg data-dc-tpl="106" class="i" viewBox="0 0 24 24"><path data-dc-tpl="107" d="M12 16V4M7 9l5-5 5 5M5 20h14"></path></svg></div>
+                <div data-dc-tpl="108" style="flex: 1 1 0%;"><div data-dc-tpl="109" style="font-size: 13.5px; font-weight: 500;">Load the next feed</div><div data-dc-tpl="110" style="font-size: 12.5px; color: var(--muted-foreground);">Drop a GTFS zip here or paste its URL. It is validated before it can be activated.</div></div>
+                <button data-dc-tpl="111" class="pti-btn">Choose file</button>
+              </div>
+            </div>
+          </section>
+
+          <section data-dc-tpl="112" id="run">
+            <h2 data-dc-tpl="113" class="sec-title">Run a job</h2>
+            <div data-dc-tpl="114" class="sec-desc">Recompute analytics for specific service days.</div>
+            <div data-dc-tpl="115" class="pti-card" style="margin-top: 12px; padding: 16px 18px;">
+              <div data-dc-tpl="116" style="display: grid; grid-template-columns: 240px minmax(0px, 1fr) auto; gap: 14px; align-items: end;">
+                <div data-dc-tpl="117" class="pti-field"><label data-dc-tpl="118" class="pti-label" for="job">Job</label><select data-dc-tpl="119" id="job" class="pti-select"><option data-dc-tpl="120">OtpScorecardJob</option><option data-dc-tpl="121">DisruptionBackfillJob</option><option data-dc-tpl="122">TicketingAggregateJob</option></select></div>
+                <div data-dc-tpl="123" class="pti-field"><span data-dc-tpl="124" class="pti-label">Service dates</span><div data-dc-tpl="125" style="display: flex; gap: 6px; align-items: center; height: 34px;"><span data-dc-tpl="126" class="pti-chip is-active">Sep 27</span><span data-dc-tpl="127" class="pti-chip is-active">Sep 28</span><button data-dc-tpl="128" class="pti-chip pti-chip--dashed">+ Add date</button></div></div>
+                <button data-dc-tpl="129" class="pti-btn pti-btn--primary"><svg data-dc-tpl="130" class="i" viewBox="0 0 24 24"><path data-dc-tpl="131" d="M7 5v14l11-7z"></path></svg>Run job</button>
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+    </div>
+
+    
+  </main></div></div></div>
+
+
+
+</body></html>

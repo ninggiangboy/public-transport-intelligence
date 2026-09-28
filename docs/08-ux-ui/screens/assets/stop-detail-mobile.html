@@ -1,0 +1,174 @@
+<!DOCTYPE html><html lang="en"><head><title>Mobile — Stop</title><meta charset="utf-8"><link rel="stylesheet" href="shared.css">
+<meta charset="utf-8">
+<title>Mobile — Stop</title>
+
+<style data-dc-tpl="2">/* PTI — "Wayfinding" theme, light. Mirrors the PTI Design System tokens.json (light). */
+:root, :host {
+  --background: #F4F5F7;
+  --surface: #FAFAFB;
+  --card: #FFFFFF;
+  --popover: #FFFFFF;
+  --muted: #F0F1F4;
+  --muted-2: #E6E8EC;
+  --foreground: #17181C;
+  --foreground-2: #3A3D45;
+  --muted-foreground: #676B75;
+  --subtle-foreground: #8E929B;
+  --border: #E4E5E9;
+  --border-strong: #D4D6DC;
+  --input: #DADCE1;
+  --ring: #5B63E6;
+
+  --primary: #4F57D9;
+  --primary-hover: #444BC6;
+  --primary-foreground: #FFFFFF;
+  --primary-soft: #EEEFFD;
+  --primary-soft-fg: #3A41B5;
+  --destructive: #D93A45;
+  --destructive-foreground: #FFFFFF;
+
+  --tone-neutral-bg: #F0F1F3;  --tone-neutral-fg: #4A4E57;  --tone-neutral-border: #E0E2E6;  --tone-neutral-solid: #9AA0A9;
+  --tone-info-bg: #EBF2FE;     --tone-info-fg: #2458C6;     --tone-info-border: #D3E2FB;     --tone-info-solid: #3B7BEA;
+  --tone-success-bg: #E8F6EE;  --tone-success-fg: #1C7548;  --tone-success-border: #CDEBDA;  --tone-success-solid: #2FA36B;
+  --tone-teal-bg: #E6F5F3;     --tone-teal-fg: #16706A;     --tone-teal-border: #CBEAE5;     --tone-teal-solid: #22A39A;
+  --tone-warning-bg: #FDF4E3;  --tone-warning-fg: #92560A;  --tone-warning-border: #F6E1B8;  --tone-warning-solid: #E59A1A;
+  --tone-danger-bg: #FDECED;   --tone-danger-fg: #B1242E;   --tone-danger-border: #F8D2D5;   --tone-danger-solid: #E0454F;
+  --tone-progress-bg: #F3EEFE; --tone-progress-fg: #6A3FC6; --tone-progress-border: #E3D8FB; --tone-progress-solid: #8B5CF6;
+
+  --delay-early: #3B7BEA;
+  --delay-on-time: #2FA36B;
+  --delay-late: #E59A1A;
+  --delay-very-late: #E0454F;
+  --delay-unknown: #A4A8B0;
+  --bunching: #C026D3;
+  --bunching-soft: #FBEAFD;
+
+  --chart-1: #4F57D9; --chart-2: #22A39A; --chart-3: #E59A1A; --chart-4: #C026D3;
+  --chart-5: #3B7BEA; --chart-6: #E0454F; --chart-7: #84A83A; --chart-8: #9AA0A9;
+
+  --heat-1: #EAF6EF; --heat-2: #CFEBDC; --heat-3: #F5E9C7; --heat-4: #F3D293;
+  --heat-5: #EDAA6E; --heat-6: #E0735D; --heat-7: #B9424C;
+
+  --map-land: #F1F0EB; --map-water: #D4E3EE; --map-park: #DDEAD4; --map-block: #E8E6DF;
+  --map-road: #FFFFFF; --map-casing: #DEDBD2; --map-label: #8B8F97;
+
+  --radius-sm: 6px; --radius-md: 9px; --radius-lg: 12px; --radius-xl: 16px;
+  --shadow-xs: 0 1px 2px rgba(16,18,27,0.05);
+  --shadow-sm: 0 1px 3px rgba(16,18,27,0.06), 0 1px 2px rgba(16,18,27,0.03);
+  --shadow-md: 0 6px 16px -4px rgba(16,18,27,0.10), 0 2px 5px -2px rgba(16,18,27,0.06);
+  --shadow-lg: 0 20px 48px -12px rgba(16,18,27,0.22), 0 6px 14px -6px rgba(16,18,27,0.10);
+
+  --font-sans: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+</style><style data-dc-tpl="4">
+  .appbar { height: 56px; display: flex; align-items: center; justify-content: space-between; padding: 0 6px; }
+  .ib { width: 44px; height: 44px; border-radius: 12px; border: none; background: none; display: grid; place-items: center; color: var(--foreground); cursor: pointer; text-decoration: none; }
+  .ib svg.i { width: 21px; height: 21px; }
+  .row { display: grid; grid-template-columns: 42px minmax(0, 1fr) auto; gap: 14px; align-items: center; padding: 14px 16px; border-top: 1px solid var(--border); min-height: 72px; }
+  .eta { font-size: 30px; font-weight: 600; letter-spacing: -0.045em; line-height: 1; font-variant-numeric: tabular-nums; text-align: right; }
+  .eta small { font-size: 13px; font-weight: 500; letter-spacing: -0.01em; color: var(--muted-foreground); margin-left: 2px; }
+  .rt { width: 6px; height: 6px; border-radius: 50%; background: var(--tone-success-solid); display: inline-block; box-shadow: 0 0 0 3px var(--tone-success-bg); }
+  .tabbar { position: absolute; left: 0; right: 0; bottom: 0; height: 64px; background: var(--card); border-top: 1px solid var(--border); display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .tabbar a { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; font-size: 11px; font-weight: 500; color: var(--muted-foreground); text-decoration: none; position: relative; }
+  .tabbar a.is-active { color: var(--primary); }
+  .tabbar svg.i { width: 22px; height: 22px; }
+  .tbadge { position: absolute; top: 8px; left: calc(50% + 6px); min-width: 16px; height: 16px; padding: 0 4px; border-radius: 999px; background: var(--destructive); color: #fff; font-size: 10px; font-weight: 600; display: grid; place-items: center; }
+  .fchip { height: 36px; padding: 0 14px; font-size: 13.5px; }
+</style></head>
+<body>
+<div id="dc-root"><div class="sc-host" data-sc-name="15457f71-122d-4bfb-bdd6-a55b3edf287e"><div data-dc-tpl="5" class="pti-root" style="width: 390px; height: 844px; position: relative; overflow: hidden; background: var(--card); display: flex; flex-direction: column;">
+  <div data-dc-tpl="6" class="appbar">
+    <a data-dc-tpl="7" class="ib" href="MobileMap.dc.html" aria-label="Back to map"><svg data-dc-tpl="8" class="i" viewBox="0 0 24 24"><path data-dc-tpl="9" d="m15 18-6-6 6-6"></path></svg></a>
+    <div data-dc-tpl="10" style="display: flex;">
+      <button data-dc-tpl="11" class="ib" aria-label="Save stop" aria-pressed="false"><svg data-dc-tpl="12" class="i" viewBox="0 0 24 24" style="fill: none;"><path data-dc-tpl="13" d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"></path></svg></button>
+      <button data-dc-tpl="14" class="ib" aria-label="Share"><svg data-dc-tpl="15" class="i" viewBox="0 0 24 24"><path data-dc-tpl="16" d="M12 3v12M7 8l5-5 5 5M5 14v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5"></path></svg></button>
+    </div>
+  </div>
+
+  <div data-dc-tpl="17" style="padding: 2px 16px 16px; display: flex; gap: 14px; align-items: center;">
+    <div data-dc-tpl="18" style="width: 52px; height: 52px; border-radius: 14px; background: var(--foreground); color: var(--card); display: grid; place-items: center; flex: 0 0 auto;"><svg data-dc-tpl="19" class="i" viewBox="0 0 24 24" style="width: 24px; height: 24px;"><path data-dc-tpl="20" d="M6 17V6a3 3 0 0 1 3-3h6a3 3 0 0 1 3 3v11M6 11h12M6 17h12v2H6zM8.5 21v-2M15.5 21v-2"></path></svg></div>
+    <div data-dc-tpl="21" style="min-width: 0px;">
+      <h1 data-dc-tpl="22" style="margin: 0px; font-size: 22px; font-weight: 600; letter-spacing: -0.03em; line-height: 1.15;">Nicollet Ave &amp; Lake St</h1>
+      <div data-dc-tpl="23" style="font-size: 13px; color: var(--muted-foreground); margin-top: 4px;">Stop <span data-dc-tpl="24" class="pti-mono">51408</span> · Northbound · step-free</div>
+    </div>
+  </div>
+
+  <div data-dc-tpl="25" style="padding: 0px 16px 14px;">
+    <div data-dc-tpl="26" class="pti-callout tone-warning" style="padding: 12px;">
+      <svg data-dc-tpl="27" class="i" viewBox="0 0 24 24"><path data-dc-tpl="28" d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0zM12 9v4M12 17h.01"></path></svg>
+      <div data-dc-tpl="29"><strong data-dc-tpl="30">Route 18 is running up to 5 min late</strong><div data-dc-tpl="31" style="margin-top: 2px;">Heavy traffic near Lake St since 3:58 PM.</div></div>
+    </div>
+  </div>
+
+  <div data-dc-tpl="32" style="display: flex; gap: 8px; padding: 0px 16px 12px;">
+    <button data-dc-tpl="34" class="pti-chip fchip is-active"><span class="sc-interp">All routes</span></button><button data-dc-tpl="34" class="pti-chip fchip"><span class="sc-interp">Route 18</span></button><button data-dc-tpl="34" class="pti-chip fchip"><span class="sc-interp">Route 21</span></button>
+  </div>
+
+  <div data-dc-tpl="35" style="display: flex; justify-content: space-between; align-items: center; padding: 4px 16px 10px;">
+    <span data-dc-tpl="36" style="font-size: 16px; font-weight: 600; letter-spacing: -0.02em;">Departures</span>
+    <span data-dc-tpl="37" class="pti-live">As of 4:32 PM</span>
+  </div>
+
+  <div data-dc-tpl="38" style="flex: 1 1 0%; min-height: 0px; overflow: auto; padding-bottom: 64px;">
+    
+      <div data-dc-tpl="40" class="row">
+        <span data-dc-tpl="41" class="pti-route pti-route--lg" style="background: rgb(47, 111, 208); color: rgb(255, 255, 255); min-width: 42px; height: 36px; font-size: 16px;"><span class="sc-interp">18</span></span>
+        <div data-dc-tpl="42" style="min-width: 0px;">
+          <div data-dc-tpl="43" style="font-size: 15.5px; font-weight: 500; letter-spacing: -0.015em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"><span class="sc-interp">Downtown Minneapolis</span></div>
+          <div data-dc-tpl="44" style="font-size: 12.5px; margin-top: 4px; display: flex; align-items: center; gap: 6px; color: var(--tone-warning-fg);"><span data-dc-tpl="46" class="rt"></span><span class="sc-interp">3 min late · bus 1742</span></div>
+        </div>
+        <div data-dc-tpl="47"><div data-dc-tpl="48" class="eta"><span class="sc-interp">2</span><small data-dc-tpl="49"><span class="sc-interp">min</span></small></div></div>
+      </div>
+    
+      <div data-dc-tpl="40" class="row">
+        <span data-dc-tpl="41" class="pti-route pti-route--lg" style="background: rgb(47, 111, 208); color: rgb(255, 255, 255); min-width: 42px; height: 36px; font-size: 16px;"><span class="sc-interp">18</span></span>
+        <div data-dc-tpl="42" style="min-width: 0px;">
+          <div data-dc-tpl="43" style="font-size: 15.5px; font-weight: 500; letter-spacing: -0.015em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"><span class="sc-interp">Downtown Minneapolis</span></div>
+          <div data-dc-tpl="44" style="font-size: 12.5px; margin-top: 4px; display: flex; align-items: center; gap: 6px; color: var(--bunching);"><span data-dc-tpl="46" class="rt"></span><span class="sc-interp">Right behind the previous bus</span></div>
+        </div>
+        <div data-dc-tpl="47"><div data-dc-tpl="48" class="eta"><span class="sc-interp">3</span><small data-dc-tpl="49"><span class="sc-interp">min</span></small></div></div>
+      </div>
+    
+      <div data-dc-tpl="40" class="row">
+        <span data-dc-tpl="41" class="pti-route pti-route--lg" style="background: rgb(227, 162, 26); color: rgb(58, 42, 0); min-width: 42px; height: 36px; font-size: 16px;"><span class="sc-interp">21</span></span>
+        <div data-dc-tpl="42" style="min-width: 0px;">
+          <div data-dc-tpl="43" style="font-size: 15.5px; font-weight: 500; letter-spacing: -0.015em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"><span class="sc-interp">Uptown Transit Center</span></div>
+          <div data-dc-tpl="44" style="font-size: 12.5px; margin-top: 4px; display: flex; align-items: center; gap: 6px; color: var(--tone-success-fg);"><span data-dc-tpl="46" class="rt"></span><span class="sc-interp">On time</span></div>
+        </div>
+        <div data-dc-tpl="47"><div data-dc-tpl="48" class="eta"><span class="sc-interp">7</span><small data-dc-tpl="49"><span class="sc-interp">min</span></small></div></div>
+      </div>
+    
+      <div data-dc-tpl="40" class="row">
+        <span data-dc-tpl="41" class="pti-route pti-route--lg" style="background: rgb(47, 111, 208); color: rgb(255, 255, 255); min-width: 42px; height: 36px; font-size: 16px;"><span class="sc-interp">18</span></span>
+        <div data-dc-tpl="42" style="min-width: 0px;">
+          <div data-dc-tpl="43" style="font-size: 15.5px; font-weight: 500; letter-spacing: -0.015em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"><span class="sc-interp">Downtown Minneapolis</span></div>
+          <div data-dc-tpl="44" style="font-size: 12.5px; margin-top: 4px; display: flex; align-items: center; gap: 6px; color: var(--muted-foreground);"><span class="sc-interp">Timetable only</span></div>
+        </div>
+        <div data-dc-tpl="47"><div data-dc-tpl="48" class="eta"><span class="sc-interp">4:49</span><small data-dc-tpl="49"><span class="sc-interp">PM</span></small></div></div>
+      </div>
+    
+      <div data-dc-tpl="40" class="row">
+        <span data-dc-tpl="41" class="pti-route pti-route--lg" style="background: rgb(227, 162, 26); color: rgb(58, 42, 0); min-width: 42px; height: 36px; font-size: 16px;"><span class="sc-interp">21</span></span>
+        <div data-dc-tpl="42" style="min-width: 0px;">
+          <div data-dc-tpl="43" style="font-size: 15.5px; font-weight: 500; letter-spacing: -0.015em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"><span class="sc-interp">Uptown Transit Center</span></div>
+          <div data-dc-tpl="44" style="font-size: 12.5px; margin-top: 4px; display: flex; align-items: center; gap: 6px; color: var(--muted-foreground);"><span class="sc-interp">Timetable only</span></div>
+        </div>
+        <div data-dc-tpl="47"><div data-dc-tpl="48" class="eta"><span class="sc-interp">4:54</span><small data-dc-tpl="49"><span class="sc-interp">PM</span></small></div></div>
+      </div>
+    
+    <div data-dc-tpl="50" style="padding: 14px 16px;">
+      <button data-dc-tpl="51" class="pti-btn pti-btn--lg" style="width: 100%; height: 48px;"><svg data-dc-tpl="52" class="i" viewBox="0 0 24 24"><path data-dc-tpl="53" d="M6 9a6 6 0 1 1 12 0c0 6.2 2.5 8 2.5 8h-17S6 15.2 6 9zM10.2 20.5a2 2 0 0 0 3.6 0"></path></svg>Remind me 5 min before</button>
+    </div>
+  </div>
+
+  <nav data-dc-tpl="54" class="tabbar" aria-label="Main">
+    <a data-dc-tpl="55" href="MobileMap.dc.html"><svg data-dc-tpl="56" class="i" viewBox="0 0 24 24"><path data-dc-tpl="57" d="M9 4 3.5 6.5v13L9 17l6 3 5.5-2.5v-13L15 7 9 4zM9 4v13M15 7v13"></path></svg>Map</a>
+    <a data-dc-tpl="58" class="is-active" href="MobileStop.dc.html"><svg data-dc-tpl="59" class="i" viewBox="0 0 24 24"><path data-dc-tpl="60" d="M12 21s6.5-5.8 6.5-11.2a6.5 6.5 0 0 0-13 0C5.5 15.2 12 21 12 21zM12 7.4a2.4 2.4 0 1 1 0 4.8 2.4 2.4 0 0 1 0-4.8z"></path></svg>Stops</a>
+    <a data-dc-tpl="61" href="Alerts.dc.html"><svg data-dc-tpl="62" class="i" viewBox="0 0 24 24"><path data-dc-tpl="63" d="M6 9a6 6 0 1 1 12 0c0 6.2 2.5 8 2.5 8h-17S6 15.2 6 9zM10.2 20.5a2 2 0 0 0 3.6 0"></path></svg>Alerts<span data-dc-tpl="64" class="tbadge">2</span></a>
+    <a data-dc-tpl="65" href="#"><svg data-dc-tpl="66" class="i" viewBox="0 0 24 24"><path data-dc-tpl="67" d="M4 6h16M4 12h16M4 18h16"></path></svg>More</a>
+  </nav></div></div></div>
+
+
+
+</body></html>

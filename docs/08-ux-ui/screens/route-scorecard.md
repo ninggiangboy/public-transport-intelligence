@@ -19,6 +19,8 @@
 
 ## 3. Wireframe
 
+Prototype (DR-88): [Scorecard](assets/route-scorecard.html).
+
 Bảng xếp hạng:
 
 ```text

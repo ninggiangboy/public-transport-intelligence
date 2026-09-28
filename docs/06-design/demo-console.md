@@ -110,7 +110,7 @@ Một trang duy nhất, thiết kế cho màn hình chiếu 1920×1080 ở zoom 
 
 ### 4.1 Bố cục
 
-Hình ảnh tham chiếu là artboard "Demo — Console (1920 × 1080)" của prototype (DR-88), theme tối của DOC-35.
+Hình ảnh tham chiếu là artboard "Demo — Console (1920 × 1080)" của prototype (DR-88), theme tối của DOC-35. Prototype: [Demo — Console](assets/demo-console.html).
 
 ```text
 ┌──────────────────────────────────────────────────────────────────────────────────────────────┐

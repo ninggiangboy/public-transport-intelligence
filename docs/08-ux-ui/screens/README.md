@@ -11,7 +11,7 @@ Mỗi màn hình một file, theo template phụ lục A.5 của master plan. Qu
 - "Dữ liệu" ghi query key theo DOC-26 §9 và `src/api/keys.ts`. Mọi query có `refetchInterval` 60 s khi trang hiển thị (DOC-34 §9.2), trừ khi file ghi khác.
 - Tiêu chí nghiệm thu viết dạng Given/When/Then, mã `AC-<n>` riêng trong từng file. Ca E2E có ID `E2E-<MÀN>-<nn>` (DOC-44 §4.3), chạy trên compose với Keycloak thật và dựng trạng thái qua API simulator.
 - Người dùng demo của realm `pti` (DOC-27 §3.1): `viewer`, `operator`.
-- Hình ảnh tham chiếu là prototype Claude Design "PTI Screen Designs" (hướng Wayfinding, DR-88): mỗi màn có một artboard desktop 1440 × 900; Live map và Stop detail có thêm artboard mobile 390 × 844; demo console 1920 × 1080 (DOC-48). Mục 3 của từng file là wireframe rút gọn từ artboard đó. Số liệu trong prototype là dữ liệu mẫu; khối nào của prototype không có dữ liệu trong DOC-32 thì file màn hình ghi rõ cách thay thế hoặc bỏ (DR-88).
+- Hình ảnh tham chiếu là prototype Claude Design "PTI Screen Designs" (hướng Wayfinding, DR-88): mỗi màn có một artboard desktop 1440 × 900; Live map và Stop detail có thêm artboard mobile 390 × 844; demo console 1920 × 1080 (DOC-48). Mục 3 của từng file là wireframe rút gọn từ artboard đó, kèm liên kết tới bản xuất tĩnh (HTML) của artboard, đặt tại `assets/`. Trang bìa và mục lục của prototype: [Cover & index](assets/cover-index.html). Số liệu trong prototype là dữ liệu mẫu; khối nào của prototype không có dữ liệu trong DOC-32 thì file màn hình ghi rõ cách thay thế hoặc bỏ (DR-88).
 
 | File | Màn hình | Route | Quyền | FR / UC | Việc |
 | --- | --- | --- | --- | --- | --- |

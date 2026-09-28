@@ -19,6 +19,8 @@
 
 ## 3. Wireframe
 
+Prototype (DR-88): [Ops — Pipeline](assets/ops-console-jobs.html).
+
 ```text
 ┌ sidebar ┬──────────────────────────────────────────────────────────────────────────────┐
 │         │ Operations / Pipeline                                                          │

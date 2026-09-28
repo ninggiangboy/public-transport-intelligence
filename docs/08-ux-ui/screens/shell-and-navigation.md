@@ -16,6 +16,8 @@ Khung bọc mọi route. Route riêng: `/auth/callback` (không search params c�
 
 ## 3. Wireframe
 
+Prototype (DR-88): [Sidebar (shared component)](assets/shell-and-navigation.html).
+
 Desktop (≥ 1280 px), operator đang ở Dead letters:
 
 ```text

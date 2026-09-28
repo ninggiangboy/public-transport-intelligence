@@ -18,6 +18,8 @@
 
 ## 3. Wireframe
 
+Prototype (DR-88): [Stop detail — desktop](assets/stop-detail.html) · [Stop detail — mobile](assets/stop-detail-mobile.html).
+
 Chi tiết trạm, desktop (≥ 1024 px):
 
 ```text

@@ -1,0 +1,338 @@
+<!DOCTYPE html><html lang="en"><head><title>Ops — Dead letters</title><meta charset="utf-8"><link rel="stylesheet" href="shared.css">
+<meta charset="utf-8">
+<title>Ops — Dead letters</title>
+
+<style data-dc-tpl="2">/* PTI — "Wayfinding" theme, light. Mirrors the PTI Design System tokens.json (light). */
+:root, :host {
+  --background: #F4F5F7;
+  --surface: #FAFAFB;
+  --card: #FFFFFF;
+  --popover: #FFFFFF;
+  --muted: #F0F1F4;
+  --muted-2: #E6E8EC;
+  --foreground: #17181C;
+  --foreground-2: #3A3D45;
+  --muted-foreground: #676B75;
+  --subtle-foreground: #8E929B;
+  --border: #E4E5E9;
+  --border-strong: #D4D6DC;
+  --input: #DADCE1;
+  --ring: #5B63E6;
+
+  --primary: #4F57D9;
+  --primary-hover: #444BC6;
+  --primary-foreground: #FFFFFF;
+  --primary-soft: #EEEFFD;
+  --primary-soft-fg: #3A41B5;
+  --destructive: #D93A45;
+  --destructive-foreground: #FFFFFF;
+
+  --tone-neutral-bg: #F0F1F3;  --tone-neutral-fg: #4A4E57;  --tone-neutral-border: #E0E2E6;  --tone-neutral-solid: #9AA0A9;
+  --tone-info-bg: #EBF2FE;     --tone-info-fg: #2458C6;     --tone-info-border: #D3E2FB;     --tone-info-solid: #3B7BEA;
+  --tone-success-bg: #E8F6EE;  --tone-success-fg: #1C7548;  --tone-success-border: #CDEBDA;  --tone-success-solid: #2FA36B;
+  --tone-teal-bg: #E6F5F3;     --tone-teal-fg: #16706A;     --tone-teal-border: #CBEAE5;     --tone-teal-solid: #22A39A;
+  --tone-warning-bg: #FDF4E3;  --tone-warning-fg: #92560A;  --tone-warning-border: #F6E1B8;  --tone-warning-solid: #E59A1A;
+  --tone-danger-bg: #FDECED;   --tone-danger-fg: #B1242E;   --tone-danger-border: #F8D2D5;   --tone-danger-solid: #E0454F;
+  --tone-progress-bg: #F3EEFE; --tone-progress-fg: #6A3FC6; --tone-progress-border: #E3D8FB; --tone-progress-solid: #8B5CF6;
+
+  --delay-early: #3B7BEA;
+  --delay-on-time: #2FA36B;
+  --delay-late: #E59A1A;
+  --delay-very-late: #E0454F;
+  --delay-unknown: #A4A8B0;
+  --bunching: #C026D3;
+  --bunching-soft: #FBEAFD;
+
+  --chart-1: #4F57D9; --chart-2: #22A39A; --chart-3: #E59A1A; --chart-4: #C026D3;
+  --chart-5: #3B7BEA; --chart-6: #E0454F; --chart-7: #84A83A; --chart-8: #9AA0A9;
+
+  --heat-1: #EAF6EF; --heat-2: #CFEBDC; --heat-3: #F5E9C7; --heat-4: #F3D293;
+  --heat-5: #EDAA6E; --heat-6: #E0735D; --heat-7: #B9424C;
+
+  --map-land: #F1F0EB; --map-water: #D4E3EE; --map-park: #DDEAD4; --map-block: #E8E6DF;
+  --map-road: #FFFFFF; --map-casing: #DEDBD2; --map-label: #8B8F97;
+
+  --radius-sm: 6px; --radius-md: 9px; --radius-lg: 12px; --radius-xl: 16px;
+  --shadow-xs: 0 1px 2px rgba(16,18,27,0.05);
+  --shadow-sm: 0 1px 3px rgba(16,18,27,0.06), 0 1px 2px rgba(16,18,27,0.03);
+  --shadow-md: 0 6px 16px -4px rgba(16,18,27,0.10), 0 2px 5px -2px rgba(16,18,27,0.06);
+  --shadow-lg: 0 20px 48px -12px rgba(16,18,27,0.22), 0 6px 14px -6px rgba(16,18,27,0.10);
+
+  --font-sans: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+</style><style data-dc-tpl="4">
+  .dlist { width: 384px; flex: none; border-right: 1px solid var(--border); background: var(--card); display: flex; flex-direction: column; }
+  .ditem { display: flex; flex-direction: column; gap: 7px; padding: 12px 14px; margin: 0 8px 2px; border-radius: 11px; border: 1px solid transparent; background: none; text-align: left; cursor: pointer; width: calc(100% - 16px); }
+  .ditem:hover { background: var(--surface); }
+  .ditem.is-active { background: var(--primary-soft); border-color: #D9DCFA; }
+  .code-chip { font: 500 11px var(--font-mono); padding: 2px 6px; border-radius: 5px; background: var(--muted); color: var(--foreground-2); }
+  .ai-pill { display: inline-flex; align-items: center; gap: 4px; font-size: 11.5px; font-weight: 500; }
+  .vrow { display: grid; grid-template-columns: 18px minmax(0, 1fr); gap: 8px; font-size: 12.5px; padding: 7px 0; border-top: 1px solid var(--border); }
+  .vrow:first-child { border-top: none; padding-top: 0; }
+  textarea.pti-code { width: 100%; resize: none; padding: 12px 14px; outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-soft); }
+</style><style data-dc-tpl="4">
+  .side-status { margin-top: auto; border: 1px solid var(--border); background: var(--card); border-radius: 12px; padding: 11px 12px; box-shadow: var(--shadow-xs); }
+  .side-bars { display: flex; align-items: flex-end; gap: 2px; height: 22px; margin-top: 9px; }
+  .side-bars span { flex: 1; background: var(--tone-success-border); border-radius: 1.5px; }
+  .side-bars span:last-child { background: var(--tone-success-solid); }
+  .side-user { display: flex; align-items: center; gap: 10px; padding: 12px 4px 0; }
+</style></head>
+<body>
+<div id="dc-root"><div class="sc-host" data-sc-name="35a54385-1d8c-4797-92ad-b7c324511325"><div data-dc-tpl="5" class="pti-app pti-root">
+  <div class="sc-host" data-sc-name="Sidebar" data-dc-tpl="6"><nav data-dc-tpl="5" class="pti-side pti-root" aria-label="Primary">
+  <div data-dc-tpl="6" class="pti-side__brand">
+    <div data-dc-tpl="7" class="pti-logo">
+      <svg data-dc-tpl="8" class="i" viewBox="0 0 24 24" style="width: 18px; height: 18px; stroke-width: 2.2;"><path data-dc-tpl="9" d="M5 17.5h4l6-11h4"></path><circle data-dc-tpl="10" cx="5" cy="17.5" r="2.2" fill="currentColor"></circle><circle data-dc-tpl="11" cx="19" cy="6.5" r="2.2" fill="currentColor"></circle></svg>
+    </div>
+    <div data-dc-tpl="12" style="min-width: 0px; flex: 1 1 0%;">
+      <div data-dc-tpl="13" class="pti-side__name">Transit Intelligence</div>
+      <div data-dc-tpl="14" class="pti-side__ws">Metro Transit · Twin Cities</div>
+    </div>
+    <button data-dc-tpl="15" class="pti-btn pti-btn--ghost pti-btn--icon pti-btn--sm" aria-label="Switch workspace"><svg data-dc-tpl="16" class="i i--sm" viewBox="0 0 24 24"><path data-dc-tpl="17" d="m7 15 5 5 5-5M7 9l5-5 5 5"></path></svg></button>
+  </div>
+
+  <button data-dc-tpl="18" class="pti-side__search"><svg data-dc-tpl="19" class="i" viewBox="0 0 24 24"><path data-dc-tpl="20" d="M11 3a8 8 0 1 1 0 16 8 8 0 0 1 0-16zM21 21l-4.3-4.3"></path></svg><span data-dc-tpl="21">Search</span><span data-dc-tpl="22" class="pti-kbd" style="margin-left: auto;">⌘K</span></button>
+
+  <div data-dc-tpl="23" class="pti-side__label">Network</div>
+  
+    <a data-dc-tpl="25" class="pti-nav" href="Overview.dc.html"><svg data-dc-tpl="26" class="i" viewBox="0 0 24 24"><path data-dc-tpl="27" d="M4 4h6.5v7.5H4zM13.5 4H20v4.5h-6.5zM13.5 11.5H20V20h-6.5zM4 14.5h6.5V20H4z"></path></svg><span class="sc-interp">Overview</span></a>
+  
+    <a data-dc-tpl="25" class="pti-nav" href="LiveMap.dc.html"><svg data-dc-tpl="26" class="i" viewBox="0 0 24 24"><path data-dc-tpl="27" d="M9 4 3.5 6.5v13L9 17l6 3 5.5-2.5v-13L15 7 9 4zM9 4v13M15 7v13"></path></svg><span class="sc-interp">Live map</span></a>
+  
+    <a data-dc-tpl="25" class="pti-nav" href="StopDetail.dc.html"><svg data-dc-tpl="26" class="i" viewBox="0 0 24 24"><path data-dc-tpl="27" d="M12 21s6.5-5.8 6.5-11.2a6.5 6.5 0 0 0-13 0C5.5 15.2 12 21 12 21zM12 7.4a2.4 2.4 0 1 1 0 4.8 2.4 2.4 0 0 1 0-4.8z"></path></svg><span class="sc-interp">Stops</span></a>
+  
+    <a data-dc-tpl="25" class="pti-nav" href="Alerts.dc.html"><svg data-dc-tpl="26" class="i" viewBox="0 0 24 24"><path data-dc-tpl="27" d="M6 9a6 6 0 1 1 12 0c0 6.2 2.5 8 2.5 8h-17S6 15.2 6 9zM10.2 20.5a2 2 0 0 0 3.6 0"></path></svg><span class="sc-interp">Alerts</span><span data-dc-tpl="29" class="pti-nav__count is-hot"><span class="sc-interp">3</span></span></a>
+  
+
+  <div data-dc-tpl="30" class="pti-side__label">Analytics</div>
+  
+    <a data-dc-tpl="32" class="pti-nav" href="Scorecard.dc.html"><svg data-dc-tpl="33" class="i" viewBox="0 0 24 24"><path data-dc-tpl="34" d="M4 4v16h16M8.5 16v-4.5M13 16V8M17.5 16v-6.5"></path></svg><span class="sc-interp">Scorecard</span></a>
+  
+
+  <div data-dc-tpl="35" class="pti-side__label" style="display: flex; align-items: center; justify-content: space-between; padding-right: 6px;">Operations</div>
+  
+    <a data-dc-tpl="39" class="pti-nav" href="OpsPipeline.dc.html"><svg data-dc-tpl="40" class="i" viewBox="0 0 24 24"><path data-dc-tpl="41" d="M3 12h3.5l2.5-6 4 12 2.5-6H21"></path></svg><span class="sc-interp">Pipeline</span></a>
+  
+    <a data-dc-tpl="39" class="pti-nav is-active" href="OpsDlq.dc.html"><svg data-dc-tpl="40" class="i" viewBox="0 0 24 24"><path data-dc-tpl="41" d="M3 13h5l1.5 2.5h5L16 13h5M5.2 5.6 3 13v5a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-5l-2.2-7.4A2 2 0 0 0 16.9 4H7.1a2 2 0 0 0-1.9 1.6z"></path></svg><span class="sc-interp">Dead letters</span><span data-dc-tpl="43" class="pti-nav__count"><span class="sc-interp">214</span></span></a>
+  
+    <a data-dc-tpl="39" class="pti-nav" href="OpsReplay.dc.html"><svg data-dc-tpl="40" class="i" viewBox="0 0 24 24"><path data-dc-tpl="41" d="M3.5 12a8.5 8.5 0 1 0 2.6-6.1L3.5 8.5M3.5 3.5v5h5"></path></svg><span class="sc-interp">Replay</span></a>
+  
+    <a data-dc-tpl="39" class="pti-nav" href="OpsTicketing.dc.html"><svg data-dc-tpl="40" class="i" viewBox="0 0 24 24"><path data-dc-tpl="41" d="M3 8.5a2.5 2.5 0 0 1 0 5V17a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-3.5a2.5 2.5 0 0 1 0-5V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2zM14 5v2.5M14 16.5V19M14 10.5v3"></path></svg><span class="sc-interp">Ticketing</span><span data-dc-tpl="43" class="pti-nav__count"><span class="sc-interp">2</span></span></a>
+  
+    <a data-dc-tpl="39" class="pti-nav" href="OpsControls.dc.html"><svg data-dc-tpl="40" class="i" viewBox="0 0 24 24"><path data-dc-tpl="41" d="M20 5h-8M8 5H4M20 12h-5M11 12H4M20 19h-10M6 19H4M10 3v4M13 10v4M8 17v4"></path></svg><span class="sc-interp">Controls</span></a>
+  
+    <a data-dc-tpl="39" class="pti-nav" href="DemoControl.dc.html"><svg data-dc-tpl="40" class="i" viewBox="0 0 24 24"><path data-dc-tpl="41" d="M12 3a9 9 0 1 1 0 18 9 9 0 0 1 0-18zM10 8.5v7l5.5-3.5z"></path></svg><span class="sc-interp">Demo</span></a>
+  
+
+  <div data-dc-tpl="44" class="side-status">
+    <div data-dc-tpl="45" style="display: flex; align-items: center; justify-content: space-between;">
+      <span data-dc-tpl="46" class="pti-live" style="color: var(--foreground); font-weight: 500;">Live feed</span>
+      <span data-dc-tpl="47" class="pti-mono" style="font-size: 11.5px; color: var(--muted-foreground);">3s ago</span>
+    </div>
+    <div data-dc-tpl="48" style="font-size: 12px; color: var(--muted-foreground); margin-top: 4px;"><span data-dc-tpl="49" class="pti-num" style="color: var(--foreground-2); font-weight: 500;">598</span> vehicles · <span data-dc-tpl="50" class="pti-num" style="color: var(--foreground-2); font-weight: 500;">142</span> msg/s</div>
+    <div data-dc-tpl="51" class="side-bars" aria-hidden="true">
+      <span data-dc-tpl="53" style="height: 9px;"></span><span data-dc-tpl="53" style="height: 11px;"></span><span data-dc-tpl="53" style="height: 10px;"></span><span data-dc-tpl="53" style="height: 12px;"></span><span data-dc-tpl="53" style="height: 14px;"></span><span data-dc-tpl="53" style="height: 13px;"></span><span data-dc-tpl="53" style="height: 12px;"></span><span data-dc-tpl="53" style="height: 15px;"></span><span data-dc-tpl="53" style="height: 16px;"></span><span data-dc-tpl="53" style="height: 14px;"></span><span data-dc-tpl="53" style="height: 13px;"></span><span data-dc-tpl="53" style="height: 15px;"></span><span data-dc-tpl="53" style="height: 17px;"></span><span data-dc-tpl="53" style="height: 16px;"></span><span data-dc-tpl="53" style="height: 18px;"></span><span data-dc-tpl="53" style="height: 17px;"></span><span data-dc-tpl="53" style="height: 15px;"></span><span data-dc-tpl="53" style="height: 16px;"></span><span data-dc-tpl="53" style="height: 19px;"></span><span data-dc-tpl="53" style="height: 18px;"></span><span data-dc-tpl="53" style="height: 20px;"></span><span data-dc-tpl="53" style="height: 19px;"></span><span data-dc-tpl="53" style="height: 21px;"></span><span data-dc-tpl="53" style="height: 22px;"></span>
+    </div>
+  </div>
+
+  <div data-dc-tpl="54" class="side-user">
+    <div data-dc-tpl="55" class="pti-avatar" style="background: rgb(34, 163, 154);"><span class="sc-interp">LT</span></div>
+    <div data-dc-tpl="56" style="min-width: 0px; flex: 1 1 0%;">
+      <div data-dc-tpl="57" style="font-size: 13px; font-weight: 500; line-height: 1.2;"><span class="sc-interp">Linh Tran</span></div>
+      <div data-dc-tpl="58" style="font-size: 12px; color: var(--muted-foreground);"><span class="sc-interp">Operator · on duty</span></div>
+    </div>
+    <button data-dc-tpl="59" class="pti-btn pti-btn--ghost pti-btn--icon pti-btn--sm" aria-label="Account menu"><svg data-dc-tpl="60" class="i" viewBox="0 0 24 24"><path data-dc-tpl="61" d="M12 11.2a.8.8 0 1 1 0 1.6.8.8 0 0 1 0-1.6zM19 11.2a.8.8 0 1 1 0 1.6.8.8 0 0 1 0-1.6zM5 11.2a.8.8 0 1 1 0 1.6.8.8 0 0 1 0-1.6z"></path></svg></button>
+  </div></nav></div>
+
+  <main data-dc-tpl="7" class="pti-main" style="flex-direction: row;">
+    <section data-dc-tpl="8" class="dlist" aria-label="Dead letter records">
+      <div data-dc-tpl="9" style="padding: 20px 20px 0px;">
+        <div data-dc-tpl="10" style="display: flex; align-items: baseline; justify-content: space-between;">
+          <h1 data-dc-tpl="11" class="pti-title" style="font-size: 22px;">Dead letters</h1>
+          <span data-dc-tpl="12" style="font-size: 12.5px; color: var(--muted-foreground);"><span data-dc-tpl="13" class="pti-num" style="color: var(--foreground); font-weight: 600;">214</span> open · 37 new/h</span>
+        </div>
+        <div data-dc-tpl="14" class="pti-tabs" style="margin-top: 12px;">
+          <button data-dc-tpl="15" class="pti-tab is-active">Review <span data-dc-tpl="16" class="pti-tab__count">199</span></button>
+          <button data-dc-tpl="17" class="pti-tab">Confirm <span data-dc-tpl="18" class="pti-tab__count">9</span></button>
+          <button data-dc-tpl="19" class="pti-tab">Resolved</button>
+        </div>
+        <div data-dc-tpl="20" style="display: flex; gap: 6px; padding: 12px 0px 10px;">
+          <button data-dc-tpl="21" class="pti-chip">Source<svg data-dc-tpl="22" class="i i--sm" viewBox="0 0 24 24"><path data-dc-tpl="23" d="m6 9 6 6 6-6"></path></svg></button>
+          <button data-dc-tpl="24" class="pti-chip">Error<svg data-dc-tpl="25" class="i i--sm" viewBox="0 0 24 24"><path data-dc-tpl="26" d="m6 9 6 6 6-6"></path></svg></button>
+          <button data-dc-tpl="27" class="pti-chip">AI verdict<svg data-dc-tpl="28" class="i i--sm" viewBox="0 0 24 24"><path data-dc-tpl="29" d="m6 9 6 6 6-6"></path></svg></button>
+        </div>
+      </div>
+      <div data-dc-tpl="30" style="padding: 0px 16px 12px;">
+        <div data-dc-tpl="31" class="pti-callout" style="background: var(--primary-soft); border-color: rgb(217, 220, 250); color: var(--primary-soft-fg); align-items: center;">
+          <svg data-dc-tpl="32" class="i" viewBox="0 0 24 24"><path data-dc-tpl="33" d="M12 3l1.8 4.7L18.5 9.5 13.8 11.3 12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"></path></svg>
+          <div data-dc-tpl="34" style="flex: 1 1 0%; font-size: 12.5px;"><strong data-dc-tpl="35">142 records</strong> have a high-confidence fix.</div>
+          <button data-dc-tpl="36" class="pti-btn pti-btn--sm" style="height: 26px;">Review batch</button>
+        </div>
+      </div>
+      <div data-dc-tpl="37" style="flex: 1 1 0%; min-height: 0px; overflow: auto; padding-bottom: 12px;">
+        
+          <button data-dc-tpl="39" class="ditem">
+            <div data-dc-tpl="40" style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+              <span data-dc-tpl="41" class="code-chip"><span class="sc-interp">UNKNOWN_TRIP_ID</span></span>
+              <span data-dc-tpl="42" class="pti-num" style="font-size: 12px; color: var(--muted-foreground);"><span class="sc-interp">4:31 PM</span></span>
+            </div>
+            <div data-dc-tpl="43" style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--foreground);">
+              <span data-dc-tpl="44" style="font-weight: 500;"><span class="sc-interp">Trip updates</span></span><span data-dc-tpl="45" class="pti-mono" style="font-size: 12px; color: var(--muted-foreground);"><span class="sc-interp">0192f5b2</span></span>
+            </div>
+            <div data-dc-tpl="46" style="font-size: 12.5px; color: var(--muted-foreground); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%;"><span class="sc-interp">tripId 18-0419 not in feed 2026-08-23</span></div>
+            <span data-dc-tpl="47" class="ai-pill" style="color: var(--tone-success-fg);"><svg data-dc-tpl="48" class="i i--sm" viewBox="0 0 24 24" style="width: 12px; height: 12px;"><path data-dc-tpl="49" d="M12 3l1.8 4.7L18.5 9.5 13.8 11.3 12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"></path></svg><span class="sc-interp">Retry after feed refresh · 91%</span></span>
+          </button>
+        
+          <button data-dc-tpl="39" class="ditem is-active">
+            <div data-dc-tpl="40" style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+              <span data-dc-tpl="41" class="code-chip"><span class="sc-interp">TIMESTAMP_UNIT</span></span>
+              <span data-dc-tpl="42" class="pti-num" style="font-size: 12px; color: var(--muted-foreground);"><span class="sc-interp">4:29 PM</span></span>
+            </div>
+            <div data-dc-tpl="43" style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--foreground);">
+              <span data-dc-tpl="44" style="font-weight: 500;"><span class="sc-interp">Vehicle positions</span></span><span data-dc-tpl="45" class="pti-mono" style="font-size: 12px; color: var(--muted-foreground);"><span class="sc-interp">0192f5a8</span></span>
+            </div>
+            <div data-dc-tpl="46" style="font-size: 12.5px; color: var(--muted-foreground); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%;"><span class="sc-interp">timestamp 1790630980412 is in milliseconds</span></div>
+            <span data-dc-tpl="47" class="ai-pill" style="color: var(--tone-success-fg);"><svg data-dc-tpl="48" class="i i--sm" viewBox="0 0 24 24" style="width: 12px; height: 12px;"><path data-dc-tpl="49" d="M12 3l1.8 4.7L18.5 9.5 13.8 11.3 12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"></path></svg><span class="sc-interp">Fix &amp; replay · 94%</span></span>
+          </button>
+        
+          <button data-dc-tpl="39" class="ditem">
+            <div data-dc-tpl="40" style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+              <span data-dc-tpl="41" class="code-chip"><span class="sc-interp">SCHEMA_VIOLATION</span></span>
+              <span data-dc-tpl="42" class="pti-num" style="font-size: 12px; color: var(--muted-foreground);"><span class="sc-interp">4:22 PM</span></span>
+            </div>
+            <div data-dc-tpl="43" style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--foreground);">
+              <span data-dc-tpl="44" style="font-weight: 500;"><span class="sc-interp">Ticket sales</span></span><span data-dc-tpl="45" class="pti-mono" style="font-size: 12px; color: var(--muted-foreground);"><span class="sc-interp">0192f59c</span></span>
+            </div>
+            <div data-dc-tpl="46" style="font-size: 12.5px; color: var(--muted-foreground); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%;"><span class="sc-interp">amount is a string: "2,50"</span></div>
+            <span data-dc-tpl="47" class="ai-pill" style="color: var(--tone-warning-fg);"><svg data-dc-tpl="48" class="i i--sm" viewBox="0 0 24 24" style="width: 12px; height: 12px;"><path data-dc-tpl="49" d="M12 3l1.8 4.7L18.5 9.5 13.8 11.3 12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"></path></svg><span class="sc-interp">Needs a person · 52%</span></span>
+          </button>
+        
+          <button data-dc-tpl="39" class="ditem">
+            <div data-dc-tpl="40" style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+              <span data-dc-tpl="41" class="code-chip"><span class="sc-interp">DUPLICATE_KEY</span></span>
+              <span data-dc-tpl="42" class="pti-num" style="font-size: 12px; color: var(--muted-foreground);"><span class="sc-interp">4:20 PM</span></span>
+            </div>
+            <div data-dc-tpl="43" style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--foreground);">
+              <span data-dc-tpl="44" style="font-weight: 500;"><span class="sc-interp">Vehicle positions</span></span><span data-dc-tpl="45" class="pti-mono" style="font-size: 12px; color: var(--muted-foreground);"><span class="sc-interp">0192f590</span></span>
+            </div>
+            <div data-dc-tpl="46" style="font-size: 12.5px; color: var(--muted-foreground); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%;"><span class="sc-interp">Same vehicle and timestamp already stored</span></div>
+            <span data-dc-tpl="47" class="ai-pill" style="color: var(--muted-foreground);"><svg data-dc-tpl="48" class="i i--sm" viewBox="0 0 24 24" style="width: 12px; height: 12px;"><path data-dc-tpl="49" d="M12 3l1.8 4.7L18.5 9.5 13.8 11.3 12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"></path></svg><span class="sc-interp">Discard · 88%</span></span>
+          </button>
+        
+          <button data-dc-tpl="39" class="ditem">
+            <div data-dc-tpl="40" style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+              <span data-dc-tpl="41" class="code-chip"><span class="sc-interp">OUT_OF_RANGE</span></span>
+              <span data-dc-tpl="42" class="pti-num" style="font-size: 12px; color: var(--muted-foreground);"><span class="sc-interp">4:12 PM</span></span>
+            </div>
+            <div data-dc-tpl="43" style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--foreground);">
+              <span data-dc-tpl="44" style="font-weight: 500;"><span class="sc-interp">Vehicle positions</span></span><span data-dc-tpl="45" class="pti-mono" style="font-size: 12px; color: var(--muted-foreground);"><span class="sc-interp">0192f571</span></span>
+            </div>
+            <div data-dc-tpl="46" style="font-size: 12.5px; color: var(--muted-foreground); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%;"><span class="sc-interp">speed 212 m/s exceeds 45 m/s</span></div>
+            <span data-dc-tpl="47" class="ai-pill" style="color: var(--tone-success-fg);"><svg data-dc-tpl="48" class="i i--sm" viewBox="0 0 24 24" style="width: 12px; height: 12px;"><path data-dc-tpl="49" d="M12 3l1.8 4.7L18.5 9.5 13.8 11.3 12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"></path></svg><span class="sc-interp">Fix &amp; replay · 83%</span></span>
+          </button>
+        
+          <button data-dc-tpl="39" class="ditem">
+            <div data-dc-tpl="40" style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+              <span data-dc-tpl="41" class="code-chip"><span class="sc-interp">UNKNOWN_STOP_ID</span></span>
+              <span data-dc-tpl="42" class="pti-num" style="font-size: 12px; color: var(--muted-foreground);"><span class="sc-interp">4:05 PM</span></span>
+            </div>
+            <div data-dc-tpl="43" style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--foreground);">
+              <span data-dc-tpl="44" style="font-weight: 500;"><span class="sc-interp">Trip updates</span></span><span data-dc-tpl="45" class="pti-mono" style="font-size: 12px; color: var(--muted-foreground);"><span class="sc-interp">0192f566</span></span>
+            </div>
+            <div data-dc-tpl="46" style="font-size: 12.5px; color: var(--muted-foreground); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%;"><span class="sc-interp">stopId 51999 not in feed</span></div>
+            <span data-dc-tpl="47" class="ai-pill" style="color: var(--tone-warning-fg);"><svg data-dc-tpl="48" class="i i--sm" viewBox="0 0 24 24" style="width: 12px; height: 12px;"><path data-dc-tpl="49" d="M12 3l1.8 4.7L18.5 9.5 13.8 11.3 12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"></path></svg><span class="sc-interp">Needs a person · 47%</span></span>
+          </button>
+        
+      </div>
+    </section>
+
+    <section data-dc-tpl="50" aria-label="Record detail" style="flex: 1 1 0%; min-width: 0px; display: flex; flex-direction: column; overflow: hidden; position: relative;">
+      <div data-dc-tpl="51" style="padding: 20px 26px 16px; display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; background: var(--card); border-bottom: 1px solid var(--border);">
+        <div data-dc-tpl="52">
+          <div data-dc-tpl="53" style="display: flex; align-items: center; gap: 8px;">
+            <span data-dc-tpl="54" class="pti-mono" style="font-size: 18px; font-weight: 600; letter-spacing: -0.02em;">0192f5a8</span>
+            <button data-dc-tpl="55" class="pti-btn pti-btn--ghost pti-btn--icon pti-btn--sm" aria-label="Copy record ID"><svg data-dc-tpl="56" class="i" viewBox="0 0 24 24"><path data-dc-tpl="57" d="M9 9h11v11H9zM5 15H4V4h11v1"></path></svg></button>
+          </div>
+          <div data-dc-tpl="58" style="display: flex; align-items: center; gap: 6px; margin-top: 6px;">
+            <span data-dc-tpl="59" class="pti-badge tone-danger"><span data-dc-tpl="60" class="dot"></span>TIMESTAMP_UNIT</span>
+            <span data-dc-tpl="61" class="pti-badge">Vehicle positions</span>
+            <span data-dc-tpl="62" style="font-size: 12.5px; color: var(--muted-foreground); margin-left: 4px;">Received 4:29:41 PM · attempt 1 of 3</span>
+          </div>
+        </div>
+        <div data-dc-tpl="63" style="display: flex; gap: 8px;">
+          <button data-dc-tpl="64" class="pti-btn pti-btn--danger"><svg data-dc-tpl="65" class="i" viewBox="0 0 24 24"><path data-dc-tpl="66" d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"></path></svg>Discard</button>
+          <button data-dc-tpl="67" class="pti-btn"><svg data-dc-tpl="68" class="i" viewBox="0 0 24 24"><path data-dc-tpl="69" d="M4 20h4L19 9l-4-4L4 16zM13.5 6.5l4 4"></path></svg><span class="sc-interp">Edit payload</span></button>
+          <button data-dc-tpl="70" class="pti-btn pti-btn--primary"><svg data-dc-tpl="71" class="i" viewBox="0 0 24 24"><path data-dc-tpl="72" d="M3.5 12a8.5 8.5 0 1 0 2.6-6.1L3.5 8.5M3.5 3.5v5h5"></path></svg>Apply fix &amp; replay</button>
+        </div>
+      </div>
+
+      <div data-dc-tpl="73" style="flex: 1 1 0%; min-height: 0px; overflow: auto; padding: 18px 26px 24px; display: flex; flex-direction: column; gap: 14px;">
+        <div data-dc-tpl="74" class="pti-card" style="padding: 14px 16px; display: grid; grid-template-columns: 40px minmax(0px, 1fr) auto; gap: 14px; align-items: start; background: linear-gradient(180deg, var(--primary-soft), var(--card) 85%);">
+          <div data-dc-tpl="75" class="pti-ibox pti-ibox--lg" style="background: var(--card); border: 1px solid rgb(217, 220, 250); color: var(--primary);"><svg data-dc-tpl="76" class="i i--lg" viewBox="0 0 24 24"><path data-dc-tpl="77" d="M12 3l1.8 4.7L18.5 9.5 13.8 11.3 12 16l-1.8-4.7L5.5 9.5l4.7-1.8zM19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"></path></svg></div>
+          <div data-dc-tpl="78">
+            <div data-dc-tpl="79" style="font-size: 12px; color: var(--primary-soft-fg); font-weight: 500;">AI triage · Fixable</div>
+            <div data-dc-tpl="80" style="font-size: 15.5px; font-weight: 600; letter-spacing: -0.015em; margin-top: 3px;">Timestamp is in milliseconds; the feed contract expects seconds.</div>
+            <div data-dc-tpl="81" style="font-size: 13px; color: var(--foreground-2); margin-top: 6px; line-height: 1.5;">Dividing by 1,000 gives 4:29:40 PM CDT, one second before the record arrived. 36 other records from vehicle 1742 in the last hour have the same problem.</div>
+          </div>
+          <span data-dc-tpl="82" class="pti-conf is-high" style="margin-top: 2px;"><span data-dc-tpl="83" class="pti-conf__bars"><i data-dc-tpl="84"></i><i data-dc-tpl="85"></i><i data-dc-tpl="86"></i></span>94%</span>
+        </div>
+
+        <div data-dc-tpl="87" style="display: grid; grid-template-columns: minmax(0px, 1.45fr) minmax(0px, 1fr); gap: 14px; align-items: start;">
+          <div data-dc-tpl="88">
+            <div data-dc-tpl="89" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+              <h2 data-dc-tpl="90" class="pti-h2" style="font-size: 13.5px;">Payload</h2>
+              <div data-dc-tpl="91" class="pti-seg pti-seg--sm">
+                <button data-dc-tpl="92" class="is-active">Proposed fix</button>
+                <button data-dc-tpl="93" class="">Original</button>
+              </div>
+            </div>
+            
+              <div data-dc-tpl="95" class="pti-code">
+                <div data-dc-tpl="96" class="pti-code__bar"><span data-dc-tpl="97">vehicle_position.json</span><span data-dc-tpl="98"><span class="sc-interp">1 change · AI suggestion</span></span></div>
+                <div data-dc-tpl="99" class="pti-code__body"><div data-dc-tpl="100" class="pti-code__ln"><span data-dc-tpl="101" class="p">{</span></div><div data-dc-tpl="102" class="pti-code__ln">  <span data-dc-tpl="103" class="k">"vehicle"</span><span data-dc-tpl="104" class="p">: {</span> <span data-dc-tpl="105" class="k">"id"</span><span data-dc-tpl="106" class="p">:</span> <span data-dc-tpl="107" class="s">"1742"</span><span data-dc-tpl="108" class="p">,</span> <span data-dc-tpl="109" class="k">"label"</span><span data-dc-tpl="110" class="p">:</span> <span data-dc-tpl="111" class="s">"1742"</span> <span data-dc-tpl="112" class="p">},</span></div><div data-dc-tpl="113" class="pti-code__ln">  <span data-dc-tpl="114" class="k">"trip"</span><span data-dc-tpl="115" class="p">: {</span> <span data-dc-tpl="116" class="k">"tripId"</span><span data-dc-tpl="117" class="p">:</span> <span data-dc-tpl="118" class="s">"18-0412"</span><span data-dc-tpl="119" class="p">,</span> <span data-dc-tpl="120" class="k">"routeId"</span><span data-dc-tpl="121" class="p">:</span> <span data-dc-tpl="122" class="s">"18"</span> <span data-dc-tpl="123" class="p">},</span></div><div data-dc-tpl="124" class="pti-code__ln">  <span data-dc-tpl="125" class="k">"position"</span><span data-dc-tpl="126" class="p">: {</span></div><div data-dc-tpl="127" class="pti-code__ln">    <span data-dc-tpl="128" class="k">"latitude"</span><span data-dc-tpl="129" class="p">:</span> <span data-dc-tpl="130" class="n">44.9483</span><span data-dc-tpl="131" class="p">,</span> <span data-dc-tpl="132" class="k">"longitude"</span><span data-dc-tpl="133" class="p">:</span> <span data-dc-tpl="134" class="n">-93.2780</span><span data-dc-tpl="135" class="p">,</span></div><div data-dc-tpl="136" class="pti-code__ln">    <span data-dc-tpl="137" class="k">"bearing"</span><span data-dc-tpl="138" class="p">:</span> <span data-dc-tpl="139" class="n">2</span><span data-dc-tpl="140" class="p">,</span> <span data-dc-tpl="141" class="k">"speed"</span><span data-dc-tpl="142" class="p">:</span> <span data-dc-tpl="143" class="n">6.3</span></div><div data-dc-tpl="144" class="pti-code__ln">  <span data-dc-tpl="145" class="p">},</span></div><div data-dc-tpl="147" class="pti-code__ln is-del">  <span data-dc-tpl="148" class="k">"timestamp"</span><span data-dc-tpl="149" class="p">:</span> <span data-dc-tpl="150" class="n">1790630980412</span><span data-dc-tpl="151" class="p">,</span></div><div data-dc-tpl="152" class="pti-code__ln is-add">  <span data-dc-tpl="153" class="k">"timestamp"</span><span data-dc-tpl="154" class="p">:</span> <span data-dc-tpl="155" class="n">1790630980</span><span data-dc-tpl="156" class="p">,</span></div><div data-dc-tpl="163" class="pti-code__ln">  <span data-dc-tpl="164" class="k">"currentStopSequence"</span><span data-dc-tpl="165" class="p">:</span> <span data-dc-tpl="166" class="n">14</span><span data-dc-tpl="167" class="p">,</span></div><div data-dc-tpl="168" class="pti-code__ln">  <span data-dc-tpl="169" class="k">"occupancyStatus"</span><span data-dc-tpl="170" class="p">:</span> <span data-dc-tpl="171" class="s">"MANY_SEATS_AVAILABLE"</span></div><div data-dc-tpl="172" class="pti-code__ln"><span data-dc-tpl="173" class="p">}</span></div>
+                </div>
+              </div>
+            
+            
+          </div>
+
+          <div data-dc-tpl="184" style="display: flex; flex-direction: column; gap: 14px;">
+            <div data-dc-tpl="185" class="pti-card">
+              <div data-dc-tpl="186" class="pti-card__head"><h3 data-dc-tpl="187" class="pti-card__title">Validation</h3><span data-dc-tpl="188" class="pti-card__meta">1 of 3 rules failed</span></div>
+              <div data-dc-tpl="189" style="padding: 12px 16px;">
+                <div data-dc-tpl="190" class="vrow"><span data-dc-tpl="191" style="color: var(--tone-danger-solid);"><svg data-dc-tpl="192" class="i" viewBox="0 0 24 24"><path data-dc-tpl="193" d="M12 3a9 9 0 1 1 0 18 9 9 0 0 1 0-18zM15 9l-6 6M9 9l6 6"></path></svg></span><div data-dc-tpl="194"><div data-dc-tpl="195" style="font-weight: 500;">timestamp within 5 min of now</div><div data-dc-tpl="196" style="color: var(--muted-foreground); margin-top: 2px;">Value is ~56,000 years in the future</div></div></div>
+                <div data-dc-tpl="197" class="vrow"><span data-dc-tpl="198" style="color: var(--tone-success-solid);"><svg data-dc-tpl="199" class="i" viewBox="0 0 24 24"><path data-dc-tpl="200" d="M12 3a9 9 0 1 1 0 18 9 9 0 0 1 0-18zM8 12l3 3 5-6"></path></svg></span><div data-dc-tpl="201">trip.tripId exists in active feed</div></div>
+                <div data-dc-tpl="202" class="vrow"><span data-dc-tpl="203" style="color: var(--tone-success-solid);"><svg data-dc-tpl="204" class="i" viewBox="0 0 24 24"><path data-dc-tpl="205" d="M12 3a9 9 0 1 1 0 18 9 9 0 0 1 0-18zM8 12l3 3 5-6"></path></svg></span><div data-dc-tpl="206">position inside service area</div></div>
+              </div>
+            </div>
+            <div data-dc-tpl="207" class="pti-card">
+              <div data-dc-tpl="208" class="pti-card__head"><h3 data-dc-tpl="209" class="pti-card__title">Kafka</h3></div>
+              <div data-dc-tpl="210" style="padding: 12px 16px 14px;">
+                <dl data-dc-tpl="211" class="pti-kv" style="grid-template-columns: 84px minmax(0px, 1fr); font-size: 12.5px;">
+                  <dt data-dc-tpl="212">Topic</dt><dd data-dc-tpl="213" class="pti-mono">gtfs.vehicle_positions</dd>
+                  <dt data-dc-tpl="214">Partition</dt><dd data-dc-tpl="215" class="pti-mono">3</dd>
+                  <dt data-dc-tpl="216">Offset</dt><dd data-dc-tpl="217" class="pti-mono">18,204,771</dd>
+                  <dt data-dc-tpl="218">Key</dt><dd data-dc-tpl="219" class="pti-mono">1742</dd>
+                </dl>
+              </div>
+            </div>
+            <div data-dc-tpl="220" class="pti-card">
+              <div data-dc-tpl="221" class="pti-card__head"><h3 data-dc-tpl="222" class="pti-card__title">History</h3></div>
+              <div data-dc-tpl="223" class="pti-events" style="padding: 12px 16px 14px;">
+                <div data-dc-tpl="224" class="pti-event"><span data-dc-tpl="225" class="pti-event__dot"><i data-dc-tpl="226" style="background: var(--primary);"></i></span><span data-dc-tpl="227">AI suggested a fix (94%)</span><span data-dc-tpl="228" class="pti-event__time">4:29:42</span></div>
+                <div data-dc-tpl="229" class="pti-event"><span data-dc-tpl="230" class="pti-event__dot"><i data-dc-tpl="231" style="background: var(--tone-danger-solid);"></i></span><span data-dc-tpl="232">Failed validation</span><span data-dc-tpl="233" class="pti-event__time">4:29:41</span></div>
+                <div data-dc-tpl="234" class="pti-event"><span data-dc-tpl="235" class="pti-event__dot"><i data-dc-tpl="236"></i></span><span data-dc-tpl="237">Consumed by etl-stream-2</span><span data-dc-tpl="238" class="pti-event__time">4:29:41</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      
+    </section>
+  </main></div></div></div>
+
+
+
+</body></html>

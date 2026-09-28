@@ -1,0 +1,482 @@
+<!DOCTYPE html><html lang="en"><head><title>Live map</title><meta charset="utf-8"><link rel="stylesheet" href="shared.css">
+<meta charset="utf-8">
+<title>Live map</title>
+
+<style data-dc-tpl="2">/* PTI — "Wayfinding" theme, light. Mirrors the PTI Design System tokens.json (light). */
+:root, :host {
+  --background: #F4F5F7;
+  --surface: #FAFAFB;
+  --card: #FFFFFF;
+  --popover: #FFFFFF;
+  --muted: #F0F1F4;
+  --muted-2: #E6E8EC;
+  --foreground: #17181C;
+  --foreground-2: #3A3D45;
+  --muted-foreground: #676B75;
+  --subtle-foreground: #8E929B;
+  --border: #E4E5E9;
+  --border-strong: #D4D6DC;
+  --input: #DADCE1;
+  --ring: #5B63E6;
+
+  --primary: #4F57D9;
+  --primary-hover: #444BC6;
+  --primary-foreground: #FFFFFF;
+  --primary-soft: #EEEFFD;
+  --primary-soft-fg: #3A41B5;
+  --destructive: #D93A45;
+  --destructive-foreground: #FFFFFF;
+
+  --tone-neutral-bg: #F0F1F3;  --tone-neutral-fg: #4A4E57;  --tone-neutral-border: #E0E2E6;  --tone-neutral-solid: #9AA0A9;
+  --tone-info-bg: #EBF2FE;     --tone-info-fg: #2458C6;     --tone-info-border: #D3E2FB;     --tone-info-solid: #3B7BEA;
+  --tone-success-bg: #E8F6EE;  --tone-success-fg: #1C7548;  --tone-success-border: #CDEBDA;  --tone-success-solid: #2FA36B;
+  --tone-teal-bg: #E6F5F3;     --tone-teal-fg: #16706A;     --tone-teal-border: #CBEAE5;     --tone-teal-solid: #22A39A;
+  --tone-warning-bg: #FDF4E3;  --tone-warning-fg: #92560A;  --tone-warning-border: #F6E1B8;  --tone-warning-solid: #E59A1A;
+  --tone-danger-bg: #FDECED;   --tone-danger-fg: #B1242E;   --tone-danger-border: #F8D2D5;   --tone-danger-solid: #E0454F;
+  --tone-progress-bg: #F3EEFE; --tone-progress-fg: #6A3FC6; --tone-progress-border: #E3D8FB; --tone-progress-solid: #8B5CF6;
+
+  --delay-early: #3B7BEA;
+  --delay-on-time: #2FA36B;
+  --delay-late: #E59A1A;
+  --delay-very-late: #E0454F;
+  --delay-unknown: #A4A8B0;
+  --bunching: #C026D3;
+  --bunching-soft: #FBEAFD;
+
+  --chart-1: #4F57D9; --chart-2: #22A39A; --chart-3: #E59A1A; --chart-4: #C026D3;
+  --chart-5: #3B7BEA; --chart-6: #E0454F; --chart-7: #84A83A; --chart-8: #9AA0A9;
+
+  --heat-1: #EAF6EF; --heat-2: #CFEBDC; --heat-3: #F5E9C7; --heat-4: #F3D293;
+  --heat-5: #EDAA6E; --heat-6: #E0735D; --heat-7: #B9424C;
+
+  --map-land: #F1F0EB; --map-water: #D4E3EE; --map-park: #DDEAD4; --map-block: #E8E6DF;
+  --map-road: #FFFFFF; --map-casing: #DEDBD2; --map-label: #8B8F97;
+
+  --radius-sm: 6px; --radius-md: 9px; --radius-lg: 12px; --radius-xl: 16px;
+  --shadow-xs: 0 1px 2px rgba(16,18,27,0.05);
+  --shadow-sm: 0 1px 3px rgba(16,18,27,0.06), 0 1px 2px rgba(16,18,27,0.03);
+  --shadow-md: 0 6px 16px -4px rgba(16,18,27,0.10), 0 2px 5px -2px rgba(16,18,27,0.06);
+  --shadow-lg: 0 20px 48px -12px rgba(16,18,27,0.22), 0 6px 14px -6px rgba(16,18,27,0.10);
+
+  --font-sans: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+</style><style data-dc-tpl="4">
+  .vlabel { font: 700 9.5px var(--font-sans); fill: #fff; letter-spacing: -0.02em; }
+  .vmark { filter: drop-shadow(0 1px 2px rgba(16,18,27,.28)); cursor: pointer; }
+  .street { font: 500 11px var(--font-sans); fill: var(--map-label); letter-spacing: 0.01em; }
+  .street--major { font: 600 11.5px var(--font-sans); fill: #767A82; }
+  .water-label { font: italic 500 12px var(--font-sans); fill: #7E9DB6; letter-spacing: 0.06em; }
+  .pulse { transform-box: fill-box; transform-origin: center; animation: pti-ping 1.8s ease-out infinite; }
+  .panel-sec { padding: 16px 18px; border-top: 1px solid var(--border); }
+  .metric { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 9px 11px; }
+  .metric__l { font-size: 11.5px; color: var(--muted-foreground); }
+  .metric__v { font-size: 15px; font-weight: 600; letter-spacing: -0.02em; margin-top: 2px; }
+  .now-chip { display: inline-flex; align-items: center; gap: 5px; height: 22px; padding: 0 8px; border-radius: 999px; background: var(--foreground); color: var(--card); font-size: 11.5px; font-weight: 600; }
+  .sug { border: 1px solid var(--border); border-radius: 12px; padding: 12px; background: var(--card); display: flex; flex-direction: column; gap: 10px; }
+  .leg-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; font-size: 12.5px; padding: 3px 0; }
+  .leg-sw { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 8px; border: 2px solid #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.08); }
+</style><style data-dc-tpl="4">
+  .side-status { margin-top: auto; border: 1px solid var(--border); background: var(--card); border-radius: 12px; padding: 11px 12px; box-shadow: var(--shadow-xs); }
+  .side-bars { display: flex; align-items: flex-end; gap: 2px; height: 22px; margin-top: 9px; }
+  .side-bars span { flex: 1; background: var(--tone-success-border); border-radius: 1.5px; }
+  .side-bars span:last-child { background: var(--tone-success-solid); }
+  .side-user { display: flex; align-items: center; gap: 10px; padding: 12px 4px 0; }
+</style></head>
+<body>
+<div id="dc-root"><div class="sc-host" data-sc-name="8f98768f-621b-45f1-99d4-af8c88b50103"><div data-dc-tpl="5" class="pti-app pti-root">
+  <div class="sc-host" data-sc-name="Sidebar" data-dc-tpl="6"><nav data-dc-tpl="5" class="pti-side pti-root" aria-label="Primary">
+  <div data-dc-tpl="6" class="pti-side__brand">
+    <div data-dc-tpl="7" class="pti-logo">
+      <svg data-dc-tpl="8" class="i" viewBox="0 0 24 24" style="width: 18px; height: 18px; stroke-width: 2.2;"><path data-dc-tpl="9" d="M5 17.5h4l6-11h4"></path><circle data-dc-tpl="10" cx="5" cy="17.5" r="2.2" fill="currentColor"></circle><circle data-dc-tpl="11" cx="19" cy="6.5" r="2.2" fill="currentColor"></circle></svg>
+    </div>
+    <div data-dc-tpl="12" style="min-width: 0px; flex: 1 1 0%;">
+      <div data-dc-tpl="13" class="pti-side__name">Transit Intelligence</div>
+      <div data-dc-tpl="14" class="pti-side__ws">Metro Transit · Twin Cities</div>
+    </div>
+    <button data-dc-tpl="15" class="pti-btn pti-btn--ghost pti-btn--icon pti-btn--sm" aria-label="Switch workspace"><svg data-dc-tpl="16" class="i i--sm" viewBox="0 0 24 24"><path data-dc-tpl="17" d="m7 15 5 5 5-5M7 9l5-5 5 5"></path></svg></button>
+  </div>
+
+  <button data-dc-tpl="18" class="pti-side__search"><svg data-dc-tpl="19" class="i" viewBox="0 0 24 24"><path data-dc-tpl="20" d="M11 3a8 8 0 1 1 0 16 8 8 0 0 1 0-16zM21 21l-4.3-4.3"></path></svg><span data-dc-tpl="21">Search</span><span data-dc-tpl="22" class="pti-kbd" style="margin-left: auto;">⌘K</span></button>
+
+  <div data-dc-tpl="23" class="pti-side__label">Network</div>
+  
+    <a data-dc-tpl="25" class="pti-nav" href="Overview.dc.html"><svg data-dc-tpl="26" class="i" viewBox="0 0 24 24"><path data-dc-tpl="27" d="M4 4h6.5v7.5H4zM13.5 4H20v4.5h-6.5zM13.5 11.5H20V20h-6.5zM4 14.5h6.5V20H4z"></path></svg><span class="sc-interp">Overview</span></a>
+  
+    <a data-dc-tpl="25" class="pti-nav is-active" href="LiveMap.dc.html"><svg data-dc-tpl="26" class="i" viewBox="0 0 24 24"><path data-dc-tpl="27" d="M9 4 3.5 6.5v13L9 17l6 3 5.5-2.5v-13L15 7 9 4zM9 4v13M15 7v13"></path></svg><span class="sc-interp">Live map</span></a>
+  
+    <a data-dc-tpl="25" class="pti-nav" href="StopDetail.dc.html"><svg data-dc-tpl="26" class="i" viewBox="0 0 24 24"><path data-dc-tpl="27" d="M12 21s6.5-5.8 6.5-11.2a6.5 6.5 0 0 0-13 0C5.5 15.2 12 21 12 21zM12 7.4a2.4 2.4 0 1 1 0 4.8 2.4 2.4 0 0 1 0-4.8z"></path></svg><span class="sc-interp">Stops</span></a>
+  
+    <a data-dc-tpl="25" class="pti-nav" href="Alerts.dc.html"><svg data-dc-tpl="26" class="i" viewBox="0 0 24 24"><path data-dc-tpl="27" d="M6 9a6 6 0 1 1 12 0c0 6.2 2.5 8 2.5 8h-17S6 15.2 6 9zM10.2 20.5a2 2 0 0 0 3.6 0"></path></svg><span class="sc-interp">Alerts</span><span data-dc-tpl="29" class="pti-nav__count is-hot"><span class="sc-interp">3</span></span></a>
+  
+
+  <div data-dc-tpl="30" class="pti-side__label">Analytics</div>
+  
+    <a data-dc-tpl="32" class="pti-nav" href="Scorecard.dc.html"><svg data-dc-tpl="33" class="i" viewBox="0 0 24 24"><path data-dc-tpl="34" d="M4 4v16h16M8.5 16v-4.5M13 16V8M17.5 16v-6.5"></path></svg><span class="sc-interp">Scorecard</span></a>
+  
+
+  <div data-dc-tpl="35" class="pti-side__label" style="display: flex; align-items: center; justify-content: space-between; padding-right: 6px;">Operations</div>
+  
+    <a data-dc-tpl="39" class="pti-nav" href="OpsPipeline.dc.html"><svg data-dc-tpl="40" class="i" viewBox="0 0 24 24"><path data-dc-tpl="41" d="M3 12h3.5l2.5-6 4 12 2.5-6H21"></path></svg><span class="sc-interp">Pipeline</span></a>
+  
+    <a data-dc-tpl="39" class="pti-nav" href="OpsDlq.dc.html"><svg data-dc-tpl="40" class="i" viewBox="0 0 24 24"><path data-dc-tpl="41" d="M3 13h5l1.5 2.5h5L16 13h5M5.2 5.6 3 13v5a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-5l-2.2-7.4A2 2 0 0 0 16.9 4H7.1a2 2 0 0 0-1.9 1.6z"></path></svg><span class="sc-interp">Dead letters</span><span data-dc-tpl="43" class="pti-nav__count"><span class="sc-interp">214</span></span></a>
+  
+    <a data-dc-tpl="39" class="pti-nav" href="OpsReplay.dc.html"><svg data-dc-tpl="40" class="i" viewBox="0 0 24 24"><path data-dc-tpl="41" d="M3.5 12a8.5 8.5 0 1 0 2.6-6.1L3.5 8.5M3.5 3.5v5h5"></path></svg><span class="sc-interp">Replay</span></a>
+  
+    <a data-dc-tpl="39" class="pti-nav" href="OpsTicketing.dc.html"><svg data-dc-tpl="40" class="i" viewBox="0 0 24 24"><path data-dc-tpl="41" d="M3 8.5a2.5 2.5 0 0 1 0 5V17a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-3.5a2.5 2.5 0 0 1 0-5V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2zM14 5v2.5M14 16.5V19M14 10.5v3"></path></svg><span class="sc-interp">Ticketing</span><span data-dc-tpl="43" class="pti-nav__count"><span class="sc-interp">2</span></span></a>
+  
+    <a data-dc-tpl="39" class="pti-nav" href="OpsControls.dc.html"><svg data-dc-tpl="40" class="i" viewBox="0 0 24 24"><path data-dc-tpl="41" d="M20 5h-8M8 5H4M20 12h-5M11 12H4M20 19h-10M6 19H4M10 3v4M13 10v4M8 17v4"></path></svg><span class="sc-interp">Controls</span></a>
+  
+    <a data-dc-tpl="39" class="pti-nav" href="DemoControl.dc.html"><svg data-dc-tpl="40" class="i" viewBox="0 0 24 24"><path data-dc-tpl="41" d="M12 3a9 9 0 1 1 0 18 9 9 0 0 1 0-18zM10 8.5v7l5.5-3.5z"></path></svg><span class="sc-interp">Demo</span></a>
+  
+
+  <div data-dc-tpl="44" class="side-status">
+    <div data-dc-tpl="45" style="display: flex; align-items: center; justify-content: space-between;">
+      <span data-dc-tpl="46" class="pti-live" style="color: var(--foreground); font-weight: 500;">Live feed</span>
+      <span data-dc-tpl="47" class="pti-mono" style="font-size: 11.5px; color: var(--muted-foreground);">3s ago</span>
+    </div>
+    <div data-dc-tpl="48" style="font-size: 12px; color: var(--muted-foreground); margin-top: 4px;"><span data-dc-tpl="49" class="pti-num" style="color: var(--foreground-2); font-weight: 500;">598</span> vehicles · <span data-dc-tpl="50" class="pti-num" style="color: var(--foreground-2); font-weight: 500;">142</span> msg/s</div>
+    <div data-dc-tpl="51" class="side-bars" aria-hidden="true">
+      <span data-dc-tpl="53" style="height: 9px;"></span><span data-dc-tpl="53" style="height: 11px;"></span><span data-dc-tpl="53" style="height: 10px;"></span><span data-dc-tpl="53" style="height: 12px;"></span><span data-dc-tpl="53" style="height: 14px;"></span><span data-dc-tpl="53" style="height: 13px;"></span><span data-dc-tpl="53" style="height: 12px;"></span><span data-dc-tpl="53" style="height: 15px;"></span><span data-dc-tpl="53" style="height: 16px;"></span><span data-dc-tpl="53" style="height: 14px;"></span><span data-dc-tpl="53" style="height: 13px;"></span><span data-dc-tpl="53" style="height: 15px;"></span><span data-dc-tpl="53" style="height: 17px;"></span><span data-dc-tpl="53" style="height: 16px;"></span><span data-dc-tpl="53" style="height: 18px;"></span><span data-dc-tpl="53" style="height: 17px;"></span><span data-dc-tpl="53" style="height: 15px;"></span><span data-dc-tpl="53" style="height: 16px;"></span><span data-dc-tpl="53" style="height: 19px;"></span><span data-dc-tpl="53" style="height: 18px;"></span><span data-dc-tpl="53" style="height: 20px;"></span><span data-dc-tpl="53" style="height: 19px;"></span><span data-dc-tpl="53" style="height: 21px;"></span><span data-dc-tpl="53" style="height: 22px;"></span>
+    </div>
+  </div>
+
+  <div data-dc-tpl="54" class="side-user">
+    <div data-dc-tpl="55" class="pti-avatar" style="background: rgb(34, 163, 154);"><span class="sc-interp">LT</span></div>
+    <div data-dc-tpl="56" style="min-width: 0px; flex: 1 1 0%;">
+      <div data-dc-tpl="57" style="font-size: 13px; font-weight: 500; line-height: 1.2;"><span class="sc-interp">Linh Tran</span></div>
+      <div data-dc-tpl="58" style="font-size: 12px; color: var(--muted-foreground);"><span class="sc-interp">Operator · on duty</span></div>
+    </div>
+    <button data-dc-tpl="59" class="pti-btn pti-btn--ghost pti-btn--icon pti-btn--sm" aria-label="Account menu"><svg data-dc-tpl="60" class="i" viewBox="0 0 24 24"><path data-dc-tpl="61" d="M12 11.2a.8.8 0 1 1 0 1.6.8.8 0 0 1 0-1.6zM19 11.2a.8.8 0 1 1 0 1.6.8.8 0 0 1 0-1.6zM5 11.2a.8.8 0 1 1 0 1.6.8.8 0 0 1 0-1.6z"></path></svg></button>
+  </div></nav></div>
+
+  <main data-dc-tpl="7" class="pti-main pti-map">
+    
+    <svg data-dc-tpl="8" viewBox="0 0 1208 900" width="1208" height="900" role="img" aria-label="Map of south Minneapolis with live vehicles" style="position: absolute; inset: 0px;">
+      <defs data-dc-tpl="9">
+        <pattern data-dc-tpl="10" id="grid" width="56" height="56" patternUnits="userSpaceOnUse">
+          <rect data-dc-tpl="11" width="56" height="56" fill="var(--map-land)"></rect>
+          <rect data-dc-tpl="12" x="4" y="4" width="48" height="48" rx="3" fill="var(--map-block)"></rect>
+        </pattern>
+      </defs>
+      <rect data-dc-tpl="13" width="1208" height="900" fill="url(#grid)"></rect>
+      
+      <path data-dc-tpl="14" d="M60 470 C 60 420, 120 400, 170 410 C 250 425, 280 520, 270 620 C 262 700, 250 820, 190 860 C 120 900, 60 860, 50 780 Z" fill="var(--map-park)"></path>
+      <ellipse data-dc-tpl="15" cx="165" cy="560" rx="62" ry="104" fill="var(--map-water)"></ellipse>
+      <ellipse data-dc-tpl="16" cx="175" cy="770" rx="54" ry="50" fill="var(--map-water)"></ellipse>
+      <path data-dc-tpl="17" d="M800 380 h150 v110 h-150z" fill="var(--map-park)" rx="10"></path>
+      <path data-dc-tpl="18" d="M520 -30 C 560 110, 650 180, 720 300 S 800 520, 920 640 S 1120 820, 1260 930" fill="none" stroke="var(--map-water)" stroke-width="54" stroke-linecap="round"></path>
+      <path data-dc-tpl="19" d="M860 560 C 900 610, 960 650, 1010 700" fill="none" stroke="var(--map-park)" stroke-width="30" stroke-linecap="round" opacity="0.7"></path>
+      
+      <g data-dc-tpl="20" fill="none" stroke="var(--map-casing)" stroke-linecap="round">
+        <path data-dc-tpl="21" d="M0 560 H1208" stroke-width="16"></path>
+        <path data-dc-tpl="22" d="M0 330 H1208" stroke-width="12"></path>
+        <path data-dc-tpl="23" d="M430 0 V900" stroke-width="16"></path>
+        <path data-dc-tpl="24" d="M330 -10 L 262 360 L 230 560" stroke-width="14"></path>
+        <path data-dc-tpl="25" d="M492 0 C 500 300, 505 600, 520 910" stroke-width="22"></path>
+        <path data-dc-tpl="26" d="M560 200 L 760 910" stroke-width="14"></path>
+        <path data-dc-tpl="27" d="M0 780 H760" stroke-width="12"></path>
+        <path data-dc-tpl="28" d="M640 0 V330" stroke-width="12"></path>
+      </g>
+      <g data-dc-tpl="29" fill="none" stroke="var(--map-road)" stroke-linecap="round">
+        <path data-dc-tpl="30" d="M0 560 H1208" stroke-width="12"></path>
+        <path data-dc-tpl="31" d="M0 330 H1208" stroke-width="8"></path>
+        <path data-dc-tpl="32" d="M430 0 V900" stroke-width="12"></path>
+        <path data-dc-tpl="33" d="M330 -10 L 262 360 L 230 560" stroke-width="10"></path>
+        <path data-dc-tpl="34" d="M492 0 C 500 300, 505 600, 520 910" stroke-width="18" stroke="#FBF6EA"></path>
+        <path data-dc-tpl="35" d="M560 200 L 760 910" stroke-width="10"></path>
+        <path data-dc-tpl="36" d="M0 780 H760" stroke-width="8"></path>
+        <path data-dc-tpl="37" d="M640 0 V330" stroke-width="8"></path>
+      </g>
+      
+      <text data-dc-tpl="38" class="street--major" transform="translate(447 250) rotate(-90)">NICOLLET AVE</text>
+      <text data-dc-tpl="39" class="street--major" x="300" y="553">LAKE ST</text>
+      <text data-dc-tpl="40" class="street" x="96" y="323">FRANKLIN AVE</text>
+      <text data-dc-tpl="41" class="street" x="96" y="773">46TH ST</text>
+      <text data-dc-tpl="42" class="street" transform="translate(292 200) rotate(-79)">HENNEPIN AVE</text>
+      <text data-dc-tpl="43" class="street" transform="translate(648 520) rotate(74)">HIAWATHA AVE</text>
+      <text data-dc-tpl="44" class="street" transform="translate(628 160) rotate(-90)">CHICAGO AVE</text>
+      <text data-dc-tpl="45" class="water-label" transform="translate(742 380) rotate(52)">MISSISSIPPI RIVER</text>
+      <g data-dc-tpl="46" transform="translate(506 170)"><rect data-dc-tpl="47" x="-17" y="-10" width="34" height="20" rx="5" fill="#fff" stroke="var(--map-casing)"></rect><text data-dc-tpl="48" x="0" y="4" text-anchor="middle" style="font: 700 10px var(--font-sans); fill: rgb(118, 122, 130);">I-35W</text></g>
+
+      
+      <g data-dc-tpl="49" style="cursor: pointer;">
+        <path data-dc-tpl="50" d="M560 560 H830" stroke="var(--tone-danger-solid)" stroke-opacity="0.22" stroke-width="26" stroke-linecap="round"></path>
+        <path data-dc-tpl="51" d="M560 560 H830" stroke="var(--tone-danger-solid)" stroke-width="3" stroke-dasharray="2 6" stroke-linecap="round"></path>
+      </g>
+
+      
+      <path data-dc-tpl="52" d="M430 0 V900" stroke="#2F6FD0" stroke-width="6" stroke-opacity="0.9"></path>
+      <g data-dc-tpl="53" fill="#fff" stroke="#2F6FD0" stroke-width="2.5">
+        <circle data-dc-tpl="54" cx="430" cy="60" r="5"></circle><circle data-dc-tpl="55" cx="430" cy="190" r="5"></circle><circle data-dc-tpl="56" cx="430" cy="330" r="5"></circle><circle data-dc-tpl="57" cx="430" cy="470" r="5"></circle>
+        <circle data-dc-tpl="58" cx="430" cy="560" r="6.5"></circle><circle data-dc-tpl="59" cx="430" cy="700" r="5"></circle><circle data-dc-tpl="60" cx="430" cy="800" r="5"></circle><circle data-dc-tpl="61" cx="430" cy="880" r="5"></circle>
+      </g>
+
+      
+      
+        <g data-dc-tpl="63" class="vmark" transform="translate(430 150)">
+          <g data-dc-tpl="64" transform="rotate(0)"><path data-dc-tpl="65" d="M0 -19 L4.5 -13 H-4.5 Z" fill="var(--delay-on-time)"></path></g>
+          <circle data-dc-tpl="66" r="12" fill="var(--delay-on-time)" stroke="#fff" stroke-width="2.5"></circle>
+          <text data-dc-tpl="67" class="vlabel" y="3.4" text-anchor="middle"><span class="sc-interp">18</span></text>
+        </g>
+      
+        <g data-dc-tpl="63" class="vmark" transform="translate(430 382)">
+          <g data-dc-tpl="64" transform="rotate(0)"><path data-dc-tpl="65" d="M0 -19 L4.5 -13 H-4.5 Z" fill="var(--delay-on-time)"></path></g>
+          <circle data-dc-tpl="66" r="12" fill="var(--delay-on-time)" stroke="#fff" stroke-width="2.5"></circle>
+          <text data-dc-tpl="67" class="vlabel" y="3.4" text-anchor="middle"><span class="sc-interp">18</span></text>
+        </g>
+      
+        <g data-dc-tpl="63" class="vmark" transform="translate(430 820)">
+          <g data-dc-tpl="64" transform="rotate(180)"><path data-dc-tpl="65" d="M0 -19 L4.5 -13 H-4.5 Z" fill="var(--delay-early)"></path></g>
+          <circle data-dc-tpl="66" r="12" fill="var(--delay-early)" stroke="#fff" stroke-width="2.5"></circle>
+          <text data-dc-tpl="67" class="vlabel" y="3.4" text-anchor="middle"><span class="sc-interp">18</span></text>
+        </g>
+      
+        <g data-dc-tpl="63" class="vmark" transform="translate(110 560)">
+          <g data-dc-tpl="64" transform="rotate(90)"><path data-dc-tpl="65" d="M0 -19 L4.5 -13 H-4.5 Z" fill="var(--delay-on-time)"></path></g>
+          <circle data-dc-tpl="66" r="12" fill="var(--delay-on-time)" stroke="#fff" stroke-width="2.5"></circle>
+          <text data-dc-tpl="67" class="vlabel" y="3.4" text-anchor="middle"><span class="sc-interp">21</span></text>
+        </g>
+      
+        <g data-dc-tpl="63" class="vmark" transform="translate(300 560)">
+          <g data-dc-tpl="64" transform="rotate(90)"><path data-dc-tpl="65" d="M0 -19 L4.5 -13 H-4.5 Z" fill="var(--delay-late)"></path></g>
+          <circle data-dc-tpl="66" r="12" fill="var(--delay-late)" stroke="#fff" stroke-width="2.5"></circle>
+          <text data-dc-tpl="67" class="vlabel" y="3.4" text-anchor="middle"><span class="sc-interp">21</span></text>
+        </g>
+      
+        <g data-dc-tpl="63" class="vmark" transform="translate(610 560)">
+          <g data-dc-tpl="64" transform="rotate(90)"><path data-dc-tpl="65" d="M0 -19 L4.5 -13 H-4.5 Z" fill="var(--delay-very-late)"></path></g>
+          <circle data-dc-tpl="66" r="12" fill="var(--delay-very-late)" stroke="#fff" stroke-width="2.5"></circle>
+          <text data-dc-tpl="67" class="vlabel" y="3.4" text-anchor="middle"><span class="sc-interp">21</span></text>
+        </g>
+      
+        <g data-dc-tpl="63" class="vmark" transform="translate(700 560)">
+          <g data-dc-tpl="64" transform="rotate(90)"><path data-dc-tpl="65" d="M0 -19 L4.5 -13 H-4.5 Z" fill="var(--delay-very-late)"></path></g>
+          <circle data-dc-tpl="66" r="12" fill="var(--delay-very-late)" stroke="#fff" stroke-width="2.5"></circle>
+          <text data-dc-tpl="67" class="vlabel" y="3.4" text-anchor="middle"><span class="sc-interp">21</span></text>
+        </g>
+      
+        <g data-dc-tpl="63" class="vmark" transform="translate(780 560)">
+          <g data-dc-tpl="64" transform="rotate(270)"><path data-dc-tpl="65" d="M0 -19 L4.5 -13 H-4.5 Z" fill="var(--delay-late)"></path></g>
+          <circle data-dc-tpl="66" r="12" fill="var(--delay-late)" stroke="#fff" stroke-width="2.5"></circle>
+          <text data-dc-tpl="67" class="vlabel" y="3.4" text-anchor="middle"><span class="sc-interp">21</span></text>
+        </g>
+      
+        <g data-dc-tpl="63" class="vmark" transform="translate(272 300)">
+          <g data-dc-tpl="64" transform="rotate(190)"><path data-dc-tpl="65" d="M0 -19 L4.5 -13 H-4.5 Z" fill="var(--delay-on-time)"></path></g>
+          <circle data-dc-tpl="66" r="12" fill="var(--delay-on-time)" stroke="#fff" stroke-width="2.5"></circle>
+          <text data-dc-tpl="67" class="vlabel" y="3.4" text-anchor="middle"><span class="sc-interp">6</span></text>
+        </g>
+      
+        <g data-dc-tpl="63" class="vmark" transform="translate(244 470)">
+          <g data-dc-tpl="64" transform="rotate(10)"><path data-dc-tpl="65" d="M0 -19 L4.5 -13 H-4.5 Z" fill="var(--delay-late)"></path></g>
+          <circle data-dc-tpl="66" r="12" fill="var(--delay-late)" stroke="#fff" stroke-width="2.5"></circle>
+          <text data-dc-tpl="67" class="vlabel" y="3.4" text-anchor="middle"><span class="sc-interp">6</span></text>
+        </g>
+      
+        <g data-dc-tpl="63" class="vmark" transform="translate(598 336)">
+          <g data-dc-tpl="64" transform="rotate(164)"><path data-dc-tpl="65" d="M0 -19 L4.5 -13 H-4.5 Z" fill="var(--delay-on-time)"></path></g>
+          <circle data-dc-tpl="66" r="12" fill="var(--delay-on-time)" stroke="#fff" stroke-width="2.5"></circle>
+          <text data-dc-tpl="67" class="vlabel" y="3.4" text-anchor="middle"><span class="sc-interp">BL</span></text>
+        </g>
+      
+        <g data-dc-tpl="63" class="vmark" transform="translate(700 700)">
+          <g data-dc-tpl="64" transform="rotate(344)"><path data-dc-tpl="65" d="M0 -19 L4.5 -13 H-4.5 Z" fill="var(--delay-early)"></path></g>
+          <circle data-dc-tpl="66" r="12" fill="var(--delay-early)" stroke="#fff" stroke-width="2.5"></circle>
+          <text data-dc-tpl="67" class="vlabel" y="3.4" text-anchor="middle"><span class="sc-interp">BL</span></text>
+        </g>
+      
+        <g data-dc-tpl="63" class="vmark" transform="translate(150 330)">
+          <g data-dc-tpl="64" transform="rotate(90)"><path data-dc-tpl="65" d="M0 -19 L4.5 -13 H-4.5 Z" fill="var(--delay-on-time)"></path></g>
+          <circle data-dc-tpl="66" r="12" fill="var(--delay-on-time)" stroke="#fff" stroke-width="2.5"></circle>
+          <text data-dc-tpl="67" class="vlabel" y="3.4" text-anchor="middle"><span class="sc-interp">2</span></text>
+        </g>
+      
+        <g data-dc-tpl="63" class="vmark" transform="translate(700 330)">
+          <g data-dc-tpl="64" transform="rotate(270)"><path data-dc-tpl="65" d="M0 -19 L4.5 -13 H-4.5 Z" fill="var(--delay-late)"></path></g>
+          <circle data-dc-tpl="66" r="12" fill="var(--delay-late)" stroke="#fff" stroke-width="2.5"></circle>
+          <text data-dc-tpl="67" class="vlabel" y="3.4" text-anchor="middle"><span class="sc-interp">2</span></text>
+        </g>
+      
+        <g data-dc-tpl="63" class="vmark" transform="translate(640 120)">
+          <g data-dc-tpl="64" transform="rotate(0)"><path data-dc-tpl="65" d="M0 -19 L4.5 -13 H-4.5 Z" fill="var(--delay-on-time)"></path></g>
+          <circle data-dc-tpl="66" r="12" fill="var(--delay-on-time)" stroke="#fff" stroke-width="2.5"></circle>
+          <text data-dc-tpl="67" class="vlabel" y="3.4" text-anchor="middle"><span class="sc-interp">5</span></text>
+        </g>
+      
+        <g data-dc-tpl="63" class="vmark" transform="translate(300 780)">
+          <g data-dc-tpl="64" transform="rotate(90)"><path data-dc-tpl="65" d="M0 -19 L4.5 -13 H-4.5 Z" fill="var(--delay-on-time)"></path></g>
+          <circle data-dc-tpl="66" r="12" fill="var(--delay-on-time)" stroke="#fff" stroke-width="2.5"></circle>
+          <text data-dc-tpl="67" class="vlabel" y="3.4" text-anchor="middle"><span class="sc-interp">46</span></text>
+        </g>
+      
+
+      
+      <g data-dc-tpl="68" style="cursor: pointer;">
+        <ellipse data-dc-tpl="69" cx="430" cy="628" rx="26" ry="44" fill="var(--bunching)" fill-opacity="0.08" stroke="var(--bunching)" stroke-width="2" stroke-dasharray="5 4"></ellipse>
+        <g data-dc-tpl="70" class="vmark" transform="translate(430 652)">
+          <path data-dc-tpl="71" d="M0 -19 L4.5 -13 H-4.5 Z" fill="var(--delay-late)"></path>
+          <circle data-dc-tpl="72" r="12" fill="var(--delay-late)" stroke="#fff" stroke-width="2.5"></circle>
+          <text data-dc-tpl="73" class="vlabel" y="3.4" text-anchor="middle">18</text>
+        </g>
+      </g>
+      
+      <g data-dc-tpl="74" transform="translate(430 606)" style="cursor: pointer;">
+        <circle data-dc-tpl="75" class="pulse" r="16" fill="var(--primary)" opacity="0.35"></circle>
+        <circle data-dc-tpl="76" r="20" fill="none" stroke="var(--primary)" stroke-width="2.5"></circle>
+        <g data-dc-tpl="77" class="vmark">
+          <path data-dc-tpl="78" d="M0 -23 L5.5 -16 H-5.5 Z" fill="var(--delay-late)"></path>
+          <circle data-dc-tpl="79" r="14.5" fill="var(--delay-late)" stroke="#fff" stroke-width="3"></circle>
+          <text data-dc-tpl="80" class="vlabel" y="3.8" text-anchor="middle" style="font-size: 11px;">18</text>
+        </g>
+      </g>
+      <g data-dc-tpl="81" transform="translate(456 590)">
+        <rect data-dc-tpl="82" width="94" height="32" rx="9" fill="var(--foreground)"></rect>
+        <text data-dc-tpl="83" x="11" y="14" style="font: 600 11px var(--font-sans); fill: rgb(255, 255, 255);">Bus 1742</text>
+        <text data-dc-tpl="84" x="11" y="26" style="font: 500 10px var(--font-sans); fill: rgba(255, 255, 255, 0.7);">+3 min · 14 mph</text>
+      </g>
+    </svg>
+
+    
+    <div data-dc-tpl="85" class="pti-float" style="left: 16px; top: 16px; width: 348px; padding: 12px; display: flex; flex-direction: column; gap: 10px;">
+      <div data-dc-tpl="86" class="pti-inputwrap">
+        <svg data-dc-tpl="87" class="i" viewBox="0 0 24 24"><path data-dc-tpl="88" d="M11 3a8 8 0 1 1 0 16 8 8 0 0 1 0-16zM21 21l-4.3-4.3"></path></svg>
+        <label data-dc-tpl="89" for="mapq" style="position: absolute; width: 1px; height: 1px; overflow: hidden;">Search the map</label>
+        <input data-dc-tpl="90" id="mapq" class="pti-input" placeholder="Search routes, stops or vehicles" style="height: 38px; border-radius: 10px;">
+        <span data-dc-tpl="91" class="pti-kbd" style="position: absolute; right: 10px;">/</span>
+      </div>
+      <div data-dc-tpl="92" style="display: flex; gap: 6px; flex-wrap: wrap;">
+        
+          <button data-dc-tpl="94" class="pti-chip is-active"><span class="sc-interp">All routes</span></button>
+        
+          <button data-dc-tpl="94" class="pti-chip"><span data-dc-tpl="96" style="width: 8px; height: 8px; border-radius: 2px; background: rgb(47, 111, 208);"></span><span class="sc-interp">18</span></button>
+        
+          <button data-dc-tpl="94" class="pti-chip"><span data-dc-tpl="96" style="width: 8px; height: 8px; border-radius: 2px; background: rgb(227, 162, 26);"></span><span class="sc-interp">21</span></button>
+        
+          <button data-dc-tpl="94" class="pti-chip"><span data-dc-tpl="96" style="width: 8px; height: 8px; border-radius: 2px; background: rgb(22, 144, 122);"></span><span class="sc-interp">6</span></button>
+        
+          <button data-dc-tpl="94" class="pti-chip"><span data-dc-tpl="96" style="width: 8px; height: 8px; border-radius: 2px; background: rgb(31, 78, 154);"></span><span class="sc-interp">Blue Line</span></button>
+        
+          <button data-dc-tpl="94" class="pti-chip"><span class="sc-interp">+ 118</span></button>
+        
+      </div>
+      <div data-dc-tpl="97" style="display: flex; align-items: center; justify-content: space-between;">
+        <span data-dc-tpl="98" style="font-size: 12.5px; color: var(--muted-foreground);">Colour vehicles by</span>
+        <div data-dc-tpl="99" class="pti-seg pti-seg--sm">
+          <button data-dc-tpl="100" class="is-active">Delay</button>
+          <button data-dc-tpl="101">Route</button>
+          <button data-dc-tpl="102">Crowding</button>
+        </div>
+      </div>
+    </div>
+
+    <div data-dc-tpl="103" class="pti-float" style="left: 16px; top: 190px; padding: 7px 12px; border-radius: 999px; display: flex; align-items: center; gap: 10px;">
+      <span data-dc-tpl="104" class="pti-live" style="color: var(--foreground); font-weight: 500;">598 vehicles</span>
+      <span data-dc-tpl="105" style="width: 1px; height: 14px; background: var(--border);"></span>
+      <span data-dc-tpl="106" style="font-size: 12.5px; color: var(--muted-foreground);">Updated 3s ago</span>
+    </div>
+
+    
+    <div data-dc-tpl="107" class="pti-float" style="left: 16px; bottom: 16px; width: 236px; overflow: hidden;">
+      <button data-dc-tpl="108" style="width: 100%; display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; background: none; border-width: medium; border-style: none; border-color: currentcolor; border-image: none; cursor: pointer; font: 600 12.5px var(--font-sans); color: var(--foreground);">Legend<svg data-dc-tpl="109" class="i i--sm" viewBox="0 0 24 24"><path data-dc-tpl="110" d="m6 15 6-6 6 6"></path></svg></button>
+      
+        <div data-dc-tpl="112" style="padding: 0px 12px 10px;">
+          <div data-dc-tpl="113" class="leg-row"><span data-dc-tpl="114"><span data-dc-tpl="115" class="leg-sw" style="background: var(--delay-early);"></span>Early</span><span data-dc-tpl="116" class="pti-num pti-muted">41</span></div>
+          <div data-dc-tpl="117" class="leg-row"><span data-dc-tpl="118"><span data-dc-tpl="119" class="leg-sw" style="background: var(--delay-on-time);"></span>On time</span><span data-dc-tpl="120" class="pti-num pti-muted">402</span></div>
+          <div data-dc-tpl="121" class="leg-row"><span data-dc-tpl="122"><span data-dc-tpl="123" class="leg-sw" style="background: var(--delay-late);"></span>1–5 min late</span><span data-dc-tpl="124" class="pti-num pti-muted">118</span></div>
+          <div data-dc-tpl="125" class="leg-row"><span data-dc-tpl="126"><span data-dc-tpl="127" class="leg-sw" style="background: var(--delay-very-late);"></span>5+ min late</span><span data-dc-tpl="128" class="pti-num pti-muted">37</span></div>
+          <div data-dc-tpl="129" class="pti-sep" style="margin: 6px 0px;"></div>
+          <div data-dc-tpl="130" class="leg-row"><span data-dc-tpl="131" style="display: flex; align-items: center;"><span data-dc-tpl="132" style="width: 14px; height: 10px; border: 1.75px dashed var(--bunching); border-radius: 6px; margin-right: 8px;"></span>Bunching</span><span data-dc-tpl="133" class="pti-num pti-muted">2</span></div>
+          <div data-dc-tpl="134" class="leg-row"><span data-dc-tpl="135" style="display: flex; align-items: center;"><span data-dc-tpl="136" style="width: 14px; height: 6px; background: var(--tone-danger-solid); opacity: 0.35; border-radius: 3px; margin-right: 8px;"></span>Disruption</span><span data-dc-tpl="137" class="pti-num pti-muted">1</span></div>
+        </div>
+      
+    </div>
+
+    
+    <div data-dc-tpl="138" class="pti-mapctl" style="position: absolute; right: 412px; bottom: 16px;">
+      <button data-dc-tpl="139" aria-label="Zoom in"><svg data-dc-tpl="140" class="i" viewBox="0 0 24 24"><path data-dc-tpl="141" d="M12 5v14M5 12h14"></path></svg></button>
+      <button data-dc-tpl="142" aria-label="Zoom out"><svg data-dc-tpl="143" class="i" viewBox="0 0 24 24"><path data-dc-tpl="144" d="M5 12h14"></path></svg></button>
+    </div>
+    <div data-dc-tpl="145" class="pti-mapctl" style="position: absolute; right: 412px; bottom: 100px;">
+      <button data-dc-tpl="146" aria-label="Locate me"><svg data-dc-tpl="147" class="i" viewBox="0 0 24 24"><path data-dc-tpl="148" d="M12 4a8 8 0 1 1 0 16 8 8 0 0 1 0-16zM12 1v3M12 20v3M1 12h3M20 12h3M12 9.5a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5z"></path></svg></button>
+      <button data-dc-tpl="149" aria-label="Map layers"><svg data-dc-tpl="150" class="i" viewBox="0 0 24 24"><path data-dc-tpl="151" d="m12 3 9 5-9 5-9-5 9-5zM3 13l9 5 9-5"></path></svg></button>
+    </div>
+
+    
+    <aside data-dc-tpl="152" class="pti-float" style="right: 16px; top: 16px; bottom: 16px; width: 380px; display: flex; flex-direction: column; overflow: hidden; background: var(--card);">
+      <div data-dc-tpl="153" style="padding: 12px 12px 0px; display: flex; align-items: center; justify-content: space-between;">
+        <div data-dc-tpl="154" class="pti-seg pti-seg--sm">
+          <button data-dc-tpl="155" class="is-active">Vehicle</button>
+          <button data-dc-tpl="156" class="">Bunching</button>
+          <button data-dc-tpl="157" class="">Disruption</button>
+        </div>
+        <button data-dc-tpl="158" class="pti-btn pti-btn--ghost pti-btn--icon pti-btn--sm" aria-label="Close panel"><svg data-dc-tpl="159" class="i" viewBox="0 0 24 24"><path data-dc-tpl="160" d="M6 6l12 12M18 6 6 18"></path></svg></button>
+      </div>
+
+      
+      
+        <div data-dc-tpl="162" style="flex: 1 1 0%; min-height: 0px; overflow: auto;">
+          <div data-dc-tpl="163" style="padding: 14px 18px 16px; display: flex; gap: 14px; align-items: flex-start;">
+            <span data-dc-tpl="164" class="pti-route pti-route--xl" style="background: rgb(47, 111, 208);">18</span>
+            <div data-dc-tpl="165" style="min-width: 0px;">
+              <div data-dc-tpl="166" style="font-size: 17px; font-weight: 600; letter-spacing: -0.022em; line-height: 1.25;">Nicollet Ave to Downtown</div>
+              <div data-dc-tpl="167" style="font-size: 12.5px; color: var(--muted-foreground); margin-top: 3px;">Bus <span data-dc-tpl="168" class="pti-mono" style="color: var(--foreground-2);">1742</span> · Northbound · trip <span data-dc-tpl="169" class="pti-mono">18-0412</span></div>
+              <div data-dc-tpl="170" style="display: flex; gap: 6px; margin-top: 9px;">
+                <span data-dc-tpl="171" class="pti-badge tone-warning"><span data-dc-tpl="172" class="dot"></span>3 min late</span>
+                <span data-dc-tpl="173" class="pti-badge tone-bunching"><span data-dc-tpl="174" class="dot"></span>Bunching</span>
+              </div>
+            </div>
+          </div>
+          <div data-dc-tpl="175" style="display: grid; grid-template-columns: repeat(3, minmax(0px, 1fr)); gap: 8px; padding: 0px 18px 16px;">
+            <div data-dc-tpl="176" class="metric"><div data-dc-tpl="177" class="metric__l">Speed</div><div data-dc-tpl="178" class="metric__v">14 <span data-dc-tpl="179" style="font-size: 12px; color: var(--muted-foreground); font-weight: 500;">mph</span></div></div>
+            <div data-dc-tpl="180" class="metric"><div data-dc-tpl="181" class="metric__l">Next stop</div><div data-dc-tpl="182" class="metric__v">2 min</div></div>
+            <div data-dc-tpl="183" class="metric"><div data-dc-tpl="184" class="metric__l">Occupancy</div><div data-dc-tpl="185" class="metric__v" style="font-size: 13.5px; padding-top: 2px;">Many seats</div></div>
+          </div>
+
+          <div data-dc-tpl="186" class="panel-sec">
+            <div data-dc-tpl="187" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+              <h3 data-dc-tpl="188" class="pti-h2" style="font-size: 13.5px;">Trip progress</h3>
+              <span data-dc-tpl="189" class="pti-live">Updated 3s ago</span>
+            </div>
+            <div data-dc-tpl="190" class="pti-strip" style="--line: #2F6FD0;">
+              <div data-dc-tpl="191" class="pti-strip__stop is-passed"><div data-dc-tpl="192" class="pti-strip__rail"><span data-dc-tpl="193" class="pti-strip__dot"></span></div><div data-dc-tpl="194" class="pti-strip__name">46th St</div><div data-dc-tpl="195" class="pti-strip__eta pti-muted">4:24 PM</div></div>
+              <div data-dc-tpl="196" class="pti-strip__stop" style="min-height: 34px;"><div data-dc-tpl="197" class="pti-strip__rail"></div><div data-dc-tpl="198"><span data-dc-tpl="199" class="now-chip"><svg data-dc-tpl="200" class="i i--sm" viewBox="0 0 24 24" style="width: 12px; height: 12px;"><path data-dc-tpl="201" d="M5 17V7a3 3 0 0 1 3-3h8a3 3 0 0 1 3 3v10M5 12h14M5 17h14v2H5zM8 21v-2M16 21v-2"></path></svg>Bus 1742 · now</span></div><div data-dc-tpl="202"></div></div>
+              <div data-dc-tpl="203" class="pti-strip__stop is-major"><div data-dc-tpl="204" class="pti-strip__rail"><span data-dc-tpl="205" class="pti-strip__dot"></span></div><div data-dc-tpl="206"><div data-dc-tpl="207" class="pti-strip__name">Lake St</div><div data-dc-tpl="208" class="pti-strip__meta">Transfer to 21 · Scheduled 4:31 PM</div></div><div data-dc-tpl="209" class="pti-strip__eta"><div data-dc-tpl="210">4:34 PM</div><div data-dc-tpl="211" style="font-size: 11.5px; color: var(--tone-warning-fg); font-weight: 500;">+3 min</div></div></div>
+              <div data-dc-tpl="212" class="pti-strip__stop"><div data-dc-tpl="213" class="pti-strip__rail"><span data-dc-tpl="214" class="pti-strip__dot"></span></div><div data-dc-tpl="215" class="pti-strip__name">31st St</div><div data-dc-tpl="216" class="pti-strip__eta">4:37 PM</div></div>
+              <div data-dc-tpl="217" class="pti-strip__stop"><div data-dc-tpl="218" class="pti-strip__rail"><span data-dc-tpl="219" class="pti-strip__dot"></span></div><div data-dc-tpl="220" class="pti-strip__name">Franklin Ave</div><div data-dc-tpl="221" class="pti-strip__eta">4:41 PM</div></div>
+              <div data-dc-tpl="222" class="pti-strip__stop"><div data-dc-tpl="223" class="pti-strip__rail"><span data-dc-tpl="224" class="pti-strip__dot"></span></div><div data-dc-tpl="225" class="pti-strip__name">Grant St</div><div data-dc-tpl="226" class="pti-strip__eta">4:46 PM</div></div>
+              <div data-dc-tpl="227" class="pti-strip__stop is-major"><div data-dc-tpl="228" class="pti-strip__rail"><span data-dc-tpl="229" class="pti-strip__dot"></span></div><div data-dc-tpl="230"><div data-dc-tpl="231" class="pti-strip__name">Downtown · 7th St</div><div data-dc-tpl="232" class="pti-strip__meta">Terminus</div></div><div data-dc-tpl="233" class="pti-strip__eta">4:52 PM</div></div>
+            </div>
+          </div>
+
+          <div data-dc-tpl="234" class="panel-sec">
+            <div data-dc-tpl="235" class="pti-callout tone-bunching" style="margin-bottom: 10px;">
+              <svg data-dc-tpl="236" class="i" viewBox="0 0 24 24"><path data-dc-tpl="237" d="M12 3a9 9 0 1 1 0 18 9 9 0 0 1 0-18zM12 8v4M12 16h.01"></path></svg>
+              <div data-dc-tpl="238"><strong data-dc-tpl="239">Bus 1738 is 40 s behind.</strong> Scheduled headway is 8 min.</div>
+            </div>
+            <div data-dc-tpl="240" class="sug">
+              <div data-dc-tpl="241" style="display: flex; align-items: center; justify-content: space-between;">
+                <span data-dc-tpl="242" style="display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 500; color: var(--primary-soft-fg);"><svg data-dc-tpl="243" class="i i--sm" viewBox="0 0 24 24"><path data-dc-tpl="244" d="M12 3l1.8 4.7L18.5 9.5 13.8 11.3 12 16l-1.8-4.7L5.5 9.5l4.7-1.8zM19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"></path></svg>Suggested action</span>
+                <span data-dc-tpl="245" class="pti-conf is-med"><span data-dc-tpl="246" class="pti-conf__bars"><i data-dc-tpl="247"></i><i data-dc-tpl="248"></i><i data-dc-tpl="249"></i></span>74%</span>
+              </div>
+              <div data-dc-tpl="250" style="font-size: 13.5px; font-weight: 500; line-height: 1.4;">Hold bus 1742 at Lake St for 90 s to restore an even gap.</div>
+              <div data-dc-tpl="251" style="display: flex; gap: 8px;">
+                <button data-dc-tpl="252" class="pti-btn pti-btn--primary pti-btn--sm">Send to dispatch</button>
+                <button data-dc-tpl="253" class="pti-btn pti-btn--ghost pti-btn--sm">Dismiss</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      
+
+      
+      
+
+      
+      
+    </aside>
+  </main></div></div></div>
+
+
+
+</body></html>

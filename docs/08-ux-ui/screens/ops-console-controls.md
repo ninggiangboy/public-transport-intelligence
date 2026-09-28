@@ -16,6 +16,8 @@
 
 ## 3. Wireframe
 
+Prototype (DR-88): [Ops — Controls](assets/ops-console-controls.html).
+
 ```text
 ┌ sidebar ┬──────────────────────────────────────────────────────────────────────────────┐
 │         │ Operations / Controls                                                          │

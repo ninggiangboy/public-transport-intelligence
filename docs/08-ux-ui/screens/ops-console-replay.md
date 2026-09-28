@@ -27,6 +27,8 @@
 
 ## 3. Wireframe
 
+Prototype (DR-88): [Ops — Replay](assets/ops-console-replay.html).
+
 ```text
 ┌ sidebar ┬──────────────────────────────────────────────────────────────────────────────┐
 │         │ Operations / Replay                                                            │

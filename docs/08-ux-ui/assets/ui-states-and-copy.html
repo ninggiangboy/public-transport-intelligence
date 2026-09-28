@@ -1,0 +1,215 @@
+<!DOCTYPE html><html lang="en"><head><title>Shared states</title><meta charset="utf-8"><link rel="stylesheet" href="shared.css">
+<meta charset="utf-8">
+<title>Shared UI states</title>
+
+<style data-dc-tpl="2">/* PTI — "Wayfinding" theme, light. Mirrors the PTI Design System tokens.json (light). */
+:root, :host {
+  --background: #F4F5F7;
+  --surface: #FAFAFB;
+  --card: #FFFFFF;
+  --popover: #FFFFFF;
+  --muted: #F0F1F4;
+  --muted-2: #E6E8EC;
+  --foreground: #17181C;
+  --foreground-2: #3A3D45;
+  --muted-foreground: #676B75;
+  --subtle-foreground: #8E929B;
+  --border: #E4E5E9;
+  --border-strong: #D4D6DC;
+  --input: #DADCE1;
+  --ring: #5B63E6;
+
+  --primary: #4F57D9;
+  --primary-hover: #444BC6;
+  --primary-foreground: #FFFFFF;
+  --primary-soft: #EEEFFD;
+  --primary-soft-fg: #3A41B5;
+  --destructive: #D93A45;
+  --destructive-foreground: #FFFFFF;
+
+  --tone-neutral-bg: #F0F1F3;  --tone-neutral-fg: #4A4E57;  --tone-neutral-border: #E0E2E6;  --tone-neutral-solid: #9AA0A9;
+  --tone-info-bg: #EBF2FE;     --tone-info-fg: #2458C6;     --tone-info-border: #D3E2FB;     --tone-info-solid: #3B7BEA;
+  --tone-success-bg: #E8F6EE;  --tone-success-fg: #1C7548;  --tone-success-border: #CDEBDA;  --tone-success-solid: #2FA36B;
+  --tone-teal-bg: #E6F5F3;     --tone-teal-fg: #16706A;     --tone-teal-border: #CBEAE5;     --tone-teal-solid: #22A39A;
+  --tone-warning-bg: #FDF4E3;  --tone-warning-fg: #92560A;  --tone-warning-border: #F6E1B8;  --tone-warning-solid: #E59A1A;
+  --tone-danger-bg: #FDECED;   --tone-danger-fg: #B1242E;   --tone-danger-border: #F8D2D5;   --tone-danger-solid: #E0454F;
+  --tone-progress-bg: #F3EEFE; --tone-progress-fg: #6A3FC6; --tone-progress-border: #E3D8FB; --tone-progress-solid: #8B5CF6;
+
+  --delay-early: #3B7BEA;
+  --delay-on-time: #2FA36B;
+  --delay-late: #E59A1A;
+  --delay-very-late: #E0454F;
+  --delay-unknown: #A4A8B0;
+  --bunching: #C026D3;
+  --bunching-soft: #FBEAFD;
+
+  --chart-1: #4F57D9; --chart-2: #22A39A; --chart-3: #E59A1A; --chart-4: #C026D3;
+  --chart-5: #3B7BEA; --chart-6: #E0454F; --chart-7: #84A83A; --chart-8: #9AA0A9;
+
+  --heat-1: #EAF6EF; --heat-2: #CFEBDC; --heat-3: #F5E9C7; --heat-4: #F3D293;
+  --heat-5: #EDAA6E; --heat-6: #E0735D; --heat-7: #B9424C;
+
+  --map-land: #F1F0EB; --map-water: #D4E3EE; --map-park: #DDEAD4; --map-block: #E8E6DF;
+  --map-road: #FFFFFF; --map-casing: #DEDBD2; --map-label: #8B8F97;
+
+  --radius-sm: 6px; --radius-md: 9px; --radius-lg: 12px; --radius-xl: 16px;
+  --shadow-xs: 0 1px 2px rgba(16,18,27,0.05);
+  --shadow-sm: 0 1px 3px rgba(16,18,27,0.06), 0 1px 2px rgba(16,18,27,0.03);
+  --shadow-md: 0 6px 16px -4px rgba(16,18,27,0.10), 0 2px 5px -2px rgba(16,18,27,0.06);
+  --shadow-lg: 0 20px 48px -12px rgba(16,18,27,0.22), 0 6px 14px -6px rgba(16,18,27,0.10);
+
+  --font-sans: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+</style><style data-dc-tpl="4">
+  .frame { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+  .frame__cap { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--muted-foreground); }
+  .frame__cap b { color: var(--foreground); font-weight: 600; }
+  .frame__box { height: 236px; overflow: hidden; display: flex; flex-direction: column; }
+  .sk-row { display: grid; grid-template-columns: 70px minmax(0, 1fr) 60px; gap: 14px; align-items: center; padding: 12px 16px; border-top: 1px solid var(--border); }
+  .spin { width: 14px; height: 14px; border-radius: 50%; border: 2px solid rgba(255,255,255,.35); border-top-color: #fff; animation: spin .8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style></head>
+<body>
+<div id="dc-root"><div class="sc-host" data-sc-name="d0eb8e96-8412-4125-907f-3ad6d84c9677"><div data-dc-tpl="5" class="pti-root" style="width: 1440px; height: 900px; overflow: hidden; padding: 36px 44px; display: flex; flex-direction: column; gap: 24px;">
+  <div data-dc-tpl="6" style="display: flex; justify-content: space-between; align-items: flex-end;">
+    <div data-dc-tpl="7">
+      <div data-dc-tpl="8" class="pti-crumbs"><span data-dc-tpl="9">Design system</span><span data-dc-tpl="10" class="sep">/</span><span data-dc-tpl="11">Patterns</span></div>
+      <h1 data-dc-tpl="12" class="pti-title">Shared states</h1>
+      <div data-dc-tpl="13" class="pti-subtitle" style="margin-top: 5px;">Loading, empty, error, access and freshness — every screen uses these, never an ad-hoc variant.</div>
+    </div>
+    <a data-dc-tpl="14" class="pti-btn" href="Main.dc.html">Back to index</a>
+  </div>
+
+  <div data-dc-tpl="15" style="display: grid; grid-template-columns: repeat(3, minmax(0px, 1fr)); gap: 22px 20px;">
+    <div data-dc-tpl="16" class="frame">
+      <div data-dc-tpl="17" class="frame__cap"><b data-dc-tpl="18">Loading</b>· tables keep their shape</div>
+      <div data-dc-tpl="19" class="pti-card frame__box" aria-busy="true">
+        <div data-dc-tpl="20" style="padding: 14px 16px; display: flex; justify-content: space-between;"><span data-dc-tpl="21" class="pti-skeleton" style="width: 120px; height: 14px;"></span><span data-dc-tpl="22" class="pti-skeleton" style="width: 70px; height: 14px;"></span></div>
+        <div data-dc-tpl="23" class="sk-row"><span data-dc-tpl="24" class="pti-skeleton" style="height: 20px; border-radius: 6px;"></span><span data-dc-tpl="25" class="pti-skeleton" style="height: 12px; width: 80%;"></span><span data-dc-tpl="26" class="pti-skeleton" style="height: 12px;"></span></div>
+        <div data-dc-tpl="27" class="sk-row"><span data-dc-tpl="28" class="pti-skeleton" style="height: 20px; border-radius: 6px;"></span><span data-dc-tpl="29" class="pti-skeleton" style="height: 12px; width: 60%;"></span><span data-dc-tpl="30" class="pti-skeleton" style="height: 12px;"></span></div>
+        <div data-dc-tpl="31" class="sk-row"><span data-dc-tpl="32" class="pti-skeleton" style="height: 20px; border-radius: 6px;"></span><span data-dc-tpl="33" class="pti-skeleton" style="height: 12px; width: 72%;"></span><span data-dc-tpl="34" class="pti-skeleton" style="height: 12px;"></span></div>
+        <div data-dc-tpl="35" class="sk-row"><span data-dc-tpl="36" class="pti-skeleton" style="height: 20px; border-radius: 6px;"></span><span data-dc-tpl="37" class="pti-skeleton" style="height: 12px; width: 50%;"></span><span data-dc-tpl="38" class="pti-skeleton" style="height: 12px;"></span></div>
+      </div>
+    </div>
+
+    <div data-dc-tpl="39" class="frame">
+      <div data-dc-tpl="40" class="frame__cap"><b data-dc-tpl="41">Working</b>· actions show progress in place</div>
+      <div data-dc-tpl="42" class="pti-card frame__box" style="padding: 18px; gap: 16px; justify-content: center;">
+        <div data-dc-tpl="43" style="display: flex; gap: 8px; align-items: center;">
+          <button data-dc-tpl="44" class="pti-btn pti-btn--primary" style="opacity: 0.85;"><span data-dc-tpl="45" class="spin"></span>Queuing replay…</button>
+          <button data-dc-tpl="46" class="pti-btn">Cancel</button>
+        </div>
+        <div data-dc-tpl="47">
+          <div data-dc-tpl="48" style="display: flex; justify-content: space-between; font-size: 12.5px; margin-bottom: 6px;"><span data-dc-tpl="49" style="font-weight: 500;">Replaying trip updates</span><span data-dc-tpl="50" class="pti-num pti-muted">412K / 1.15M</span></div>
+          <div data-dc-tpl="51" class="pti-progress"><span data-dc-tpl="52" style="width: 36%; background: var(--tone-progress-solid);"></span></div>
+          <div data-dc-tpl="53" style="font-size: 12px; color: var(--muted-foreground); margin-top: 6px;">About 4 min left · you can leave this page</div>
+        </div>
+      </div>
+    </div>
+
+    <div data-dc-tpl="54" class="frame">
+      <div data-dc-tpl="55" class="frame__cap"><b data-dc-tpl="56">Empty</b>· first use, says what will appear</div>
+      <div data-dc-tpl="57" class="pti-card frame__box" style="justify-content: center;">
+        <div data-dc-tpl="58" class="pti-empty">
+          <div data-dc-tpl="59" class="pti-empty__icon"><svg data-dc-tpl="60" class="i i--lg" viewBox="0 0 24 24"><path data-dc-tpl="61" d="M3 13h5l1.5 2.5h5L16 13h5M5.2 5.6 3 13v5a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-5l-2.2-7.4A2 2 0 0 0 16.9 4H7.1a2 2 0 0 0-1.9 1.6z"></path></svg></div>
+          <h3 data-dc-tpl="62">No open dead letters</h3>
+          <p data-dc-tpl="63">Records that fail validation show up here, with a suggested fix.</p>
+          <button data-dc-tpl="64" class="pti-btn pti-btn--sm" style="margin-top: 6px;">View resolved</button>
+        </div>
+      </div>
+    </div>
+
+    <div data-dc-tpl="65" class="frame">
+      <div data-dc-tpl="66" class="frame__cap"><b data-dc-tpl="67">Empty</b>· filters hide everything</div>
+      <div data-dc-tpl="68" class="pti-card frame__box">
+        <div data-dc-tpl="69" style="padding: 12px 16px; display: flex; gap: 6px; border-bottom: 1px solid var(--border);"><span data-dc-tpl="70" class="pti-chip is-active">Route 21</span><span data-dc-tpl="71" class="pti-chip is-active">Severity: High</span><span data-dc-tpl="72" class="pti-chip is-active">Last hour</span></div>
+        <div data-dc-tpl="73" class="pti-empty" style="flex: 1 1 0%; justify-content: center; padding: 20px;">
+          <div data-dc-tpl="74" class="pti-empty__icon"><svg data-dc-tpl="75" class="i i--lg" viewBox="0 0 24 24"><path data-dc-tpl="76" d="M11 3a8 8 0 1 1 0 16 8 8 0 0 1 0-16zM21 21l-4.3-4.3"></path></svg></div>
+          <h3 data-dc-tpl="77">Nothing matches these filters</h3>
+          <p data-dc-tpl="78">Try a wider time range or remove a filter.</p>
+          <button data-dc-tpl="79" class="pti-btn pti-btn--sm" style="margin-top: 6px;">Clear filters</button>
+        </div>
+      </div>
+    </div>
+
+    <div data-dc-tpl="80" class="frame">
+      <div data-dc-tpl="81" class="frame__cap"><b data-dc-tpl="82">Error</b>· keep the last good data</div>
+      <div data-dc-tpl="83" class="pti-card frame__box" style="padding: 14px 16px; gap: 12px;">
+        <div data-dc-tpl="84" class="pti-callout tone-danger" style="align-items: center;">
+          <svg data-dc-tpl="85" class="i" viewBox="0 0 24 24"><path data-dc-tpl="86" d="M12 3a9 9 0 1 1 0 18 9 9 0 0 1 0-18zM12 8v4M12 16h.01"></path></svg>
+          <div data-dc-tpl="87" style="flex: 1 1 0%;">Can’t reach the server. Showing data from 2 min ago.</div>
+          <button data-dc-tpl="88" class="pti-btn pti-btn--sm" style="background: transparent;">Retry</button>
+        </div>
+        <div data-dc-tpl="89" style="opacity: 0.55; display: flex; flex-direction: column;">
+          <div data-dc-tpl="90" style="display: flex; align-items: center; gap: 10px; padding: 9px 0px; border-bottom: 1px solid var(--border);"><span data-dc-tpl="91" class="pti-route" style="background: rgb(227, 162, 26); color: rgb(58, 42, 0);">21</span><span data-dc-tpl="92" style="flex: 1 1 0%; font-size: 13px;">Lake St – Selby Ave</span><span data-dc-tpl="93" class="pti-num" style="font-weight: 600;">64.8%</span></div>
+          <div data-dc-tpl="94" style="display: flex; align-items: center; gap: 10px; padding: 9px 0px; border-bottom: 1px solid var(--border);"><span data-dc-tpl="95" class="pti-route" style="background: rgb(47, 111, 208);">18</span><span data-dc-tpl="96" style="flex: 1 1 0%; font-size: 13px;">Nicollet Ave</span><span data-dc-tpl="97" class="pti-num" style="font-weight: 600;">71.2%</span></div>
+          <div data-dc-tpl="98" style="display: flex; align-items: center; gap: 10px; padding: 9px 0px;"><span data-dc-tpl="99" class="pti-route" style="background: rgb(22, 144, 122);">6</span><span data-dc-tpl="100" style="flex: 1 1 0%; font-size: 13px;">Hennepin Ave – Uptown</span><span data-dc-tpl="101" class="pti-num" style="font-weight: 600;">76.5%</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div data-dc-tpl="102" class="frame">
+      <div data-dc-tpl="103" class="frame__cap"><b data-dc-tpl="104">Error</b>· nothing to show yet</div>
+      <div data-dc-tpl="105" class="pti-card frame__box" style="justify-content: center;">
+        <div data-dc-tpl="106" class="pti-empty">
+          <div data-dc-tpl="107" class="pti-empty__icon" style="color: var(--tone-danger-solid);"><svg data-dc-tpl="108" class="i i--lg" viewBox="0 0 24 24"><path data-dc-tpl="109" d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0zM12 9v4M12 17h.01"></path></svg></div>
+          <h3 data-dc-tpl="110">Couldn’t load the scorecard</h3>
+          <p data-dc-tpl="111">We’ll keep trying. If it persists, share this trace ID with the on-call engineer.</p>
+          <div data-dc-tpl="112" style="display: flex; align-items: center; gap: 8px; margin-top: 6px;"><span data-dc-tpl="113" class="pti-mono" style="font-size: 12px; background: var(--muted); padding: 4px 8px; border-radius: 6px; color: var(--foreground-2);">8f2e9c11</span><button data-dc-tpl="114" class="pti-btn pti-btn--sm">Copy</button><button data-dc-tpl="115" class="pti-btn pti-btn--sm pti-btn--primary">Retry</button></div>
+        </div>
+      </div>
+    </div>
+
+    <div data-dc-tpl="116" class="frame">
+      <div data-dc-tpl="117" class="frame__cap"><b data-dc-tpl="118">No access</b>· explain, then offer a way in</div>
+      <div data-dc-tpl="119" class="pti-card frame__box" style="display: grid; grid-template-columns: repeat(2, minmax(0px, 1fr));">
+        <div data-dc-tpl="120" class="pti-empty" style="justify-content: center; padding: 16px; border-right: 1px solid var(--border);">
+          <div data-dc-tpl="121" class="pti-empty__icon"><svg data-dc-tpl="122" class="i i--lg" viewBox="0 0 24 24"><path data-dc-tpl="123" d="M5 11h14v10H5zM8 11V7a4 4 0 0 1 8 0v4"></path></svg></div>
+          <h3 data-dc-tpl="124" style="font-size: 13.5px;">Sign in to continue</h3>
+          <p data-dc-tpl="125" style="font-size: 12px;">Operations pages need an account.</p>
+          <button data-dc-tpl="126" class="pti-btn pti-btn--sm pti-btn--primary" style="margin-top: 6px;">Sign in</button>
+        </div>
+        <div data-dc-tpl="127" class="pti-empty" style="justify-content: center; padding: 16px;">
+          <div data-dc-tpl="128" class="pti-empty__icon"><svg data-dc-tpl="129" class="i i--lg" viewBox="0 0 24 24"><path data-dc-tpl="130" d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6z"></path></svg></div>
+          <h3 data-dc-tpl="131" style="font-size: 13.5px;">Operator role needed</h3>
+          <p data-dc-tpl="132" style="font-size: 12px;">You can view this page but not change it.</p>
+          <button data-dc-tpl="133" class="pti-btn pti-btn--sm" style="margin-top: 6px;">Request access</button>
+        </div>
+      </div>
+    </div>
+
+    <div data-dc-tpl="134" class="frame">
+      <div data-dc-tpl="135" class="frame__cap"><b data-dc-tpl="136">Freshness</b>· every live number says how old it is</div>
+      <div data-dc-tpl="137" class="pti-card frame__box" style="padding: 16px; gap: 10px;">
+        <div data-dc-tpl="138" style="display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; border: 1px solid var(--border); border-radius: 10px;"><span data-dc-tpl="139" class="pti-live">Live</span><span data-dc-tpl="140" class="pti-num pti-muted" style="font-size: 12.5px;">updated 3s ago</span></div>
+        <div data-dc-tpl="141" style="display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; border: 1px solid var(--border); border-radius: 10px;"><span data-dc-tpl="142" class="pti-freshness"><span data-dc-tpl="143" class="pti-realtime-dot is-reconnecting"></span>Reconnecting…</span><span data-dc-tpl="144" class="pti-num pti-muted" style="font-size: 12.5px;">attempt 2</span></div>
+        <div data-dc-tpl="145" style="display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; border: 1px solid var(--border); border-radius: 10px;"><span data-dc-tpl="146" class="pti-freshness"><span data-dc-tpl="147" class="pti-realtime-dot is-polling"></span>Polling</span><span data-dc-tpl="148" class="pti-num pti-muted" style="font-size: 12.5px;">every 30 s</span></div>
+        <div data-dc-tpl="149" style="display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; border: 1px solid var(--tone-warning-border); background: var(--tone-warning-bg); border-radius: 10px;"><span data-dc-tpl="150" class="pti-live is-stale">Stale</span><span data-dc-tpl="151" class="pti-num" style="font-size: 12.5px; color: var(--tone-warning-fg);">last update 4 min ago</span></div>
+      </div>
+    </div>
+
+    <div data-dc-tpl="152" class="frame">
+      <div data-dc-tpl="153" class="frame__cap"><b data-dc-tpl="154">Feedback</b>· toasts confirm, never block</div>
+      <div data-dc-tpl="155" class="frame__box" style="gap: 10px; justify-content: center; align-items: flex-start; padding: 4px 0px;">
+        <div data-dc-tpl="156" class="pti-toast pti-toast--success" style="width: 100%;">
+          <svg data-dc-tpl="157" class="i" viewBox="0 0 24 24"><path data-dc-tpl="158" d="M12 3a9 9 0 1 1 0 18 9 9 0 0 1 0-18zM8 12l3 3 5-6"></path></svg>
+          <div data-dc-tpl="159" style="flex: 1 1 0%;"><div data-dc-tpl="160" style="font-weight: 600;">Replay queued</div><div data-dc-tpl="161" style="color: var(--muted-foreground); margin-top: 2px;">Run #4133 starts after #4130.</div></div>
+          <a data-dc-tpl="162" class="pti-link" href="OpsPipeline.dc.html" style="font-size: 12.5px;">View</a>
+        </div>
+        <div data-dc-tpl="163" class="pti-toast pti-toast--danger" style="width: 100%;">
+          <svg data-dc-tpl="164" class="i" viewBox="0 0 24 24"><path data-dc-tpl="165" d="M12 3a9 9 0 1 1 0 18 9 9 0 0 1 0-18zM15 9l-6 6M9 9l6 6"></path></svg>
+          <div data-dc-tpl="166" style="flex: 1 1 0%;"><div data-dc-tpl="167" style="font-weight: 600;">Couldn’t discard record</div><div data-dc-tpl="168" style="color: var(--muted-foreground); margin-top: 2px;">The record changed since you opened it.</div></div>
+          <button data-dc-tpl="169" class="pti-btn pti-btn--sm">Reload</button>
+        </div>
+        <div data-dc-tpl="170" class="pti-toast" style="width: 100%;">
+          <svg data-dc-tpl="171" class="i" viewBox="0 0 24 24" style="color: var(--muted-foreground);"><path data-dc-tpl="172" d="M3 5h18v11H3zM8 20h8M12 16v4"></path></svg>
+          <div data-dc-tpl="173" style="flex: 1 1 0%; color: var(--foreground-2);">The ops console is built for screens at least 1280 px wide.</div>
+        </div>
+      </div>
+    </div>
+  </div></div></div></div>
+
+
+
+</body></html>

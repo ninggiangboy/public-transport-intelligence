@@ -24,7 +24,7 @@ Quy tắc viết:
 
 ## 2. Mẫu trạng thái
 
-Mọi màn hình chỉ dùng các mẫu dưới đây, không tự tạo biến thể riêng. Hình ảnh tham chiếu là bảng "Shared states" của prototype (DR-88): loading, đang xử lý, rỗng (lần đầu và do bộ lọc), lỗi (còn dữ liệu cũ và chưa có gì), không có quyền, độ tươi, toast.
+Mọi màn hình chỉ dùng các mẫu dưới đây, không tự tạo biến thể riêng. Hình ảnh tham chiếu là bảng "Shared states" của prototype (DR-88): loading, đang xử lý, rỗng (lần đầu và do bộ lọc), lỗi (còn dữ liệu cũ và chưa có gì), không có quyền, độ tươi, toast. Prototype: [Shared states](assets/ui-states-and-copy.html).
 
 ### 2.1 Loading
 

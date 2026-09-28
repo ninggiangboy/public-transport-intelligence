@@ -29,6 +29,8 @@
 
 ## 3. Wireframe
 
+Prototype (DR-88): [Alerts](assets/alert-feed.html).
+
 Desktop (≥ 1024 px), bố cục danh sách + khung chi tiết (`SplitView`, DOC-34 P-11):
 
 ```text
