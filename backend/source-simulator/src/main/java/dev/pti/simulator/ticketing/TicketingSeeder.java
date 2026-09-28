@@ -2,6 +2,7 @@ package dev.pti.simulator.ticketing;
 
 import com.github.f4b6a3.uuid.UuidCreator;
 import dev.pti.common.time.BusinessClock;
+import dev.pti.simulator.Throughput;
 import dev.pti.simulator.motion.Seeds;
 import dev.pti.simulator.rate.RateControl;
 import io.micrometer.core.instrument.Counter;
@@ -30,6 +31,9 @@ public final class TicketingSeeder {
 
     private static final long WARN_EVERY_MILLIS = 10_000;
 
+    /** The {@link Throughput} key of inserted sales. */
+    public static final String SALES = "sales";
+
     private final BusinessClock clock;
     private final SaleGenerator generator;
     private final SalePointCatalog catalog;
@@ -37,6 +41,7 @@ public final class TicketingSeeder {
     private final RateControl rate;
     private final TicketingSettings settings;
     private final MeterRegistry registry;
+    private final Throughput throughput;
     private final SplittableRandom rng;
     private final PriorityQueue<FollowUp> followUps =
             new PriorityQueue<>(Comparator.comparingLong(FollowUp::dueMillis));
@@ -53,7 +58,8 @@ public final class TicketingSeeder {
             RateControl rate,
             TicketingSettings settings,
             long seed,
-            MeterRegistry registry) {
+            MeterRegistry registry,
+            Throughput throughput) {
         this.clock = clock;
         this.generator = generator;
         this.catalog = catalog;
@@ -61,6 +67,7 @@ public final class TicketingSeeder {
         this.rate = rate;
         this.settings = settings;
         this.registry = registry;
+        this.throughput = throughput;
         this.rng = new SplittableRandom(Seeds.of(seed, "ticketing"));
         this.errors = Counter.builder("pti.sim.ticketing.errors").register(registry);
     }
@@ -109,6 +116,7 @@ public final class TicketingSeeder {
             Transaction sale = generator.sale(rng, Instant.ofEpochMilli(t));
             repository.insert(sale);
             counter("SALE", "insert").increment();
+            throughput.record(SALES);
             scheduleFollowUp(sale, t);
         }
     }

@@ -256,7 +256,7 @@ public record LedgerEntry(
 - `KafkaMessageSink` dùng `KafkaTemplate<String, String>` với cấu hình producer ở DOC-09 §1.2, thêm `max.block.ms=1000` để vòng phát không bị treo lâu khi Kafka chậm, và `delivery.timeout.ms=120000`.
 - Key là `route_id`. Header `schema_version`, `entity_type`; `traceparent` do observation của Spring Kafka thêm (DR-50).
 - `payload_hash` tính bằng `PayloadHasher` của `common` (DOC-09 §9) trên message **đã qua** các interceptor (§7.1), để khớp với hash ETL tính được. `malformed_json` thì hash là NULL.
-- Callback thành công → `LedgerWriter.enqueue(entry, partition, offset)`. Callback lỗi → tăng `pti_sim_send_errors_total`, log WARN có lấy mẫu (tối đa 1 dòng mỗi 10 giây), **không ghi ledger**.
+- Callback thành công → `Ledger.record(entry, topic, partition, offset)` (cài đặt là `LedgerWriter`). Callback lỗi → tăng `pti_sim_send_errors_total`, log WARN có lấy mẫu (tối đa 1 dòng mỗi 10 giây), **không ghi ledger**.
 
 `LedgerWriter`:
 
@@ -546,7 +546,9 @@ X-Requested-By: experiment:EXP-03/20261002T101500Z-r07
 }
 ```
 
-`businessNow` là giờ nghiệp vụ; `lastFlushAt` là giờ thật (§3.1).
+`businessNow` là giờ nghiệp vụ; `lastFlushAt` là giờ thật (§3.1). `messagesPerSecond` (message đã được broker ack, theo topic) và `ticketingPerSecond` (giao dịch bán đã ghi) là trung bình trên 10 giây thật gần nhất, không tính giây hiện tại; số chính xác xem ở Prometheus (§12).
+
+Lỗi `invalid-param` có `title` "Invalid parameter" và `errors[]` theo trường khi lỗi nằm ở một khóa cụ thể, ví dụ `PUT /sim/rate` với `{"gtfsRt": 25}` → `"errors": [{"field": "gtfsRt", "message": "must be 0 or between 0.1 and 20"}]`. Body rỗng, `{}` hoặc JSON sai kiểu → 400 `invalid-param` với `errors` rỗng. `traceId` chỉ có khi bật tracing (`PTI_TRACING_ENABLED`).
 
 ## 9. TicketingSeeder
 

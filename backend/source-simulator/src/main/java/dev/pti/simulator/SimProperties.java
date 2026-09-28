@@ -35,6 +35,7 @@ public record SimProperties(
         @NotNull @Valid Delay delay,
         @NotNull @Valid RouteFactor routeFactor,
         @NotNull @Valid RateMultiplier rateMultiplier,
+        @NotNull @Valid LedgerSettings ledger,
         @NotNull @Valid TicketingSettings ticketing) {
 
     /** @param sha256 empty to skip the check */
@@ -79,6 +80,13 @@ public record SimProperties(
             return RateControl.allowed(gtfsRt) && RateControl.allowed(ticketing);
         }
     }
+
+    /** {@code pti.sim.ledger.*} (DOC-25 §6.4, DR-28). */
+    public record LedgerSettings(
+            @Min(1) int queueCapacity,
+            @Min(1) int batchSize,
+            @NotNull Duration flushInterval,
+            @NotNull Duration retention) {}
 
     public DelayParameters delayParameters() {
         return new DelayParameters(

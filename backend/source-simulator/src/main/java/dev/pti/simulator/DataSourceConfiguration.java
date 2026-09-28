@@ -34,4 +34,24 @@ public class DataSourceConfiguration {
     JdbcTemplate ticketingJdbcTemplate(@Qualifier("ticketingDataSource") HikariDataSource dataSource) {
         return new JdbcTemplate(dataSource);
     }
+
+    @Bean
+    @ConfigurationProperties("pti.datasource.sim")
+    DataSourceProperties simDataSourceProperties() {
+        return new DataSourceProperties();
+    }
+
+    @Bean
+    @ConfigurationProperties("pti.datasource.sim.hikari")
+    HikariDataSource simDataSource(@Qualifier("simDataSourceProperties") DataSourceProperties properties) {
+        return properties
+                .initializeDataSourceBuilder()
+                .type(HikariDataSource.class)
+                .build();
+    }
+
+    @Bean
+    JdbcTemplate simJdbcTemplate(@Qualifier("simDataSource") HikariDataSource dataSource) {
+        return new JdbcTemplate(dataSource);
+    }
 }

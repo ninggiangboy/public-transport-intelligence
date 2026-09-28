@@ -2,6 +2,7 @@ package dev.pti.simulator.ticketing;
 
 import dev.pti.common.time.BusinessClock;
 import dev.pti.simulator.SimProperties;
+import dev.pti.simulator.Throughput;
 import dev.pti.simulator.TickLoop;
 import dev.pti.simulator.feed.Feed;
 import dev.pti.simulator.feed.ServiceDateMapper;
@@ -33,7 +34,8 @@ public class TicketingConfiguration {
             @Qualifier("ticketingJdbcTemplate") JdbcTemplate jdbc,
             RateControl rate,
             SimProperties properties,
-            MeterRegistry registry) {
+            MeterRegistry registry,
+            Throughput throughput) {
         SaleGenerator generator = new SaleGenerator(catalog, properties.ticketing(), feed.zone(), properties.seed());
         return new TicketingSeeder(
                 clock,
@@ -43,7 +45,8 @@ public class TicketingConfiguration {
                 rate,
                 properties.ticketing(),
                 properties.seed(),
-                registry);
+                registry,
+                throughput);
     }
 
     @Bean

@@ -1,6 +1,7 @@
 package dev.pti.simulator.emit;
 
 import dev.pti.common.time.BusinessClock;
+import dev.pti.simulator.Throughput;
 import dev.pti.simulator.ledger.Ledger;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -33,16 +34,22 @@ public final class KafkaMessageSink implements MessageSink {
     private final Ledger ledger;
     private final BusinessClock clock;
     private final MeterRegistry registry;
+    private final Throughput throughput;
     private final ConcurrentMap<String, Counter> counters = new ConcurrentHashMap<>();
     private final AtomicLong lastWarning = new AtomicLong(Long.MIN_VALUE);
     private volatile long failFastUntil = Long.MIN_VALUE;
 
     public KafkaMessageSink(
-            KafkaTemplate<String, String> template, Ledger ledger, BusinessClock clock, MeterRegistry registry) {
+            KafkaTemplate<String, String> template,
+            Ledger ledger,
+            BusinessClock clock,
+            MeterRegistry registry,
+            Throughput throughput) {
         this.template = template;
         this.ledger = ledger;
         this.clock = clock;
         this.registry = registry;
+        this.throughput = throughput;
     }
 
     @Override
@@ -77,8 +84,10 @@ public final class KafkaMessageSink implements MessageSink {
     private void acknowledged(OutboundMessage message, SendResult<String, String> result) {
         ledger.record(
                 message.ledger(),
+                message.topic(),
                 result.getRecordMetadata().partition(),
                 result.getRecordMetadata().offset());
+        throughput.record(message.topic());
         counter(
                         "pti.sim.messages.sent",
                         "topic",

@@ -9,8 +9,8 @@ import dev.pti.simulator.feed.Feed;
 import dev.pti.simulator.feed.FeedLoader;
 import dev.pti.simulator.feed.ServiceDateMapper;
 import dev.pti.simulator.feed.ServiceDays;
-import dev.pti.simulator.ledger.DiscardingLedger;
 import dev.pti.simulator.ledger.Ledger;
+import dev.pti.simulator.ledger.LedgerWriter;
 import dev.pti.simulator.motion.DelayModel;
 import dev.pti.simulator.motion.Fleet;
 import dev.pti.simulator.rate.RateControl;
@@ -18,9 +18,11 @@ import io.micrometer.core.instrument.MeterRegistry;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.time.Duration;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.kafka.core.KafkaTemplate;
 
 /** Wires the GTFS-realtime side of the simulator (DOC-25 §4–§6). */
@@ -74,14 +76,35 @@ public class SimulatorConfiguration {
     }
 
     @Bean
-    Ledger ledger() {
-        return new DiscardingLedger();
+    LedgerWriter ledger(
+            @Qualifier("simJdbcTemplate") JdbcTemplate jdbc,
+            BusinessClock clock,
+            SimProperties properties,
+            MeterRegistry registry) {
+        SimProperties.LedgerSettings settings = properties.ledger();
+        return new LedgerWriter(
+                jdbc,
+                clock,
+                settings.queueCapacity(),
+                settings.batchSize(),
+                settings.flushInterval(),
+                settings.retention(),
+                registry);
+    }
+
+    @Bean
+    Throughput throughput(BusinessClock clock) {
+        return new Throughput(() -> clock.realNow().toEpochMilli());
     }
 
     @Bean
     KafkaMessageSink kafkaMessageSink(
-            KafkaTemplate<String, String> template, Ledger ledger, BusinessClock clock, MeterRegistry registry) {
-        return new KafkaMessageSink(template, ledger, clock, registry);
+            KafkaTemplate<String, String> template,
+            Ledger ledger,
+            BusinessClock clock,
+            MeterRegistry registry,
+            Throughput throughput) {
+        return new KafkaMessageSink(template, ledger, clock, registry, throughput);
     }
 
     @Bean

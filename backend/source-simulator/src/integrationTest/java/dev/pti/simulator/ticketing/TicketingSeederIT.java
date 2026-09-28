@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.zaxxer.hikari.HikariDataSource;
 import dev.pti.db.MigratedDatabases;
+import dev.pti.simulator.Throughput;
 import dev.pti.simulator.feed.Feeds;
 import dev.pti.simulator.rate.RateControl;
 import dev.pti.testing.TestClock;
@@ -55,7 +56,8 @@ class TicketingSeederIT {
                 new RateControl(1.0, 10.0),
                 settings,
                 42,
-                registry);
+                registry,
+                new Throughput(() -> clock.realNow().toEpochMilli()));
 
         Instant start = clock.instant();
         seeder.tickUntil(clock.millis());

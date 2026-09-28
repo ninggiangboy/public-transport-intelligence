@@ -34,6 +34,11 @@ public final class ServiceDays {
         return feed;
     }
 
+    /** The feed date whose timetable runs on {@code realDate}, if any (DOC-25 §3.2). */
+    public Optional<LocalDate> feedDateFor(LocalDate realDate) {
+        return mapper.feedDateFor(realDate);
+    }
+
     public Optional<ServiceDay> day(LocalDate serviceDate) {
         return days.computeIfAbsent(serviceDate, this::build);
     }

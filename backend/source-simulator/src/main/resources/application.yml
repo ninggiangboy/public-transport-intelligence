@@ -4,6 +4,9 @@ spring:
     name: source-simulator
   main:
     banner-mode: off
+  mvc:
+    problemdetails:
+      enabled: true
   threads:
     virtual:
       enabled: false
@@ -59,6 +62,15 @@ pti:
       hikari:
         pool-name: ticketing
         maximum-pool-size: 4
+    sim:
+      url: jdbc:postgresql://localhost:5432/pti_sim
+      username: source_simulator
+      password: ${SOURCE_SIMULATOR_PASSWORD:}
+      hikari:
+        pool-name: sim
+        maximum-pool-size: 4
+        data-source-properties:
+          reWriteBatchedInserts: true
   sim:
     seed: 42
     service-date-mapping: auto
@@ -102,6 +114,11 @@ pti:
     rate-multiplier:
       gtfs-rt: 1.0
       ticketing: 1.0
+    ledger:
+      queue-capacity: 50000
+      batch-size: 500
+      flush-interval: 200ms
+      retention: 2d
     ticketing:
       fare:
         single: 2.00
