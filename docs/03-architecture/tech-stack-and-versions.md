@@ -1,6 +1,6 @@
 # Công nghệ và phiên bản
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-26 · DOC-11
+> Trạng thái: **Review** · Cập nhật: 2026-09-28 · DOC-11
 > Phụ thuộc: [DR-53](../00-decision-register.md), DR-36, DR-46, DR-50, DR-52, DR-54, DR-56, [ADR-0029](../04-adr/0029-spring-boot-4-java-25.md)
 
 ## 0. Chính sách phiên bản
@@ -16,25 +16,26 @@
 4. Dependabot (có sẵn trên GitHub) mở PR mỗi tuần, gom nhóm theo hệ sinh thái. Mỗi phase rà bản patch một lần (DR-53).
 5. Cột **Trạng thái** ở các bảng dưới:
    - ✅: đã xác minh khi viết tài liệu.
-   - 🔬: dòng phiên bản đã chốt, **số patch cụ thể và tính tương thích được điền ở S-06 (P0-07)**, trước khi mở P1.
+   - 🔬: dòng phiên bản đã chốt, số patch và tính tương thích xác minh sau (spike hoặc phase ghi trong ô).
+   - Thư viện Java đã được S-06 (2026-09-28) xác minh bằng app mẫu `spikes/s06-boot41-java25/` (20 test trên Postgres 17.11 và 18.1, Kafka 4.2.1, SeaweedFS 4.47). Số phiên bản ghi trong bảng là bản đã chạy thử; P1-02 chép vào `gradle/libs.versions.toml`.
 
 ## 1. Nền tảng Java
 
 | Thành phần | Phiên bản | Ghi chú | Trạng thái |
 | --- | --- | --- | --- |
 | JDK | **Temurin 25 LTS** (25.0.4 lúc viết; image `eclipse-temurin:25-jre`) | Toolchain Gradle `languageVersion = 25`. Bật `-XX:+UseCompactObjectHeaders` (JEP 519) | ✅ (S-03: app Spring Boot 4.1.1 chạy được với cờ này) |
-| Gradle | **9.7.1** (wrapper mà start.spring.io sinh cho Boot 4.1.1) | Kotlin DSL, configuration cache bật | ✅ (S-03: build chạy trên JDK 25) |
+| Gradle | **9.8.0** | Kotlin DSL, configuration cache bật | ✅ (S-06) |
 | Spring Boot | **4.1.x** (4.1.1 lúc viết) | BOM quản lý các dòng dưới | ✅ (DR-53) |
-| Spring Framework | 7.x (theo BOM) | Có sẵn `@Retryable`, `@ConcurrencyLimit` (`@EnableResilientMethods`), core retry | ✅ |
-| Spring Batch | 6.x (theo BOM) | JobRepository JDBC, `JobOperator` (DR-62) | 🔬 |
-| Spring Kafka | 4.x (theo BOM), Kafka client 4.x | Batch listener, `DefaultErrorHandler`, `ContainerPausingBackOffHandler` | 🔬 |
+| Spring Framework | 7.0.9 (theo BOM của Boot 4.1.1) | Có sẵn `@Retryable`, `@ConcurrencyLimit` (`@EnableResilientMethods`), core retry | ✅ (S-06) |
+| Spring Batch | 6.0.5 (theo BOM) | JobRepository JDBC qua `spring-boot-starter-batch-jdbc`, `JobOperator` (DR-62). **Chunk step fault-tolerant dùng builder cũ `chunk(size, tx).faultTolerant()`**, không dùng `ChunkOrientedStep` mới (DR-80, DOC-19 §5). Builder cũ dựa trên Spring Retry 2.0.x (`org.springframework.retry`, kéo theo từ spring-batch-core) | ✅ (S-06) |
+| Spring Kafka | 4.1.1 (theo BOM), Kafka client 4.2.1 | Batch listener, `DefaultErrorHandler(null, backOff, new ContainerPausingBackOffHandler(new ListenerContainerPauseService(registry, scheduler)))` | ✅ (S-06: listener lỗi tạm thời, container pause rồi nhận lại) |
 | Spring Security | 7.x (theo BOM) | Resource server JWT | ✅ |
-| Jackson | **3.x** (theo BOM) | Package mới `tools.jackson.*` (§6) | ✅ |
+| Jackson | **3.1.5** (theo BOM) | Package mới `tools.jackson.*` (§6) | ✅ (S-06) |
 | Hibernate Validator | theo BOM | Jakarta Validation 3.1 (Jakarta EE 11) | ✅ |
-| Micrometer, Micrometer Tracing (bridge OTel), OTLP exporter | theo BOM | Không dùng OTel Java agent (DR-50) | ✅ |
-| Flyway (core + `flyway-database-postgresql`) | theo BOM | Chạy trong `db-migrate` | ✅ |
-| PostgreSQL JDBC, HikariCP, Caffeine | theo BOM | `prepareThreshold=0` khi đi qua PgBouncer (DR-24) | ✅ |
-| Testcontainers (postgresql, kafka, toxiproxy; SeaweedFS dùng `GenericContainer` vì không có module riêng) | theo BOM | Package có thay đổi ở bản 2.x (§6) | 🔬 |
+| Micrometer 1.17.1, Micrometer Tracing 1.7.1 (bridge OTel), OpenTelemetry 1.62.0 | theo BOM, qua `spring-boot-starter-opentelemetry`; `/actuator/prometheus` cần thêm `io.micrometer:micrometer-registry-prometheus` | Không dùng OTel Java agent (DR-50) | ✅ (S-06: `OtelTracer`) |
+| Flyway 12.4.0 (`spring-boot-starter-flyway` + `flyway-database-postgresql`) | theo BOM | Chạy trong `db-migrate` | ✅ (S-06) |
+| PostgreSQL JDBC 42.7.13, HikariCP, Caffeine | theo BOM | `prepareThreshold=0` khi đi qua PgBouncer (DR-24) | ✅ |
+| Testcontainers 2.0.5 (`testcontainers-postgresql`, `testcontainers-kafka`, `testcontainers-toxiproxy`, `testcontainers-junit-jupiter`; SeaweedFS dùng `GenericContainer` vì không có module riêng) | theo BOM | Package mới (§6). Với OrbStack, đặt `DOCKER_HOST=unix://$HOME/.orbstack/run/docker.sock` và `TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE=/var/run/docker.sock` (DOC-38 §2) | ✅ (S-06) |
 | JUnit Jupiter, AssertJ, Mockito, Awaitility | theo BOM | | ✅ |
 
 ### 1.1 Thư viện ngoài BOM (pin trong version catalog)
@@ -42,30 +43,30 @@
 | Thư viện | Dòng phiên bản | Dùng ở | License | Trạng thái |
 | --- | --- | --- | --- | --- |
 | `org.springaicommunity:typesafe-java-sdk` | 0.2.x | triage-worker (DR-36) | Apache-2.0 | ✅ (0.2.0) |
-| ShedLock (`shedlock-spring`, `shedlock-provider-jdbc-template`) | bản mới nhất hỗ trợ Spring 7 | etl-batch, triage-worker | Apache-2.0 | 🔬 |
-| Spring Cloud AWS (`spring-cloud-aws-starter-s3`) | bản hỗ trợ Boot 4 | etl-batch (đọc raw zone) | Apache-2.0 | 🔬; nếu chưa có thì dùng AWS SDK v2 S3 client trực tiếp |
-| Resilience4j (`circuitbreaker`, `bulkhead`, `ratelimiter`, `micrometer`) | 2.x, **module core** | triage-worker, etl (circuit breaker DB) | Apache-2.0 | 🔬; nếu starter chưa hỗ trợ Boot 4 thì cấu hình bean thủ công |
-| springdoc-openapi (`starter-webmvc-api`) | bản hỗ trợ Boot 4 | api | Apache-2.0 | 🔬 |
-| Bucket4j (`bucket4j_jdk17-core`) | 8.x | api (DR-45) | Apache-2.0 | 🔬 |
-| `com.networknt:json-schema-validator` | bản hỗ trợ draft 2020-12 | common (contract, DQ-01 lúc chạy), api (validate payload DLQ) | Apache-2.0 | 🔬 |
-| `io.github.erdtman:java-json-canonicalization` | 1.x | common (payload hash, RFC 8785) | Apache-2.0 | 🔬 |
-| `com.github.f4b6a3:uuid-creator` | 6.x | common (UUIDv7, UUIDv5) | MIT | 🔬 |
-| `com.github.f4b6a3:ulid-creator` | 5.x | publisher sự kiện UI | MIT | 🔬 |
-| `net.ttddyy.observation:datasource-micrometer-spring-boot` | bản hỗ trợ Boot 4 | span JDBC loại `QUERY` cho etl, api (DOC-28 §5.3); chưa có bản hỗ trợ thì bỏ span JDBC | Apache-2.0 | 🔬 |
-| ArchUnit | 1.x | test ranh giới module (DOC-44 §3.3) | Apache-2.0 | 🔬 |
-| MockWebServer (`com.squareup.okhttp3:mockwebserver3`) | 5.x | test: giả Jev và Alertmanager (DOC-44 §3.2) | Apache-2.0 | 🔬 |
+| ShedLock (`shedlock-spring`, `shedlock-provider-jdbc-template`) | 7.10.1 | etl-batch, triage-worker | Apache-2.0 | ✅ (S-06, `usingDbTime()`) |
+| Spring Cloud AWS (`spring-cloud-aws-starter-s3`, BOM `spring-cloud-aws-dependencies`) | 4.1.1 | etl-batch (đọc raw zone) | Apache-2.0 | ✅ (S-06: `S3Template` với SeaweedFS, path-style; cần `spring.cloud.aws.region.static`) |
+| Resilience4j (`resilience4j-spring-boot4`, `resilience4j-micrometer`) | 2.4.0 | triage-worker, etl (circuit breaker DB) | Apache-2.0 | ✅ (S-06: đã có starter cho Boot 4; metric `resilience4j_circuitbreaker_state`) |
+| springdoc-openapi (`springdoc-openapi-starter-webmvc-api`) | 3.1.1 | api | Apache-2.0 | ✅ (S-06: sinh OpenAPI 3.1.0) |
+| Bucket4j (`bucket4j_jdk17-core`) | 8.20.0 | api (DR-45) | Apache-2.0 | ✅ (S-06) |
+| `com.networknt:json-schema-validator` | 3.0.7 (dùng Jackson 3; API mới `SchemaRegistry.withDefaultDialect(SpecificationVersion.DRAFT_2020_12).getSchema(…)`, `Schema.validate(JsonNode)` trả `List<Error>`) | common (contract, DQ-01 lúc chạy), api (validate payload DLQ) | Apache-2.0 | ✅ (S-06) |
+| `io.github.erdtman:java-json-canonicalization` | 1.1 | common (payload hash, RFC 8785) | Apache-2.0 | ✅ (S-06) |
+| `com.github.f4b6a3:uuid-creator` | 6.1.1 | common (UUIDv7, UUIDv5) | MIT | ✅ (S-06) |
+| `com.github.f4b6a3:ulid-creator` | 5.2.4 | publisher sự kiện UI | MIT | ✅ (S-06) |
+| `net.ttddyy.observation:datasource-micrometer-spring-boot` | 2.3.0 | span JDBC loại `QUERY` cho etl, api (DOC-28 §5.3) | Apache-2.0 | ✅ (S-06: DataSource được bọc proxy) |
+| ArchUnit (`archunit-junit5`) | 1.5.1 | test ranh giới module (DOC-44 §3.3) | Apache-2.0 | ✅ (S-06: đọc được bytecode Java 25) |
+| MockWebServer (`com.squareup.okhttp3:mockwebserver3`) | 5.5.0 (package `mockwebserver3`, `MockResponse.Builder`) | test: giả Jev và Alertmanager (DOC-44 §3.2) | Apache-2.0 | ✅ (S-06) |
 
 ### 1.2 Gradle plugin
 
 | Plugin | Mục đích | Trạng thái |
 | --- | --- | --- |
 | `org.springframework.boot`, `io.spring.dependency-management` hoặc `platform(bom)` | BOM | ✅ |
-| `com.diffplug.spotless` (palantir-java-format) | Format | 🔬 |
-| `checkstyle`, `com.github.spotbugs` | Lint, bug pattern | 🔬 |
-| `jacoco` | Coverage gate (NFR-13) | ✅ |
-| `com.google.cloud.tools.jib` | Build image (DR-56) | 🔬 (Java 25 base image) |
-| `org.owasp.dependencycheck` | Quét CVE (CI main) | 🔬 |
-| `org.openapi.generator` *không dùng*; OpenAPI xuất bằng `springdoc-openapi-gradle-plugin` | `openapi.json` (DR-44) | 🔬 |
+| `com.diffplug.spotless` 8.10.3 (palantir-java-format) | Format | ✅ (S-06) |
+| `checkstyle` (tool 14.3.0), `com.github.spotbugs` 6.5.12 (SpotBugs 4.10.4) | Lint, bug pattern. SpotBugs báo `EI_EXPOSE_REP`/`EI_EXPOSE_REP2` ở mọi bean nhận dependency qua constructor, nên `config/spotbugs/exclude.xml` loại hai pattern này | ✅ (S-06: chạy trên bytecode Java 25) |
+| `jacoco` (tool 0.8.15) | Coverage gate (NFR-13) | ✅ (S-06: đọc được bytecode Java 25) |
+| `com.google.cloud.tools.jib` 3.5.4 | Build image (DR-56), base `eclipse-temurin:25-jre`. `jibDockerBuild` chỉ nạp một platform vào Docker cục bộ: mặc định theo máy (`linux/arm64` trên máy dev); CI đẩy cả `linux/amd64,linux/arm64` bằng `jib` (DOC-41 §5). Image amd64 chạy giả lập trên Mac khởi động chậm gấp 4 lần (10,6 s so với 2,7 s) | ✅ (S-06) |
+| `org.owasp.dependencycheck` 13.0.0 | Quét CVE (CI main) | 🔬 (áp dụng được; lần chạy đầy đủ cần `NVD_API_KEY`, kiểm ở P1-03) |
+| `org.openapi.generator` *không dùng*; OpenAPI xuất bằng `org.springdoc.openapi-gradle-plugin` 1.9.0 | `openapi.json` (DR-44) | 🔬 (kiểm ở P4 khi có module `api`) |
 
 ## 2. Hạ tầng
 
@@ -155,15 +156,16 @@ Người triển khai **không làm theo tài liệu hay ví dụ của Boot 3**
 | Chủ đề | Boot 3 | Boot 4.1 (dự án dùng) | Trạng thái |
 | --- | --- | --- | --- |
 | Jackson | `com.fasterxml.jackson.databind.ObjectMapper` | Jackson 3: group `tools.jackson.core`, package `tools.jackson.databind`; ưu tiên `JsonMapper.builder()` (bất biến). Annotation vẫn ở `com.fasterxml.jackson.annotation` | ✅ |
-| Cấu hình Jackson | `Jackson2ObjectMapperBuilderCustomizer` | Customizer cho `JsonMapper.Builder` của Boot 4 | 🔬 |
+| Cấu hình Jackson | `Jackson2ObjectMapperBuilderCustomizer` | `org.springframework.boot.jackson.autoconfigure.JsonMapperBuilderCustomizer` | ✅ (S-06) |
 | Mock trong test | `@MockBean`, `@SpyBean` | `@MockitoBean`, `@MockitoSpyBean` (bản cũ đã bị xóa) | ✅ |
-| Retry | Spring Retry (`spring-retry`) | Core retry trong Spring Framework 7 (`RetryTemplate` mới, `@Retryable` + `@EnableResilientMethods`). Spring Batch 6 dựa trên core retry (DR-53 mục 0a) | 🔬 |
-| Chạy job | `JobLauncher.run` | `JobOperator` (DR-62) | 🔬 |
-| JobRepository | JDBC mặc định khi có DataSource | Cần bật JDBC tường minh (starter hoặc annotation riêng) để không rơi vào bản resourceless | 🔬 |
-| Starter | `spring-boot-starter-web` | Autoconfigure tách module theo công nghệ; tên starter cho Spring MVC, Batch JDBC và test starter theo module cần kiểm tra | 🔬 |
+| Retry | Spring Retry (`spring-retry`) | Code của dự án dùng core retry của Spring Framework 7 (`RetryTemplate` mới, `@Retryable` + `@EnableResilientMethods`). **Ngoại lệ:** retry trong chunk step dùng builder cũ của Spring Batch 6, nhận `org.springframework.retry.RetryPolicy`/`BackOffPolicy` của Spring Retry 2.0.x (DR-80) | ✅ (S-06) |
+| Chạy job | `JobLauncher.run` | `JobOperator.start(Job, JobParameters)`. `JobOperator.restart(JobExecution)` tìm job trong `JobRegistry`, nên mọi job phải là bean đã đăng ký; job chưa đăng ký cho lỗi gây hiểu nhầm "job execution already running". Execution kẹt ở `STARTED`: `JobOperator.recover(JobExecution)` (DOC-19 §7.2) | ✅ (S-06) |
+| JobRepository | JDBC mặc định khi có DataSource | `spring-boot-starter-batch-jdbc` (starter `spring-boot-starter-batch` cho bản resourceless). `spring.batch.jdbc.table-prefix=batch.BATCH_`, `initialize-schema=never`. Bean `JacksonExecutionContextStringSerializer` được dùng tự động (context lưu dạng JSON) | ✅ (S-06) |
+| Starter | `spring-boot-starter-web` | `spring-boot-starter-webmvc`, `-batch-jdbc`, `-kafka`, `-flyway`, `-opentelemetry`, `-security-oauth2-resource-server`, `-restclient`; test: `spring-boot-starter-test`, `-batch-jdbc-test`, `spring-boot-testcontainers` | ✅ (S-06) |
 | Null-safety | Annotation của Spring | JSpecify (`@Nullable`, `@NullMarked`) | ✅ |
 | Log có cấu trúc | Logback encoder ngoài | `logging.structured.format.console=ecs` (có sẵn từ 3.4) | ✅ |
-| Testcontainers | 1.x, `org.testcontainers.containers.*` | 2.x: package và tên artifact theo module thay đổi | 🔬 |
+| Spring Batch package | `org.springframework.batch.item.*`, `org.springframework.batch.core.*` phẳng | Batch 6: `org.springframework.batch.infrastructure.item.*`; `org.springframework.batch.core.job.*`, `.step.*`, `.launch.*`, `.listener.*` | ✅ (S-06) |
+| Testcontainers | 1.x, `org.testcontainers.containers.*` | 2.x: artifact `testcontainers-<module>`; `org.testcontainers.postgresql.PostgreSQLContainer`, `org.testcontainers.kafka.KafkaContainer` (image `apache/kafka`); `GenericContainer` vẫn ở `org.testcontainers.containers` | ✅ (S-06) |
 
 ## 7. Những gì không dùng (và vì sao)
 

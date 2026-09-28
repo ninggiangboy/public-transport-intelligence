@@ -1,0 +1,33 @@
+spring:
+  application:
+    name: s06-spike
+  batch:
+    job:
+      enabled: false
+    jdbc:
+      table-prefix: batch.BATCH_
+      initialize-schema: never
+  threads:
+    virtual:
+      enabled: true
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  tracing:
+    sampling:
+      probability: 1.0
+---
+# SeaweedFS S3 (DR-66): path-style access, static credentials.
+spring:
+  cloud:
+    aws:
+      region:
+        static: us-east-1
+      credentials:
+        access-key: spike
+        secret-key: spike
+      s3:
+        endpoint: http://localhost:8333
+        path-style-access-enabled: true

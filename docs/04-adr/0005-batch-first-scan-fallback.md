@@ -25,7 +25,7 @@ Phần lớn lỗi dữ liệu (parse, schema, DQ) được bắt trong processo
 
 Chọn **phương án 3**, cộng thêm processor bắt càng nhiều lỗi càng tốt (DOC-16) để scan hiếm khi xảy ra.
 
-- **Job batch:** dùng nguyên fault-tolerant chunk step của Spring Batch. Writer ném lỗi `DATA` → rollback → Spring Batch scan (mỗi item một transaction) → item lỗi vào `onSkipInWrite` → DLQ `LOAD`. `processorNonTransactional()` bật, processor thuần (DOC-19 §5).
+- **Job batch:** dùng nguyên fault-tolerant chunk step của Spring Batch, dựng bằng builder cũ `chunk(size, tx).faultTolerant()` vì `ChunkOrientedStep` mới của Spring Batch 6.0 làm mất DLQ khi scan (DR-80). Writer ném lỗi `DATA` → rollback → Spring Batch scan (mỗi item một transaction) → item lỗi vào `onSkipInWrite` → DLQ `LOAD`. `processorNonTransactional()` bật, processor thuần (DOC-19 §5).
 - **Streaming:** `StreamChunkTemplate` rollback rồi mở **một** transaction mới, ghi từng item với savepoint, item lỗi vào DLQ, commit một lần (DOC-19 §6.2). Savepoint thay cho một transaction mỗi item để micro-batch vẫn chỉ có một commit và offset vẫn được commit một lần.
 - **Cùng writer bean** (`FactChunkWriter`) cho cả batch và scan, và cho cả hai chế độ. Scan gọi writer với chunk một phần tử.
 - Đơn vị scan là **một message** (`WriteSet`), không phải một dòng: TripUpdate có nhiều phần tử thì các phần tử cùng được ghi hoặc cùng vào DLQ.

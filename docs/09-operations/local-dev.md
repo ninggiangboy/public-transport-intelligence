@@ -22,6 +22,7 @@ Mục tiêu: một người mới clone repo, chạy **hai lệnh** (`make secre
 - **OrbStack:** `orb config set memory_mib 12288`, rồi `orb restart`.
 - **Docker Desktop:** Settings → Resources → Memory = 12 GB → Apply & restart.
 - Kiểm tra: `docker info --format '{{.MemTotal}}'` phải ≥ 12.000.000.000 khi định bật đủ profile. `make doctor` kiểm tra việc này.
+- **Testcontainers với OrbStack:** OrbStack không tạo `/var/run/docker.sock`, nên đặt trong shell (hoặc `.envrc`): `export DOCKER_HOST=unix://$HOME/.orbstack/run/docker.sock TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE=/var/run/docker.sock`. Thiếu hai biến này thì `make it` báo "Could not find a valid Docker environment" (S-06).
 
 ## 2. Cài công cụ
 

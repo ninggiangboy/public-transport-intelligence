@@ -376,4 +376,4 @@ NFR-07 được kiểm chứng bằng: máy sạch, `make secrets && make up && 
 
 ## 10. Câu hỏi còn mở
 
-Không có. Các điểm phụ thuộc spike: phiên bản và URL của Aiven S3 sink, lượng RAM của Connect (S-04); tên key virtual thread (S-06). Kết quả spike cập nhật trực tiếp vào §3.4 và DOC-11.
+Không có. Các điểm phụ thuộc spike: phiên bản và URL của Aiven S3 sink, lượng RAM của Connect (S-04); tên key virtual thread (S-06: vẫn là `spring.threads.virtual.enabled`, đã xác minh). Kết quả spike cập nhật trực tiếp vào §3.4 và DOC-11.

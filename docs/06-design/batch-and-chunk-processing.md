@@ -1,7 +1,7 @@
 # Xử lý batch và chunk
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-27 · DOC-19
-> Phụ thuộc: [ADR-0002](../04-adr/0002-spring-batch-and-spring-kafka.md), [ADR-0003](../04-adr/0003-effectively-once-upsert.md), [ADR-0004](../04-adr/0004-offset-commit-after-transaction.md), [ADR-0005](../04-adr/0005-batch-first-scan-fallback.md), [ADR-0006](../04-adr/0006-error-classification.md), [ADR-0015](../04-adr/0015-job-exclusivity-and-recovery.md), [DOC-14](../05-data/warehouse-model.md) §8, [DOC-15](../05-data/ops-and-insight-model.md), [DOC-16](../05-data/data-quality-rules.md), [DOC-30](error-handling.md), [DR](../00-decision-register.md) (DR-16, 21, 22, 23, 24, 27, 62, 63, 67, 69)
+> Trạng thái: **Review** · Cập nhật: 2026-09-28 · DOC-19
+> Phụ thuộc: [ADR-0002](../04-adr/0002-spring-batch-and-spring-kafka.md), [ADR-0003](../04-adr/0003-effectively-once-upsert.md), [ADR-0004](../04-adr/0004-offset-commit-after-transaction.md), [ADR-0005](../04-adr/0005-batch-first-scan-fallback.md), [ADR-0006](../04-adr/0006-error-classification.md), [ADR-0015](../04-adr/0015-job-exclusivity-and-recovery.md), [DOC-14](../05-data/warehouse-model.md) §8, [DOC-15](../05-data/ops-and-insight-model.md), [DOC-16](../05-data/data-quality-rules.md), [DOC-30](error-handling.md), [DR](../00-decision-register.md) (DR-16, 21, 22, 23, 24, 27, 62, 63, 67, 69, 80)
 > Người dùng chính: `etl` (P2-01…07, P2-17, P2-18), `analytics` (P4), DOC-20, DOC-21, DOC-22
 
 Tài liệu này mô tả **cách dự án dùng** Spring Batch 6 và Spring Kafka 4, không giải thích lại framework. Nó gồm: danh mục job, cấu hình fault-tolerant step, các thành phần dùng chung giữa job batch và streaming, `StreamChunkTemplate`, ranh giới transaction ở hai chế độ, restart và chống chạy trùng, điểm tiêm lỗi, và bộ test bắt buộc.
@@ -189,7 +189,7 @@ public final class RatioSkipPolicy implements SkipPolicy {
 
 `minSample` tránh việc step fail ngay khi mới đọc vài item mà có một item lỗi.
 
-Retry (chỉ cho `TRANSIENT_INFRA`): tối đa 5 lần, backoff mũ bắt đầu 1 giây, hệ số 2, jitter ±20%, trần tổng 60 giây. Dùng hỗ trợ retry của Spring Framework 7 mà Spring Batch 6 tích hợp. Hết lượt thì step `FAILED`, `StaleExecutionRecoverer` không động tới (execution đã kết thúc); job được restart qua `job_request` hoặc tự động nếu job có lịch (lần chạy sau).
+Retry (chỉ cho `TRANSIENT_INFRA`): tối đa 5 lần, backoff mũ bắt đầu 1 giây, hệ số 2, jitter ±20%, trần tổng 60 giây. Builder fault-tolerant của Spring Batch 6 mà dự án dùng (§5, DR-80) nhận kiểu của Spring Retry 2.0.x: `TransientRetryPolicy extends org.springframework.retry.policy.SimpleRetryPolicy` (phân loại bằng `ErrorClassifier`) và `ExponentialRandomBackOffPolicy` (initial 1 s, multiplier 2, max 16 s). Code ngoài chunk step dùng core retry của Spring Framework 7 (DOC-11 §6). Hết lượt thì step `FAILED`, `StaleExecutionRecoverer` không động tới (execution đã kết thúc); job được restart qua `job_request` hoặc tự động nếu job có lịch (lần chạy sau).
 
 ### 4.5 Ghi DLQ
 
@@ -214,16 +214,17 @@ public interface DeadLetterWriter {
 ## 5. Fault-tolerant chunk step (job batch)
 
 ```java
+@SuppressWarnings("removal")   // SimpleStepBuilder/FaultTolerantStepBuilder, see below
 @Bean @JobScope
 Step replayRecordsStep(JobRepository jobRepository, PlatformTransactionManager tx,
                        MultiResourceItemReader<InboundMessage> reader,
                        MessageProcessorRouter processor, FactChunkWriter writer,
                        RatioSkipPolicy skipPolicy, TransientRetryPolicy retryPolicy,
+                       ExponentialRandomBackOffPolicy backOffPolicy,
                        DeadLetterSkipListener skipListener, BatchIdStepListener batchIdListener,
                        EtlBatchProperties props) {
   return new StepBuilder("replayRecords", jobRepository)
-      .<InboundMessage, WriteSet>chunk(props.chunkSize())      // 500
-      .transactionManager(tx)
+      .<InboundMessage, WriteSet>chunk(props.chunkSize(), tx)  // 500; two-argument form = legacy builder (DR-80)
       .reader(reader)
       .processor(processor)
       .writer(writer)
@@ -231,12 +232,25 @@ Step replayRecordsStep(JobRepository jobRepository, PlatformTransactionManager t
       .processorNonTransactional()
       .skipPolicy(skipPolicy)
       .retryPolicy(retryPolicy)
+      .backOffPolicy(backOffPolicy)                             // Spring Retry types, §4.4
       .noRollback(DataQualityRejection.class)   // chunk-rule rejections are already in the DLQ
       .listener(skipListener)
       .listener(batchIdListener)
       .build();
 }
 ```
+
+**Builder cũ, không dùng `ChunkOrientedStep` mới (DR-80).** Spring Batch 6.0 có hai cách dựng chunk step:
+
+- `chunk(size, tx)` (hai tham số) cho `SimpleStepBuilder`/`FaultTolerantStepBuilder`, bị đánh dấu `@Deprecated(since = "6.0", forRemoval = true)`;
+- `chunk(size).transactionManager(tx)` cho `ChunkOrientedStepBuilder` mới.
+
+S-06 chạy cùng một job trên cả hai với Postgres thật (`spikes/s06-boot41-java25/`, Spring Batch 6.0.5). Step mới sai ở hai điểm mà thiết kế này dựa vào:
+
+1. Khi scan gặp item lỗi, transaction của item đó bị rollback **sau** khi gọi `onSkipInWrite`, nên dòng DLQ do skip listener ghi mất theo, và `writeSkipCount` bằng 0.
+2. Mỗi transaction của scan lưu vị trí reader của **cả chunk**. Process chết giữa lúc scan rồi restart thì các item chưa kịp scan bị bỏ qua mà không báo gì: ghi lỗi ở item 37, kill ở item 300 thì restart chỉ còn 298/499 dòng.
+
+Builder cũ đạt cả hai (499 dòng, 1 DLQ trong transaction; restart sau khi kill giữa scan đủ 499). Dự án dùng builder cũ cho tới khi Spring Batch sửa step mới. Test B-05, B-18 và luật ArchUnit B-19 giữ lựa chọn này: đổi sang step mới thì test đỏ. Builder cũ sẽ bị xóa ở một bản major sau (dự kiến Spring Batch 7); khi nâng lên bản đó mà step mới vẫn sai thì chuyển scan vào writer bằng savepoint như `StreamChunkTemplate` (§6.2), không đổi hành vi bên ngoài.
 
 Luồng của một chunk khi mọi thứ bình thường và khi có lỗi (DR-21):
 
@@ -424,8 +438,8 @@ for exec in jobExplorer.findRunningJobExecutions(any job):
   lastUpdated = max(exec.lastUpdated, max(step.lastUpdated for step in exec.steps))
   if now − lastUpdated < pti.batch.stale-after (2 min): continue
   if shedlock row of exec's job is held (lock_until > db now) and not by a dead instance: continue
-  mark each STARTED step execution FAILED, exit "STALE", end_time = now   (JobRepository.update → VERSION + 1)
-  mark job execution FAILED, exit "STALE"
+  jobOperator.recover(exec)       // Batch 6: running steps and the job -> FAILED, end_time = now, VERSION + 1
+  set exit status "STALE" on the job and on the recovered steps, JobRepository.update (VERSION + 1 again)
   if job is restartable and not a replay job: jobOperator.restart(exec.id)
   if replay job: set replay_request.status = FAILED, message = "Execution became stale" (DOC-22 decides retry)
 ```
@@ -537,9 +551,11 @@ Mọi test chạy với Testcontainers (Postgres 17, Kafka 4.3) và fixture tuy�
 | B-15 | `BatchIdStepListener`: restart tạo `batch_id` mới; dòng đã commit giữ `batch_id` cũ | Kiểm tra bằng query `etl_batch_step` |
 | B-16 [2] | Processor gọi hai lần cho cùng message (scan) | Cùng `WriteSet` (so sánh `equals`) |
 | B-17 [2] | Replay (`replay = true`) một message đã có trong `dedup_registry` | Ghi lại fact (guard `:replay`), registry không đổi (FR-03.4) |
+| B-18 | Job batch 500 item, writer lỗi `23514` ở item 37; tiêm `halt` (Error) khi scan tới item 300; restart | Sau restart: 499 dòng fact, đúng 1 DLQ `LOAD`; không item nào bị bỏ qua (DR-80) |
+| B-19 | ArchUnit: không lớp nào gọi `StepBuilder.chunk(int)` một tham số hay dùng `ChunkOrientedStepBuilder` | Pass; vi phạm liệt kê lớp gọi (DR-80) |
 
 Coverage tối thiểu của `StreamChunkTemplate`, `ErrorClassifier`, `RatioSkipPolicy`, `FactChunkWriter` và các processor: 90% line (DOC-44).
 
 ## 13. Câu hỏi còn mở
 
-Không có. Tên lớp cụ thể của Spring Batch 6 (builder của chunk step, retry, serializer Jackson) được chốt ở S-06 mà không đổi thiết kế.
+Không có. S-06 đã chốt tên lớp của Spring Batch 6 (DOC-11 §6) và cách dựng chunk step (DR-80).

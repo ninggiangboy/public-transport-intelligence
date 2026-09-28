@@ -39,6 +39,7 @@ Tài liệu gốc mô tả tốt *cái gì* và *vì sao*, nhưng còn nhiều c
 | 2026-09-27 | Claude (Owner ủy quyền) | **Kubernetes và CI (tài liệu P7–P8):** API đọc qua JDBC nhiều host (`-ro` rồi `-rw`) để không mất đọc khi failover; `etl-stream` tối đa 4 pod; CI toàn stack chạy tuần một lần trên self-hosted runner (sau đó đổi sang runner GitHub hằng đêm khi repo chuyển public); test k3d mang mã `KD-xx` | DR-75, DR-76 |
 | 2026-09-27 | Claude (Owner ủy quyền) | **Demo và báo cáo (tài liệu P8):** demo hai phần (compose rồi k3d dựng sẵn và dừng), kịch bản bunching/gián đoạn gieo trước; lệnh `make` vận hành dùng chung cho k3d qua `PTI_ENV`; báo cáo lấy số liệu duy nhất từ `pti-exp report` | DR-77, DR-78, DR-79 |
 | 2026-09-27 | Owner | **Repo chuyển sang GitHub public** (thay quyết định private): runner chuẩn của GitHub đủ 16 GB để chạy E2E và k3d, không cần self-hosted runner; image GHCR để public | DR-56, DR-76 |
+| 2026-09-28 | Claude (Owner ủy quyền) | **S-06 xong:** Boot 4.1.1 + Java 25 dùng được với mọi thư viện đã chọn, không cần lối lui. Chunk step của job batch dựng bằng builder fault-tolerant cũ của Spring Batch 6, vì `ChunkOrientedStep` mới làm mất DLQ và bỏ sót item khi crash giữa lúc scan | DR-53, DR-80 |
 
 ---
 
@@ -551,6 +552,12 @@ Tài liệu gốc mô tả tốt *cái gì* và *vì sao*, nhưng còn nhiều c
   1. Resilience4j đã hỗ trợ Spring Boot 4 chưa. Nếu chưa, thử cơ chế resilience có sẵn trong Spring Framework 7 (`@Retryable`, `@ConcurrencyLimit`), còn circuit breaker và rate limiter vẫn dùng Resilience4j core, cấu hình thủ công không qua starter.
   2. springdoc-openapi, Testcontainers, Micrometer Tracing (bridge OTel, DR-50) và jib-gradle có tương thích với Boot 4.1 và Java 25 không.
   3. Spring Boot 4 đổi package (Jackson 3, tách module autoconfigure). Ghi các thay đổi này vào DOC-11 để người triển khai không làm theo tài liệu cũ của Boot 3.
+- **Kết quả spike S-06** (2026-09-28, app mẫu `spikes/s06-boot41-java25/`, 20 test trên Postgres 17.11 và 18.1, Kafka 4.3.1, SeaweedFS 4.47):
+  - 0(a) Batch 6.0.5 có hai builder chunk step. `ChunkOrientedStepBuilder` mới dùng core retry của Spring Framework 7; builder cũ `chunk(size, tx).faultTolerant()` (deprecated for removal) vẫn dùng Spring Retry 2.0.x. (b) Skip listener chạy trong transaction của chunk và dòng DLQ được commit **chỉ với builder cũ**; step mới rollback dòng DLQ. Thêm nữa, step mới bỏ sót item khi process chết giữa lúc scan. Chọn builder cũ, xem DR-80. (c) `spring-boot-starter-batch-jdbc` + `spring.batch.jdbc.table-prefix=batch.BATCH_`; context lưu JSON qua bean `JacksonExecutionContextStringSerializer`. (d) Có `JobOperator.recover(JobExecution)`: đưa execution kẹt về `FAILED`, tăng `VERSION`; bản giữ `VERSION` cũ cập nhật thì nhận `OptimisticLockingFailureException`. (e) `JobOperator.start` thay `JobLauncher.run`; `restart` cần job đăng ký trong `JobRegistry`. (f) ShedLock 7.10.1, Spring Cloud AWS 4.1.1, `ContainerPausingBackOffHandler` của Spring Kafka 4.1.1 đều chạy được. Test "lỗi ghi ở item 37" đạt 499 dòng, 1 DLQ; restart đọc tiếp đúng từ item 701.
+  - 1. Resilience4j 2.4.0 có module `resilience4j-spring-boot4`; không cần cấu hình thủ công.
+  - 2. springdoc 3.1.1, Testcontainers 2.0.5, Micrometer Tracing (bridge OTel qua `spring-boot-starter-opentelemetry`) và Jib 3.5.4 tương thích.
+  - 3. Khác biệt so với Boot 3 ghi ở DOC-11 §6.
+  - PostgreSQL 18.1 chạy được với schema Spring Batch và toàn bộ test; việc đổi sang 18 còn chờ S-04 (Debezium) và CNPG.
 - **Ghi vào:** ADR-0029 (mới), DOC-11.
 
 ### DR-54 · Công cụ Kubernetes
@@ -667,6 +674,12 @@ Tài liệu gốc mô tả tốt *cái gì* và *vì sao*, nhưng còn nhiều c
 - **Quyết định:** Mọi bảng và biểu đồ thực nghiệm trong báo cáo lấy từ `pti-exp report` trên commit đã tag. Độ nhạy ngưỡng là phân tích mô tả (không phải EXP) bằng `pti-exp sensitivity`: quét một tham số mỗi lần, tính lại analytics trên cùng dữ liệu, so với kịch bản đã gieo.
 - **Ghi vào:** DOC-47; DOC-45 §2.
 
+### DR-80 · Cách dựng chunk step của Spring Batch 6 — **Chốt** (sau S-06)
+- **Vấn đề:** Spring Batch 6.0 có `ChunkOrientedStep` mới và đánh dấu builder cũ (`SimpleStepBuilder`/`FaultTolerantStepBuilder`) là deprecated for removal. S-06 chạy cùng một job trên cả hai (6.0.5, Postgres thật). Step mới: (1) khi scan, rollback transaction của item bị skip **sau** `onSkipInWrite`, nên dòng DLQ và `writeSkipCount` mất; (2) mỗi transaction của scan lưu vị trí reader của cả chunk, nên process chết giữa scan rồi restart thì các item chưa scan bị bỏ qua (298/499 dòng). Cả hai điểm vi phạm FR-02.5 và NFR-01.
+- **Các phương án:** (a) builder cũ, đúng ở mọi test nhưng sẽ bị xóa ở bản major sau; (b) step mới, sai; (c) bỏ skip/scan của Spring Batch, tự scan trong writer bằng savepoint như `StreamChunkTemplate`: đúng, nhưng phải tự làm retry cả chunk và skip ở processor.
+- **Quyết định:** (a). Mọi chunk step dựng bằng `chunk(size, tx).faultTolerant()` với `@SuppressWarnings("removal")`. Test B-05, B-18 và luật ArchUnit B-19 (DOC-19 §12) giữ lựa chọn này. Khi nâng lên bản Spring Batch không còn builder cũ: nếu step mới đã sửa (B-05, B-18 xanh trên step mới) thì chuyển sang, nếu chưa thì làm (c). Nên báo hai lỗi này lên issue tracker của Spring Batch kèm app mẫu.
+- **Ghi vào:** DOC-19 §4.4, §5, §7.2, §12; ADR-0005; DOC-11.
+
 ---
 
 ## Tổng hợp theo mức ảnh hưởng
@@ -674,7 +687,7 @@ Tài liệu gốc mô tả tốt *cái gì* và *vì sao*, nhưng còn nhiều c
 | Mức | Mục | Lý do cần chốt sớm |
 | --- | --- | --- |
 | Chặn P1 | DR-01, 02, 03, 04, 05, 06, 09, 10, 11, 26, 53, 64, 66, 67, 68 | Quyết định schema, contract và cấu trúc repo |
-| Chặn P2 | DR-07, 13, 14, 15, 16, 18, 21, 22, 23, 24, 25, 62, 63, 65, 69, 70 | Quyết định ngữ nghĩa đúng đắn của pipeline |
+| Chặn P2 | DR-07, 13, 14, 15, 16, 18, 21, 22, 23, 24, 25, 62, 63, 65, 69, 70, 80 | Quyết định ngữ nghĩa đúng đắn của pipeline |
 | Chặn P3 | DR-27, 28, 50, 57, 58, 71 | Thiếu thì không đo được thực nghiệm |
 | Chặn P4 | DR-12, 17, 19, 20, 29–35, 39–45 | Analytics và API |
 | Chặn P5 | DR-46–49 | Frontend |

@@ -377,4 +377,4 @@ Testcontainers (Kafka 4.3, Postgres 17), fixture tuyến 18 (DOC-44). Test chung
 
 ## 15. Câu hỏi còn mở
 
-Không có. Điểm cần xác minh ở S-06 (không đổi thiết kế): tên lớp `ContainerPausingBackOffHandler`/`ListenerContainerPauseService` và hành vi retry cả batch của `DefaultErrorHandler` trong Spring Kafka 4; `group.protocol=classic` còn hỗ trợ đầy đủ trên Kafka 4.3.
+Không có. S-06 (2026-09-28) đã xác minh trên Spring Kafka 4.1.1 với broker 4.3.1: `DefaultErrorHandler(null, backOff, new ContainerPausingBackOffHandler(new ListenerContainerPauseService(registry, scheduler)))` giao lại cả batch sau khi container tạm dừng; consumer mặc định dùng `group.protocol = classic` (DOC-11 §1).
