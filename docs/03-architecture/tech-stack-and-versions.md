@@ -173,6 +173,7 @@ Người triển khai **không làm theo tài liệu hay ví dụ của Boot 3**
 | Engine chunk tự xây | Spring Batch đã có và đã được kiểm chứng | ADR-0002 |
 | Spring Cloud Stream, Kafka Streams | Thêm tầng trừu tượng, không giải quyết thêm vấn đề gì khi đích ghi là Postgres | ADR-0002 |
 | Spring Cloud Data Flow, remote chunking, partitioning | Quá mức cần thiết | ADR-0002 |
+| Apache Spark | Dữ liệu vừa sức một Postgres; mô hình checkpoint của Spark thay ngữ nghĩa effectively-once, skip và DLQ mà đồ án cần chứng minh; tốn RAM và xung đột Jackson 3. Cần phân tích lịch sử dài thì thử DuckDB trước | DR-84 |
 | Spring AI | Không cần ChatClient; SDK Jev là đủ | DR-36 |
 | Spring Cloud Contract | Nặng, thiên về JVM↔JVM | DR-44 |
 | pg_partman | Job bảo trì tự viết đơn giản hơn và test được | DR-15 |

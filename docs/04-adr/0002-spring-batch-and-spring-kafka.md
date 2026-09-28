@@ -1,7 +1,7 @@
 # ADR-0002: Dùng Spring Batch và Spring Kafka thay cho engine chunk tự xây
 
 - Trạng thái: Accepted
-- Ngày: 2026-09-26 · Liên quan: DR-21, DR-22, DR-23, DR-24, DR-26, DR-53, DR-62, DOC-19, DOC-20
+- Ngày: 2026-09-26 · Liên quan: DR-21, DR-22, DR-23, DR-24, DR-26, DR-53, DR-62, DR-84, DOC-19, DOC-20
 
 ## Bối cảnh
 
@@ -24,6 +24,10 @@ Pipeline có hai chế độ:
 3. **Spring Batch cho job batch, Spring Kafka cho streaming, dùng chung thành phần nghiệp vụ.** Streaming chạy trên một lớp mỏng `StreamChunkTemplate` dựng từ `TransactionTemplate` và savepoint của Spring.
 4. **Spring Cloud Stream hoặc Kafka Streams cho streaming.**
    - Thêm một tầng trừu tượng hoặc một mô hình xử lý khác (state store, exactly-once trên Kafka), trong khi đích ghi là PostgreSQL. Không giải quyết thêm vấn đề nào so với Spring Kafka.
+5. **Apache Spark** (Structured Streaming cho streaming, Spark SQL cho batch và replay raw zone). *Bổ sung 2026-09-28 (DR-84), bị loại:*
+   - Khối lượng khoảng 143 msg/s và 2,5 GB mỗi ngày vừa sức một PostgreSQL, và pipeline không có join hay shuffle phân tán.
+   - Offset nằm ở checkpoint của Spark, không có skip hay DLQ theo item, nên phải chứng minh lại toàn bộ ngữ nghĩa effectively-once và EXP-01…04 mất baseline.
+   - Cần thêm driver và executor, vượt ngân sách bộ nhớ của compose; Scala và Jackson 2 xung đột với Spring Boot 4 và Jackson 3.
 
 ## Quyết định
 

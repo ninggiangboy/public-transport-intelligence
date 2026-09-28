@@ -39,6 +39,7 @@ Tài liệu gốc mô tả tốt *cái gì* và *vì sao*, nhưng còn nhiều c
 | 2026-09-27 | Claude (Owner ủy quyền) | **Kubernetes và CI (tài liệu P7–P8):** API đọc qua JDBC nhiều host (`-ro` rồi `-rw`) để không mất đọc khi failover; `etl-stream` tối đa 4 pod; CI toàn stack chạy tuần một lần trên self-hosted runner (sau đó đổi sang runner GitHub hằng đêm khi repo chuyển public); test k3d mang mã `KD-xx` | DR-75, DR-76 |
 | 2026-09-27 | Claude (Owner ủy quyền) | **Demo và báo cáo (tài liệu P8):** demo hai phần (compose rồi k3d dựng sẵn và dừng), kịch bản bunching/gián đoạn gieo trước; lệnh `make` vận hành dùng chung cho k3d qua `PTI_ENV`; báo cáo lấy số liệu duy nhất từ `pti-exp report` | DR-77, DR-78, DR-79 |
 | 2026-09-28 | Owner | **Không dùng Quartz Scheduler**; giữ `@Scheduled` + ShedLock cho lịch job batch | DR-83 (mới), ADR-0015 |
+| 2026-09-28 | Owner | **Không dùng Apache Spark**; giữ Spring Batch + Spring Kafka cho cả batch lẫn streaming. Khi cần phân tích trên lịch sử dài thì thử DuckDB trước | DR-84 (mới), ADR-0002 |
 | 2026-09-27 | Owner | **Repo chuyển sang GitHub public** (thay quyết định private): runner chuẩn của GitHub đủ 16 GB để chạy E2E và k3d, không cần self-hosted runner; image GHCR để public | DR-56, DR-76 |
 | 2026-09-28 | Claude (Owner ủy quyền) | **S-06 xong:** Boot 4.1.1 + Java 25 dùng được với mọi thư viện đã chọn, không cần lối lui. Chunk step của job batch dựng bằng builder fault-tolerant cũ của Spring Batch 6, vì `ChunkOrientedStep` mới làm mất DLQ và bỏ sót item khi crash giữa lúc scan | DR-53, DR-80 |
 | 2026-09-28 | Claude (Owner ủy quyền) | **S-04 xong:** image Connect = Debezium 3.6.3 + Aiven S3 sink 3.4.3. Raw zone lưu value dạng base64 để giữ đúng từng byte; thư mục giờ theo CreateTime; `file.max.records=2000` và `mem_limit` 1.280 MB để S3 sink không OOM khi chạy bù. Debezium chạy được trên PostgreSQL 18.6; vẫn dùng 17.11 tới khi kiểm xong CNPG | DR-81, DR-53, DR-66 |
@@ -723,6 +724,19 @@ Tài liệu gốc mô tả tốt *cái gì* và *vì sao*, nhưng còn nhiều c
 - **Hệ quả:** Điểm duy nhất Quartz làm tốt hơn là chạy bù lượt lịch bị lỡ khi mọi pod `etl-batch` cùng tắt đúng lúc cron bắn. Hiện đã có bù cho `GtfsStaticLoadJob` (lúc khởi động, khi chưa có feed ACTIVE), `PartitionMaintenanceJob` (lúc khởi động) và `TicketingAnomalyJob` (con trỏ `max-catch-up`). Chưa có bù cho `OtpScorecardJob`, `EtaAggregationJob`, và `GtfsStaticLoadJob` khi đã có feed ACTIVE. Nếu cần bù thì làm được mà không cần Quartz: tham số định danh của lượt tự động đã tất định (`scheduled:<runDate>`, `scheduled:<hour>`), nên một bước chạy lúc khởi động có thể tra `BATCH_JOB_INSTANCE` để biết lượt nào bị lỡ. Bước này chưa được thiết kế trong DR này.
 - **Xem lại khi:** cần lịch do người dùng sửa lúc chạy, calendar loại trừ, hoặc nhiều trigger hẹn giờ chạy một lần. Khi đó so thêm với thư viện chỉ dùng một bảng (ví dụ db-scheduler), không mặc định chọn Quartz.
 - **Ghi vào:** ADR-0015 (phương án 6).
+
+### DR-84 · Không dùng Apache Spark cho xử lý batch hay streaming — **Chốt**
+- **Vấn đề:** Có nên dùng Apache Spark (Structured Streaming cho GTFS-rt và CDC, Spark SQL cho job batch và replay raw zone) thay cho Spring Batch và Spring Kafka (ADR-0002) không?
+- **Quyết định:** Không dùng Spark, giữ nguyên ADR-0002. Lý do:
+  1. **Khối lượng dữ liệu nhỏ so với bài toán Spark giải.** Tải nền khoảng 143 msg/s, cả ngày khoảng 6,8 triệu message và 2,5 GB; 10× cao điểm (EXP-07) khoảng 1.430 msg/s (DOC-10 §3.1). Một PostgreSQL với batch upsert chịu được mức này. Pipeline cũng không có join hay shuffle phân tán: mỗi message ghi thẳng vào bảng theo business key, còn job tổng hợp (ETA, OTP) là SQL theo tập chạy trong Postgres.
+  2. **Đổi mô hình đúng đắn mà đồ án cần chứng minh.** Đóng góp của đồ án là ngữ nghĩa effectively-once, skip/retry/scan theo từng item, DLQ ghi trong transaction của chunk và replay (ADR-0002, ADR-0003, ADR-0004). Structured Streaming có mô hình riêng: offset lưu ở checkpoint của Spark chứ không commit vào consumer group, exactly-once dựa vào sink idempotent, và lỗi ở một record làm hỏng cả micro-batch vì không có skip hay DLQ theo item. Dùng Spark thì phải thiết kế và chứng minh lại từ đầu, còn EXP-01…04 mất baseline của DR-27.
+  3. **Replay raw zone phải đi qua cùng pipeline.** EXP-04 dựng lại warehouse từ raw zone bằng chính `ItemProcessor` và `ItemWriter` dùng chung. Nếu replay chạy bằng Spark thì đó là một hiện thực thứ ba của logic biến đổi, và thực nghiệm không còn kiểm chứng pipeline thật.
+  4. **Không vừa ngân sách tài nguyên.** Profile core của compose đã dùng khoảng 8 GB trên máy 16 GB (DOC-10 §5). Spark cần driver và executor, mỗi thứ thường từ 1 GB trở lên, và phải có thêm chỗ trên profile `lite` của k3d.
+  5. **Khó sống chung với stack.** Spark 4.x chạy trên Scala 2.13 và Jackson 2, còn dự án dùng Spring Boot 4.1, Jackson 3 và Java 25 (ADR-0029). Tương thích Java 25 của Spark chưa được kiểm. Nhúng Spark vào app Spring sẽ xung đột classpath; tách riêng thì thêm một deployment unit với kiểu vận hành khác (submit job, Spark UI, quản lý checkpoint), trái với ADR-0014.
+  6. **Không có nhu cầu mà chỉ Spark đáp ứng.** Không có phân tích ad-hoc trên nhiều tháng lịch sử, không có huấn luyện ML, và không có dữ liệu vượt quá một node.
+- **Hệ quả:** Không thêm dependency hay container nào. Kafka Streams và Spring Cloud Stream đã bị loại ở ADR-0002 vì cùng lý do (đích ghi là Postgres).
+- **Xem lại khi:** cần tính lại chỉ số trên nhiều tháng dữ liệu raw zone mà job SQL theo tập chạy quá lâu, hoặc cần phân tích hay huấn luyện ML trên lịch sử dạng cột. Khi đó thử DuckDB trước (đọc thẳng file raw zone trên S3, chạy trong runner Python của `experiments/`, ADR-0025), chỉ cân nhắc Spark khi dữ liệu vượt quá một máy.
+- **Ghi vào:** ADR-0002 (phương án 5), DOC-11 §7.
 ---
 
 ## Tổng hợp theo mức ảnh hưởng
@@ -730,7 +744,7 @@ Tài liệu gốc mô tả tốt *cái gì* và *vì sao*, nhưng còn nhiều c
 | Mức | Mục | Lý do cần chốt sớm |
 | --- | --- | --- |
 | Chặn P1 | DR-01, 02, 03, 04, 05, 06, 09, 10, 11, 26, 53, 64, 66, 67, 68, 81 | Quyết định schema, contract và cấu trúc repo |
-| Chặn P2 | DR-07, 13, 14, 15, 16, 18, 21, 22, 23, 24, 25, 62, 63, 65, 69, 70, 80, 83 | Quyết định ngữ nghĩa đúng đắn của pipeline |
+| Chặn P2 | DR-07, 13, 14, 15, 16, 18, 21, 22, 23, 24, 25, 62, 63, 65, 69, 70, 80, 83, 84 | Quyết định ngữ nghĩa đúng đắn của pipeline |
 | Chặn P3 | DR-27, 28, 50, 57, 58, 71 | Thiếu thì không đo được thực nghiệm |
 | Chặn P4 | DR-12, 17, 19, 20, 29–35, 39–45 | Analytics và API |
 | Chặn P5 | DR-46–49, 82 | Frontend |
