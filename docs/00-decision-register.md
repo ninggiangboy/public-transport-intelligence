@@ -46,6 +46,7 @@ Tài liệu gốc mô tả tốt *cái gì* và *vì sao*, nhưng còn nhiều c
 | 2026-09-28 | Claude (Owner ủy quyền) | **S-05 xong:** bản đồ nền Twin Cities 84 MB, render offline không có request ra ngoài. Dùng MapLibre 6 (worker cùng origin, CSP không cần `blob:`); font và sprite tải bằng `make tiles` thay vì commit vào repo | DR-47, DR-82 |
 | 2026-09-28 | Owner | **Monorepo:** backend, frontend, hạ tầng và thực nghiệm chung một repo. Gốc chia theo stack: Gradle build gom vào `backend/`, mọi thứ hạ tầng (kể cả `connect/`, `chaos/`, bản đồ nền) gom vào `deploy/`, bỏ thư mục `infra/` | DR-85 (mới), DR-26, ADR-0030 |
 | 2026-09-28 | Owner | **Simulator mặc định không phát:** `make up` dựng simulator ở hệ số 0; `make sim-start` bật khi cần dữ liệu. `make up-demo`, `make up-exp` và `make smoke` tự bật; tạm dừng có chủ đích không làm bắn `GtfsRtFeedStale` | DR-86 (mới), DR-68, DOC-25, DOC-28, DOC-38, DOC-39 |
+| 2026-09-28 | Owner | **Demo console:** thêm trang web chạy trên host (`pti-exp console`, cổng 8095) để bấm nút kích hoạt các bước demo, kể cả thao tác hạ tầng, và xem topology sống, timeline, chỉ số. Dùng lại adapter của runner. Demo control trong sản phẩm giữ nguyên; lệnh `make demo-*` vẫn là phương án dự phòng | DR-87 (mới), DOC-48 (mới), DOC-46 |
 
 ---
 
@@ -760,6 +761,18 @@ Tài liệu gốc mô tả tốt *cái gì* và *vì sao*, nhưng còn nhiều c
   - Tạm dừng có chủ đích không phải sự cố: `GtfsRtFeedStale` và `ThroughputDrop` thêm vế `unless on () (max(pti_sim_rate_multiplier{stream="gtfs-rt"}) == 0)`. Simulator chết thì gauge vắng mặt, nên alert vẫn bắn như cũ (cách gây ra của P3-05 không đổi). `StaleBanner` và `GET /system/freshness` vẫn báo `stale`, vì đúng là không có dữ liệu mới.
 - **Hệ quả:** Tiêu chí M1 và P1-14, P2-20 chuyển thành `make up && make sim-start`. NFR-07 và G9 không đổi, vì `make smoke` tự bật simulator. Kịch bản bắt đầu khi hệ số của luồng liên quan bằng 0 vẫn được nhận nhưng không có tác dụng nhìn thấy được, cho tới khi bật lại.
 - **Ghi vào:** DOC-25 §6.5, §10, DOC-28 §6.3, DOC-29 §3.2, DOC-38 §3, §4, §6.2, §8, DOC-39 §3.2, §5, §8, RB-06, master plan P1-14, P2-20, M1.
+
+### DR-87 · Demo console: trang web kích hoạt kịch bản và hiển thị trạng thái hệ thống — **Chốt**
+- **Vấn đề:** Kịch bản demo (DOC-46) điều khiển bằng lệnh `make demo-*` và `kubectl` trong terminal, rồi quan sát qua Grafana. Khán giả không thấy trực tiếp những gì đang xảy ra ở tầng hạ tầng: container bị kill rồi sống lại (bước 5), pod được tạo thêm (7a), broker mất và được tạo lại (7b), primary Postgres đổi (7c). Lệnh watch ở bước 7 chỉ lọc `etl-stream` và `api`, nên không thấy pod broker hay pod Postgres. Trạng thái `up{…}` của Prometheus trễ theo chu kỳ scrape, nên dễ không kịp thấy một container chỉ chết 5 giây.
+- **Các phương án:** (1) dashboard Grafana dạng Canvas vẽ topology: đẹp, không tốn thêm tài nguyên, nhưng không kích hoạt được hành động và vẫn trễ theo scrape; (2) UI Kubernetes như Headlamp hoặc k9s: chỉ dùng được cho k3d và mang dáng công cụ kỹ thuật; (3) thêm trang vào sản phẩm: API phải giữ docker socket hoặc quyền cluster, trái với ranh giới của ADR-0025; (4) **một web console riêng trong `experiments/`**, dùng lại adapter của runner.
+- **Quyết định:** Chọn phương án 4 (thiết kế ở DOC-48):
+  - Backend là lệnh `pti-exp console` (FastAPI) trong dự án uv `experiments/`. Nó dùng lại `env/compose.py`, `env/k3d.py`, `sim.py` và `check` của runner, và chạy trên host, chỉ bind `127.0.0.1:8095`.
+  - Frontend là entry Vite thứ hai trong `frontend/` (`frontend/console/`), dùng chung design system. Image `pti-frontend` không chứa entry này.
+  - Hành động nằm trong một danh mục cố định lấy theo DOC-46, không nhận lệnh tùy ý. Trạng thái container và pod lấy từ docker events và watch của `kubectl` (tức thì). Chỉ số lấy từ Prometheus.
+  - Màn Demo control (`/ops/demo`, FR-11.7, UC-16) **giữ nguyên** trong sản phẩm, cho kịch bản simulator với tham số tùy ý. Console chỉ có các hành động của kịch bản demo, cộng thao tác hạ tầng, và liên kết sang Demo control khi cần kịch bản khác.
+  - Lệnh `make demo-*` vẫn là đường chính thức và là phương án dự phòng: mỗi nút của console có lệnh `make` tương đương (DOC-48 §7).
+- **Hệ quả:** Thêm hai thư viện Python (`fastapi`, `uvicorn`), một cổng `8095` trên host, và rủi ro chấp nhận AR-13 (console không xác thực, được chặn CSRF và DNS rebinding bằng header riêng, kiểm `Origin` và `Host`). Việc P8-08 là **mục cắt đầu tiên** trong thứ tự cắt giảm: không có console thì demo vẫn chạy theo DOC-46 bằng terminal và Grafana.
+- **Ghi vào:** DOC-48; DOC-46 §1.3, §3–§4, §6, §9; DOC-38 §4.6, §5; DOC-27 §6, §11, §12; DOC-34 §9.1; DOC-44 §13; DOC-45 §2; DOC-36 Demo control §1; master plan §3.1, §3.2, §4.3, P8-08.
 ---
 
 ## Tổng hợp theo mức ảnh hưởng
@@ -773,4 +786,4 @@ Tài liệu gốc mô tả tốt *cái gì* và *vì sao*, nhưng còn nhiều c
 | Chặn P5 | DR-46–49, 82 | Frontend |
 | Chặn P6 | DR-36, 37, 38, 60, 72, 73, 74 | AI triage |
 | Chặn P7 | DR-54, 55, 56, 75, 76 | Kubernetes |
-| Chặn P8 | DR-77, 78, 79 | Demo, runbook k3d, báo cáo |
+| Chặn P8 | DR-77, 78, 79, 87 | Demo, demo console, runbook k3d, báo cáo |

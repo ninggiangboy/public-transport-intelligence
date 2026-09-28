@@ -233,6 +233,8 @@ frontend/
 
 Quy tắc phụ thuộc (ESLint `import/no-restricted-paths`): `features/*` không import lẫn nhau; dùng chung thì đưa lên `components/` hoặc `lib/`. `components/` không import `features/` hay `api/`.
 
+`frontend/console/` và `vite.console.config.ts` là entry thứ hai cho demo console (DOC-48 §3.1), build ra `dist-console/` và không nằm trong image `pti-frontend`. Console chỉ import `src/components/`, `src/lib/`, `src/styles/`; không import `src/features/`, `src/api/`, `src/realtime/`. Code trong `src/` không import `console/`.
+
 ### 9.2 Provider
 
 Thứ tự lồng nhau trong `app/providers.tsx`:

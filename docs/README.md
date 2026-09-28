@@ -9,7 +9,7 @@ Tài liệu thiết kế gốc: [`../public-transport-intelligence.md`](../publi
 
 ## Tài liệu đã có
 
-Mọi tài liệu DOC-01…47 trong mục 3 của master plan đã được viết.
+Mọi tài liệu DOC-01…48 trong mục 3 của master plan đã được viết.
 
 | DOC | Tài liệu | Trạng thái |
 | --- | --- | --- |
@@ -43,6 +43,7 @@ Mọi tài liệu DOC-01…47 trong mục 3 của master plan đã được vi�
 | DOC-28 | [Observability](06-design/observability.md) | Review |
 | DOC-29 | [Tham chiếu cấu hình](06-design/configuration-reference.md) | Review |
 | DOC-30 | [Xử lý lỗi](06-design/error-handling.md) | Review |
+| DOC-48 | [Demo console](06-design/demo-console.md) | Review |
 | DOC-31 | [Quy ước API](07-api/api-guidelines.md) | Review |
 | DOC-32 | [Danh mục endpoint](07-api/api-endpoints.md) | Review |
 | DOC-33 | [Sự kiện SSE](07-api/sse-events.md) | Review |

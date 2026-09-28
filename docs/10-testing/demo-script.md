@@ -1,8 +1,8 @@
 # Kịch bản demo
 
 > Trạng thái: **Review** · Cập nhật: 2026-09-28 · DOC-46
-> Phụ thuộc: SDD §14.1, [DOC-25](../06-design/source-simulator.md) §7, [DOC-24](../06-design/ai-triage.md) §6.4, [DOC-27](../06-design/security.md) §3.1, [DOC-36](../08-ux-ui/screens/README.md) (Live map, Alert feed, Route scorecard, Dead letters, Jobs, Demo control), [DOC-38](../09-operations/local-dev.md) §4, [DOC-39](../09-operations/deploy-compose.md) §2, [DOC-40](../09-operations/deploy-k8s.md) §13–14, [DOC-45](experiments/README.md), [EXP-07](experiments/EXP-07-autoscaling.md), [EXP-08](experiments/EXP-08-chaos.md), [DR](../00-decision-register.md) (DR-47, DR-49)
-> Người dùng chính: người trình bày (PS-5), P8-04, P8-05
+> Phụ thuộc: SDD §14.1, [DOC-25](../06-design/source-simulator.md) §7, [DOC-24](../06-design/ai-triage.md) §6.4, [DOC-27](../06-design/security.md) §3.1, [DOC-36](../08-ux-ui/screens/README.md) (Live map, Alert feed, Route scorecard, Dead letters, Jobs, Demo control), [DOC-38](../09-operations/local-dev.md) §4, [DOC-39](../09-operations/deploy-compose.md) §2, [DOC-40](../09-operations/deploy-k8s.md) §13–14, [DOC-45](experiments/README.md), [EXP-07](experiments/EXP-07-autoscaling.md), [EXP-08](experiments/EXP-08-chaos.md), [DOC-48](../06-design/demo-console.md), [DR](../00-decision-register.md) (DR-47, DR-49, DR-87)
+> Người dùng chính: người trình bày (PS-5), P8-04, P8-05, P8-08
 
 Buổi demo có hai phần trên cùng một máy 16 GB:
 
@@ -10,6 +10,8 @@ Buổi demo có hai phần trên cùng một máy 16 GB:
 - **Phần B** (bước 7, k3d `lite`, khoảng 8 phút, sau khi chuyển môi trường).
 
 Hai môi trường không chạy cùng lúc được (DOC-10 §5). Cluster k3d được dựng sẵn từ trước rồi **dừng** (`make k8s-stop`); lúc chuyển chỉ cần khởi động lại cluster đã có, nhanh hơn và không cần Internet (§6).
+
+Màn hình chiếu chính là **demo console** (DOC-48, `http://localhost:8095`): runbook các bước ở bên trái, sơ đồ kiến trúc sống ở giữa, timeline sự kiện ở dưới. Mỗi thao tác trong tài liệu này ghi nút trên console, kèm lệnh `make` tương đương trong ngoặc. Nếu console không có (P8-08 bị cắt) hoặc hỏng giữa buổi, dùng lệnh `make` trong terminal và Grafana thay thế (§5). Các bước 2, 3, 4 và 6 vẫn chiếu trên màn hình sản phẩm, vì đó là thứ đang được đánh giá; console có liên kết sang đúng màn hình ở từng bước.
 
 Giao diện hiển thị tiếng Anh; chuỗi trong ngoặc kép là chuỗi đúng trên UI. Lời thoại viết tiếng Việt cho buổi bảo vệ.
 
@@ -20,6 +22,7 @@ Giao diện hiển thị tiếng Anh; chuỗi trong ngoặc kép là chuỗi đ�
 - [ ] Commit sạch, đã tag phiên bản demo; `full-stack.yml` xanh trên đúng commit (DOC-41 §10.3).
 - [ ] `make images` và `make k8s-images` đã chạy trên commit đó; `make tiles` đã có `deploy/tiles/twin-cities.pmtiles`.
 - [ ] Dựng k3d một lần: `make down && make k8s-up ENV=lite`, `make k8s-smoke` pass, rồi `make k8s-stop`.
+- [ ] `make demo-console` mở được console trên compose, và "Switch to k3d" chạy được khi cluster đang bật (DC-13, DC-14 đạt ở lần diễn tập gần nhất).
 - [ ] Diễn tập toàn bộ ít nhất một lần theo §7 (P8-05 yêu cầu ba lần trước buổi thật); ghi thời gian từng bước vào §8.
 - [ ] Bản ghi màn hình bước 7 (phương án dự phòng, §5) đã quay ở lần diễn tập gần nhất, lưu ở `~/pti-demo/recordings/step7.mp4` (ngoài repo).
 - [ ] Máy cắm sạc; tắt thông báo hệ điều hành, tắt cập nhật tự động; màn hình chiếu 1920×1080, zoom trình duyệt 110%.
@@ -29,13 +32,14 @@ Giao diện hiển thị tiếng Anh; chuỗi trong ngoặc kép là chuỗi đ�
 | Mốc | Việc | Kiểm tra |
 | --- | --- | --- |
 | T−45 | `make demo-reset`: `make reset`, `make clock-offset AT=16:20` (giờ nghiệp vụ cao điểm chiều, ≥ 500 xe; DOC-38 §3.1), `make up-demo`, `make smoke` | `make smoke` pass; `make sim-status` có `activeVehicles ≥ 500` |
-| T−40 | Mở sẵn các tab trình duyệt (§1.3); đăng nhập `operator` / `operator` (DOC-27 §3.1) ở cửa sổ chính, cửa sổ ẩn danh để xem góc nhìn hành khách | UI hiện "Demo Operator" ở góc phải |
+| T−40 | `make demo-console` trong một terminal riêng; mở sẵn các tab trình duyệt (§1.3); đăng nhập `operator` / `operator` (DOC-27 §3.1) ở cửa sổ chính, cửa sổ ẩn danh để xem góc nhìn hành khách | UI hiện "Demo Operator" ở góc phải; console hiện "compose", mọi node xanh, không có chấm đỏ ở thanh trên |
 | T−30 | Ấm máy: để hệ thống chạy ở ×1 | Grafana "Pipeline overview": lag ổn định, p95 end-to-end < 10 s |
-| T−12 | `make demo-prewarm` (§1.4) | Demo control có hai dòng trong "Running scenarios" |
+| T−12 | Console: "Seed scenarios" (`make demo-prewarm`, §1.4) | Timeline có hai dòng "Scenario … started"; Demo control có hai dòng trong "Running scenarios" |
 | T−2 | Chạy E2E-DEMO-11 (§9): `make demo-preflight` | In "READY" |
 
 ### 1.3 Tab mở sẵn
 
+0. `http://localhost:8095` (Demo console), tab chiếu chính.
 1. `http://localhost:8080/map?route=18` (Live map, tuyến 18).
 2. `http://localhost:8080/ops/demo` (Demo control).
 3. `http://localhost:8080/alerts`.
@@ -43,14 +47,14 @@ Giao diện hiển thị tiếng Anh; chuỗi trong ngoặc kép là chuỗi đ�
 5. `http://localhost:8080/ops/dlq`.
 6. `http://localhost:8080/ops/jobs`.
 7. `http://localhost:3000/d/pti-overview` (Grafana "Pipeline overview").
-8. Terminal ở thư mục repo, font lớn, lịch sử lệnh đã xóa.
+8. Terminal ở thư mục repo, font lớn, lịch sử lệnh đã xóa. Dùng cho bước 6 và khi phải quay về lệnh `make` (§5).
 9. Cửa sổ ẩn danh: `http://localhost:8080/map` (anonymous).
 
-### 1.4 Gieo kịch bản trước (`make demo-prewarm`)
+### 1.4 Gieo kịch bản trước ("Seed scenarios" hoặc `make demo-prewarm`)
 
 `bunching` cần 5–10 phút để hai xe sát nhau (DOC-25 §7.2) và `disruption` cần vài phút để vượt ngưỡng z-score. Chờ trực tiếp trong lúc trình bày là quá lâu. Vì vậy hai kịch bản được bật trước và người trình bày nói rõ điều đó.
 
-`make demo-prewarm` gọi simulator (`X-Requested-By: cli`):
+Nút "Seed scenarios" và `make demo-prewarm` gọi cùng các request tới simulator (`X-Requested-By: cli`):
 
 ```json
 POST /sim/scenarios/bunching   {"routeId": "18", "directionId": 0, "pairs": 1, "targetGapRatio": 0.15, "duration": "PT45M"}
@@ -63,14 +67,14 @@ Nếu `bunching` trả 409 `no-eligible-vehicles`, lệnh thử lần lượt c�
 
 | Bước | Bắt đầu | Thời lượng | Màn hình chính |
 | --- | --- | --- | --- |
-| 1. Khởi động và live map | T+0 | 2 phút | Live map |
-| 2. Bunching và gợi ý điều phối | T+2 | 3 phút | Demo control, Live map |
+| 1. Khởi động và live map | T+0 | 2 phút | Demo console, Live map |
+| 2. Bunching và gợi ý điều phối | T+2 | 3 phút | Demo console, Live map |
 | 3. Gián đoạn | T+5 | 3 phút | Alerts, Route scorecard |
-| 4. Dữ liệu lỗi, DLQ, auto-replay | T+8 | 4 phút | Demo control, Dead letters, Jobs |
-| 5. Kill consumer, phục hồi, đối chiếu | T+12 | 3 phút | Terminal, Jobs, Grafana |
+| 4. Dữ liệu lỗi, DLQ, auto-replay | T+8 | 4 phút | Demo console, Dead letters, Jobs |
+| 5. Kill consumer, phục hồi, đối chiếu | T+12 | 3 phút | Demo console, Jobs |
 | 6. Sửa record và replay | T+15 | 3 phút | Dead letters, terminal |
 | Chuyển sang k3d (trình bày kết quả EXP trong lúc chờ) | T+18 | ≤ 5 phút | Slide |
-| 7. Scale và chịu lỗi trên k3d | T+23 | 8 phút | Grafana, terminal, Live map |
+| 7. Scale và chịu lỗi trên k3d | T+23 | 8 phút | Demo console, Grafana, Live map |
 
 ## 3. Phần A: compose
 
@@ -78,7 +82,7 @@ Nếu `bunching` trả 409 `no-eligible-vehicles`, lệnh thử lần lượt c�
 
 **Thao tác**
 
-1. Terminal: chỉ vào lệnh `make up-demo` đã chạy (không chạy lại) và kết quả `make smoke`.
+1. Tab 0 (Demo console): sơ đồ kiến trúc với mọi node xanh, mũi tên Simulator → Kafka → etl-stream đang chạy với msg/s. Chỉ vào lệnh `make up-demo` đã chạy trong terminal (không chạy lại).
 2. Tab 1 (Live map).
 
 **Kết quả mong đợi**
@@ -94,9 +98,9 @@ Nếu `bunching` trả 409 `no-eligible-vehicles`, lệnh thử lần lượt c�
 
 **Thao tác**
 
-1. Tab 2 (Demo control). Chỉ vào dòng `bunching · route 18` trong "Running scenarios" đã gieo trước.
-2. Để minh họa thao tác, trên thẻ "Bus bunching" chọn tuyến `5`, bấm "Start". Toast "Bus bunching started" xuất hiện.
-3. **Đồng thời** (không nói tới lúc này): trên thẻ "Late delivery" đặt `ratio` `0.005`, `delay` 6 min, `duration` 1 min, bấm "Start". Kịch bản này phục vụ bước 4.
+1. Tab 0 (Demo console): chỉ vào dòng "Scenario bunching · route 18 started" trên timeline, đã gieo từ T−12.
+2. Để minh họa thao tác, bấm "Start bunching" (tuyến `5`, mặc định). Timeline có "Scenario bunching · route 5 started". Làm thay trên tab 2 (Demo control) cũng được: thẻ "Bus bunching", tuyến `5`, "Start".
+3. **Đồng thời** (không nói tới lúc này): bấm "Start late delivery" (`ratio` `0.005`, `delay` 6 min, `duration` 1 min; trên Demo control là thẻ "Late delivery"). Kịch bản này phục vụ bước 4.
 4. Tab 1, tuyến 18. Bấm xe có vòng halo. Panel "Bus bunching · Route 18 …" mở, với dòng "Suggested action".
 5. Bấm "Accept". Toast "Feedback saved".
 
@@ -132,7 +136,7 @@ Nếu `bunching` trả 409 `no-eligible-vehicles`, lệnh thử lần lượt c�
 
 **Thao tác**
 
-1. Tab 2, thẻ "Bad data": `ratio` `0.01`, `kinds` `out_of_bbox`, `schema_violation`, `unknown_route`, `duration` 3 min. Bấm "Start", rồi "Open dead letters" trên toast.
+1. Tab 0: bấm "Inject bad data" (`ratio` `0.01`, `kinds` `out_of_bbox`, `schema_violation`, `unknown_route`, `duration` 3 min; trên Demo control là thẻ "Bad data"). Ô "DLQ open" bắt đầu tăng và timeline có "DLQ +{n}". Bấm liên kết bước 4 sang Dead letters.
 2. Tab 5 (Dead letters). Thẻ "Open" và "New in last hour" tăng. Trong vài giây cột "Category" chuyển từ "Unclassified" sang "Schema violation" / "Unknown reference". Trạng thái "Needs manual review" hoặc "Awaiting confirmation".
 3. Tab 6 (Jobs): "Streaming throughput" vẫn đều, có cột "Skipped". Pipeline không dừng vì record lỗi.
 4. Quay lại Dead letters, tab "Action log", lọc "Actor" = "Auto-triage". Các record của `late-delivery` (bật ở bước 2, trễ 6 phút) có "Auto-replay scheduled" rồi "Replayed".
@@ -151,15 +155,15 @@ Nếu `bunching` trả 409 `no-eligible-vehicles`, lệnh thử lần lượt c�
 
 **Thao tác**
 
-1. Terminal: `make demo-kill-consumer`, tức `docker compose kill -s KILL etl-stream`, chờ 5 giây, rồi `docker compose start etl-stream` (như EXP-01 `kill-external`; dùng tên service nên đúng với mọi `COMPOSE_PROJECT_NAME`).
-2. Tab 7 (Grafana "Pipeline overview"): lag tăng vọt, trạng thái listener mất, rồi lag giảm về mức cũ trong khoảng 20–40 giây.
+1. Tab 0: bấm "Kill etl-stream", rồi "Confirm: Kill etl-stream" (`make demo-kill-consumer`, tức `docker compose kill -s KILL etl-stream`, chờ 5 giây, rồi `docker compose start etl-stream`, như EXP-01 `kill-external`).
+2. Vẫn ở tab 0: node `etl-stream` chuyển đỏ, cạnh Kafka → etl-stream hiện "consumer down"; timeline có "etl-stream killed (SIGKILL, exit 137)". Sau 5 giây node chuyển vàng ("etl-stream started"), rồi xanh với dòng "etl-stream healthy · {n} messages waited". Lag hiện lại ở mức cao rồi giảm về mức cũ trong khoảng 20–40 giây. Không có console thì xem tab 7 (Grafana "Pipeline overview").
 3. Tab 6 (Jobs): bucket phút vừa qua thấp hơn hẳn. Tooltip các bucket ngay sau đó có "Duplicates" > 0: message đã được giao lại và bị bỏ qua vì trùng.
-4. Terminal: `make demo-check SINCE=10m`.
+4. Tab 0: bấm "Reconcile" (`make demo-check SINCE=10m`). Kết quả hiện thành bảng trên console.
 
 **Kết quả mong đợi**
 
 - `etl-stream` chạy lại, không cần thao tác thêm.
-- `demo-check` in bảng theo bảng đích với `expected`, `lost 0`, `duplicates 0`, `wrong_value 0`, `unexpected 0`, và "PASS".
+- "Reconcile" (hoặc `demo-check`) hiện bảng theo bảng đích với `expected`, `lost 0`, `duplicates 0`, `wrong_value 0`, `unexpected 0`, và "PASS".
 
 **Lời thoại**
 
@@ -190,31 +194,32 @@ Một dòng với tọa độ đã sửa, và `batch_id` của lần replay (kh�
 ### Chuyển môi trường (T+18, trong lúc trình bày slide kết quả EXP-01…05)
 
 1. Terminal: `make demo-switch-k3d`, gồm `make down` (giữ volume compose), `make k8s-start` (khởi động cluster `pti` đã dừng), `make k8s-clock-offset AT=16:40` (cluster dựng từ hôm trước nên offset cũ đã lệch), chờ mọi pod `Ready`, rồi `make k8s-smoke`. Mục tiêu ≤ 5 phút; số đo thật ghi ở §8.
-2. Mở `http://localhost:3000/d/pti-k8s` (Grafana "Kubernetes scaling", DOC-40 §7.6) và `http://localhost:8080/map` (anonymous; `lite` không có Keycloak).
-3. Terminal thứ hai: `kubectl -n pti get pods -l 'app.kubernetes.io/name in (etl-stream,api)' -w`.
+2. Tab 0: bấm "Switch to k3d". Topology đổi sang dạng k3d: 3 chấm broker, 4 ô `etl-stream`, 2 ô Warehouse có nhãn "primary"/"replica".
+3. Mở `http://localhost:3000/d/pti-k8s` (Grafana "Kubernetes scaling", DOC-40 §7.6) và `http://localhost:8080/map` (anonymous; `lite` không có Keycloak).
+4. Dự phòng khi không có console, terminal thứ hai: `kubectl -n pti get pods -w`. Lệnh không lọc label, để thấy cả pod ứng dụng, pod broker `pti-dual-N` và pod `pti-warehouse-N`.
 
 ### Bước 7. Tăng tải → pod tăng theo lag; tắt một broker và failover Postgres → không mất, không trùng
 
 **Thao tác 7a: scale theo lag**
 
-1. `make k8s-load STEPS='1,10' STEP=PT8M`: tải GTFS-rt nhảy lên ×10.
-2. Grafana: lag tăng; "Desired replicas" của `etl-stream` tăng 1 → 2 → 3 → 4, mỗi bước khoảng 60 giây (DOC-40 §9.1); lag giảm khi đủ pod; p95 end-to-end quay về dưới 10 giây.
+1. Tab 0: bấm "Load ×10" (`make k8s-load STEPS='1,10' STEP=PT8M`): tải GTFS-rt nhảy lên ×10.
+2. Tab 0: lag trên cạnh Kafka → etl-stream chuyển vàng rồi đỏ; các ô `etl-stream` sáng dần 1 → 2 → 3 → 4, mỗi bước khoảng 60 giây (DOC-40 §9.1), và timeline ghi "etl-stream scaled {a} → {b} (lag {n})". Lag giảm khi đủ pod; ô "p95 end-to-end" quay về dưới 10 giây. Grafana `pti-k8s` cho thấy cùng diễn biến dạng biểu đồ ("Desired replicas").
 
 **Thao tác 7b: mất một Kafka broker**
 
-1. `kubectl apply -f deploy/chaos/kafka-broker-kill.yaml`.
-2. Terminal: pod `pti-dual-N` bị kill rồi Strimzi tạo lại; bản đồ vẫn cập nhật.
+1. Tab 0: bấm "Kill a Kafka broker", rồi xác nhận (`kubectl apply -f deploy/chaos/kafka-broker-kill.yaml`).
+2. Tab 0: một chấm broker chuyển đỏ, node Kafka chuyển vàng ("degraded") với "{n} under-replicated"; timeline ghi "Pod pti-dual-N deleted", rồi "created", rồi "ready" khi Strimzi tạo lại. Mũi tên Simulator → Kafka vẫn chạy; bản đồ vẫn cập nhật.
 3. Grafana "Kafka": lỗi producer của simulator bằng 0; under-replicated partition tăng rồi về 0.
 
 **Thao tác 7c: failover Postgres**
 
-1. `make demo-pg-failover`: xóa pod primary của `pti-warehouse` (`--grace-period=0 --force`), rồi `kubectl cnpg status pti-warehouse -n pti` mỗi 5 giây.
-2. Primary mới sau khoảng 10–30 giây. Pod `etl-stream` chuyển `0/1` rồi `1/1` (readiness), **RESTARTS vẫn 0**. Bản đồ vẫn hiện xe vì API đọc qua replica hoặc tự rơi về primary (DOC-40 §9.5).
+1. Tab 0: bấm "Fail over Postgres", rồi xác nhận (`make demo-pg-failover`: xóa pod primary của `pti-warehouse` bằng `--grace-period=0 --force`, rồi theo dõi `kubectl cnpg status pti-warehouse -n pti`).
+2. Tab 0: ô primary chuyển đỏ; sau khoảng 10–30 giây nhãn "primary" chuyển sang ô còn lại và timeline ghi "Postgres primary → pti-warehouse-N". Các ô `etl-stream` chuyển vàng rồi xanh lại (readiness), **RESTARTS vẫn 0**. Bản đồ vẫn hiện xe vì API đọc qua replica hoặc tự rơi về primary (DOC-40 §9.5).
 
 **Thao tác 7d: đối chiếu**
 
-1. `make k8s-load STEPS='1' STEP=PT1M` để về ×1, chờ lag về mức nền.
-2. `make demo-check ENV=k3d SINCE=15m`: "PASS", `lost 0`, `duplicates 0`.
+1. Tab 0: bấm "Back to ×1" (`make k8s-load STEPS='1' STEP=PT1M`), chờ lag về mức nền.
+2. Tab 0: bấm "Reconcile" (`make demo-check ENV=k3d SINCE=15m`): "PASS", `lost 0`, `duplicates 0`.
 
 **Kết quả mong đợi**
 
@@ -242,6 +247,7 @@ Một dòng với tọa độ đã sửa, và `batch_id` của lần replay (kh�
 | `demo-switch-k3d` quá 5 phút hoặc lỗi | Pod không `Ready` | Tiếp tục slide; quá 8 phút thì chiếu `step7.mp4` và trình bày số liệu EXP-07/08 |
 | Pod không scale ở 7a | "Desired replicas" không tăng sau 3 phút | Kiểm `kubectl -n pti get scaledobject etl-stream` (`READY`, `ACTIVE`); có thể đang bị luật chặn DB (`pti:chunk_duration:p95_5m > 2`): giải thích đây là luật chặn của SDD §12.7 và chiếu phần 7a của bản ghi |
 | Failover chưa xong sau 60 giây | `kubectl cnpg status` chưa có primary | Chờ thêm; quá 2 phút thì RB-08 và chiếu phần 7c của bản ghi |
+| Demo console không phản hồi, hoặc trạng thái trên console khác thực tế | Trang báo "Reconnecting…" quá 10 giây, hoặc nút báo lỗi mà terminal cho thấy lệnh chạy được | Không dừng buổi demo: làm tiếp bằng lệnh `make` tương đương (DOC-48 §7) và tab Grafana; trong lúc nói, `Ctrl-C` rồi chạy lại `make demo-console` ở terminal riêng |
 | Mất Wi-Fi hoặc máy chiếu chặn mạng | — | Không ảnh hưởng: mọi thứ chạy offline (§6) |
 
 ## 6. Chế độ offline (P8-04)
@@ -253,6 +259,7 @@ Demo không cần Internet nếu các điều kiện sau đã đúng từ hôm t
 | Image compose | Đã build hoặc pull mọi image (`make images`, `docker compose pull` cho image hạ tầng) | `make demo-preflight` kiểm `docker image inspect` từng image trong `deploy/versions.env` |
 | Bản đồ | PMTiles, font và sprite nằm trong `deploy/tiles` (DR-47, ADR-0021) | Tắt Wi-Fi, mở Live map: nền bản đồ đầy đủ |
 | Đăng nhập | Keycloak cục bộ, realm import từ file | — |
+| Demo console | Entry `frontend/console/` đã build (`dist-console/`), môi trường uv của `experiments/` đã `uv sync`; console chỉ gọi `localhost` | Tắt Wi-Fi, chạy `make demo-console`: trang mở và topology có dữ liệu |
 | AI triage | `PTI_TRIAGE_PROVIDER=fake`, mặc định của `make up-demo` (ADR-0018) | Drawer Dead letters có "Model fake@2026.09 · …" (DOC-24 §4.3) |
 | k3d | Cluster đã dựng rồi `make k8s-stop`: image nằm sẵn trong node và registry cục bộ; `make k8s-start` không kéo image hay chart nào. `lite` gọi `jev-stub` trong cluster, không gọi Jev thật | Tắt Wi-Fi ở lần diễn tập cuối, chạy `make demo-switch-k3d` |
 
@@ -267,6 +274,8 @@ Diễn tập cuối cùng (P8-05) phải làm với Wi-Fi tắt từ đầu tớ
 Reset không động tới `.env` và khóa niêm phong.
 
 ## 8. Nhật ký diễn tập
+
+Thời gian từng bước lấy từ nhật ký hành động của console (`~/pti-demo/console-log/*.jsonl`, DOC-48 §11); bước không bấm trên console thì bấm giờ tay.
 
 | Lần | Ngày | Offline | Thời gian từng bước (1…7, chuyển môi trường) | Lỗi gặp | Sửa |
 | --- | --- | --- | --- | --- | --- |
@@ -288,6 +297,7 @@ Reset không động tới `.env` và khóa niêm phong.
 | `make demo-switch-k3d` | `down`, `k8s-start`, `k8s-clock-offset AT=16:40`, chờ `Ready`, `k8s-smoke` |
 | `make demo-switch-compose` | `k8s-stop`, `up-demo`, `smoke` |
 | `make demo-pg-failover` | Xóa pod primary `pti-warehouse`, theo dõi `kubectl cnpg status` tới khi có primary mới và `readyInstances = 2` |
+| `make demo-console [ENV=compose\|k3d]` | Mở demo console ở `http://localhost:8095` (DOC-48 §3.2). Mỗi nút trên console tương đương một lệnh trong bảng này (DOC-48 §7) |
 
 ### 9.2 Test bắt buộc
 

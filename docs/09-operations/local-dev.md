@@ -193,6 +193,7 @@ Kịch bản, thứ tự dùng và phương án dự phòng ở DOC-46.
 | `make demo-switch-k3d` | `down`, `k8s-start`, `k8s-clock-offset AT=16:40`, chờ pod `Ready`, `k8s-smoke` |
 | `make demo-switch-compose` | `k8s-stop`, `up-demo`, `smoke` |
 | `make demo-pg-failover` | Xóa pod primary của `pti-warehouse` trên k3d và theo dõi tới khi có primary mới |
+| `make demo-console [ENV=compose\|k3d]` | Build entry `frontend/console/` nếu đổi, rồi `uv run --project experiments pti-exp console --env $ENV` và mở `http://localhost:8095` (DOC-48 §3.2) |
 
 ## 5. Bảng cổng
 
@@ -221,6 +222,7 @@ Mọi cổng chỉ bind vào `127.0.0.1`, không mở ra mạng LAN. Trong mạn
 | toxiproxy | experiment | 8474 → 8474 | API điều khiển proxy lỗi mạng |
 | kafka-ui | tools | 8088 → 8080 | Xem topic và message qua web (tùy chọn) |
 | Vite dev server | — (chạy ngoài compose) | 5173 | `pnpm dev` |
+| Demo console | — (chạy trên host) | 8095; 5174 khi `pnpm dev:console` | `make demo-console` (DOC-48). Cùng cổng khi chạy với k3d |
 
 Nếu một cổng đã bị chiếm (ví dụ có Postgres cài sẵn ở 5432 thì không sao vì dự án dùng 15432), đổi cổng host bằng biến trong `.env` (`HOST_PORT_<SERVICE>`, DOC-39 §5). Không đổi cổng trong container.
 

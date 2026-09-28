@@ -43,7 +43,7 @@ Tài liệu này là phần dùng chung cho mọi thực nghiệm: môi trườn
 experiments/
   pyproject.toml, uv.lock
   pti_exp/
-    cli.py                # typer: run, analyze, report, env, label (EXP-06), check (demo), sensitivity (DOC-47)
+    cli.py                # typer: run, analyze, report, env, label (EXP-06), check (demo), sensitivity (DOC-47), console (DOC-48)
     env/compose.py        # docker SDK: kill/start/pause container, make targets
     env/k3d.py            # kubectl, port-forward, KEDA pause annotation, Chaos Mesh CR, cnpg promote, Toxiproxy (P7)
     sim.py                # /sim/status, /sim/rate, /sim/scenarios
@@ -57,6 +57,7 @@ experiments/
     stats.py              # CI, bootstrap, paired tests
     labeling.py           # blind labelling CLI and Cohen's kappa (EXP-06)
     experiments/exp01.py … exp08.py
+    console/              # demo console backend (FastAPI), reuses env/, sim.py and check (DOC-48 §3.1)
   sql/
     checksum/<table>.sql  # DR-58, shared with WarehouseAssert (DOC-44 §5.3)
     expected/*.sql, actual/*.sql
@@ -73,6 +74,7 @@ uv run pti-exp analyze EXP-01 --series 2026-10-12T0930
 uv run pti-exp report                         # regenerates tables and charts for DOC-45
 uv run pti-exp check --since 10m [--env k3d]   # live reconciliation for the demo (DOC-46)
 uv run pti-exp sensitivity --hours 6            # analytics threshold sweep for the report (DOC-47 §6)
+uv run pti-exp console --env compose            # demo console on 127.0.0.1:8095 (DOC-48)
 ```
 
 `check` là phép đối chiếu §4.1 trên stack đang chạy, không tạo lần chạy và không ghi `results/`. Nó dùng cho demo bước 5 và 7 (`make demo-check`, DOC-46 §9.1) và cho E2E-DEMO-12, E2E-DEMO-13:

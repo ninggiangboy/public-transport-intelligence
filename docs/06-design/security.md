@@ -193,6 +193,7 @@ DOC-31 §11 (rate limit), DOC-26 §7 (kết nối SSE), DOC-31 §3 (body ≤ 1 M
 - Nginx trả 404 cho `/internal/` (DOC-26 §10); compose không publish cổng nào khác của `api` ngoài 8081 (bind `127.0.0.1`) và 9081 (Actuator). Trên k3d, NetworkPolicy chỉ cho `alertmanager` gọi `/internal/**` (không phân biệt path ở L4, nên kiểm tra token vẫn là lớp chính).
 - Actuator chỉ ở cổng quản trị (`management.server.port=9080`), expose `health`, `info`, `prometheus`; `health` hiện chi tiết chỉ khi `show-details=when-authorized` và không có ai được authorized (tức chỉ trạng thái tổng). Prometheus scrape qua mạng nội bộ.
 - API điều khiển simulator không xác thực (DOC-25 §8) nhưng chỉ bind `127.0.0.1` trên host; người dùng UI đi qua proxy E-90 (operator, profile `demo`).
+- Demo console (DOC-48, DR-87) không thuộc sản phẩm. Nó chạy trên host, chỉ bind `127.0.0.1:8095`, và điều khiển docker cùng cluster bằng quyền của người chạy, giống runner thực nghiệm. Vì không xác thực, console bắt buộc có header `X-PTI-Console: 1` cho mọi request không phải `GET` (trình duyệt phải gửi preflight, còn server không trả header CORS), kiểm `Origin` và `Host` để chặn CSRF và DNS rebinding, và chỉ chạy được các hành động trong danh mục cố định (DOC-48 §9).
 
 ## 7. Secret
 
@@ -252,6 +253,8 @@ Theo DOC-41: `gitleaks`; SpotBugs (+ FindSecBugs); OWASP Dependency-Check (chặ
 | | I | Đọc raw zone có `customer_ref` | Credential S3 riêng, API không có |
 | TB-2 → TB-3 | I | Rò PII sang Jev | Blocklist có test, state PII-free (DR-60) |
 | | D | Jev chậm làm nghẽn pipeline | Timeout 2 s, circuit breaker, bulkhead (DOC-24) |
+| Trình duyệt → demo console (host) | S, E | Trang web lạ gửi request tới `localhost:8095` để kill container | Header `X-PTI-Console` buộc preflight, không có CORS, kiểm `Origin`, `Host` (DOC-48 §9) |
+| | E | Chèn lệnh qua tham số hành động | Danh mục hành động cố định, Pydantic, `subprocess` nhận list |
 
 ## 12. Rủi ro được chấp nhận
 
@@ -269,6 +272,7 @@ Theo DOC-41: `gitleaks`; SpotBugs (+ FindSecBugs); OWASP Dependency-Check (chặ
 | AR-10 | k3d `lite` dùng JWT ký bằng key tĩnh | Không đủ RAM cho Keycloak khi test tải | Chỉ values `lite`; `StaticJwtGuard`; token có TTL |
 | AR-11 | Viewer đọc được payload DLQ | Cần để điều tra; payload đã loại PII khi ghi | DOC-18 §4 |
 | AR-12 | API công khai không có CAPTCHA hay xác thực | Hành khách không đăng nhập (DR-40) | Rate limit, dữ liệu công khai theo bản chất |
+| AR-13 | Demo console không xác thực mà điều khiển được docker và cluster | Chỉ chạy trên máy demo; ai mở được `localhost` trên máy đó vốn đã có quyền docker và `kubectl` (DR-87) | Bind `127.0.0.1`, chặn CSRF và DNS rebinding, danh mục hành động cố định, không đóng gói vào image (DOC-48 §9) |
 
 ## 13. Cấu hình
 

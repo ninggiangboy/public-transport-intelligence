@@ -1,6 +1,6 @@
 # Màn hình: Demo control
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-27 · DOC-36
+> Trạng thái: **Review** · Cập nhật: 2026-09-28 · DOC-36
 > Phụ thuộc: DOC-34, DOC-35, DOC-37 §2.3, DOC-32 E-90, DOC-25 §3, §6.5, §7–8, DOC-30 §3
 > Người dùng chính: P5-13
 
@@ -8,6 +8,7 @@
 
 - **Persona:** PS-5 (người trình bày demo, desktop, thường chiếu màn hình).
 - **Use case:** UC-16 (chạy kịch bản simulator), demo script DOC-46 bước 2–7.
+- **Quan hệ với demo console (DOC-48):** màn này là tính năng sản phẩm, chạy mọi kịch bản với tham số tùy ý. Demo console là công cụ trình diễn ngoài sản phẩm: nó chỉ có các hành động cố định của DOC-46, cộng thao tác hạ tầng, và liên kết sang màn này bằng "Open Demo control". Hai nơi cùng gọi `/sim/*`, nên lần chạy bắt đầu từ console vẫn hiện trong "Running scenarios" và "History" ở đây, với `requestedBy` là `cli` ("Command line").
 - **Quyền:** operator **và** `demoControl = true` trong `env.js` (profile `demo`, DOC-34 §12). Thiếu một trong hai: mục "Demo" không có trong menu; mở URL trực tiếp → viewer: DOC-37 §2.5 "You don't have access to this page"; operator khi `demoControl = false` hoặc API trả 404 → trạng thái "Demo control is not enabled on this server."
 
 ## 2. URL và search params

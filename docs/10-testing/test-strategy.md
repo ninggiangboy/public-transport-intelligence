@@ -359,6 +359,7 @@ Không chạy test hiệu năng trên runner PR: runner dùng chung cho kết qu
 | DS-01…DS-10 | Design system | DOC-35 §11 | Component |
 | CP-01…CP-10 | Trạng thái UI, microcopy | DOC-37 §7 | Component |
 | E2E-… | Luồng màn hình | DOC-36 (P5), DOC-24 §20 (`E2E-TRIAGE-*`, P6), DOC-36 Demo control (`E2E-DEMO-01…04`), DOC-46 (`E2E-DEMO-11…13`, script shell trong `full-stack.yml`) | E2E |
+| DC-01…DC-14 | Demo console | DOC-48 §13 | pytest, Vitest, thủ công (DC-13, DC-14) |
 | EXP-01…08 | Thực nghiệm | DOC-45 | Thực nghiệm |
 
 Mọi tài liệu thiết kế đã có tiền tố trong bảng. Tài liệu mới phải thêm tiền tố vào đây trong cùng PR; `testIdReport` báo lỗi khi gặp tiền tố không có trong bảng.

@@ -137,6 +137,7 @@ docs/
     observability.md                # DOC-28
     configuration-reference.md      # DOC-29
     error-handling.md               # DOC-30
+    demo-console.md                 # DOC-48
   07-api/
     api-guidelines.md               # DOC-31
     api-endpoints.md                # DOC-32
@@ -269,6 +270,7 @@ Mỗi tài liệu trong nhóm này có khung chung: **Mục đích → Phạm vi
 | 28 | observability | **Danh mục metric** (tên, loại, label, service phát, ý nghĩa), gồm các metric trong SDD 12.1 và DR-57. Các trường log bắt buộc (`trace_id, span_id, batch_id, service, source`). Danh sách span. Lan truyền trace qua Kafka header. Grafana dashboard (danh sách panel). **Alert rule viết bằng PromQL** cho 9 cảnh báo trong SDD 12.2, kèm link runbook. Kênh gửi (DR-51) | P3 |
 | 29 | configuration-reference | Với mỗi app: bảng key, kiểu, mặc định, biến môi trường tương ứng, profile, mô tả. Gom theo prefix `pti.*`. Bảng `runtime_flag` | Cập nhật liên tục; khung có ở P1 |
 | 30 | error-handling | Phân loại lỗi (DR-23). Ánh xạ SQLState và exception → loại lỗi → hành động. Ánh xạ exception → HTTP status → Problem type URI. Quy ước log lỗi | P2 |
+| 48 | demo-console | Công cụ trình diễn, không phải tính năng sản phẩm (DR-87). Ranh giới với Demo control. Bố cục màn hình, topology theo môi trường và bảng trạng thái → tông. Nguồn dữ liệu (docker events, `kubectl` watch, Prometheus, `/sim/*`) và query. API REST + SSE của console. **Danh mục hành động cố định**, mỗi hành động có lệnh `make` tương đương. Bảo vệ localhost (CSRF, DNS rebinding). Test DC-xx | P8 (P8-08) |
 
 #### Nhóm API
 
@@ -353,8 +355,8 @@ Mỗi tài liệu trong nhóm này có khung chung: **Mục đích → Phạm vi
 | P5 | Dashboard | 3–4 tuần | M5: UI đầy đủ, real-time |
 | P6 | AI triage | 2–3 tuần | M6: triage, auto-replay, gợi ý trên UI |
 | P7 | Kubernetes và chịu lỗi | 3 tuần | M7: tự scale, tự phục hồi; có số liệu EXP-07/08 |
-| P8 | Hoàn thiện | 2 tuần | M8: sẵn sàng bảo vệ |
-| | **Tổng** | **~22–28 tuần** | Làm bán thời gian thì nhân khoảng 1,8 |
+| P8 | Hoàn thiện | 2 tuần, thêm 1,5–2 tuần nếu làm demo console (P8-08) | M8: sẵn sàng bảo vệ |
+| | **Tổng** | **~22–30 tuần** | Làm bán thời gian thì nhân khoảng 1,8 |
 
 Con số chỉ để lập kế hoạch. Cần hiệu chỉnh lại sau mỗi milestone dựa trên tốc độ thực tế.
 
@@ -380,7 +382,7 @@ P3 và P4 có thể chạy song song nếu có hai người. Nếu chỉ một n
 
 > **Đã chốt: làm đầy đủ phạm vi.** Thứ tự dưới đây chỉ là phương án dự phòng, dùng khi một milestone trễ quá 50% so với ước lượng.
 
-Gợi ý điều phối (P6-07) → EXP-06 (P6-11) → ticketing anomaly (P6-05) → OTP (P4-06) → Kubernetes (P7; khi đó EXP-08 chạy trên compose bằng `docker kill`/`docker pause` và Toxiproxy). **P1–P3 không được cắt.**
+Demo console (P8-08; demo quay về terminal và Grafana theo DOC-46) → gợi ý điều phối (P6-07) → EXP-06 (P6-11) → ticketing anomaly (P6-05) → OTP (P4-06) → Kubernetes (P7; khi đó EXP-08 chạy trên compose bằng `docker kill`/`docker pause` và Toxiproxy). **P1–P3 không được cắt.**
 
 ---
 
@@ -592,6 +594,7 @@ Mục tiêu: không còn câu hỏi nào có thể chặn P1–P2.
 | P8-05 | Diễn tập kịch bản demo ít nhất 3 lần; ghi lại lỗi và sửa | Checklist trong DOC-46 | P8-04 | DOC-46 |
 | P8-06 | Chuẩn bị báo cáo theo DOC-47 §9; tùy chọn: `pti-exp sensitivity` và phân tích độ nhạy ngưỡng (DOC-47 §6) | Số liệu, hình trong báo cáo truy được về `experiments/results/` | P7-10 | DOC-47 |
 | P8-07 | Tag `v1.0.0`, ghi changelog | Release | P8-02 | — |
+| P8-08 | Demo console (DR-87): `pti-exp console` (FastAPI) dùng lại adapter của runner; entry Vite `frontend/console/` với topology, timeline, dải chỉ số, runbook; danh mục hành động DOC-48 §7; `make demo-console`. **Cắt được**: không có thì demo chạy bằng terminal như DOC-46 | DC-01…12 xanh trong `pr.yml`; DC-13, DC-14 đạt trong một lần diễn tập P8-05 | P8-04 | DOC-48, DOC-46 |
 
 ---
 
