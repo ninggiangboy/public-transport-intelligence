@@ -1,6 +1,6 @@
 # Dữ liệu nguồn
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-28 · DOC-13
+> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-13
 > Phụ thuộc: [DR](../00-decision-register.md) (DR-01, 02, 06, 08, 09, 28, 60, 64), [DOC-09](../03-architecture/messaging-contracts.md), [DOC-14](warehouse-model.md), [DOC-17](db-roles-and-grants.md)
 > Người dùng chính: người viết `common` (P1-07), simulator (P1-08…P1-11), `GtfsStaticLoadJob` (P2), experiment runner (P3)
 

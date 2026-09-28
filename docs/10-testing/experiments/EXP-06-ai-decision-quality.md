@@ -1,6 +1,6 @@
 # EXP-06: Chất lượng quyết định của Jev so với bộ luật
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-28 · DOC-45 / EXP-06
+> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-45 / EXP-06
 >
 > Phụ thuộc: [protocol chung](README.md), [DOC-24](../../06-design/ai-triage.md) §6, §7, §8, §11, §13, §14.1, §15, [DOC-25](../../06-design/source-simulator.md) §7.3, §7.4, §7.6, §7.7, §7.9, [ADR-0018](../../04-adr/0018-decision-model-port.md), [ADR-0019](../../04-adr/0019-code-owned-automation-thresholds.md), DR-36, DR-52, DR-73, G8 (DOC-01)
 >

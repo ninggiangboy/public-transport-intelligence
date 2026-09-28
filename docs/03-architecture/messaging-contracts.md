@@ -1,6 +1,6 @@
 # Hợp đồng message
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-28 · DOC-09
+> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-09
 > Phụ thuộc: [DR](../00-decision-register.md) (DR-03, 04, 05, 07, 41, 57, 59, 63, 64), [ADR-0007](../04-adr/0007-json-envelope-for-gtfs-rt.md), [ADR-0008](../04-adr/0008-partition-key-route-id.md), [ADR-0012](../04-adr/0012-raw-zone-s3-sink.md), [DOC-07](system-context-and-containers.md)
 
 Tài liệu này là **hợp đồng** giữa producer và consumer. Thay đổi bất kỳ mục nào ở đây là thay đổi hợp đồng và phải theo quy tắc ở §8.

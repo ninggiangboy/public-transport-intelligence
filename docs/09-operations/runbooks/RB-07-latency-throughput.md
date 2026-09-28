@@ -1,6 +1,6 @@
 # RB-07: Độ trễ cao, thông lượng giảm, simulator chậm
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-27 · DOC-42 / RB-07
+> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-42 / RB-07
 >
 > Alert: `EndToEndLatencyHigh` (warning, 5 phút; từ P4-16), `LatencyStageSlow` (info, 5 phút), `ThroughputDrop` (warning, 10 phút), `SimulatorLagging` (warning, 2 phút) · Dashboard: `pti-overview` (bốn chặng), `pti-simulator`, `pti-jvm` · Liên quan: DOC-10 §2 (ngân sách độ trễ), DR-57, DR-68, DOC-25 §6.5
 

@@ -1,6 +1,6 @@
 # RB-11: Dựng lại warehouse từ raw zone
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-27 · DOC-42 / RB-11
+> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-42 / RB-11
 >
 > Thủ tục (không gắn alert) · UC-18, FR-12.3 · Liên quan: DOC-43 §4.3 (đường B), DOC-22 §4 (replay raw zone), DOC-18 §1.4 và §2 (retention, bố cục raw zone), EXP-04
 

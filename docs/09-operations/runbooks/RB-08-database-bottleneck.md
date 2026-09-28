@@ -1,6 +1,6 @@
 # RB-08: Nghẽn database và circuit breaker mở
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-27 · DOC-42 / RB-08
+> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-42 / RB-08
 >
 > Alert: `DatabaseBottleneck` (warning, 5 phút), `CircuitBreakerOpen` (warning, 1 phút) · Dashboard: `pti-postgres`, `pti-overview`, `pti-jvm` (Hikari) · Liên quan: DOC-10 §4 (pool), DOC-20 §5.2 (circuit breaker), DOC-18 (vacuum, partition), DOC-39 §3.6 (Toxiproxy)
 

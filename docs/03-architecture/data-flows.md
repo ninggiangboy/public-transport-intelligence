@@ -1,6 +1,6 @@
 # Luồng dữ liệu
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-27 · DOC-08
+> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-08
 > Phụ thuộc: [DOC-07](system-context-and-containers.md), [DOC-09](messaging-contracts.md), [DOC-19](../06-design/batch-and-chunk-processing.md), [DOC-20](../06-design/etl-streaming.md), [DOC-21](../06-design/etl-gtfs-static.md), [DOC-22](../06-design/dlq-and-replay.md), [ADR-0003](../04-adr/0003-effectively-once-upsert.md), [ADR-0004](../04-adr/0004-offset-commit-after-transaction.md), [ADR-0013](../04-adr/0013-replay-request-api-etl-executes.md), [DR](../00-decision-register.md) (DR-35, 37, 38, 41, 42, 57)
 > Người dùng chính: mọi người đọc cần hình dung hệ thống chạy thế nào trước khi vào tài liệu thiết kế chi tiết
 

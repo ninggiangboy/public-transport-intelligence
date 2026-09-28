@@ -1,6 +1,6 @@
 # EXP-08: Chịu lỗi khi triển khai trên k3d
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-28 · DOC-45 / EXP-08
+> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-45 / EXP-08
 >
 > Phụ thuộc: [protocol chung](README.md), [EXP-01](EXP-01-crash-recovery.md), [EXP-04](EXP-04-full-replay.md), [DOC-40](../../09-operations/deploy-k8s.md) §6, §7.2, §9.5, §13, §17 (KD-08, KD-09, KD-10), DOC-10 §6, DOC-19 §7.2, DOC-20 §5, §7, DOC-24 §11 (TG-35), DOC-26 §7, DR-20, DR-24, DR-55, ADR-0003, ADR-0004, ADR-0028
 >

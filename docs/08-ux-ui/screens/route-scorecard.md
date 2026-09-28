@@ -1,6 +1,6 @@
 # Màn hình: Route scorecard và chi tiết tuyến
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-28 · DOC-36
+> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-36
 > Phụ thuộc: DR-88, DOC-34, DOC-35 §5.7, §7, DOC-37, DOC-32 (E-01, E-03, E-04, E-12, E-13, E-14), DOC-23 §6–8
 > Người dùng chính: P5-08
 

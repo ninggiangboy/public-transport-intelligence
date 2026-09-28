@@ -1,6 +1,6 @@
 # Màn hình: Ops console — Pipeline (jobs) và batch lineage
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-28 · DOC-36
+> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-36
 > Phụ thuộc: DR-88, DOC-34, DOC-35 §5, §7, DOC-37 §3.3, §4, DOC-32 (E-30…E-37, E-52), DOC-33 §5.7, DOC-19 §2, DOC-28
 > Người dùng chính: P5-09
 

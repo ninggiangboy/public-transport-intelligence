@@ -1,6 +1,6 @@
 # RB-05: Feed GTFS tĩnh bị từ chối, sắp hết hạn, hoặc không nạp được lần đầu
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-27 · DOC-42 / RB-05
+> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-42 / RB-05
 >
 > Alert: `GtfsFeedRejected` (warning), `GtfsFeedExpiring` (warning, 1 giờ), bootstrap thất bại (qua `BatchJobFailed`) · Dashboard: `pti-batch` · Liên quan: DOC-13, DOC-14 §6, DOC-21, DOC-25 §3.2
 

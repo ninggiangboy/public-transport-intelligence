@@ -1,6 +1,6 @@
 # Backup và khôi phục
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-27 · DOC-43
+> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-43
 >
 > Phụ thuộc: SDD §12.6, DOC-14 §7.4, §8, DOC-17 §3, DOC-18 §1, §6, DOC-21 §1, DOC-22 §4–6, DOC-38 §4, DOC-39 §6, DR-16, DR-64, DR-66, DR-70, EXP-04
 >

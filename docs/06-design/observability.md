@@ -1,6 +1,6 @@
 # Observability: metric, log, trace, dashboard, alert
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-28 · DOC-28
+> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-28
 >
 > Phụ thuộc: DR-50, DR-51, DR-57, DR-71, ADR-0022, DOC-10 §2, DOC-16 §4, DOC-19 §10, DOC-20 §12, DOC-21 §8, DOC-22 §9, DOC-23 §14, DOC-25 §12, DOC-30 §4–5, DOC-39 §3.7
 >

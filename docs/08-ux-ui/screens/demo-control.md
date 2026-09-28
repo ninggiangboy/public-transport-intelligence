@@ -1,6 +1,6 @@
 # Màn hình: Demo control
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-28 · DOC-36
+> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-36
 > Phụ thuộc: DR-88, DOC-34, DOC-35, DOC-37 §2.3, DOC-32 E-90, DOC-25 §3, §6.5, §7–8, DOC-30 §3
 > Người dùng chính: P5-13
 

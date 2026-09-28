@@ -1,6 +1,6 @@
 # Môi trường dev cục bộ
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-28 · DOC-38
+> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-38
 > Phụ thuộc: [DOC-10](../03-architecture/quality-attributes.md) §5, [DOC-11](../03-architecture/tech-stack-and-versions.md), [DOC-17](../05-data/db-roles-and-grants.md) §6, [DOC-25](../06-design/source-simulator.md), [DOC-39](deploy-compose.md), [DR](../00-decision-register.md) (DR-40, 56, 61, 66, 67)
 > Người dùng chính: mọi người phát triển; P1-01, P1-15; kiểm chứng NFR-07
 

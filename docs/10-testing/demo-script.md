@@ -1,6 +1,6 @@
 # Kịch bản demo
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-28 · DOC-46
+> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-46
 > Phụ thuộc: SDD §14.1, [DOC-25](../06-design/source-simulator.md) §7, [DOC-24](../06-design/ai-triage.md) §6.4, [DOC-27](../06-design/security.md) §3.1, [DOC-36](../08-ux-ui/screens/README.md) (Live map, Alert feed, Route scorecard, Dead letters, Pipeline, Demo scenarios), [DOC-38](../09-operations/local-dev.md) §4, [DOC-39](../09-operations/deploy-compose.md) §2, [DOC-40](../09-operations/deploy-k8s.md) §13–14, [DOC-45](experiments/README.md), [EXP-07](experiments/EXP-07-autoscaling.md), [EXP-08](experiments/EXP-08-chaos.md), [DOC-48](../06-design/demo-console.md), [DR](../00-decision-register.md) (DR-47, DR-49, DR-87)
 > Người dùng chính: người trình bày (PS-5), P8-04, P8-05, P8-08
 

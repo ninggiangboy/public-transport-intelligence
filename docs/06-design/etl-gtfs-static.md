@@ -1,6 +1,6 @@
 # ETL GTFS static
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-28 · DOC-21
+> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-21
 > Phụ thuộc: [DOC-13](../05-data/source-data.md) §2–3, [DOC-14](../05-data/warehouse-model.md) §4–6, [DOC-18](../05-data/data-lifecycle.md), [DOC-19](batch-and-chunk-processing.md), [ADR-0009](../04-adr/0009-gtfs-feed-versioning.md), [ADR-0012](../04-adr/0012-raw-zone-s3-sink.md), [DR](../00-decision-register.md) (DR-02, 09, 10, 12, 24, 67)
 > Người dùng chính: `etl` profile `batch` (P2-11), `etl` profile `stream` (§6), DOC-16 (rule DQ dùng `ReferenceData`)
 

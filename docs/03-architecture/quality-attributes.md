@@ -1,6 +1,6 @@
 # Thuộc tính chất lượng
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-28 · DOC-10
+> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-10
 > Phụ thuộc: [DOC-03 §2](../01-product/requirements.md), [DR](../00-decision-register.md) (DR-15, 16, 21–24, 57, 64, 65), [DOC-07](system-context-and-containers.md), [DOC-09](messaging-contracts.md)
 
 Mọi con số ở §2 và §3 **tính từ feed thật** (`sample-data/gtfs/metrotransit-mn-20260926.zip`, ngày thường 2026-09-29), bằng script `sample-data/gtfs/volume_profile.py`. Ngân sách RAM ở §5 là **kế hoạch**; spike S-03 (P0-04) đo thực tế và cập nhật bảng.

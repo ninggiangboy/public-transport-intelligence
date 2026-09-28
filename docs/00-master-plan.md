@@ -1,6 +1,6 @@
 # Master Plan: xây dựng Public Transport Intelligence từ đầu đến cuối
 
-> Trạng thái: **Review v1.0** · Cập nhật: 2026-09-28 · Đi kèm: [00-decision-register.md](00-decision-register.md) · Nguồn: `public-transport-intelligence.md` (**SDD gốc**)
+> Trạng thái: **Approved v1.0** · Cập nhật: 2026-09-28 · Đi kèm: [00-decision-register.md](00-decision-register.md) · Nguồn: `public-transport-intelligence.md` (**SDD gốc**)
 
 Tài liệu này là bản hướng dẫn tổng. Nó gồm:
 
@@ -404,13 +404,13 @@ Mục tiêu: không còn câu hỏi nào có thể chặn P1–P2.
 | P0-05 | ~~S-04 Image Kafka Connect~~ **Xong 2026-09-28** (kết quả ở ADR-0012, quyết định mới DR-81; spike `spikes/s04-kafka-connect/`): Debezium 3.6.3 và Aiven S3 sink 3.4.3 chạy được với SeaweedFS (DR-66); value lưu base64, `file.max.records=2000`, Connect 1.280 MB | Dockerfile cùng một connector chạy thử | — | ADR-0012 |
 | P0-06 | ~~S-05 PMTiles~~ **Xong 2026-09-28** (kết quả ở ADR-0021, quyết định mới DR-82; spike `spikes/s05-pmtiles/`): cắt vùng bản đồ theo bbox của feed (84 MB), hiển thị bằng MapLibre 6 hoàn toàn offline | File `.pmtiles` và trang HTML thử | P0-03 | ADR-0021 |
 | P0-07 | ~~S-06 Tương thích Spring Boot 4.1 / Java 25~~ **Xong 2026-09-28** (kết quả ở DR-53, quyết định mới DR-80; app mẫu `spikes/s06-boot41-java25/`) (DR-53): một app mẫu chạy được với Spring Batch 6 (fault-tolerant step, JobRepository JDBC, restart), Spring Kafka, ShedLock, Spring Cloud AWS S3, Resilience4j, springdoc, Testcontainers, Micrometer Tracing, Jib; xác minh đủ các điểm về Spring Batch trong DR-53 | ADR-0029 cùng bảng tương thích trong DOC-11 | — | DOC-11 |
-| P0-08 | Viết DOC-06 Glossary — **Đã viết, trạng thái Review** | Approved | P0-01 | DOC-06 |
-| P0-09 | Viết DOC-01, 02, 03, 04, 05 — **Đã viết, trạng thái Review** | Approved; FR có acceptance criteria | P0-08 | DOC-01…05 |
-| P0-10 | Viết DOC-07, 09, 10, 11 — **Đã viết, trạng thái Review** | Approved | P0-01 | DOC-07…11 |
-| P0-11 | Viết ADR gate P1 (0001, 0002, 0003, 0007, 0008, 0009, 0011, 0012, 0014, 0024) — **Đã viết, trạng thái Review** | Approved | P0-01 | DOC-12 |
-| P0-12 | Viết DOC-13, 14, 17 và khung DOC-29 — **Đã viết, trạng thái Review** | DDL chạy được trên Postgres local (psql) | P0-10 | DOC-13, 14, 17, 29 |
-| P0-13 | Viết DOC-38, 39 và khung DOC-41 — **Đã viết, trạng thái Review** | Approved | P0-04 | DOC-38, 39, 41 |
-| P0-14 | Viết khung DOC-25 (simulator cơ bản) — **Đã viết, trạng thái Review** | Mô hình chuyển động và mô hình trễ đã chốt | P0-03 | DOC-25 |
+| P0-08 | Viết DOC-06 Glossary — **Approved 2026-09-28** | Approved | P0-01 | DOC-06 |
+| P0-09 | Viết DOC-01, 02, 03, 04, 05 — **Approved 2026-09-28** | Approved; FR có acceptance criteria | P0-08 | DOC-01…05 |
+| P0-10 | Viết DOC-07, 09, 10, 11 — **Approved 2026-09-28** | Approved | P0-01 | DOC-07…11 |
+| P0-11 | Viết ADR gate P1 (0001, 0002, 0003, 0007, 0008, 0009, 0011, 0012, 0014, 0024) — **Approved 2026-09-28** | Approved | P0-01 | DOC-12 |
+| P0-12 | Viết DOC-13, 14, 17 và khung DOC-29 — **Approved 2026-09-28** | DDL chạy được trên Postgres local (psql) | P0-10 | DOC-13, 14, 17, 29 |
+| P0-13 | Viết DOC-38, 39 và khung DOC-41 — **Approved 2026-09-28** | Approved | P0-04 | DOC-38, 39, 41 |
+| P0-14 | Viết khung DOC-25 (simulator cơ bản) — **Approved 2026-09-28** | Mô hình chuyển động và mô hình trễ đã chốt | P0-03 | DOC-25 |
 
 **Tiêu chí thoát P0 (M0):** mọi tài liệu có Gate = P1 đều Approved; spike S-01…S-06 đều có kết luận.
 
@@ -445,7 +445,7 @@ Mục tiêu: không còn câu hỏi nào có thể chặn P1–P2.
 
 | ID | Việc | Đầu ra và nghiệm thu | Phụ thuộc | Tài liệu |
 | --- | --- | --- | --- | --- |
-| P2-00 | Doc gate: DOC-08, 15 (phần ops), 16, 18, 19, 20, 21, 22, 30, 44; ADR 0004, 0005, 0006, 0013, 0015, 0027 — **Đã viết đủ, trạng thái Review** | Approved | M1 | — |
+| P2-00 | Doc gate: DOC-08, 15 (phần ops), 16, 18, 19, 20, 21, 22, 30, 44; ADR 0004, 0005, 0006, 0013, 0015, 0027 — **Approved 2026-09-28** | Approved | M1 | — |
 | P2-01 | Hạ tầng Spring Batch trong app `etl`: JobRepository JDBC trỏ schema `batch` (migration lấy từ script của Spring Batch, DR-62), serializer JSON cho `ExecutionContext`, `JobOperator`, `spring.batch.job.enabled=false`, ShedLock (bảng `shedlock`, `@EnableSchedulerLock`) | App khởi động ở profile `batch`, chạy được một job mẫu, metadata ghi vào `batch.BATCH_*` | P2-00 | DOC-19 |
 | P2-02 | Thành phần dùng chung: `ErrorClassifier` (`Classifier<Throwable, ErrorKind>`), `SkipPolicy` (DATA + tỷ lệ skip), cấu hình retry và backoff cho TRANSIENT, `DeadLetterWriter`, `DeadLetterSkipListener` | Test theo từng SQLState ở DOC-30 | P2-01 | DOC-19, 30 |
 | P2-03 | Fault-tolerant step mẫu theo DR-21: `FactChunkWriter` upsert bằng `NamedParameterJdbcTemplate.batchUpdate` (cần số dòng trả về để đếm duplicate, DOC-19 §4.3), skip ở process và write, scan khi writer lỗi, DLQ ghi trong transaction của chunk | Test: 1 record lỗi trong chunk 500 → 499 dòng được ghi, 1 dòng DLQ; chunk bị rollback thì không để lại dòng DLQ nào | P2-02 | DOC-19 |
@@ -475,7 +475,7 @@ Mục tiêu: không còn câu hỏi nào có thể chặn P1–P2.
 
 | ID | Việc | Đầu ra và nghiệm thu | Phụ thuộc | Tài liệu |
 | --- | --- | --- | --- | --- |
-| P3-00 | Doc gate: DOC-25 (phần kịch bản), 28, 42 (phần P3), 43, 45 (EXP-01…05); ADR 0022, 0025 — **Đã viết, trạng thái Review** | Approved | M2 | — |
+| P3-00 | Doc gate: DOC-25 (phần kịch bản), 28, 42 (phần P3), 43, 45 (EXP-01…05); ADR 0022, 0025 — **Approved 2026-09-28** | Approved | M2 | — |
 | P3-01 | Kịch bản simulator: `Bunching`, `Disruption`, `BadData(pct, kinds)`, `Duplicates(pct)`, `TicketSpike`, `RefundBurst`, `LoadRamp`; API `POST /sim/scenarios/{name}` (tham số, thời lượng), `DELETE` để dừng; mọi message sinh ra đều ghi vào ledger | Mỗi kịch bản có integration test kiểm tra dữ liệu sinh ra | P2-20 | DOC-25 |
 | P3-02 | Compose profile `observability`: Prometheus, Alertmanager, Grafana (provision datasource và dashboard), OTel Collector, Tempo, Loki, Alloy, Mailpit | `make up-obs` chạy được; Grafana có datasource | P2-20 | DOC-28, 39 |
 | P3-03 | Instrumentation: metrics theo DOC-28, consumer lag, gauge độ tươi feed, histogram theo chặng (DR-57), Micrometer Tracing xuất OTLP (DR-50), trace lan truyền qua Kafka header nhờ observation của Spring Kafka | Một trace nối được simulator → etl → DB; log có `trace_id` và `batch_id` | P3-02 | DOC-28 |
@@ -494,7 +494,7 @@ Mục tiêu: không còn câu hỏi nào có thể chặn P1–P2.
 
 | ID | Việc | Đầu ra và nghiệm thu | Phụ thuộc | Tài liệu |
 | --- | --- | --- | --- | --- |
-| P4-00 | Doc gate: DOC-15 (phần insight), 23, 26, 27, 31, 32, 33; ADR 0010, 0016, 0017, 0023, 0026 — **Đã viết đủ, trạng thái Review** | Approved | M2 | — |
+| P4-00 | Doc gate: DOC-15 (phần insight), 23, 26, 27, 31, 32, 33; ADR 0010, 0016, 0017, 0023, 0026 — **Approved 2026-09-28** | Approved | M2 | — |
 | P4-01 | Migration `V7__insight.sql`: các bảng insight (theo DR-29) và `analytics_*`; bật khối `[P4]` trong `R__grants.sql` (`alert_event` đã có từ V5_2) | Chạy lại được; ma trận grant ở DOC-17 §7 vẫn pass | P4-00 | DOC-15, 17 |
 | P4-02 | Module `analytics`: `AnalyticsDispatcher` (DR-35), tiện ích event-time và UUIDv5 | Unit test | P4-01 | DOC-23 |
 | P4-03 | `BunchingDetector` (DR-30) cùng episode | Chạy bảng test trong DOC-23; kịch bản Bunching → có episode; chạy lại → không sinh thêm dòng | P4-02, P3-01 | DOC-23 |
@@ -521,7 +521,7 @@ Mục tiêu: không còn câu hỏi nào có thể chặn P1–P2.
 
 | ID | Việc | Đầu ra và nghiệm thu | Phụ thuộc | Tài liệu |
 | --- | --- | --- | --- | --- |
-| P5-00 | Doc gate: DOC-34, 35, 36 (mọi màn hình), 37; ADR 0020, 0021 — **Đã viết đủ, trạng thái Review** | Approved | M4 | — |
+| P5-00 | Doc gate: DOC-34, 35, 36 (mọi màn hình), 37; ADR 0020, 0021 — **Approved 2026-09-28** | Approved | M4 | — |
 | P5-01 | Scaffold: Vite, React, TS strict, pnpm, ESLint, Prettier, Vitest, RTL, MSW, Playwright, TanStack Router và Query, Tailwind cùng shadcn/ui; CI frontend (lint, typecheck, test, build) | CI xanh | P5-00 | DOC-11 |
 | P5-02 | Sinh client từ OpenAPI (`openapi-typescript` + `openapi-fetch`), MSW handler dựa trên ví dụ trong DOC-32 | `pnpm gen:api` chạy được; typecheck pass | P5-01, P4-15 | DOC-32 |
 | P5-03 | Design tokens và component nền (DOC-35) | Có trang Storybook-lite hoặc route `/_ui` liệt kê component | P5-01 | DOC-35 |
@@ -547,7 +547,7 @@ Mục tiêu: không còn câu hỏi nào có thể chặn P1–P2.
 
 | ID | Việc | Đầu ra và nghiệm thu | Phụ thuộc | Tài liệu |
 | --- | --- | --- | --- | --- |
-| P6-00 | Doc gate: DOC-24, EXP-06; ADR 0018, 0019 — **Đã viết đủ, trạng thái Review** | Approved | M4 | — |
+| P6-00 | Doc gate: DOC-24, EXP-06; ADR 0018, 0019 — **Approved 2026-09-28** | Approved | M4 | — |
 | P6-01 | Cổng `DecisionModel`; `JevDecisionModel` bọc `TypeSafeClient` (`typesafe-java-sdk`, tắt retry của SDK; Resilience4j timeout 2 s, circuit breaker, bulkhead, rate limiter đặt bên ngoài); `FakeDecisionModel`; WireMock stub dựng từ fixture của S-01 | Unit test và contract test với stub | P6-00 | DOC-24 |
 | P6-02 | App `triage-worker`: lấy việc bằng SKIP LOCKED, lease, gom batch, ghi kết quả và `model_version`, gauge `pti_triage_backlog` (DR-74) | Integration test: 100 record → đều được triage; Jev chết → vẫn `category=null`, không làm hỏng ETL | P6-01 | DOC-24 |
 | P6-03 | Bộ quyết định auto-replay (bảng ngưỡng, kiểm tra sức khỏe nguồn, tối đa 2 lần, `dlq_action_log`) | Test đủ các nhánh của bảng quyết định | P6-02, P2-16 | DOC-24 |
@@ -568,7 +568,7 @@ Mục tiêu: không còn câu hỏi nào có thể chặn P1–P2.
 
 | ID | Việc | Đầu ra và nghiệm thu | Phụ thuộc | Tài liệu |
 | --- | --- | --- | --- | --- |
-| P7-00 | Doc gate: DOC-40, EXP-07, EXP-08; ADR 0028 — **Đã viết đủ, trạng thái Review** | Approved | M3 | — |
+| P7-00 | Doc gate: DOC-40, EXP-07, EXP-08; ADR 0028 — **Approved 2026-09-28** | Approved | M3 | — |
 | P7-01 | `deploy/k3d/cluster.yaml` (số node, registry cục bộ, port mapping) cùng script tạo và xóa cluster | `make k8s-up` | P7-00 | DOC-40 |
 | P7-02 | `helmfile` cho operators: Strimzi, CNPG, KEDA, Chaos Mesh, Sealed Secrets, kube-prometheus-stack | Mọi operator ở trạng thái Ready | P7-01 | DOC-40 |
 | P7-03 | CR hạ tầng: `Kafka` (KRaft node pools, 3 broker), `KafkaTopic`, `KafkaConnect` (build plugin), `KafkaConnector`; CNPG `Cluster` cho warehouse (1+1) cùng `Pooler` (PgBouncer) và managed roles; ticketing (1); SeaweedFS (StatefulSet một container như compose, ADR-0028) | Hạ tầng Ready; connector RUNNING | P7-02 | DOC-40 |
@@ -588,7 +588,7 @@ Mục tiêu: không còn câu hỏi nào có thể chặn P1–P2.
 
 | ID | Việc | Đầu ra và nghiệm thu | Phụ thuộc | Tài liệu |
 | --- | --- | --- | --- | --- |
-| P8-00 | Doc gate: DOC-41, 42, 46, 47 — **Đã viết đủ, trạng thái Review** | Approved | M5, M6, M7 | — |
+| P8-00 | Doc gate: DOC-41, 42, 46, 47 — **Approved 2026-09-28** | Approved | M5, M6, M7 | — |
 | P8-01 | E2E Playwright trên compose: các luồng chính và kịch bản sự cố (kill consumer, bơm dữ liệu lỗi, replay); script E2E-DEMO-11…13 và `pti-exp check` | Chạy trong `full-stack.yml` | P8-00 | DOC-44, DOC-46 §9 |
 | P8-02 | CI đầy đủ: SpotBugs, OWASP Dependency-Check, Trivy, integration test, contract test, E2E, publish lên GHCR, deploy k3d trong runner, smoke test | Pipeline xanh | P8-01 | DOC-41 |
 | P8-03 | Thử alert trên k3d theo DOC-42 §3.1 và làm theo mục "Trên k3d" của runbook tới bước "Xác nhận"; hiện thực `PTI_ENV=k3d` cho lệnh `make` dùng chung (DOC-42 §2.1); rà DOC-29 không thiếu key cấu hình nào | Bảng DOC-42 §4 điền đủ | P7-08 | DOC-29, 42 |

@@ -1,6 +1,6 @@
 # Analytics
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-27 · DOC-23
+> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-23
 > Phụ thuộc: [DR](../00-decision-register.md) (DR-29…35, 41, 42, 57, 67, 68, 71), [DOC-09](../03-architecture/messaging-contracts.md) §6, [DOC-14](../05-data/warehouse-model.md) §5–9, [DOC-15](../05-data/ops-and-insight-model.md) §3, §6, [DOC-19](batch-and-chunk-processing.md) §2, §7, [DOC-20](etl-streaming.md) §8, [DOC-21](etl-gtfs-static.md) §6, [DOC-22](dlq-and-replay.md) §4, [DOC-25](source-simulator.md) §7
 > Người dùng chính: module `analytics` và phần nối vào `etl` (P4-02…P4-07, P6-05), DOC-24 (triage đọc episode), DOC-32 (arrivals, insight API), DOC-33 (payload SSE), DOC-36 (màn hình), EXP-04 (C5)
 

@@ -1,6 +1,6 @@
 # AI triage (triage-worker)
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-28 · DOC-24
+> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-24
 > Phụ thuộc: [DOC-03](../01-product/requirements.md) FR-09, [DOC-15](../05-data/ops-and-insight-model.md) §4.3, §4.5, §6, [DOC-16](../05-data/data-quality-rules.md), [DOC-17](../05-data/db-roles-and-grants.md), [DOC-18](../05-data/data-lifecycle.md) §4, [DOC-20](etl-streaming.md) §6.1, [DOC-22](dlq-and-replay.md), [DOC-23](analytics.md) §9–10, §12.2, [DOC-28](observability.md), [DOC-30](error-handling.md), [DOC-33](../07-api/sse-events.md), [ADR-0018](../04-adr/0018-decision-model-port.md), [ADR-0019](../04-adr/0019-code-owned-automation-thresholds.md), [DR](../00-decision-register.md) (DR-36, 37, 38, 60, 72, 73, 74)
 > Người dùng chính: P6-01…P6-12, DOC-36 (Ops console: DLQ, ticketing), DOC-42 (RB-04, RB-08), [EXP-06](../10-testing/experiments/EXP-06-ai-decision-quality.md), EXP-08
 

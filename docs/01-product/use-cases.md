@@ -1,6 +1,6 @@
 # Use case
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-26 · DOC-04
+> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-04
 > Phụ thuộc: [DOC-02](personas-and-journeys.md), [DOC-03](requirements.md), [Glossary](../02-glossary.md)
 
 Endpoint trong tài liệu này đều có prefix `/api/v1` nhưng được viết tắt, không ghi prefix. Chuỗi trong ngoặc kép `"…"` là chuỗi thật trên UI.

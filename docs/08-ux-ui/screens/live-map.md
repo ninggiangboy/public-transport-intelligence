@@ -1,6 +1,6 @@
 # Màn hình: Live map
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-28 · DOC-36
+> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-36
 > Phụ thuộc: DR-88, DOC-34, DOC-35 §5.8–5.9, §6, DOC-37, DOC-32 (E-01, E-02, E-05, E-07, E-11, E-12, E-13, E-18), DOC-33 §5.1–5.6, DOC-26 §8–9, ADR-0021
 > Người dùng chính: P5-06
 

@@ -1,6 +1,6 @@
 # Màn hình: Alerts
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-28 · DOC-36
+> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-36
 > Phụ thuộc: DR-88, DOC-34 §4.2, §5.3, DOC-35, DOC-37 §2.7, §3, DOC-32 (E-11, E-13, E-16, E-18, E-20, E-21), DOC-33, DOC-26 §8–9, DOC-23 §10
 > Người dùng chính: P5-12
 

@@ -1,6 +1,6 @@
 # Sự kiện SSE
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-28 · DOC-33
+> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-33
 >
 > Phụ thuộc: [DOC-09](../03-architecture/messaging-contracts.md) §6, [DOC-26](../06-design/realtime-delivery.md), [DOC-23](../06-design/analytics.md) §10, [DOC-20](../06-design/etl-streaming.md) §8, [DOC-32](api-endpoints.md), DR-41, DR-42, ADR-0016, ADR-0023, ADR-0026
 >

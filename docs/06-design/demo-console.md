@@ -1,6 +1,6 @@
 # Demo console
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-28 · DOC-48
+> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-48
 > Phụ thuộc: [DR](../00-decision-register.md) (DR-77, DR-78, DR-85, DR-87, DR-88), [ADR-0020](../04-adr/0020-frontend-stack.md), [ADR-0025](../04-adr/0025-python-experiment-runner.md), [ADR-0030](../04-adr/0030-monorepo-layout.md), [DOC-25](source-simulator.md) §7–8, [DOC-27](security.md) §6, §12, [DOC-28](observability.md) §6–7, [DOC-35](../08-ux-ui/design-system.md), [DOC-38](../09-operations/local-dev.md) §4.6, §5, [DOC-40](../09-operations/deploy-k8s.md) §7.6, §13, [DOC-45](../10-testing/experiments/README.md) §2, [DOC-46](../10-testing/demo-script.md)
 > Người dùng chính: người trình bày (PS-5), P8-08
 

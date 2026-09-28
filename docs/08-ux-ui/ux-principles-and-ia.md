@@ -1,6 +1,6 @@
 # Nguyên tắc UX và kiến trúc thông tin
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-28 · DOC-34
+> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-34
 > Phụ thuộc: DOC-02, DOC-03 (FR-11, NFR-11, NFR-12), DOC-04, DOC-26 §8–9, DOC-27 §3, DOC-31, DOC-32, DOC-33, ADR-0020, ADR-0021, DR-88
 > Người dùng chính: P5-01…P5-15; người viết DOC-35, DOC-36, DOC-37
 

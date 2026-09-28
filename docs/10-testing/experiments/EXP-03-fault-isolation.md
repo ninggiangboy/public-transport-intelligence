@@ -1,6 +1,6 @@
 # EXP-03: Record lỗi không làm mất record hợp lệ
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-27 · DOC-45 / EXP-03
+> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-45 / EXP-03
 >
 > Phụ thuộc: [protocol chung](README.md), DOC-16 §1–2 (stage, rule), DOC-20 §5, DOC-22 §1, DOC-25 §7.4 (kịch bản `bad-data`), ADR-0006, DR-27, DR-69
 >

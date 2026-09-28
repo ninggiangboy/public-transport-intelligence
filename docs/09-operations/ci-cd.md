@@ -1,6 +1,6 @@
 # CI/CD
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-28 · DOC-41
+> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-41
 > Phụ thuộc: [DOC-11](../03-architecture/tech-stack-and-versions.md), [DOC-38](local-dev.md), [DOC-39](deploy-compose.md), [DOC-40](deploy-k8s.md), [DOC-44](../10-testing/test-strategy.md), [ADR-0028](../04-adr/0028-kubernetes-tooling.md), [DR](../00-decision-register.md) (DR-44, 53, 56, 61)
 > Người dùng chính: P1-03, P2-19, P4-15, P5-01, P7-01, P8-01, P8-02, P8-07
 

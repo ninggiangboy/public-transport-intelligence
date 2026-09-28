@@ -1,6 +1,6 @@
 # Màn hình: Ops console — Ticketing anomalies
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-28 · DOC-36
+> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-36
 > Phụ thuộc: DR-88, DOC-34, DOC-35 §5, DOC-37 §2.4, §3, DOC-32 (E-15, E-16, E-60), DOC-23 §9, DOC-25 §7.6–7.7
 > Người dùng chính: P5-11
 

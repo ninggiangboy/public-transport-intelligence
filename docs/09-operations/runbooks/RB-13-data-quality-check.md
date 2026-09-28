@@ -1,6 +1,6 @@
 # RB-13: Kiểm tra chất lượng dữ liệu sau khi ghi thất bại hoặc không chạy
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-27 · DOC-42 / RB-13
+> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-42 / RB-13
 >
 > Alert: `DataQualityCheckFailed` (warning, bắn ngay), `DataQualityCheckStale` (warning, 5 phút) · Dashboard: `pti-batch` (DQ) · Liên quan: DOC-16 §3–4 (DQ-20…27), DOC-14 §7.4 (partition), DOC-19 (`DataQualityJob`)
 

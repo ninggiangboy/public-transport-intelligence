@@ -1,6 +1,6 @@
 # RB-10: Replay bằng cách reset offset của consumer
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-27 · DOC-42 / RB-10
+> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-42 / RB-10
 >
 > Thủ tục (không gắn alert) · FR-12.4, F-REPLAY-03 · Liên quan: DOC-09 §1.1 (consumer group), DOC-14 §8 (guard), DR-16 (dedup registry), DOC-22 §4 (replay từ raw zone), DOC-43 §4.2
 

@@ -1,6 +1,6 @@
 # Thực nghiệm: protocol chung
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-27 · DOC-45 (phần chung, EXP-01…08)
+> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-45 (phần chung, EXP-01…08)
 >
 > Phụ thuộc: DOC-03 (NFR-01…04), DOC-10, DOC-13 §6 (ledger, business key), DOC-14, DOC-20 §9 (baseline), DOC-22, DOC-25 §7–8, DOC-28, DR-27, DR-28, DR-52, DR-57, DR-58, DR-67, DR-68, ADR-0025
 >

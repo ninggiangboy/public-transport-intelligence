@@ -1,6 +1,6 @@
 # Ánh xạ báo cáo đồ án
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-27 · DOC-47
+> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-47
 > Phụ thuộc: SDD §2, §13.2, §15; [DOC-01](../01-product/vision-and-scope.md), [DOC-03](../01-product/requirements.md), [DOC-45](../10-testing/experiments/README.md), EXP-01…08, [DOC-46](../10-testing/demo-script.md), mọi DOC được dẫn trong §2
 > Người dùng chính: người viết báo cáo, P8-06
 

@@ -1,6 +1,6 @@
 # Xử lý lỗi
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-27 · DOC-30
+> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-30
 > Phụ thuộc: [ADR-0006](../04-adr/0006-error-classification.md), [DOC-19](batch-and-chunk-processing.md), [DOC-20](etl-streaming.md), [DOC-22](dlq-and-replay.md), [DR](../00-decision-register.md) (DR-23, 39, 45, 61, 69)
 > Người dùng chính: mọi module Java (P2-02, P4-10…), DOC-31/32 (API), DOC-28 (log, metric)
 

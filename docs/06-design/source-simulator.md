@@ -1,6 +1,6 @@
 # Source simulator
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-28 · DOC-25
+> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-25
 > Phụ thuộc: [DR](../00-decision-register.md) (DR-01, 03, 04, 05, 08, 28, 59, 60, 64, 65, 67, 68, 86), [DOC-09](../03-architecture/messaging-contracts.md), [DOC-13](../05-data/source-data.md), [DOC-17](../05-data/db-roles-and-grants.md), [DOC-29](configuration-reference.md)
 > Người dùng chính: P1-08…P1-11, P1-14 (phần cơ bản), P3-01 (kịch bản), experiment runner (DOC-45), màn Demo control (DOC-36)
 

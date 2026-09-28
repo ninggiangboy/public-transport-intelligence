@@ -1,6 +1,6 @@
 # Role database và phân quyền
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-28 · DOC-17
+> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-17
 > Phụ thuộc: [DR](../00-decision-register.md) (DR-20, 62, 64), [ADR-0024](../04-adr/0024-flyway-migration-job.md), [DOC-10](../03-architecture/quality-attributes.md) §4, [DOC-13](source-data.md), [DOC-14](warehouse-model.md), [DOC-15](ops-and-insight-model.md)
 > Người dùng chính: module `db` (P1-05, P1-06), compose (P1-04), Helm/CNPG (P7), DOC-27
 

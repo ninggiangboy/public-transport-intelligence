@@ -1,6 +1,6 @@
 # RB-01: Job batch thất bại
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-27 · DOC-42 / RB-01
+> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-42 / RB-01
 >
 > Alert: `BatchJobFailed` (critical), `ReplayFailed` (warning), `BatchExecutionRecovered` (info) · Dashboard: `pti-batch` · Liên quan: DOC-19 §7, DOC-22 §3–4, DOC-30 §2
 

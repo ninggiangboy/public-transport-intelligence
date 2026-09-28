@@ -48,6 +48,7 @@ Tài liệu gốc mô tả tốt *cái gì* và *vì sao*, nhưng còn nhiều c
 | 2026-09-28 | Owner | **Simulator mặc định không phát:** `make up` dựng simulator ở hệ số 0; `make sim-start` bật khi cần dữ liệu. `make up-demo`, `make up-exp` và `make smoke` tự bật; tạm dừng có chủ đích không làm bắn `GtfsRtFeedStale` | DR-86 (mới), DR-68, DOC-25, DOC-28, DOC-38, DOC-39 |
 | 2026-09-28 | Owner | **Demo console:** thêm trang web chạy trên host (`pti-exp console`, cổng 8095) để bấm nút kích hoạt các bước demo, kể cả thao tác hạ tầng, và xem topology sống, timeline, chỉ số. Dùng lại adapter của runner. Demo control trong sản phẩm giữ nguyên; lệnh `make demo-*` vẫn là phương án dự phòng | DR-87 (mới), DOC-48 (mới), DOC-46 |
 | 2026-09-28 | Owner | **Giao diện theo prototype "Wayfinding":** token mới (Geist, canvas xám nhạt, một màu nhấn indigo, motif route shield và line-and-stop strip), sidebar chung thay thanh trên, thêm màn Overview, danh sách + khung chi tiết cho Alerts, Dead letters, Ticketing. Dữ liệu vẫn theo DOC-32; khối minh họa không có dữ liệu thì thay hoặc bỏ | DR-88 (mới), DOC-34–37, DOC-48 |
+| 2026-09-28 | Owner | **Duyệt toàn bộ tài liệu:** master plan và DOC-01…48 chuyển từ Review sang Approved, gồm cả các gate tài liệu P0-08…14 và P2-00…P8-00 | Master plan §5, `docs/README.md` |
 
 ---
 

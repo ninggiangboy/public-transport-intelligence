@@ -1,6 +1,6 @@
 # RB-06: Feed GTFS-realtime không còn dữ liệu mới
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-28 · DOC-42 / RB-06
+> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-42 / RB-06
 >
 > Alert: `GtfsRtFeedStale` (critical, bắn ngay; có từ P4-16) · Dashboard: `pti-overview` (độ tươi theo nguồn), `pti-simulator` · Liên quan: DR-67, DR-71, DOC-20 §6, DOC-25 §6, §8
 

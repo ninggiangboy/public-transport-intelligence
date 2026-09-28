@@ -1,6 +1,6 @@
 # Triển khai trên Kubernetes cục bộ (k3d)
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-28 · DOC-40
+> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-40
 > Phụ thuộc: [DOC-07](../03-architecture/system-context-and-containers.md), [DOC-10](../03-architecture/quality-attributes.md) §3.3–6, [DOC-11](../03-architecture/tech-stack-and-versions.md) §2.1, [DOC-17](../05-data/db-roles-and-grants.md) §3.2, §6, [DOC-18](../05-data/data-lifecycle.md), [DOC-20](../06-design/etl-streaming.md) §7, [DOC-24](../06-design/ai-triage.md) §11.3, [DOC-26](../06-design/realtime-delivery.md) §10, [DOC-27](../06-design/security.md) §3.3, §7, [DOC-28](../06-design/observability.md), [DOC-29](../06-design/configuration-reference.md), [DOC-39](deploy-compose.md), [ADR-0014](../04-adr/0014-deployment-units.md), [ADR-0024](../04-adr/0024-flyway-migration-job.md), [ADR-0028](../04-adr/0028-kubernetes-tooling.md), [DR](../00-decision-register.md) (DR-54, 55, 56, 66, 74)
 > Người dùng chính: P7-01…P7-10, P8-02 (deploy k3d trong CI), [EXP-07](../10-testing/experiments/EXP-07-autoscaling.md), [EXP-08](../10-testing/experiments/EXP-08-chaos.md), DOC-46 bước 7, DOC-42 (lệnh k3d)
 

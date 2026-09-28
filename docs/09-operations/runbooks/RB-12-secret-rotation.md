@@ -1,6 +1,6 @@
 # RB-12: Xoay vòng secret
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-27 · DOC-42 / RB-12
+> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-42 / RB-12
 >
 > Thủ tục (không gắn alert) · NFR-06 · Liên quan: DOC-17 §3.1 và §6 (role, mật khẩu), DOC-39 §5 (biến môi trường), DOC-27 (Keycloak, token webhook), DOC-18 §3 (identity S3)
 

@@ -1,6 +1,6 @@
 # EXP-04: Dựng lại toàn bộ warehouse từ raw zone
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-27 · DOC-45 / EXP-04
+> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-45 / EXP-04
 >
 > Phụ thuộc: [protocol chung](README.md), DOC-18 §1–2, DOC-21 §1, DOC-22 §4, DOC-39 §6 (`make reset-warehouse`), DOC-43, RB-11, DR-16, DR-58, DR-64, DR-70
 >

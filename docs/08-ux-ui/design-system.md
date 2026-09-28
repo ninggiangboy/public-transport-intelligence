@@ -1,6 +1,6 @@
 # Design system
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-28 · DOC-35
+> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-35
 > Phụ thuộc: DOC-34, DOC-15 (enum), DOC-23 §7.3 (mức tin cậy ETA), DOC-32, ADR-0020, ADR-0021, NFR-11, DR-88
 > Người dùng chính: P5-03 (token và component nền), P5-06…P5-14, người viết `screens/*`
 

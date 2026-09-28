@@ -1,6 +1,6 @@
 # Mô hình dữ liệu warehouse
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-28 · DOC-14
+> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-14
 > Phụ thuộc: [DR](../00-decision-register.md) (DR-09…15, 21, 63, 64, 65), [ADR-0003](../04-adr/0003-effectively-once-upsert.md), [ADR-0009](../04-adr/0009-gtfs-feed-versioning.md), [ADR-0011](../04-adr/0011-fact-partitioning.md), [ADR-0024](../04-adr/0024-flyway-migration-job.md), [DOC-13](source-data.md), [DOC-17](db-roles-and-grants.md)
 > Người dùng chính: module `db` (P1-05), `etl` (P2), `api` (P4)
 

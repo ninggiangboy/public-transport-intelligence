@@ -1,6 +1,6 @@
 # Danh mục endpoint API
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-28 · DOC-32
+> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-32
 >
 > Phụ thuộc: [DOC-31](api-guidelines.md) (quy ước chung), [DOC-33](sse-events.md), [DOC-26](../06-design/realtime-delivery.md), [DOC-27](../06-design/security.md), [DOC-14](../05-data/warehouse-model.md), [DOC-15](../05-data/ops-and-insight-model.md), [DOC-17](../05-data/db-roles-and-grants.md), [DOC-19](../06-design/batch-and-chunk-processing.md), [DOC-22](../06-design/dlq-and-replay.md), [DOC-23](../06-design/analytics.md), [DOC-30](../06-design/error-handling.md) §3, DR-39, DR-43, ADR-0013
 >

@@ -1,6 +1,6 @@
 # EXP-02: Gửi lại message không tạo bản ghi trùng
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-27 · DOC-45 / EXP-02
+> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-45 / EXP-02
 >
 > Phụ thuộc: [protocol chung](README.md), DOC-14 §8 (upsert và guard), DOC-25 §7.5 (kịch bản `duplicates`), DR-16, DR-27, DR-28, ADR-0003
 >

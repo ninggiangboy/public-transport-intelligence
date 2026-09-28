@@ -1,6 +1,6 @@
 # Quy ước API
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-27 · DOC-31
+> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-31
 >
 > Phụ thuộc: DR-20, DR-39, DR-43, DR-45, DR-48, DR-61, DR-67, ADR-0013, ADR-0017, [DOC-10](../03-architecture/quality-attributes.md) §4, [DOC-17](../05-data/db-roles-and-grants.md), [DOC-27](../06-design/security.md), [DOC-30](../06-design/error-handling.md) §3
 >

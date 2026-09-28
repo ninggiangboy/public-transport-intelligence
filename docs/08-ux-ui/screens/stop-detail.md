@@ -1,6 +1,6 @@
 # Màn hình: Tìm trạm và chi tiết trạm
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-28 · DOC-36
+> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-36
 > Phụ thuộc: DR-88, DOC-34, DOC-35, DOC-37 §4.4, §5, DOC-32 (E-04, E-06, E-07, E-08), DOC-33 §5.3–5.6, DOC-23 §7
 > Người dùng chính: P5-07
 

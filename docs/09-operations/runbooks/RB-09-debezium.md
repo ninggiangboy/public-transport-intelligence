@@ -1,6 +1,6 @@
 # RB-09: Debezium: WAL bị giữ lại, connector dừng
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-28 · DOC-42 / RB-09
+> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-42 / RB-09
 >
 > Alert: `DebeziumWalRetained` (warning > 2 GB, critical > 3,2 GB; 5 phút), `ConnectorDown` (critical, 2 phút) · Dashboard: `pti-kafka` (connector), `pti-postgres` (slot) · Liên quan: DOC-09 §5 (cấu hình connector), DOC-13 §5.3, DOC-14 §8.3 (guard LSN), DOC-43 §4.4
 

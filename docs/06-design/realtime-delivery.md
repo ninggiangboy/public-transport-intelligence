@@ -1,6 +1,6 @@
 # Phân phối sự kiện real-time (SSE)
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-27 · DOC-26
+> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-26
 >
 > Phụ thuộc: [DOC-33](../07-api/sse-events.md), [DOC-32](../07-api/api-endpoints.md) E-70, [DOC-31](../07-api/api-guidelines.md) §11, [DOC-27](security.md), [DOC-09](../03-architecture/messaging-contracts.md) §1, §6, [DOC-10](../03-architecture/quality-attributes.md) §2, [DOC-28](observability.md) §3.5, DR-41, DR-42, DR-45, DR-57, [ADR-0016](../04-adr/0016-sse-per-pod-consumer-ring-buffer.md), [ADR-0026](../04-adr/0026-no-outbox-for-ui-events.md)
 >

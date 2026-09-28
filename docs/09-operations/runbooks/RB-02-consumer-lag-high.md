@@ -1,6 +1,6 @@
 # RB-02: Consumer lag cao
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-27 · DOC-42 / RB-02
+> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-42 / RB-02
 >
 > Alert: `ConsumerLagHigh` (warning, 5 phút) · Dashboard: `pti-overview`, `pti-kafka`, `pti-postgres` · Liên quan: DOC-10 §2–3, DOC-20 §2, §5, §7
 

@@ -1,6 +1,6 @@
 # Runbook
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-28 · DOC-42
+> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-42
 >
 > Phụ thuộc: DOC-28 §6 (alert), DOC-38 §4 (lệnh `make`), DOC-40 (k3d), DOC-43 (backup và khôi phục), DOC-22 (DLQ, replay), DOC-24 (triage)
 >

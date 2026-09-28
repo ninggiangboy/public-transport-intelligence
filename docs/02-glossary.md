@@ -1,6 +1,6 @@
 # Glossary: thuật ngữ
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-26 · DOC-06
+> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-06
 > Phụ thuộc: [00-decision-register.md](00-decision-register.md)
 
 Mọi tài liệu và mọi dòng code đều dùng đúng các thuật ngữ trong bảng này. Nếu cần một từ mới, hãy thêm vào đây trước.

@@ -1,6 +1,6 @@
 # DLQ và replay
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-28 · DOC-22
+> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-22
 > Phụ thuộc: [DOC-15](../05-data/ops-and-insight-model.md) §3–4, [DOC-16](../05-data/data-quality-rules.md), [DOC-18](../05-data/data-lifecycle.md), [DOC-19](batch-and-chunk-processing.md), [DOC-20](etl-streaming.md), [DOC-21](etl-gtfs-static.md) §6, [DOC-09](../03-architecture/messaging-contracts.md) §7, [ADR-0003](../04-adr/0003-effectively-once-upsert.md), [ADR-0012](../04-adr/0012-raw-zone-s3-sink.md), [ADR-0013](../04-adr/0013-replay-request-api-etl-executes.md), [DR](../00-decision-register.md) (DR-16, 18, 20, 37, 38, 60)
 > Người dùng chính: `etl` profile `batch` (P2-16), `api` (DOC-32: endpoint DLQ và replay), `triage-worker` (DOC-24: auto-replay), DOC-36 (Ops console), DOC-42 (RB-10, RB-11)
 

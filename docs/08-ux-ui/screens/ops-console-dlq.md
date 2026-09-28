@@ -1,6 +1,6 @@
 # Màn hình: Ops console — Dead letters
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-28 · DOC-36
+> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-36
 > Phụ thuộc: DR-88, DOC-34, DOC-35 §5.3, §5.6, DOC-37 §2.3, §2.7, §3, DOC-32 (E-40…E-48, E-52), DOC-33 §5.8, DOC-22 §1–3, DOC-15 §4.3, DOC-31 §8
 > Người dùng chính: P5-10
 

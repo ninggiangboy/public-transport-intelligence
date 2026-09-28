@@ -1,6 +1,6 @@
 # Tầm nhìn và phạm vi
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-26 · DOC-01
+> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-01
 > Phụ thuộc: SDD gốc §1–2, [DR](../00-decision-register.md), [Glossary](../02-glossary.md)
 
 ## 1. Bối cảnh

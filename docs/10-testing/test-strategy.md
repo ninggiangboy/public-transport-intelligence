@@ -1,6 +1,6 @@
 # Chiến lược kiểm thử
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-28 · DOC-44
+> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-44
 >
 > Phụ thuộc: DOC-03 (NFR-01…13), DOC-11, DOC-19, DOC-20, DOC-21, DOC-22, DOC-30, DOC-41, ADR-0027, DR-44, DR-46
 >

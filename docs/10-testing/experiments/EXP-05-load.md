@@ -1,6 +1,6 @@
 # EXP-05: Ngưỡng tải còn đạt NFR-03 trên compose
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-27 · DOC-45 / EXP-05
+> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-45 / EXP-05
 >
 > Phụ thuộc: [protocol chung](README.md), DOC-10 §2 (ngân sách độ trễ), §3.1 (khối lượng), §5 (tài nguyên), DOC-25 §6.5, §7.8 (`load-ramp`), DOC-28 §3, §5.1, DR-57, DR-68, DR-71
 >

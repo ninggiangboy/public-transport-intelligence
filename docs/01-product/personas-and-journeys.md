@@ -1,6 +1,6 @@
 # Persona và hành trình người dùng
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-26 · DOC-02
+> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-02
 > Phụ thuộc: [DOC-01](vision-and-scope.md), [Glossary](../02-glossary.md)
 
 Tên persona và các câu trích dẫn bên dưới chỉ dùng để minh họa. Các chuỗi nằm trong ngoặc kép kiểu `"…"` là chuỗi thật sẽ hiện trên UI (tiếng Anh, DR-61).

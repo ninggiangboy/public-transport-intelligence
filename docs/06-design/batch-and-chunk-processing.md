@@ -1,6 +1,6 @@
 # Xử lý batch và chunk
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-28 · DOC-19
+> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-19
 > Phụ thuộc: [ADR-0002](../04-adr/0002-spring-batch-and-spring-kafka.md), [ADR-0003](../04-adr/0003-effectively-once-upsert.md), [ADR-0004](../04-adr/0004-offset-commit-after-transaction.md), [ADR-0005](../04-adr/0005-batch-first-scan-fallback.md), [ADR-0006](../04-adr/0006-error-classification.md), [ADR-0015](../04-adr/0015-job-exclusivity-and-recovery.md), [DOC-14](../05-data/warehouse-model.md) §8, [DOC-15](../05-data/ops-and-insight-model.md), [DOC-16](../05-data/data-quality-rules.md), [DOC-30](error-handling.md), [DR](../00-decision-register.md) (DR-16, 21, 22, 23, 24, 27, 62, 63, 67, 69, 80)
 > Người dùng chính: `etl` (P2-01…07, P2-17, P2-18), `analytics` (P4), DOC-20, DOC-21, DOC-22
 

@@ -1,6 +1,6 @@
 # RB-04: Tỷ lệ DLQ cao hoặc tồn đọng DLQ
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-27 · DOC-42 / RB-04
+> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-42 / RB-04
 >
 > Alert: `DlqRateHigh` (critical, > 1% trong 5 phút, nguồn có > 0,2 msg/s), `DlqBacklogHigh` (warning, > 500 dead letter mở trong 30 phút); từ P6: `DlqSevereRecords` (critical, có record severity 2), `DlqNeedsAttention` (warning, ≥ 10 record severity 1 trong 30 phút), `DlqUpstreamErrorBurst` (critical, > 50 `upstream_api_error` trong 1 giờ, luật chặn cuối), `TriageBacklogHigh` (warning, hàng đợi triage > 500 trong 15 phút) · Dashboard: `pti-overview` (tỷ lệ DLQ), `pti-batch` (DLQ mở), `pti-triage` · Liên quan: DOC-16, DOC-22, DOC-24
 

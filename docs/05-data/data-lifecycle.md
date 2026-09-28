@@ -1,6 +1,6 @@
 # Vòng đời dữ liệu
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-28 · DOC-18
+> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-18
 > Phụ thuộc: [DOC-09](../03-architecture/messaging-contracts.md) §1 và §7, [DOC-10](../03-architecture/quality-attributes.md) §3.3, [DOC-14](warehouse-model.md) §7.4, [DOC-15](ops-and-insight-model.md) §3.1, [DOC-17](db-roles-and-grants.md), [DOC-39](../09-operations/deploy-compose.md) §3.5, [ADR-0011](../04-adr/0011-fact-partitioning.md), [ADR-0012](../04-adr/0012-raw-zone-s3-sink.md), [DR](../00-decision-register.md) (DR-15, 16, 22, 28, 60, 62, 63, 66, 67)
 > Người dùng chính: `etl` (P2-17), `source-simulator`, DOC-43 (backup), DOC-40 (values k3d)
 

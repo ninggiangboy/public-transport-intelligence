@@ -1,6 +1,6 @@
 # Yêu cầu
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-28 · DOC-03
+> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-03
 > Phụ thuộc: SDD gốc §3, [DR](../00-decision-register.md), [Glossary](../02-glossary.md), [DOC-01](vision-and-scope.md)
 
 ## 0. Quy ước

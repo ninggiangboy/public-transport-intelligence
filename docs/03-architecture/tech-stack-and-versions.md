@@ -1,6 +1,6 @@
 # Công nghệ và phiên bản
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-28 · DOC-11
+> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-11
 > Phụ thuộc: [DR-53](../00-decision-register.md), DR-36, DR-46, DR-50, DR-52, DR-54, DR-56, [ADR-0029](../04-adr/0029-spring-boot-4-java-25.md)
 
 ## 0. Chính sách phiên bản

@@ -1,6 +1,6 @@
 # Mô hình dữ liệu vận hành và insight
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-28 · DOC-15
+> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-15
 > Phụ thuộc: [DR](../00-decision-register.md) (DR-16…19, 22, 25, 29…37, 62, 63), [ADR-0002](../04-adr/0002-spring-batch-and-spring-kafka.md), [DOC-14](warehouse-model.md), [DOC-17](db-roles-and-grants.md)
 > Người dùng chính: `etl` (P2), `triage-worker` (P6), `api` (P4), `analytics` (P4)
 

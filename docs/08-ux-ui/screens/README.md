@@ -1,6 +1,6 @@
 # Đặc tả màn hình
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-28 · DOC-36
+> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-36
 > Phụ thuộc: DOC-34, DOC-35, DOC-37, DOC-32, DOC-33, DOC-26 §8–9, DR-88
 > Người dùng chính: P5-04…P5-14
 

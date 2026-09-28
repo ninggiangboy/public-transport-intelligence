@@ -1,6 +1,6 @@
 # Danh mục tính năng
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-28 · DOC-05
+> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-05
 > Phụ thuộc: [DOC-03](requirements.md), [DOC-04](use-cases.md), [Master plan §4–5](../00-master-plan.md), [DR](../00-decision-register.md)
 
 ## 0. Quy ước

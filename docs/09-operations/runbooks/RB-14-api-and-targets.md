@@ -1,6 +1,6 @@
 # RB-14: API lỗi nhiều, target không scrape được
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-27 · DOC-42 / RB-14
+> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-42 / RB-14
 >
 > Alert: `ApiErrorRateHigh` (warning, 5 phút; từ P4-16), `TargetDown` (critical, 2 phút) · Dashboard: `pti-api`, `pti-overview`, `pti-jvm` · Liên quan: DOC-30 §3 (Problem Details), DOC-31, DOC-32, DOC-39 §3–4 (container, healthcheck)
 

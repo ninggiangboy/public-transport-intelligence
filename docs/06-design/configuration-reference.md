@@ -1,6 +1,6 @@
 # Tham chiếu cấu hình
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-28 · DOC-29
+> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-29
 > Phụ thuộc: [DR](../00-decision-register.md), [DOC-10](../03-architecture/quality-attributes.md), [DOC-13](../05-data/source-data.md), [DOC-15](../05-data/ops-and-insight-model.md), [DOC-17](../05-data/db-roles-and-grants.md)
 > Người dùng chính: mọi app, compose (DOC-39), Helm (DOC-40)
 

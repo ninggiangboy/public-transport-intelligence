@@ -1,6 +1,6 @@
 # Màn hình: Overview
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-28 · DOC-36
+> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-36
 > Phụ thuộc: DOC-34 §4–5, DOC-35 §5.5, §5.9, DOC-37, DOC-32 (E-01, E-02, E-05, E-14, E-20, E-31, E-41, E-60), DOC-26 §8–9, DR-88
 > Người dùng chính: P5-16
 

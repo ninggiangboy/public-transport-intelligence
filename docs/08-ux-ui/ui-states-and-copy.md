@@ -1,6 +1,6 @@
 # Trạng thái UI và microcopy
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-28 · DOC-37
+> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-37
 > Phụ thuộc: DOC-34, DOC-35, DOC-15 (enum), DOC-23, DOC-30 (slug lỗi), DOC-32, DOC-33, DR-48, DR-61, DR-88
 > Người dùng chính: P5-03…P5-14 (mọi màn hình), người viết `src/i18n/en.ts`
 

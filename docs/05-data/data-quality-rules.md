@@ -1,6 +1,6 @@
 # Rule chất lượng dữ liệu
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-28 · DOC-16
+> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-16
 > Phụ thuộc: [DOC-03](../01-product/requirements.md) (FR-02, FR-03, FR-04.4), [DOC-09](../03-architecture/messaging-contracts.md), [DOC-14](warehouse-model.md), [DOC-15](ops-and-insight-model.md), [DOC-19](../06-design/batch-and-chunk-processing.md), [DOC-20](../06-design/etl-streaming.md), [DOC-25](../06-design/source-simulator.md) §7.3, [DR](../00-decision-register.md) (DR-13, 23, 25, 63, 67, 69)
 > Người dùng chính: `etl` (P2-04, P2-15), `analytics`, DOC-28 (alert), DOC-45 (EXP-03)
 

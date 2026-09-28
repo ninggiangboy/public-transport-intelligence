@@ -1,6 +1,6 @@
 # EXP-07: Mở rộng theo tải trên k3d
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-28 · DOC-45 / EXP-07
+> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-45 / EXP-07
 >
 > Phụ thuộc: [protocol chung](README.md), [EXP-05](EXP-05-load.md), [DOC-40](../../09-operations/deploy-k8s.md) §2, §5.3, §9, §13, DOC-10 §2–4, DOC-20 §1, §7, DOC-25 §7.8 (`load-ramp`), DOC-28 §3, §6 (alert #7), ADR-0028, DR-74
 >

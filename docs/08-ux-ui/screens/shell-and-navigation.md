@@ -1,6 +1,6 @@
 # Màn hình: Khung ứng dụng và điều hướng
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-28 · DOC-36
+> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-36
 > Phụ thuộc: DOC-34 §3–4, §9.3, DOC-35, DOC-37 §2.4–2.5, §6, DOC-32 (E-01, E-06, E-15, E-20, E-31, E-41, E-51, E-55, E-60, E-61), DOC-26 §8, DR-88
 > Người dùng chính: P5-04
 

@@ -1,6 +1,6 @@
 # Màn hình: Ops console — Controls
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-28 · DOC-36
+> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-36
 > Phụ thuộc: DR-88, DOC-34, DOC-35, DOC-37 §2.3, §2.7, §3, DOC-32 (E-31, E-33, E-34, E-38, E-55, E-57, E-60), DOC-15 §3, DOC-19 §2, DOC-20 §7, DOC-21
 > Người dùng chính: P5-11
 

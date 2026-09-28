@@ -1,6 +1,6 @@
 # RB-03: Consumer dừng, bị pause, hoặc gặp lỗi FATAL
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-27 · DOC-42 / RB-03
+> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-42 / RB-03
 >
 > Alert: `ConsumerStopped` (critical, 1 phút), `ConsumerPaused` (warning, 5 phút, lý do `backoff`/`circuit`), `FatalErrors` (critical) · Dashboard: `pti-overview` (trạng thái listener) · Liên quan: DOC-20 §5–7, DOC-30 §2
 

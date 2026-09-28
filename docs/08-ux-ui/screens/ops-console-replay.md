@@ -1,6 +1,6 @@
 # Màn hình: Ops console — Replay raw zone
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-28 · DOC-36
+> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-36
 > Phụ thuộc: DR-88, DOC-34, DOC-35, DOC-37 §2.3, §2.7, §3, DOC-32 (E-50…E-53, E-32, E-35, E-60), DOC-22 §4, §6, ADR-0013
 > Người dùng chính: P5-11
 
