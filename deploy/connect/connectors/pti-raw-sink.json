@@ -1,0 +1,24 @@
+{
+  "name": "pti-raw-sink",
+  "config": {
+    "connector.class": "io.aiven.kafka.connect.s3.AivenKafkaConnectS3SinkConnector",
+    "tasks.max": "1",
+    "topics": "gtfs.vehicle_positions,gtfs.trip_updates,ticketing.sales.cdc,ticketing.sale_points.cdc",
+    "key.converter": "org.apache.kafka.connect.storage.StringConverter",
+    "value.converter": "org.apache.kafka.connect.converters.ByteArrayConverter",
+    "header.converter": "org.apache.kafka.connect.storage.StringConverter",
+    "aws.access.key.id": "${env:S3_CONNECT_ACCESS_KEY}",
+    "aws.secret.access.key": "${env:S3_CONNECT_SECRET_KEY}",
+    "aws.s3.bucket.name": "raw",
+    "aws.s3.endpoint": "http://seaweedfs:8333",
+    "aws.s3.region": "us-east-1",
+    "file.name.template": "{{topic}}/dt={{timestamp:unit=yyyy}}-{{timestamp:unit=MM}}-{{timestamp:unit=dd}}/hh={{timestamp:unit=HH}}/{{topic}}-{{partition}}-{{start_offset:padding=true}}.json.gz",
+    "file.name.timestamp.source": "EVENT",
+    "file.name.timestamp.timezone": "UTC",
+    "file.compression.type": "gzip",
+    "file.max.records": "2000",
+    "format.output.type": "jsonl",
+    "format.output.fields": "key,value,offset,timestamp,headers",
+    "format.output.fields.value.encoding": "base64"
+  }
+}
