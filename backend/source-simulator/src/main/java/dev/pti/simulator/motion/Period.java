@@ -1,10 +1,10 @@
 package dev.pti.simulator.motion;
 
-import java.time.DayOfWeek;
+import dev.pti.common.time.DayType;
 import java.time.LocalTime;
 import java.time.ZonedDateTime;
 
-/** Peak hours are 06:00–09:00 and 15:00–18:30 on weekdays, agency time (DOC-25 §5.3). */
+/** Peak hours are 06:00–09:00 and 15:00–18:30 on weekdays that are not holidays, agency time (DOC-25 §5.3). */
 public enum Period {
     PEAK,
     OFF_PEAK;
@@ -15,8 +15,7 @@ public enum Period {
     private static final LocalTime EVENING_END = LocalTime.of(18, 30);
 
     public static Period at(ZonedDateTime local) {
-        DayOfWeek day = local.getDayOfWeek();
-        if (day == DayOfWeek.SATURDAY || day == DayOfWeek.SUNDAY) {
+        if (DayType.of(local.toLocalDate()) != DayType.WEEKDAY) {
             return OFF_PEAK;
         }
         LocalTime time = local.toLocalTime();

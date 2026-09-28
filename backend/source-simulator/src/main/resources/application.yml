@@ -51,6 +51,14 @@ logging:
 pti:
   clock:
     offset: 0s
+  datasource:
+    ticketing:
+      url: jdbc:postgresql://localhost:5432/ticketing_source
+      username: source_simulator
+      password: ${SOURCE_SIMULATOR_PASSWORD:}
+      hikari:
+        pool-name: ticketing
+        maximum-pool-size: 4
   sim:
     seed: 42
     service-date-mapping: auto
@@ -94,3 +102,21 @@ pti:
     rate-multiplier:
       gtfs-rt: 1.0
       ticketing: 1.0
+    ticketing:
+      fare:
+        single: 2.00
+        single-peak: 2.50
+        day: 5.00
+        month: 76.00
+      mix:
+        SINGLE: 0.80
+        DAY: 0.15
+        MONTH: 0.05
+      refund-ratio: 0.01
+      void-ratio: 0.002
+      delete-ratio: 0.0005
+      kiosk-count: 60
+      # Sales per second for each hour 00..23, America/Chicago (DOC-25 §9.2).
+      rate-profile: [0.05, 0.05, 0.05, 0.05, 0.05, 0.3, 1.2, 2.0, 1.6, 0.9, 0.8, 0.8, 0.8, 0.8, 0.9, 1.4, 2.0, 1.8, 1.1, 0.7, 0.5, 0.35, 0.25, 0.1]
+      weekend-factor: 0.6
+      customer-pool: 50000

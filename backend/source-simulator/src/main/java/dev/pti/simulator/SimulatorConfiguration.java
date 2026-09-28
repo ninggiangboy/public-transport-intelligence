@@ -2,7 +2,6 @@ package dev.pti.simulator;
 
 import dev.pti.common.time.BusinessClock;
 import dev.pti.simulator.emit.Emitter;
-import dev.pti.simulator.emit.EmitterLoop;
 import dev.pti.simulator.emit.KafkaFlush;
 import dev.pti.simulator.emit.KafkaMessageSink;
 import dev.pti.simulator.emit.MessageFactory;
@@ -118,7 +117,7 @@ public class SimulatorConfiguration {
     }
 
     @Bean
-    EmitterLoop emitterLoop(Emitter emitter, SimProperties properties) {
-        return new EmitterLoop(emitter, properties.tick());
+    TickLoop emitterLoop(Emitter emitter, SimProperties properties) {
+        return new TickLoop("sim-emitter", emitter::tick, properties.tick());
     }
 }

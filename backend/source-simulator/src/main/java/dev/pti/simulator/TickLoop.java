@@ -1,4 +1,4 @@
-package dev.pti.simulator.emit;
+package dev.pti.simulator;
 
 import java.time.Duration;
 import java.util.concurrent.Executors;
@@ -10,46 +10,49 @@ import org.slf4j.LoggerFactory;
 import org.springframework.context.SmartLifecycle;
 
 /**
- * Runs {@link Emitter#tick()} every {@code pti.sim.tick} on the {@code sim-emitter} thread (DOC-25 §10). Starts after
- * the Kafka sink and stops before it, so the sink can flush what the loop sent.
+ * Runs a task every {@code pti.sim.tick} on its own platform thread (DOC-25 §10): {@code sim-emitter},
+ * {@code sim-ticketing}. The first run happens in {@link #start()}, so the vehicles already on the road are rebuilt
+ * before the app reports ready. A failing run is logged and the next one carries on.
  */
-public final class EmitterLoop implements SmartLifecycle {
+public final class TickLoop implements SmartLifecycle {
 
+    /** After the Kafka flush and the ledger writer, so those stop after the loops. */
     public static final int PHASE = 1_000;
 
-    private static final Logger log = LoggerFactory.getLogger(EmitterLoop.class);
+    private static final Logger log = LoggerFactory.getLogger(TickLoop.class);
 
     private static final long WARN_EVERY_NANOS = TimeUnit.SECONDS.toNanos(10);
 
-    private final Emitter emitter;
+    private final String name;
+    private final Runnable task;
     private final Duration tick;
     private @Nullable ScheduledExecutorService executor;
     private long lastError = Long.MIN_VALUE;
 
-    public EmitterLoop(Emitter emitter, Duration tick) {
-        this.emitter = emitter;
+    public TickLoop(String name, Runnable task, Duration tick) {
+        this.name = name;
+        this.task = task;
         this.tick = tick;
     }
 
     @Override
     public synchronized void start() {
-        // The first tick rebuilds the vehicles already on the road before the loop starts (DOC-25 §10).
         safeTick();
         ScheduledExecutorService ex = Executors.newSingleThreadScheduledExecutor(
-                Thread.ofPlatform().name("sim-emitter").factory());
+                Thread.ofPlatform().name(name).factory());
         ex.scheduleWithFixedDelay(this::safeTick, tick.toMillis(), tick.toMillis(), TimeUnit.MILLISECONDS);
         executor = ex;
     }
 
     private void safeTick() {
         try {
-            emitter.tick();
+            task.run();
         } catch (RuntimeException e) {
             // A failing tick must not kill the loop: the next one starts from where this one stopped.
             long now = System.nanoTime();
             if (lastError == Long.MIN_VALUE || now - lastError >= WARN_EVERY_NANOS) {
                 lastError = now;
-                log.error("Emitter tick failed", e);
+                log.error("{} tick failed", name, e);
             }
         }
     }

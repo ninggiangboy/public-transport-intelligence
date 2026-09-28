@@ -54,7 +54,7 @@ Mỗi app kết nối bằng đúng role của nó (DOC-17 §2). Kích thước 
 | source-simulator | `pti.datasource.sim` | `source_simulator` | `PTI_DATASOURCE_SIM_*`, `SOURCE_SIMULATOR_PASSWORD` | 4 |
 | db-migrate | ba bộ Flyway | `pti_owner`, `ticketing_owner`, `sim_owner` | DOC-17 §5 | — |
 
-Trạng thái: role và pool là **Chốt**; tên key `pti.datasource.*` của app có hai datasource là **Khung** (P1-10, P4).
+Trạng thái: role và pool là **Chốt**; tên key `pti.datasource.*` của source-simulator là **Chốt** từ P1-10 (`pti.datasource.ticketing`, `pti.datasource.sim`); của api là **Khung** (P4).
 
 Mỗi datasource `pti.datasource.<name>` gồm `url`, `username`, `password` (bind vào `DataSourceProperties`) và `hikari.*` (bind vào `HikariDataSource`, ví dụ `pti.datasource.reader.hikari.maximum-pool-size`). Trên k3d, URL của `reader` liệt kê hai host (pooler `ro` rồi `rw`, `targetServerType=preferSecondary`) và `hikari.max-lifetime` là 5 phút để đọc vẫn chạy khi primary failover (DOC-40 §5.2, §9.5).
 

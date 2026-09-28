@@ -15,10 +15,10 @@ import org.testcontainers.utility.MountableFile;
  * pg-warehouse and pg-source as compose runs them: the image pinned in deploy/versions.env and the
  * bootstrap scripts from deploy/compose/postgres (DOC-17 §3.1).
  */
-final class PostgresFixtures {
+public final class PostgresFixtures {
 
     /** Test-only passwords for every role the bootstrap scripts create. */
-    static final Map<String, String> PASSWORDS = Map.ofEntries(
+    public static final Map<String, String> PASSWORDS = Map.ofEntries(
             Map.entry("PTI_OWNER_PASSWORD", "pti_owner_pw"),
             Map.entry("ETL_WRITER_PASSWORD", "etl_writer_pw"),
             Map.entry("TRIAGE_WRITER_PASSWORD", "triage_writer_pw"),
@@ -32,22 +32,22 @@ final class PostgresFixtures {
 
     private PostgresFixtures() {}
 
-    static PostgreSQLContainer warehouse() {
+    public static PostgreSQLContainer warehouse() {
         return container("warehouse", List.of("postgres", "-c", "fsync=off", "-c", "timezone=UTC"));
     }
 
-    static PostgreSQLContainer source() {
+    public static PostgreSQLContainer source() {
         return container(
                 "source", List.of("postgres", "-c", "fsync=off", "-c", "timezone=UTC", "-c", "wal_level=logical"));
     }
 
-    static String jdbcUrl(PostgreSQLContainer container, String database) {
+    public static String jdbcUrl(PostgreSQLContainer container, String database) {
         return "jdbc:postgresql://%s:%d/%s"
                 .formatted(container.getHost(), container.getMappedPort(PostgreSQLContainer.POSTGRESQL_PORT), database);
     }
 
     /** The environment db-migrate sees when pointed at the two containers. */
-    static Map<String, String> migrateEnv(PostgreSQLContainer warehouse, PostgreSQLContainer source) {
+    public static Map<String, String> migrateEnv(PostgreSQLContainer warehouse, PostgreSQLContainer source) {
         Map<String, String> env = new HashMap<>(PASSWORDS);
         env.put(MigrationSet.WAREHOUSE.urlVariable(), jdbcUrl(warehouse, "pti_warehouse"));
         env.put(MigrationSet.TICKETING.urlVariable(), jdbcUrl(source, "ticketing_source"));

@@ -2,6 +2,7 @@ package dev.pti.simulator;
 
 import dev.pti.simulator.motion.DelayParameters;
 import dev.pti.simulator.rate.RateControl;
+import dev.pti.simulator.ticketing.TicketingSettings;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.DecimalMax;
@@ -33,7 +34,8 @@ public record SimProperties(
         @NotNull @Valid Vehicle vehicle,
         @NotNull @Valid Delay delay,
         @NotNull @Valid RouteFactor routeFactor,
-        @NotNull @Valid RateMultiplier rateMultiplier) {
+        @NotNull @Valid RateMultiplier rateMultiplier,
+        @NotNull @Valid TicketingSettings ticketing) {
 
     /** @param sha256 empty to skip the check */
     public record Feed(@NotNull Resource location, @Nullable String sha256) {}

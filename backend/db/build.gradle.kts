@@ -15,7 +15,8 @@ dependencies {
     // V5_1 must stay byte-identical to the schema shipped in the Spring Batch jar.
     testRuntimeOnly(libs.spring.batch.core)
 
-    integrationTestImplementation(libs.testcontainers.postgresql)
+    testFixturesApi(libs.testcontainers.postgresql)
+    testFixturesImplementation(libs.postgresql)
     integrationTestImplementation(libs.postgresql)
 }
 
