@@ -1,0 +1,7 @@
+{
+  "identities": [
+    { "name": "admin",   "credentials": [{ "accessKey": "${S3_ADMIN_ACCESS_KEY}",   "secretKey": "${S3_ADMIN_SECRET_KEY}" }],   "actions": ["Admin", "Read", "Write", "List", "Tagging"] },
+    { "name": "connect", "credentials": [{ "accessKey": "${S3_CONNECT_ACCESS_KEY}", "secretKey": "${S3_CONNECT_SECRET_KEY}" }], "actions": ["Read:raw", "Write:raw", "List:raw"] },
+    { "name": "etl",     "credentials": [{ "accessKey": "${S3_ETL_ACCESS_KEY}",     "secretKey": "${S3_ETL_SECRET_KEY}" }],     "actions": ["Read:raw", "List:raw", "Write:raw/gtfs-static/*"] }
+  ]
+}

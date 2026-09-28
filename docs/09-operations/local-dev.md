@@ -84,7 +84,7 @@ Offset được làm tròn tới phút. Mọi app dùng chung một giá trị. 
 
 ## 4. Các lệnh `make`
 
-`Makefile` ở gốc repo gọi `docker compose -f deploy/compose/compose.yaml --env-file .env`. Biến `S=<service>` chọn service cho các lệnh có service.
+`Makefile` ở gốc repo gọi `docker compose -f deploy/compose/compose.yaml --env-file deploy/versions.env --env-file .env`. Biến `S=<service>` chọn service cho các lệnh có service.
 
 ### 4.1 Vòng đời
 

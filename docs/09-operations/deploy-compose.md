@@ -20,23 +20,25 @@ deploy/
     kafka/create-topics.sh          # đọc topics.yaml, tạo hoặc sửa config topic (idempotent)
     seaweedfs/s3.json.tmpl          # mẫu identity; make secrets render ra .generated/s3.json
     seaweedfs/s3-init.sh            # tạo bucket raw, versioning, lifecycle (DR-66)
+    seaweedfs/lifecycle.json        # lifecycle rule của DOC-18 §1.4
     connect/register.sh             # PUT /connectors/<name>/config cho mọi file trong deploy/connect/connectors/
     keycloak/realm-pti.json         # realm, client, role, user demo (DOC-27)
     observability/                  # prometheus.yml, rules/, alertmanager.yml, loki, tempo, alloy, otel, grafana/provisioning
     toxiproxy/toxiproxy.json        # proxy cho profile experiment
+    scripts/secrets.sh              # make secrets (§5)
     scripts/backup.sh, restore-warehouse.sh, ensure-partitions.sh, replay.sh   # DOC-43, DOC-38 §4
     .generated/                     # (gitignored) s3.json, webhook-token
   connect/
     Dockerfile                      # FROM quay.io/debezium/connect:3.6.3.Final + Aiven S3 sink (S-04)
     connectors/debezium-ticketing.json
-    connectors/s3-sink-raw.json
+    connectors/pti-raw-sink.json    # tên connector pti-raw-sink, consumer group connect-pti-raw-sink (DOC-09 §7)
   tiles/
     fetch.sh                        # make tiles (ADR-0021); PMTiles, fonts/, sprites/ đều gitignored
 Makefile                            # DOC-38 §4
 .env                                # (gitignored) sinh bởi make secrets
 ```
 
-`compose.yaml` đặt `name: pti` để tên container, network và volume có tiền tố `pti-` bất kể thư mục clone. Makefile luôn gọi `docker compose -f deploy/compose/compose.yaml --env-file .env`.
+`compose.yaml` đặt `name: pti` để tên container, network và volume có tiền tố `pti-` bất kể thư mục clone. Makefile luôn gọi `docker compose -f deploy/compose/compose.yaml --env-file deploy/versions.env --env-file .env` (compose chỉ nội suy biến từ `--env-file`, nên `versions.env` được nạp theo cách này) và đặt `BUILDX_NO_DEFAULT_ATTESTATIONS=1`: attestation mặc định chứa thời điểm build, làm image id đổi sau mỗi lần build và compose tạo lại container dù code không đổi (C-03).
 
 ## 2. Profile
 
@@ -295,7 +297,7 @@ Thời gian từ `make up` (image có sẵn) tới lúc mọi service healthy: m
 
 ## 5. Biến môi trường và secret
 
-`.env.example` (commit) liệt kê mọi biến. `make secrets` copy thành `.env` rồi điền giá trị cho những biến có đánh dấu `# generate`, bằng `openssl rand -base64 24 | tr -d '/+=' | cut -c1-24` (bỏ ký tự đặc biệt để khỏi phải escape trong JDBC URL và YAML).
+`.env.example` (commit) liệt kê mọi biến. `make secrets` copy thành `.env` (và thêm vào `.env` đã có những biến mới xuất hiện trong `.env.example`) rồi điền giá trị cho những biến có dòng chú thích `# generate: <loại>` ngay phía trên (`password`, `s3-access-key`, `s3-secret-key`, `kafka-cluster-id`), bằng `openssl rand -base64 24 | tr -d '/+=' | cut -c1-24` (bỏ ký tự đặc biệt để khỏi phải escape trong JDBC URL và YAML).
 
 | Nhóm | Biến | Sinh tự động | Ghi chú |
 | --- | --- | --- | --- |

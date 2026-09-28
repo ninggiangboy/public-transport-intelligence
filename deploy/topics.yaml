@@ -1,0 +1,71 @@
+# Single source of truth for Kafka topics (DOC-09 §1). Read by deploy/compose/kafka/create-topics.sh and, from P7, by
+# the Helm chart that renders KafkaTopic CRs.
+#
+# Format (kept to this subset so a shell script can parse it): a list under `topics:` where each entry has `name`,
+# `partitions` and an optional `config` map of topic-level properties with scalar values.
+# Replication factor is set per environment: 1 on compose, 3 on k3d.
+topics:
+  - name: gtfs.vehicle_positions
+    partitions: 12
+    config:
+      retention.ms: 604800000
+      cleanup.policy: delete
+      message.timestamp.type: CreateTime
+
+  - name: gtfs.trip_updates
+    partitions: 12
+    config:
+      retention.ms: 604800000
+      cleanup.policy: delete
+      message.timestamp.type: CreateTime
+
+  - name: ticketing.sales.cdc
+    partitions: 6
+    config:
+      retention.ms: 604800000
+      cleanup.policy: delete
+      message.timestamp.type: CreateTime
+
+  - name: ticketing.sale_points.cdc
+    partitions: 1
+    config:
+      retention.ms: 604800000
+      cleanup.policy: delete
+      message.timestamp.type: CreateTime
+
+  - name: ticketing.heartbeat
+    partitions: 1
+    config:
+      retention.ms: 3600000
+      cleanup.policy: delete
+      message.timestamp.type: CreateTime
+
+  - name: __debezium-heartbeat.ticketing
+    partitions: 1
+    config:
+      retention.ms: 3600000
+      cleanup.policy: delete
+      message.timestamp.type: CreateTime
+
+  - name: pti.events.ui
+    partitions: 3
+    config:
+      retention.ms: 86400000
+      cleanup.policy: delete
+      message.timestamp.type: CreateTime
+
+  # Kafka Connect internal topics, created here so Connect does not create them itself.
+  - name: connect-configs
+    partitions: 1
+    config:
+      cleanup.policy: compact
+
+  - name: connect-offsets
+    partitions: 25
+    config:
+      cleanup.policy: compact
+
+  - name: connect-status
+    partitions: 5
+    config:
+      cleanup.policy: compact

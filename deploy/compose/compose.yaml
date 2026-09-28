@@ -1,0 +1,202 @@
+# Docker Compose stack (DOC-39). Always run through the root Makefile:
+#   docker compose -f deploy/compose/compose.yaml --env-file deploy/versions.env --env-file .env ...
+name: pti
+
+x-logging: &default-logging
+  driver: json-file
+  options: { max-size: "20m", max-file: "3" }
+
+x-postgres-healthcheck: &postgres-healthcheck
+  test: ["CMD", "pg_isready", "-U", "postgres", "-d", "postgres"]
+  interval: 5s
+  timeout: 3s
+  retries: 20
+  start_period: 10s
+
+services:
+  # ---------------------------------------------------------------- infrastructure (core)
+
+  pg-warehouse:
+    profiles: [core]
+    image: ${POSTGRES_IMAGE:?deploy/versions.env is not loaded}
+    restart: unless-stopped
+    command: >-
+      postgres -c shared_buffers=512MB -c max_connections=100 -c work_mem=16MB -c maintenance_work_mem=128MB
+      -c wal_level=replica -c max_wal_size=2GB -c log_min_duration_statement=500 -c timezone=UTC
+    environment:
+      POSTGRES_PASSWORD: ${PG_WAREHOUSE_SUPERUSER_PASSWORD:?run make secrets}
+      PTI_OWNER_PASSWORD: ${PTI_OWNER_PASSWORD:?run make secrets}
+      ETL_WRITER_PASSWORD: ${ETL_WRITER_PASSWORD:?run make secrets}
+      TRIAGE_WRITER_PASSWORD: ${TRIAGE_WRITER_PASSWORD:?run make secrets}
+      API_READER_PASSWORD: ${API_READER_PASSWORD:?run make secrets}
+      REPLAY_OPERATOR_PASSWORD: ${REPLAY_OPERATOR_PASSWORD:?run make secrets}
+      EXPERIMENT_RUNNER_PASSWORD: ${EXPERIMENT_RUNNER_PASSWORD:?run make secrets}
+    volumes:
+      - pg-warehouse-data:/var/lib/postgresql/data
+      - ./postgres/warehouse:/docker-entrypoint-initdb.d:ro
+    ports: ["127.0.0.1:${HOST_PORT_PG_WAREHOUSE:-15432}:5432"]
+    healthcheck: *postgres-healthcheck
+    mem_limit: 1536m
+    cpus: 2.0
+    logging: *default-logging
+
+  pg-source:
+    profiles: [core]
+    image: ${POSTGRES_IMAGE:?deploy/versions.env is not loaded}
+    restart: unless-stopped
+    command: >-
+      postgres -c wal_level=logical -c max_replication_slots=4 -c max_wal_senders=4 -c max_slot_wal_keep_size=4GB
+      -c shared_buffers=64MB -c max_connections=50 -c timezone=UTC
+    environment:
+      POSTGRES_PASSWORD: ${PG_SOURCE_SUPERUSER_PASSWORD:?run make secrets}
+      TICKETING_OWNER_PASSWORD: ${TICKETING_OWNER_PASSWORD:?run make secrets}
+      SIM_OWNER_PASSWORD: ${SIM_OWNER_PASSWORD:?run make secrets}
+      SOURCE_SIMULATOR_PASSWORD: ${SOURCE_SIMULATOR_PASSWORD:?run make secrets}
+      DEBEZIUM_PASSWORD: ${DEBEZIUM_PASSWORD:?run make secrets}
+      EXPERIMENT_RUNNER_PASSWORD: ${EXPERIMENT_RUNNER_PASSWORD:?run make secrets}
+    volumes:
+      - pg-source-data:/var/lib/postgresql/data
+      - ./postgres/source:/docker-entrypoint-initdb.d:ro
+    ports: ["127.0.0.1:${HOST_PORT_PG_SOURCE:-15433}:5432"]
+    healthcheck: *postgres-healthcheck
+    mem_limit: 384m
+    cpus: 0.5
+    logging: *default-logging
+
+  kafka:
+    profiles: [core]
+    image: ${KAFKA_IMAGE:?deploy/versions.env is not loaded}
+    restart: unless-stopped
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_LISTENERS: INTERNAL://:9092,CONTROLLER://:9093,EXTERNAL://:19092
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:9092,EXTERNAL://localhost:${HOST_PORT_KAFKA:-19092}
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      CLUSTER_ID: ${KAFKA_CLUSTER_ID:?run make secrets}
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_LOG_RETENTION_HOURS: 168
+      KAFKA_LOG_SEGMENT_BYTES: 268435456
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
+      KAFKA_HEAP_OPTS: -Xms512m -Xmx512m
+    volumes:
+      - kafka-data:/var/lib/kafka/data
+    ports: ["127.0.0.1:${HOST_PORT_KAFKA:-19092}:19092"]
+    healthcheck:
+      test: ["CMD", "/opt/kafka/bin/kafka-broker-api-versions.sh", "--bootstrap-server", "localhost:9092"]
+      interval: 10s
+      timeout: 10s
+      retries: 12
+      start_period: 20s
+    mem_limit: 1024m
+    cpus: 1.0
+    logging: *default-logging
+
+  kafka-init:
+    profiles: [core]
+    image: ${KAFKA_IMAGE:?deploy/versions.env is not loaded}
+    restart: "no"
+    depends_on:
+      kafka: { condition: service_healthy }
+    entrypoint: ["/create-topics.sh", "/topics.yaml"]
+    environment:
+      KAFKA_BOOTSTRAP: kafka:9092
+      KAFKA_HEAP_OPTS: -Xmx128m
+    volumes:
+      - ../topics.yaml:/topics.yaml:ro
+      - ./kafka/create-topics.sh:/create-topics.sh:ro
+    mem_limit: 256m
+    logging: *default-logging
+
+  seaweedfs:
+    profiles: [core]
+    image: ${SEAWEEDFS_IMAGE:?deploy/versions.env is not loaded}
+    restart: unless-stopped
+    command: >-
+      server -dir=/data -s3 -s3.config=/etc/seaweedfs/s3.json -s3.port=8333
+      -master.volumeSizeLimitMB=1024 -volume.max=0
+    volumes:
+      - seaweedfs-data:/data
+      - ./.generated/s3.json:/etc/seaweedfs/s3.json:ro
+    ports:
+      - "127.0.0.1:${HOST_PORT_S3:-18333}:8333"
+      - "127.0.0.1:${HOST_PORT_S3_FILER:-18888}:8888"
+    healthcheck:
+      # 8333 answers 403 to unsigned requests; any HTTP status line means the S3 gateway is up.
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:9333/cluster/status >/dev/null && wget -S --spider http://127.0.0.1:8333/ 2>&1 | grep -q 'HTTP/'"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 10s
+    mem_limit: 384m
+    cpus: 0.5
+    logging: *default-logging
+
+  s3-init:
+    profiles: [core]
+    image: ${AWS_CLI_IMAGE:?deploy/versions.env is not loaded}
+    restart: "no"
+    depends_on:
+      seaweedfs: { condition: service_healthy }
+    entrypoint: ["bash", "/s3-init/s3-init.sh"]
+    environment:
+      S3_ADMIN_ACCESS_KEY: ${S3_ADMIN_ACCESS_KEY:?run make secrets}
+      S3_ADMIN_SECRET_KEY: ${S3_ADMIN_SECRET_KEY:?run make secrets}
+      S3_ETL_ACCESS_KEY: ${S3_ETL_ACCESS_KEY:?run make secrets}
+      S3_ETL_SECRET_KEY: ${S3_ETL_SECRET_KEY:?run make secrets}
+    volumes:
+      - ./seaweedfs:/s3-init:ro
+    mem_limit: 128m
+    logging: *default-logging
+
+  kafka-connect:
+    profiles: [core]
+    image: ghcr.io/${GHCR_OWNER:-ninggiangboy}/pti-connect:${PTI_IMAGE_TAG:-local}
+    build:
+      context: ../connect
+    restart: unless-stopped
+    depends_on:
+      kafka-init: { condition: service_completed_successfully }
+      s3-init: { condition: service_completed_successfully }
+    environment:
+      BOOTSTRAP_SERVERS: kafka:9092
+      GROUP_ID: pti-connect
+      CONFIG_STORAGE_TOPIC: connect-configs
+      OFFSET_STORAGE_TOPIC: connect-offsets
+      STATUS_STORAGE_TOPIC: connect-status
+      CONFIG_STORAGE_REPLICATION_FACTOR: 1
+      OFFSET_STORAGE_REPLICATION_FACTOR: 1
+      STATUS_STORAGE_REPLICATION_FACTOR: 1
+      KEY_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      CONNECT_CONFIG_PROVIDERS: env
+      CONNECT_CONFIG_PROVIDERS_ENV_CLASS: org.apache.kafka.common.config.provider.EnvVarConfigProvider
+      CONNECT_CONFIG_PROVIDERS_ENV_PARAM_ALLOWLIST_PATTERN: ^(DEBEZIUM_PASSWORD|S3_CONNECT_.*)$$
+      CONNECT_OFFSET_FLUSH_INTERVAL_MS: 300000
+      DEBEZIUM_PASSWORD: ${DEBEZIUM_PASSWORD:?run make secrets}
+      S3_CONNECT_ACCESS_KEY: ${S3_CONNECT_ACCESS_KEY:?run make secrets}
+      S3_CONNECT_SECRET_KEY: ${S3_CONNECT_SECRET_KEY:?run make secrets}
+      HEAP_OPTS: -Xms256m -Xmx512m
+    ports: ["127.0.0.1:${HOST_PORT_CONNECT:-18083}:8083"]
+    healthcheck:
+      test: ["CMD", "curl", "-fs", "http://localhost:8083/connectors"]
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 60s
+    mem_limit: 1280m
+    cpus: 1.0
+    logging: *default-logging
+
+volumes:
+  pg-warehouse-data:
+  pg-source-data:
+  kafka-data:
+  seaweedfs-data:

@@ -1,0 +1,10 @@
+{
+  "Rules": [
+    { "ID": "gtfs-rt-30d",   "Filter": { "Prefix": "gtfs." },      "Status": "Enabled", "Expiration": { "Days": 30 } },
+    { "ID": "ticketing-30d", "Filter": { "Prefix": "ticketing." }, "Status": "Enabled", "Expiration": { "Days": 30 } },
+    { "ID": "noncurrent-7d", "Filter": { "Prefix": "" },           "Status": "Enabled",
+      "NoncurrentVersionExpiration": { "NoncurrentDays": 7 },
+      "AbortIncompleteMultipartUpload": { "DaysAfterInitiation": 1 },
+      "Expiration": { "ExpiredObjectDeleteMarker": true } }
+  ]
+}
