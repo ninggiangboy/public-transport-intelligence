@@ -67,7 +67,7 @@ Sau khi `make up` và `make sim-start` báo xong:
 | Simulator đang phát | `make sim-status` có `rate.gtfsRt > 0` và `activeVehicles > 0` (nếu bằng 0, xem §8 mục "Không có xe") |
 | Có message trên Kafka | `make tail-gtfs.vehicle_positions` |
 | CDC chạy | `make connectors` → hai connector `RUNNING` |
-| Raw zone có file (sau khoảng 5 phút, DOC-09 §7) | `make s3-ls` |
+| Raw zone có file (sau khoảng 40 giây, DOC-09 §7, DR-89) | `make s3-ls` |
 | UI | Mở `http://localhost:8080`, đăng nhập `operator` / `operator` |
 
 ### 3.1 Giờ Chicago và `make clock-offset`

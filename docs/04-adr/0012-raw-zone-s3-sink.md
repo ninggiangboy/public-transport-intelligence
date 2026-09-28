@@ -28,7 +28,7 @@ Chọn **phương án 3 (Aiven)**; phương án 2 là dự phòng nếu S-04 th�
 - Converter (DR-81): **`ByteArrayConverter` cho value**, ghi ra dưới dạng **base64** (`format.output.fields.value.encoding=base64`). Nhờ vậy mọi byte được giữ nguyên, kể cả UTF-8 hỏng và `0x00`; `StringConverter` sẽ thay byte hỏng bằng U+FFFD. Key và headers dùng `StringConverter`, vì mọi producer của hệ thống đều ghi key và header dạng chuỗi ASCII.
 - Định dạng: JSON lines, nén gzip. Mỗi dòng gồm `key, value, offset, timestamp, headers`. Aiven không có trường `partition`, nên partition được lấy từ tên file (DOC-09 §7).
 - Đường dẫn: `raw/<topic>/dt=YYYY-MM-DD/hh=HH/<topic>-<partition>-<start_offset>.json.gz`, với `start_offset` đệm 20 chữ số. Giờ tính theo **timestamp của record** (CreateTime), UTC (`file.name.timestamp.source=EVENT`). Mỗi dòng nằm đúng thư mục giờ của nó, nên replay chỉ cần liệt kê các giờ giao với khoảng cần replay.
-- Rotate: file đóng ở mỗi lần commit của connector, tức mỗi 5 phút (`offset.flush.interval.ms = 300000` của worker) hoặc sớm hơn khi một file bất kỳ đạt 2.000 record (`file.max.records`). Ngưỡng 2.000 giữ RAM của connector trong giới hạn (DR-81).
+- Rotate: file đóng ở mỗi lần commit của connector, tức mỗi 5 phút (`offset.flush.interval.ms = 300000` của worker) hoặc sớm hơn khi một file bất kỳ đạt 2.000 record (`file.max.records`). Ngưỡng 2.000 giữ RAM của connector trong giới hạn (DR-81). **Sửa bởi DR-89:** Aiven 3.4.3 cắt file mỗi 10 giây trên mỗi partition khi chạy live; commit mỗi 30 giây và part 1 MiB.
 - Bucket `raw` bật versioning. Chỉ connector (ghi) và `etl-batch` (đọc, ghi `raw/gtfs-static/`) có credential.
 - File GTFS static: `raw/gtfs-static/<feed_hash>.zip`, do `GtfsStaticLoadJob` ghi.
 - Consumer group của sink: `connect-pti-raw-sink`. Lag của group này được giám sát như mọi consumer khác.
@@ -48,7 +48,7 @@ Spike chạy ngày 2026-09-28 trong `spikes/s04-kafka-connect/`, với `quay.io/
 | gzip | `file.compression.type=gzip`. Dòng cuối của mỗi file **không** có ký tự xuống dòng |
 | SeaweedFS | Chạy với `aws.s3.endpoint` + `aws.s3.region`, không cần cấu hình path-style riêng |
 | At-least-once | `kill -9` Connect giữa cửa sổ commit: đủ mọi offset, không trùng. Trùng vẫn có thể xảy ra, nên replay vẫn khử trùng |
-| RAM | Mỗi file đang mở trong một cửa sổ commit giữ một buffer 5 MiB trên heap. SeaweedFS từ chối part nhỏ hơn 5 MiB (`EntityTooSmall`), nên không giảm buffer được. Với `file.max.records=10000`, sink bị OOM khi chạy bù 480 nghìn record (heap 512 MB và 768 MB; 96–115 file mở cùng lúc). Với 2.000: tối đa 49 file mở, chạy bù 1,02 triệu record trên 30 partition trong khoảng 15 giây ở `-Xmx512m`; heap đỉnh 468 MiB, container đỉnh 1.009 MiB (DR-81) |
+| RAM | Mỗi file đang mở trong một cửa sổ commit giữ một buffer 5 MiB trên heap. SeaweedFS từ chối part nhỏ hơn 5 MiB (`EntityTooSmall`), nên không giảm buffer được. Với `file.max.records=10000`, sink bị OOM khi chạy bù 480 nghìn record (heap 512 MB và 768 MB; 96–115 file mở cùng lúc). Với 2.000: tối đa 49 file mở, chạy bù 1,02 triệu record trên 30 partition trong khoảng 15 giây ở `-Xmx512m`; heap đỉnh 468 MiB, container đỉnh 1.009 MiB (DR-81). Bài đo này chỉ có backlog tĩnh; khi chạy live, sink mở file mới mỗi 10 giây và OOM với commit 5 phút (DR-89) |
 
 Phương án 2 (Confluent) không cần đến.
 

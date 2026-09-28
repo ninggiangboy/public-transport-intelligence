@@ -188,9 +188,9 @@ Env của worker:
 | `CONNECT_CONFIG_PROVIDERS` | `env` |
 | `CONNECT_CONFIG_PROVIDERS_ENV_CLASS` | `org.apache.kafka.common.config.provider.EnvVarConfigProvider` |
 | `CONNECT_CONFIG_PROVIDERS_ENV_PARAM_ALLOWLIST_PATTERN` | `^(DEBEZIUM_PASSWORD|S3_CONNECT_.*)$` |
-| `CONNECT_OFFSET_FLUSH_INTERVAL_MS` | `300000`. Chu kỳ commit của mọi connector, cũng là thời gian tối đa một file raw zone còn mở (DOC-09 §7). Với Debezium, offset nguồn được lưu mỗi 5 phút: nếu Connect chết đột ngột thì tối đa 5 phút thay đổi được phát lại, và guard `__lsn` của ETL bỏ qua chúng (DOC-09 §5.2) |
+| `CONNECT_OFFSET_FLUSH_INTERVAL_MS` | `30000`. Chu kỳ commit của mọi connector. S3 sink giữ buffer part (1 MiB) của mỗi file mới (mỗi 10 giây, mỗi partition) tới lần commit, nên chu kỳ này chặn RAM của sink (DR-89). Với Debezium, offset nguồn được lưu mỗi 30 giây: nếu Connect chết đột ngột thì tối đa 30 giây thay đổi được phát lại, và guard `__lsn` của ETL bỏ qua chúng (DOC-09 §5.2) |
 | `DEBEZIUM_PASSWORD`, `S3_CONNECT_ACCESS_KEY`, `S3_CONNECT_SECRET_KEY` | từ `.env` |
-| `HEAP_OPTS` | `-Xms256m -Xmx512m` (không tăng; S3 sink được giới hạn bằng `file.max.records`, DR-81) |
+| `HEAP_OPTS` | `-Xms256m -Xmx512m` (không tăng; S3 sink được giới hạn bằng `file.max.records`, part 1 MiB và commit 30 giây, DR-81, DR-89) |
 
 File connector tham chiếu secret bằng `${env:DEBEZIUM_PASSWORD}`, `${env:S3_CONNECT_ACCESS_KEY}`. Kafka Connect thay giá trị lúc chạy; GET `/connectors/<name>/config` trả lại nguyên chuỗi `${env:…}`, không lộ mật khẩu. Trên k3d dùng `DirectoryConfigProvider` đọc key của Secret mount (`${dir:/mnt/secrets/debezium:password}`, DOC-40 §6.3).
 
@@ -362,7 +362,7 @@ Script `deploy/compose/smoke.sh` chạy sau `make up` và trong CI nightly (DOC-
 | 6 | Hai connector `RUNNING`; `dw.fact_ticket_sales` có dòng mới | 120 s |
 | 7 | Lấy token `viewer` bằng password grant (client `pti-smoke`, chỉ có trong realm dev), `GET :8081/api/v1/vehicles/live` → 200, danh sách không rỗng | 30 s |
 | 8 | `GET :8080/` → 200, HTML có `<div id="root">` | 10 s |
-| 9 | Có ít nhất một object trong `raw/gtfs.vehicle_positions/` (bước này chỉ chạy khi truyền `FULL=1`, vì flush của sink mất tới 5 phút) | 360 s |
+| 9 | Có ít nhất một object trong `raw/gtfs.vehicle_positions/` (bước này chỉ chạy khi truyền `FULL=1`, vì sink chỉ upload file ở lần commit, mỗi 30 giây, DR-89) | 360 s |
 
 NFR-07 được kiểm chứng bằng: máy sạch, `make secrets && make up && make smoke` pass trong ≤ 5 phút tính từ khi image có sẵn.
 

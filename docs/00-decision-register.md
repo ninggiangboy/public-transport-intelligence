@@ -50,6 +50,7 @@ Tài liệu gốc mô tả tốt *cái gì* và *vì sao*, nhưng còn nhiều c
 | 2026-09-28 | Owner | **Demo console:** thêm trang web chạy trên host (`pti-exp console`, cổng 8095) để bấm nút kích hoạt các bước demo, kể cả thao tác hạ tầng, và xem topology sống, timeline, chỉ số. Dùng lại adapter của runner. Demo control trong sản phẩm giữ nguyên; lệnh `make demo-*` vẫn là phương án dự phòng | DR-87 (mới), DOC-48 (mới), DOC-46 |
 | 2026-09-28 | Owner | **Giao diện theo prototype "Wayfinding":** token mới (Geist, canvas xám nhạt, một màu nhấn indigo, motif route shield và line-and-stop strip), sidebar chung thay thanh trên, thêm màn Overview, danh sách + khung chi tiết cho Alerts, Dead letters, Ticketing. Dữ liệu vẫn theo DOC-32; khối minh họa không có dữ liệu thì thay hoặc bỏ | DR-88 (mới), DOC-34–37, DOC-48 |
 | 2026-09-28 | Owner | **Duyệt toàn bộ tài liệu:** master plan và DOC-01…48 chuyển từ Review sang Approved, gồm cả các gate tài liệu P0-08…14 và P2-00…P8-00 | Master plan §5, `docs/README.md` |
+| 2026-09-28 | Claude (Owner ủy quyền) | **S3 sink OOM khi chạy live (P1-14):** Aiven 3.4.3 cắt file mỗi 10 giây trên mỗi partition và giữ buffer của writer tới lần commit, nên với commit 5 phút task chết sau vài phút có traffic. Giữ 3.4.3; `aws.s3.part.size.bytes` = 1 MiB, worker commit mỗi 30 giây. Số object raw zone tăng khoảng 15 lần; replay (P3) phải xem lại `pti.replay.max-objects` | DR-89 (mới), sửa DR-81, ADR-0012, DOC-09 §7, DOC-39 §3.4, DOC-40, DOC-22 §4.3 |
 
 ---
 
@@ -702,7 +703,7 @@ Tài liệu gốc mô tả tốt *cái gì* và *vì sao*, nhưng còn nhiều c
 - **Quyết định:** (b) và (d).
   - Value lưu base64. Replay giải base64 thành `byte[]` rồi đi qua đúng bước giải mã của `etl-stream` (DOC-22 §4.4).
   - `file.max.records=2000`. Connector yêu cầu commit ngay khi một file đạt ngưỡng, và commit đóng mọi file đang mở. Đo được: tối đa 49 file mở; chạy bù 1,02 triệu record trên 30 partition trong khoảng 15 giây ở `-Xmx512m`; heap đỉnh 468 MiB, container đỉnh 1.009 MiB. Không OOM, không mất, không trùng.
-  - `kafka-connect` có `mem_limit` 1.280 MB (k3d: limit 1280Mi), heap giữ 512 MB. Worker đặt `offset.flush.interval.ms=300000`.
+  - `kafka-connect` có `mem_limit` 1.280 MB (k3d: limit 1280Mi), heap giữ 512 MB. Worker đặt `offset.flush.interval.ms=300000` (**đã sửa ở DR-89:** 30 giây, part 1 MiB, vì sink cắt file mỗi 10 giây khi chạy live).
   - **Không tăng `file.max.records`**, cũng không thêm topic nhiều partition vào sink mà không đo lại (test C-10 của DOC-39).
 - **Hệ quả:** File raw zone không đọc được bằng mắt, nên thêm `make raw-cat`. Số object nhiều hơn: VehiclePosition khoảng 48.000 object mỗi 7 ngày ở tải nền, nên `pti.replay.max-objects` tăng lên 100.000. Aiven không ghi trường `partition`, nên reader lấy partition từ tên file.
 - **Ghi vào:** ADR-0012, DOC-09 §7, DOC-10 §5, DOC-11, DOC-18 §2, DOC-22 §4.3–4.4, DOC-38, DOC-39 §3.4, DOC-40 §6.3.
@@ -788,13 +789,27 @@ Tài liệu gốc mô tả tốt *cái gì* và *vì sao*, nhưng còn nhiều c
   - **Không đưa vào** (prototype chỉ minh họa, DOC-32 không có dữ liệu hay thao tác tương ứng): KPI "Prediction error" và số xe theo lịch ở Overview; loại alert "Prediction quality"; "Riders affected"; nhiều phương án phục hồi cùng nút "Send to dispatch"/"Notify riders" (API chỉ có một gợi ý và phản hồi accept/dismiss, E-17/E-18); ghi chú trong alert; biểu đồ xu hướng 60 phút của episode; heatmap toàn mạng và preset "Quarter" ở Scorecard (E-03 theo tuyến, E-14 tối đa 31 ngày); lag Kafka theo topic trên màn Pipeline (xem ở Grafana và demo console); AI đề xuất payload sửa và "Review batch" ở Dead letters (triage chỉ phân loại và định tuyến, DOC-24); "Dry run" và xếp hàng replay (FR-12.3 từ chối replay trùng nguồn); biểu đồ doanh số so với khoảng kỳ vọng, "Mark as expected", "Lock refunds" ở Ticketing; số quyết định và tỉ lệ chấp nhận của AI, "Audit log", tải file GTFS lên ở Controls (thay bằng ô URL chạy `GtfsStaticLoadJob`); "Remind me" ở mobile; tiện ích trạm ngoài xe lăn. Tên sai trong dữ liệu mẫu (Flink, MinIO, `ReplayRawRangeJob`, job không có trong DOC-19) không được chép; nhãn chú giải độ trễ theo ngưỡng DOC-35 §3.4, không theo prototype.
 - **Hệ quả:** Không đổi API, không thêm endpoint. Đổi package font (DOC-11). Thêm test DS-11, UX-11 và các AC mới trong `screens/*`. Prototype và artifact design system là tham chiếu hình ảnh nằm ngoài repo; khi lệch nhau, tài liệu thắng. Màn Overview gọi thêm E-05, E-14 (hai lần), E-31, E-41; sidebar của viewer gọi thêm E-31, E-51, E-15 để hiện số đếm (60 s một lần).
 - **Ghi vào:** DOC-35 (§1–§11), DOC-34 (§2, §3, §4, §5.2, §6, §7, §9.1, §11), DOC-37 (§2, §6), DOC-36 (mọi file trong `screens/`, thêm `overview.md`), DOC-48 §4, DOC-46 §1.3, §4–§6, DOC-03 FR-11.8, DOC-05 F-UI-04, F-UI-08, F-UI-09, DOC-11, master plan P5-14, P5-16.
+### DR-89 · S3 sink: part 1 MiB và commit 30 giây — **Chốt** (sửa DR-81)
+- **Vấn đề:** Khi đưa simulator vào compose (P1-14), task `pti-raw-sink` chết vì `OutOfMemoryError` sau vài phút có traffic live, dù backlog chỉ vài chục nghìn record. Đọc mã nguồn Aiven 3.4.3 (`S3SinkTask`): `put()` ghi dữ liệu đang đệm ra S3 khi đủ 10 giây (`S3_WRITE_INTERVAL_MS`, hằng số, không cấu hình được) hoặc 60 MiB. Mỗi lần như vậy, mỗi partition có dữ liệu bắt đầu một file mới (`start_offset` mới) và một writer mới giữ buffer bằng `aws.s3.part.size.bytes` trên heap, tới lần commit kế tiếp. Với commit 5 phút và khoảng 31 partition có traffic: tới 30 × 31 ≈ 900 writer × 5 MiB. S-04 chỉ đo backlog tĩnh, nơi ngưỡng 2.000 record gọi commit liên tục, nên không thấy. Bản 3.4.2 thì ngược lại: đệm mọi record tới lần commit rồi ghi từng file một, không có ngưỡng gọi commit, nên RAM không bị chặn khi chạy bù.
+- **Các phương án:** (a) quay về 3.4.2: live ổn, nhưng chạy bù sau một lần sink dừng lâu thì đệm cả backlog trên heap, OOM rồi kẹt; (b) giữ 3.4.3, giảm part size và chu kỳ commit; (c) đổi sang Confluent S3 sink: đổi license, làm lại S-04.
+- **Quyết định:** (b).
+  - `aws.s3.part.size.bytes=1048576`. Một file có tối đa 2.000 record; đo trên stack thật: TripUpdate khoảng 200 byte/record sau gzip (2.000 record ≈ 400 KB), VehiclePosition khoảng 75 byte. File luôn nằm trong một part, nên SeaweedFS không báo `EntityTooSmall` (lỗi ở DR-81 (e) chỉ xảy ra khi file lớn hơn part).
+  - Worker `offset.flush.interval.ms=30000`. Số writer mở tối đa khoảng 3 × số partition có traffic × 1 MiB ≈ 100 MiB. Offset nguồn của Debezium cũng được lưu mỗi 30 giây (phát lại ít hơn khi Connect chết).
+  - Heap giữ 512 MB, `file.max.records` giữ 2.000.
+  - Đo trên compose (2026-09-28): 6 phút live ở hệ số 1 và 10, rồi dồn 329 nghìn record (sink pause, simulator hệ số 20 trong 150 giây) và resume: task không lỗi, chạy bù xong trong khoảng 7 giây, heap dưới 500 MiB (phần lớn là rác chưa GC, sau GC khoảng 110–200 MiB).
+- **Hệ quả:**
+  - File raw zone đóng **mỗi 10 giây** trên mỗi partition có traffic (hoặc khi đạt 2.000 record), không còn mỗi 5 phút. VehiclePosition ở tải nền: khoảng 104.000 object mỗi ngày (12 partition × 8.640), tức khoảng 730.000 mỗi 7 ngày, gấp khoảng 15 lần ước lượng của DR-81.
+  - **Mở:** replay (DOC-22 §4.3) lưu danh sách object trong `ExecutionContext` và giới hạn `pti.replay.max-objects` 100.000, nên một replay VehiclePosition dài hơn khoảng 1 ngày sẽ bị từ chối. Phải xem lại khi làm replay (P3): nâng giới hạn và không lưu cả danh sách trong context (liệt kê lại theo giờ khi restart), hoặc gộp file nhỏ bằng một job compact. Nếu Aiven cho cấu hình chu kỳ ghi (hiện là hằng số), cân nhắc quay lại file 5 phút.
+  - Test C-10 của DOC-39 đo thêm pha live ở hệ số 10 sau khi chạy bù.
+- **Ghi vào:** DR-81, ADR-0012, DOC-09 §7, DOC-39 §3.4, DOC-40 (values Connect), DOC-22 §4.3, `deploy/connect/connectors/pti-raw-sink.json`, `deploy/compose/compose.yaml`.
+
 ---
 
 ## Tổng hợp theo mức ảnh hưởng
 
 | Mức | Mục | Lý do cần chốt sớm |
 | --- | --- | --- |
-| Chặn P1 | DR-01, 02, 03, 04, 05, 06, 09, 10, 11, 26, 53, 64, 66, 67, 68, 81, 85, 86 | Quyết định schema, contract và cấu trúc repo |
+| Chặn P1 | DR-01, 02, 03, 04, 05, 06, 09, 10, 11, 26, 53, 64, 66, 67, 68, 81, 85, 86, 89 | Quyết định schema, contract và cấu trúc repo |
 | Chặn P2 | DR-07, 13, 14, 15, 16, 18, 21, 22, 23, 24, 25, 62, 63, 65, 69, 70, 80, 83, 84 | Quyết định ngữ nghĩa đúng đắn của pipeline |
 | Chặn P3 | DR-27, 28, 50, 57, 58, 71 | Thiếu thì không đo được thực nghiệm |
 | Chặn P4 | DR-12, 17, 19, 20, 29–35, 39–45 | Analytics và API |

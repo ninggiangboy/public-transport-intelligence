@@ -17,6 +17,7 @@
     "file.name.timestamp.timezone": "UTC",
     "file.compression.type": "gzip",
     "file.max.records": "2000",
+    "aws.s3.part.size.bytes": "1048576",
     "format.output.type": "jsonl",
     "format.output.fields": "key,value,offset,timestamp,headers",
     "format.output.fields.value.encoding": "base64"

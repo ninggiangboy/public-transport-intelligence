@@ -240,7 +240,7 @@ Dùng định dạng MADR rút gọn: Bối cảnh / Các phương án / Quyết
 | 0028 | K8s: k3d, helmfile, Strimzi, CNPG, KEDA, Chaos Mesh | DR-54 | P7 |
 | 0029 | Nền tảng: Spring Boot 4.1 và Java 25 (bản mới nhất); ghi các thay đổi so với Boot 3 | DR-53 | P1 |
 
-ADR-0012 đã chốt sau S-04 (2026-09-28): Aiven S3 sink 3.4.3, value base64, phân thư mục theo CreateTime (`file.name.timestamp.source=EVENT`), file đóng mỗi 5 phút hoặc 2.000 record (DR-81), đường dẫn `raw/{topic}/dt=YYYY-MM-DD/hh=HH/`. **File GTFS static zip cũng được lưu vào raw zone** để EXP-04 dựng lại được cả dimension.
+ADR-0012 đã chốt sau S-04 (2026-09-28): Aiven S3 sink 3.4.3, value base64, phân thư mục theo CreateTime (`file.name.timestamp.source=EVENT`), file đóng mỗi 5 phút hoặc 2.000 record (DR-81; **DR-89** sửa thành file mới mỗi 10 giây trên mỗi partition, commit 30 giây, part 1 MiB), đường dẫn `raw/{topic}/dt=YYYY-MM-DD/hh=HH/`. **File GTFS static zip cũng được lưu vào raw zone** để EXP-04 dựng lại được cả dimension.
 
 #### Nhóm Data
 

@@ -392,7 +392,7 @@ spec:
     config.storage.replication.factor: -1        # use broker default
     offset.storage.replication.factor: -1
     status.storage.replication.factor: -1
-    offset.flush.interval.ms: 300000             # same as compose: raw-zone files close at most every 5 min (DOC-09 §7)
+    offset.flush.interval.ms: 30000              # same as compose: bounds the S3 sink writers kept open between commits (DR-89)
     config.providers: dir
     config.providers.dir.class: org.apache.kafka.common.config.provider.DirectoryConfigProvider
   resources: { requests: { cpu: 250m, memory: 1Gi }, limits: { memory: 1280Mi } }

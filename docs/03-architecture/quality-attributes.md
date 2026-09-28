@@ -165,7 +165,7 @@ Còn khoảng 6 GB cho macOS, VM của Docker/OrbStack, IDE và trình duyệt. 
 3. Kafka gần chạm trần (911/1.024 MiB) vì cgroup tính cả page cache của log segment. Page cache thu hồi được nên không gây OOM, nhưng **không được hạ heap Kafka xuống 384 MB** (bỏ phương án 2 ở trên).
 4. Postgres warehouse dùng khoảng `shared_buffers` + 60 MB khi 12 kết nối hoạt động. Giới hạn 1.536 MB còn dư cho `maintenance_work_mem` và autovacuum; giữ nguyên.
 5. Object storage: MinIO không còn image (DR-66). SeaweedFS đạt đỉnh 196 MiB khi upload multipart 12 MB, nên nâng `mem_limit` lên 384 MB.
-6. Kafka Connect dùng 691 MiB khi chưa có connector. S-04 đo lại với Debezium và S3 sink cùng chạy: khoảng 590 MiB ở tải thấp, đỉnh 1.009 MiB khi S3 sink chạy bù 1,02 triệu record (heap đỉnh 468/512 MiB). Vì vậy trần được nâng lên 1.280 MB, heap giữ 512 MB. Bộ nhớ của S3 sink tỷ lệ với số file đang mở (5 MiB mỗi file), và được giới hạn bằng `file.max.records=2000` (DR-81).
+6. Kafka Connect dùng 691 MiB khi chưa có connector. S-04 đo lại với Debezium và S3 sink cùng chạy: khoảng 590 MiB ở tải thấp, đỉnh 1.009 MiB khi S3 sink chạy bù 1,02 triệu record (heap đỉnh 468/512 MiB). Vì vậy trần được nâng lên 1.280 MB, heap giữ 512 MB. Bộ nhớ của S3 sink tỷ lệ với số file đang mở (một part mỗi file), và được giới hạn bằng `file.max.records=2000` (DR-81), part 1 MiB và commit 30 giây (DR-89).
 7. App JVM khởi động trong 3–6 giây. `make up` từ lúc có image tới khi mọi container chạy mất dưới 1 phút; phần lớn thời gian ở lần đầu là kéo image (Debezium Connect 2,25 GB).
 
 Mã spike (compose và app probe) không đưa vào repo. Cấu hình compose thật được viết ở DOC-39.

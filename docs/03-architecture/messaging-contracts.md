@@ -304,7 +304,7 @@ Mọi topic nguồn (`gtfs.*`, `ticketing.sales.cdc`, `ticketing.sale_points.cdc
 
 - **Không có trường `partition`.** Reader lấy partition từ tên file (`<topic>-<partition>-<start_offset>.json.gz`).
 - Dòng cuối của file **không** có ký tự xuống dòng; đọc theo dòng (`BufferedReader.readLine`) vẫn đúng, nhưng không được nối nhiều file lại rồi mới tách dòng.
-- **Rotate:** file đóng ở mỗi lần connector commit: mỗi 5 phút (`offset.flush.interval.ms = 300000` ở worker, DOC-39 §3.4), hoặc sớm hơn khi một file bất kỳ đạt 2.000 record. Khi đó mọi file đang mở đều đóng. Sau tối đa 5 phút, mọi record đã có trong object.
+- **Rotate:** Aiven 3.4.3 bắt đầu file mới trên mỗi partition sau mỗi 10 giây có dữ liệu (hằng số của connector), hoặc khi một file đạt 2.000 record. File được upload xong ở lần commit kế tiếp: mỗi 30 giây (`offset.flush.interval.ms = 30000` ở worker, DOC-39 §3.4), hoặc sớm hơn khi một file đạt 2.000 record. Sau tối đa khoảng 40 giây, mọi record đã có trong object (DR-89).
 - **At-least-once:** sau khi connector restart, một offset có thể xuất hiện trong hai object. Replay khử trùng theo `(topic, partition, offset)` (DOC-22).
 - File GTFS static: `raw/gtfs-static/<feed_hash>.zip`, ghi bởi `GtfsStaticLoadJob`.
 
@@ -322,11 +322,11 @@ Cấu hình connector (`deploy/connect/connectors/pti-raw-sink.json`, P1-13):
 | `file.name.template` | `{{topic}}/dt={{timestamp:unit=yyyy}}-{{timestamp:unit=MM}}-{{timestamp:unit=dd}}/hh={{timestamp:unit=HH}}/{{topic}}-{{partition}}-{{start_offset:padding=true}}.json.gz` |
 | `file.name.timestamp.source` / `file.name.timestamp.timezone` | `EVENT` (CreateTime; mặc định `WALLCLOCK` là giờ xử lý) / `UTC` |
 | `file.compression.type` | `gzip` |
-| `file.max.records` | `2000`. **Không tăng**: mỗi file đang mở giữ 5 MiB heap, ngưỡng cao hơn làm connector OOM khi chạy bù (DR-81) |
+| `file.max.records` | `2000`. **Không tăng**: mỗi file đang mở giữ một buffer part trên heap, và file lớn hơn part size bị SeaweedFS từ chối (DR-81, DR-89) |
 | `format.output.type` | `jsonl` |
 | `format.output.fields` | `key,value,offset,timestamp,headers` |
 | `format.output.fields.value.encoding` | `base64` |
-| `aws.s3.part.size.bytes` | Để mặc định (5 MiB). SeaweedFS từ chối part nhỏ hơn (`EntityTooSmall`) |
+| `aws.s3.part.size.bytes` | `1048576` (1 MiB). File 2.000 record nhỏ hơn khoảng 400 KB nên luôn nằm trong một part; SeaweedFS chỉ từ chối part nhỏ hơn 5 MiB khi file có nhiều part (DR-89) |
 
 Topic phải tồn tại trước khi đăng ký connector (`kafka-init` chạy trước `kafka-connect-init`). Sink đăng ký trước khi topic có chỉ thấy topic sau lần làm mới metadata kế tiếp của consumer.
 
