@@ -78,23 +78,12 @@ Keycloak chạy `start-dev` với H2 trong container và không có volume: mỗ
 
 ### 3.2 App (profile `core`, `triage`, `experiment`)
 
-Mọi app Spring Boot dùng chung một khối `x-spring-app` (YAML anchor):
+Mọi app Spring Boot dùng chung hai YAML anchor: `x-spring-app` (restart, healthcheck, log) và `x-spring-env` (biến môi trường chung). Service gộp chúng bằng merge key: `<<: *spring-app` ở cấp service và `<<: *spring-env` trong `environment`, rồi thêm biến riêng.
 
 ```yaml
 x-spring-app: &spring-app
   restart: unless-stopped
   stop_grace_period: 45s              # > spring.lifecycle.timeout-per-shutdown-phase (30s), DOC-20
-  environment: &spring-env
-    TZ: UTC
-    JAVA_TOOL_OPTIONS: >-
-      -XX:MaxRAMPercentage=75 -XX:+UseCompactObjectHeaders -XX:+ExitOnOutOfMemoryError
-      -Duser.timezone=UTC
-    SERVER_PORT: "8080"
-    MANAGEMENT_SERVER_PORT: "9080"
-    PTI_CLOCK_OFFSET: ${PTI_CLOCK_OFFSET:-0s}
-    SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
-    MANAGEMENT_OTLP_TRACING_ENDPOINT: http://otel-collector:4318/v1/traces
-    MANAGEMENT_TRACING_ENABLED: ${PTI_TRACING_ENABLED:-false}
   healthcheck:
     test: ["CMD", "bash", "-c",
       "exec 3<>/dev/tcp/127.0.0.1/9080 && printf 'GET /actuator/health/readiness HTTP/1.0\\r\\n\\r\\n' >&3 && grep -q '\"status\":\"UP\"' <&3"]
@@ -102,12 +91,22 @@ x-spring-app: &spring-app
     timeout: 3s
     retries: 12
     start_period: 30s
-  logging: &default-logging
-    driver: json-file
-    options: { max-size: "20m", max-file: "3" }
+  logging: *default-logging           # anchor x-logging ở đầu file
+
+x-spring-env: &spring-env
+  TZ: UTC
+  JAVA_TOOL_OPTIONS: >-
+    -XX:MaxRAMPercentage=75 -XX:+UseCompactObjectHeaders -XX:+ExitOnOutOfMemoryError
+    -Duser.timezone=UTC
+  SERVER_PORT: "8080"
+  MANAGEMENT_SERVER_PORT: "9080"
+  PTI_CLOCK_OFFSET: ${PTI_CLOCK_OFFSET:-0s}
+  SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+  MANAGEMENT_OTLP_TRACING_ENDPOINT: http://otel-collector:4318/v1/traces
+  MANAGEMENT_TRACING_ENABLED: ${PTI_TRACING_ENABLED:-false}
 ```
 
-- Image từ Jib dựa trên `eclipse-temurin:25-jre` (Ubuntu), có `bash` nhưng không có `curl`, nên healthcheck dùng `/dev/tcp` của bash.
+- Image từ Jib dựa trên `eclipse-temurin:25-jre` (Ubuntu), có `bash` nhưng không có `curl`, nên healthcheck dùng `/dev/tcp` của bash. Jib đặt thêm JVM flag `--enable-native-access=ALL-UNNAMED`, vì `zstd-jni` (nén của Kafka client) nạp thư viện native.
 - `MANAGEMENT_TRACING_ENABLED` mặc định `false`; `make up-obs` và `make up-all` đặt `PTI_TRACING_ENABLED=true`. Khi không có `otel-collector`, exporter không spam log lỗi.
 - `-XX:+ExitOnOutOfMemoryError`: JVM hết heap thì thoát và compose khởi động lại, thay vì chạy tiếp ở trạng thái hỏng.
 

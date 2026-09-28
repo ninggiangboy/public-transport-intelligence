@@ -18,5 +18,7 @@ dependencies {
 jib {
     container {
         ports = listOf("8080", "9080")
+        // zstd-jni (Kafka compression) loads a native library.
+        jvmFlags = listOf("--enable-native-access=ALL-UNNAMED")
     }
 }

@@ -43,6 +43,11 @@ down: .env ## Stop and remove containers, keep volumes
 reset: .env ## Remove containers and every volume (keeps .env)
 	$(COMPOSE) --profile '*' down -v
 
+.PHONY: restart
+restart: .env ## Restart one service (S=<service>)
+	@test -n "$(S)" || { echo "usage: make restart S=<service>" >&2; exit 2; }
+	$(COMPOSE) --profile '*' restart $(S)
+
 # ---------------------------------------------------------------- observation
 
 .PHONY: ps
@@ -52,3 +57,92 @@ ps: .env ## Container status and health
 .PHONY: logs
 logs: .env ## Follow logs (S=<service>)
 	$(COMPOSE) --profile '*' logs -f --tail=200 $(S)
+
+# psql inside the container over the local socket, which the Postgres image trusts, so no password is handled here.
+# SU=1 connects as the superuser; Q='<sql>' runs one statement and exits.
+PSQL_FLAGS = $(if $(Q),-c "$(Q)")
+PSQL = $(COMPOSE) exec $(if $(Q),-T) $(1) psql -U $(if $(SU),postgres,$(3)) -d $(2) $(PSQL_FLAGS)
+
+.PHONY: psql-wh psql-src psql-sim
+psql-wh: .env ## psql into pti_warehouse as pti_owner [SU=1] [Q='<sql>']
+	@$(call PSQL,pg-warehouse,pti_warehouse,pti_owner)
+
+psql-src: .env ## psql into ticketing_source as ticketing_owner [SU=1] [Q='<sql>']
+	@$(call PSQL,pg-source,ticketing_source,ticketing_owner)
+
+psql-sim: .env ## psql into pti_sim as sim_owner [SU=1] [Q='<sql>']
+	@$(call PSQL,pg-source,pti_sim,sim_owner)
+
+# Kafka CLI tools run in the broker container with a small heap of their own, not the broker's KAFKA_HEAP_OPTS.
+KAFKA_EXEC = $(COMPOSE) exec -e KAFKA_HEAP_OPTS=-Xmx128m kafka /opt/kafka/bin
+KAFKA_BOOTSTRAP = --bootstrap-server kafka:9092
+
+.PHONY: topics
+topics: .env ## Topics with partition counts, then the lag of every consumer group
+	@$(KAFKA_EXEC)/kafka-topics.sh $(KAFKA_BOOTSTRAP) --describe --exclude-internal | grep -E '^Topic:' \
+		| awk '{printf "%-36s partitions=%s\n", $$2, $$6}'
+	@echo
+	@$(KAFKA_EXEC)/kafka-consumer-groups.sh $(KAFKA_BOOTSTRAP) --describe --all-groups 2>/dev/null \
+		|| echo "No consumer groups yet."
+
+.PHONY: tail-%
+tail-%: .env ## Print new messages of a topic with key and headers, e.g. make tail-gtfs.trip_updates
+	@$(KAFKA_EXEC)/kafka-console-consumer.sh $(KAFKA_BOOTSTRAP) --topic $* \
+		--formatter-property print.timestamp=true --formatter-property print.key=true --formatter-property print.headers=true
+
+.PHONY: connectors
+connectors: .env ## Kafka Connect connectors and task states
+	@$(COMPOSE) exec -T kafka-connect curl -fsS 'http://localhost:8083/connectors?expand=status' | python3 -c \
+		'import json, sys; [print("{:<28} {:<9} tasks: {}".format(n, c["status"]["connector"]["state"], " ".join(t["state"] for t in c["status"]["tasks"]) or "-")) for n, c in sorted(json.load(sys.stdin).items())]'
+
+.PHONY: s3-ls
+s3-ls: .env ## List objects in the raw bucket [P=<prefix>]
+	@$(COMPOSE) run --rm --no-deps -T --entrypoint bash s3-init -c \
+		'AWS_ACCESS_KEY_ID="$$S3_ADMIN_ACCESS_KEY" AWS_SECRET_ACCESS_KEY="$$S3_ADMIN_SECRET_KEY" AWS_DEFAULT_REGION=us-east-1 \
+		aws --endpoint-url http://seaweedfs:8333 s3 ls --recursive "s3://raw/$(P)"'
+
+# ---------------------------------------------------------------- simulator (DOC-25 §8)
+
+SIM_URL = http://localhost:$$(v=$$(sed -n 's/^HOST_PORT_SIM=//p' .env); echo "$${v:-8084}")/sim
+# PUT /sim/rate with the JSON in $$body; prints the new rates, or the Problem Details and fails.
+SIM_PUT_RATE = set -o pipefail; curl -sS -X PUT -H 'Content-Type: application/json' -d "$$body" $(SIM_URL)/rate \
+	| python3 -c 'import json, sys; d = json.load(sys.stdin); r = d.get("rate"); \
+	print("gtfsRt={gtfsRt} ticketing={ticketing}".format(**r)) if r else sys.exit(json.dumps(d, indent=2))'
+
+.PHONY: sim-status
+sim-status: .env ## GET /sim/status
+	@set -o pipefail; curl -sS --fail-with-body $(SIM_URL)/status | python3 -m json.tool
+
+.PHONY: sim-start
+sim-start: .env ## Start emitting: both rates to 1, or [GTFS=<x>] [TICKETING=<y>] (not kept across restarts)
+	@body='{"gtfsRt": $(or $(GTFS),1), "ticketing": $(or $(TICKETING),1)}'; $(SIM_PUT_RATE)
+
+.PHONY: sim-stop
+sim-stop: .env ## Stop emitting; the container keeps running and live data goes stale in about 2 minutes
+	@body='{"gtfsRt": 0, "ticketing": 0}'; $(SIM_PUT_RATE)
+
+.PHONY: sim-rate
+sim-rate: .env ## Set the rate multipliers: GTFS=<x> and/or TICKETING=<y> (0, or 0.1 to 20)
+	@body=$$(python3 -c 'import json, sys; print(json.dumps({k: float(v) for k, v in zip(("gtfsRt", "ticketing"), sys.argv[1:]) if v}))' \
+		'$(GTFS)' '$(TICKETING)'); $(SIM_PUT_RATE)
+
+# ---------------------------------------------------------------- development
+
+.PHONY: fmt
+fmt: ## Format the code (Spotless, Prettier)
+	cd backend && ./gradlew --quiet spotlessApply
+	@if [ -f frontend/package.json ]; then pnpm -C frontend format; fi
+
+.PHONY: lint
+lint: ## Static checks: Spotless, Checkstyle, ESLint, tsc
+	cd backend && ./gradlew --quiet spotlessCheck checkstyleMain checkstyleTest
+	@if [ -f frontend/package.json ]; then pnpm -C frontend lint && pnpm -C frontend exec tsc --noEmit; fi
+
+.PHONY: test
+test: ## Unit tests of every module
+	cd backend && ./gradlew --quiet test
+	@if [ -f frontend/package.json ]; then pnpm -C frontend test; fi
+
+.PHONY: it
+it: ## Integration and contract tests (Testcontainers; needs Docker, not the compose stack)
+	cd backend && ./gradlew --quiet integrationTest contractTest
