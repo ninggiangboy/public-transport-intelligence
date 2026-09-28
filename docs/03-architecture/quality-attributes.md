@@ -1,6 +1,6 @@
 # Thuộc tính chất lượng
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-26 · DOC-10
+> Trạng thái: **Review** · Cập nhật: 2026-09-28 · DOC-10
 > Phụ thuộc: [DOC-03 §2](../01-product/requirements.md), [DR](../00-decision-register.md) (DR-15, 16, 21–24, 57, 64, 65), [DOC-07](system-context-and-containers.md), [DOC-09](messaging-contracts.md)
 
 Mọi con số ở §2 và §3 **tính từ feed thật** (`sample-data/gtfs/metrotransit-mn-20260926.zip`, ngày thường 2026-09-29), bằng script `sample-data/gtfs/volume_profile.py`. Ngân sách RAM ở §5 là **kế hoạch**; spike S-03 (P0-04) đo thực tế và cập nhật bảng.
@@ -121,7 +121,7 @@ Giới hạn (`mem_limit`) là con số **kế hoạch**. Cột "Đo được" l
 | Container | Profile | `mem_limit` | Heap (≈75%) | CPU limit | Đo được (S-03) |
 | --- | --- | --- | --- | --- | --- |
 | kafka | core | 1.024 MB | `KAFKA_HEAP_OPTS=-Xmx512m` | 1,0 | 911 MiB |
-| connect | core | 1.024 MB | `-Xmx512m` | 1,0 | 691 MiB (chưa có connector) |
+| connect | core | 1.280 MB | `-Xmx512m` | 1,0 | 691 MiB (chưa có connector); 1.009 MiB khi S3 sink chạy bù 1 triệu record (S-04) |
 | pg-warehouse | core | 1.536 MB | `shared_buffers=512MB` | 2,0 | 570 MiB |
 | pg-source | core | 384 MB | `shared_buffers=64MB` | 0,5 | 20 MiB (không tải) |
 | seaweedfs (DR-66) | core | 384 MB | — | 0,5 | 196 MiB |
@@ -131,7 +131,7 @@ Giới hạn (`mem_limit`) là con số **kế hoạch**. Cột "Đo được" l
 | api | core | 640 MB | ≈ 480 MB | 1,0 | 245 MiB (app rỗng) |
 | source-simulator | core | 512 MB | ≈ 384 MB | 1,0 | |
 | frontend (nginx) | core | 32 MB | — | 0,25 | |
-| **Tổng core** | | **≈ 7,7 GB** | | | **≈ 3,8 GB** (chưa có simulator, frontend) |
+| **Tổng core** | | **≈ 8,0 GB** | | | **≈ 3,8 GB** (chưa có simulator, frontend) |
 | triage-worker | triage | 384 MB | ≈ 288 MB | 0,5 | |
 | prometheus | observability | 512 MB | — | 0,5 | |
 | tempo | observability | 384 MB | — | 0,5 | |
@@ -140,7 +140,7 @@ Giới hạn (`mem_limit`) là con số **kế hoạch**. Cột "Đo được" l
 | otel-collector | observability | 192 MB | — | 0,5 | |
 | alloy | observability | 192 MB | — | 0,25 | |
 | alertmanager, mailpit | observability | 64 MB mỗi cái | — | 0,1 | |
-| **Tổng khi bật đủ profile** | | **≈ 10,1 GB** | | | chưa đo |
+| **Tổng khi bật đủ profile** | | **≈ 10,4 GB** | | | chưa đo |
 
 Còn khoảng 6 GB cho macOS, VM của Docker/OrbStack, IDE và trình duyệt. Nếu S-03 cho thấy không đủ thì:
 
@@ -161,11 +161,11 @@ Còn khoảng 6 GB cho macOS, VM của Docker/OrbStack, IDE và trình duyệt. 
 **Kết luận.**
 
 1. Stack core dùng khoảng 3,8 GB khi các app còn rỗng. Mỗi app thật sẽ tăng thêm (analytics giữ state, cache dimension), nhưng vẫn có dư địa trong `mem_limit`. **Máy 16 GB đủ cho profile core.**
-2. VM Docker mặc định 8 GB là **đủ cho core, không đủ khi bật `observability`**. Tổng `mem_limit` của mọi profile (≈ 10,1 GB) vượt 8 GB. `mem_limit` chỉ là trần, không phải bộ nhớ đặt trước, nhưng khi mọi container cùng tăng thì OOM killer của VM sẽ giết container. DOC-38 yêu cầu đặt VM **ít nhất 10 GB, khuyến nghị 12 GB** (OrbStack: `orb config set memory_mib 12288`; Docker Desktop: Settings → Resources) khi chạy đủ profile.
+2. VM Docker mặc định 8 GB là **đủ cho core, không đủ khi bật `observability`**. Tổng `mem_limit` của mọi profile (≈ 10,4 GB) vượt 8 GB. `mem_limit` chỉ là trần, không phải bộ nhớ đặt trước, nhưng khi mọi container cùng tăng thì OOM killer của VM sẽ giết container. DOC-38 yêu cầu đặt VM **ít nhất 10 GB, khuyến nghị 12 GB** (OrbStack: `orb config set memory_mib 12288`; Docker Desktop: Settings → Resources) khi chạy đủ profile.
 3. Kafka gần chạm trần (911/1.024 MiB) vì cgroup tính cả page cache của log segment. Page cache thu hồi được nên không gây OOM, nhưng **không được hạ heap Kafka xuống 384 MB** (bỏ phương án 2 ở trên).
 4. Postgres warehouse dùng khoảng `shared_buffers` + 60 MB khi 12 kết nối hoạt động. Giới hạn 1.536 MB còn dư cho `maintenance_work_mem` và autovacuum; giữ nguyên.
 5. Object storage: MinIO không còn image (DR-66). SeaweedFS đạt đỉnh 196 MiB khi upload multipart 12 MB, nên nâng `mem_limit` lên 384 MB.
-6. Kafka Connect dùng 691 MiB khi chưa có connector. S-04 phải đo lại khi Debezium và S3 sink cùng chạy; nếu vượt 900 MiB thì nâng trần lên 1.280 MB.
+6. Kafka Connect dùng 691 MiB khi chưa có connector. S-04 đo lại với Debezium và S3 sink cùng chạy: khoảng 590 MiB ở tải thấp, đỉnh 1.009 MiB khi S3 sink chạy bù 1,02 triệu record (heap đỉnh 468/512 MiB). Vì vậy trần được nâng lên 1.280 MB, heap giữ 512 MB. Bộ nhớ của S3 sink tỷ lệ với số file đang mở (5 MiB mỗi file), và được giới hạn bằng `file.max.records=2000` (DR-81).
 7. App JVM khởi động trong 3–6 giây. `make up` từ lúc có image tới khi mọi container chạy mất dưới 1 phút; phần lớn thời gian ở lần đầu là kéo image (Debezium Connect 2,25 GB).
 
 Mã spike (compose và app probe) không đưa vào repo. Cấu hình compose thật được viết ở DOC-39.

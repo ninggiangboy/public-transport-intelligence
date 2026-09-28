@@ -1,6 +1,6 @@
 # Hợp đồng message
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-26 · DOC-09
+> Trạng thái: **Review** · Cập nhật: 2026-09-28 · DOC-09
 > Phụ thuộc: [DR](../00-decision-register.md) (DR-03, 04, 05, 07, 41, 57, 59, 63, 64), [ADR-0007](../04-adr/0007-json-envelope-for-gtfs-rt.md), [ADR-0008](../04-adr/0008-partition-key-route-id.md), [ADR-0012](../04-adr/0012-raw-zone-s3-sink.md), [DOC-07](system-context-and-containers.md)
 
 Tài liệu này là **hợp đồng** giữa producer và consumer. Thay đổi bất kỳ mục nào ở đây là thay đổi hợp đồng và phải theo quy tắc ở §8.
@@ -205,7 +205,7 @@ File đầy đủ: `connect/connectors/debezium-ticketing.json` (P1-12).
 | `transforms` | `unwrap, routeSales, routeSalePoints, routeHeartbeat` |
 | `transforms.unwrap.type` | `io.debezium.transforms.ExtractNewRecordState` |
 | `transforms.unwrap.add.fields` | `op,lsn,source.ts_ms` |
-| `transforms.unwrap.delete.tombstone.handling.mode` | `rewrite` (thay cho `delete.handling.mode` đã deprecated; xác minh tên ở P1-12) |
+| `transforms.unwrap.delete.tombstone.handling.mode` | `rewrite` (thay cho `delete.handling.mode` đã deprecated; tên đã kiểm ở S-04). Event delete có `__deleted = "true"` và `__op = "d"` |
 | `transforms.routeSales` | `RegexRouter`: `ticketing\.public\.ticket_transaction` → `ticketing.sales.cdc` |
 | `transforms.routeSalePoints` | `RegexRouter`: `ticketing\.public\.sale_point` → `ticketing.sale_points.cdc` |
 | `transforms.routeHeartbeat` | `RegexRouter`: `ticketing\.public\.debezium_heartbeat` → `ticketing.heartbeat` |
@@ -244,7 +244,8 @@ File đầy đủ: `connect/connectors/debezium-ticketing.json` (P1-12).
 | `__deleted` | `"true"` khi là event delete đã rewrite | Cùng ý nghĩa với `__op=d` |
 
 - **`customer_ref` bị loại ngay tại processor** (DR-60), trước khi ghi fact và trước khi ghi DLQ.
-- Kiểu dữ liệu của Debezium: UUID → string; `NUMERIC` → string (do `decimal.handling.mode=string`); `TIMESTAMPTZ` → chuỗi ISO-8601. Nếu kiểu thực tế khác (ví dụ timestamp ra dạng số) thì test Debezium thật ở P1-12 sẽ bắt được, khi đó sửa mục này.
+- Kiểu dữ liệu của Debezium (đã kiểm ở S-04 với Debezium 3.6.3 trên PostgreSQL 17.11 và 18.6): UUID → string; `NUMERIC` → string (do `decimal.handling.mode=string`, ví dụ `"2.50"`); `TIMESTAMPTZ` → chuỗi ISO-8601 UTC với micro giây (`"2026-09-28T01:12:00.459722Z"`); `__lsn` và `__source_ts_ms` → số; `__deleted` → chuỗi `"true"`/`"false"`. Test Debezium thật ở P1-12 giữ các kiểu này.
+- Record CDC mang thêm các header `__debezium.context.connectorLogicalName`, `…taskId`, `…connectorName`, `…runId`. ETL bỏ qua chúng.
 - Với snapshot (`__op = r`), `__lsn` là LSN của snapshot; guard vẫn đúng.
 
 ### 5.3 Thứ tự giữa hai topic CDC
@@ -285,18 +286,51 @@ Best-effort, publish **sau commit** (DR-42). Payload chi tiết của từng lo�
 
 ## 7. Raw zone
 
-Mọi topic nguồn (`gtfs.*`, `ticketing.sales.cdc`, `ticketing.sale_points.cdc`) được S3 sink ghi vào bucket `raw` **nguyên văn** (ADR-0012).
+Mọi topic nguồn (`gtfs.*`, `ticketing.sales.cdc`, `ticketing.sale_points.cdc`) được S3 sink ghi vào bucket `raw` **nguyên văn từng byte** (ADR-0012, DR-81). Cấu hình đã kiểm ở spike S-04.
 
-- **Đường dẫn:** `raw/<topic>/dt=<YYYY-MM-DD>/hh=<HH>/<topic>-<partition>-<start_offset>.json.gz`. Giờ tính theo **timestamp của record** (CreateTime), theo UTC.
-- **Mỗi dòng** là một object JSON:
+- **Đường dẫn:** `raw/<topic>/dt=<YYYY-MM-DD>/hh=<HH>/<topic>-<partition>-<start_offset>.json.gz`. `start_offset` đệm 20 chữ số và bằng offset của dòng đầu tiên trong file. Giờ tính theo **timestamp của record** (CreateTime), theo UTC; mọi dòng của một file thuộc cùng một giờ.
+- **Mỗi dòng** là một object JSON (thứ tự trường do connector quyết định):
   ```json
-  {"key":"18","value":"{\"schema_version\":1,…}","partition":7,"offset":918273,"timestamp":1790716745412,"headers":[{"key":"traceparent","value":"00-…"}]}
+  {"headers":[{"key":"traceparent","value":"00-…"}],"offset":918273,"value":"eyJzY2hlbWFfdmVyc2lvbiI6MSwi…","key":"18","timestamp":"2026-09-29T21:19:05.412Z"}
   ```
-- `value` là **chuỗi nguyên văn** (dùng `StringConverter`, không parse JSON). Nhờ vậy message JSON hỏng của kịch bản `bad-data` vẫn được lưu, và replay tái tạo được đúng lỗi đó (FR-01.4).
-- Rotate: tối đa 5 phút hoặc 10.000 record mỗi file, tùy điều kiện nào tới trước.
+
+| Trường | Kiểu | Ghi chú |
+| --- | --- | --- |
+| `key` | string hoặc `null` | Key của record, giải mã UTF-8 (`StringConverter`). CDC: chuỗi JSON như `{"transaction_id":"…"}` |
+| `value` | string | **Base64** của đúng các byte value (`ByteArrayConverter`). Giữ được JSON hỏng của kịch bản `bad-data`, cả byte không phải UTF-8 và `0x00` (DOC-20 §4.1), nên replay tái tạo đúng lỗi (FR-01.4). `null` khi value rỗng (tombstone; hệ thống không phát tombstone) |
+| `offset` | số | Offset Kafka |
+| `timestamp` | string | CreateTime, ISO-8601 UTC có mili giây. Không phải epoch millis |
+| `headers` | mảng `{key, value}` | Value của header giải mã UTF-8. Record của Debezium có thêm bốn header `__debezium.context.*` |
+
+- **Không có trường `partition`.** Reader lấy partition từ tên file (`<topic>-<partition>-<start_offset>.json.gz`).
+- Dòng cuối của file **không** có ký tự xuống dòng; đọc theo dòng (`BufferedReader.readLine`) vẫn đúng, nhưng không được nối nhiều file lại rồi mới tách dòng.
+- **Rotate:** file đóng ở mỗi lần connector commit: mỗi 5 phút (`offset.flush.interval.ms = 300000` ở worker, DOC-39 §3.4), hoặc sớm hơn khi một file bất kỳ đạt 2.000 record. Khi đó mọi file đang mở đều đóng. Sau tối đa 5 phút, mọi record đã có trong object.
+- **At-least-once:** sau khi connector restart, một offset có thể xuất hiện trong hai object. Replay khử trùng theo `(topic, partition, offset)` (DOC-22).
 - File GTFS static: `raw/gtfs-static/<feed_hash>.zip`, ghi bởi `GtfsStaticLoadJob`.
 
-Replay theo khoảng `[from, to)` chọn các object trong các thư mục `hh` giao với khoảng, cộng thêm một giờ ở mỗi phía, rồi lọc từng dòng theo `timestamp` (DOC-22).
+Cấu hình connector (`connect/connectors/pti-raw-sink.json`, P1-13):
+
+| Property | Giá trị |
+| --- | --- |
+| `connector.class` | `io.aiven.kafka.connect.s3.AivenKafkaConnectS3SinkConnector` |
+| `tasks.max` | `1` |
+| `topics` | `gtfs.vehicle_positions,gtfs.trip_updates,ticketing.sales.cdc,ticketing.sale_points.cdc` |
+| `key.converter` / `header.converter` | `org.apache.kafka.connect.storage.StringConverter` |
+| `value.converter` | `org.apache.kafka.connect.converters.ByteArrayConverter` |
+| `aws.access.key.id` / `aws.secret.access.key` | `${env:S3_CONNECT_ACCESS_KEY}` / `${env:S3_CONNECT_SECRET_KEY}` |
+| `aws.s3.bucket.name` / `aws.s3.endpoint` / `aws.s3.region` | `raw` / `http://seaweedfs:8333` / `us-east-1` (SeaweedFS bỏ qua region nhưng SDK bắt buộc có) |
+| `file.name.template` | `{{topic}}/dt={{timestamp:unit=yyyy}}-{{timestamp:unit=MM}}-{{timestamp:unit=dd}}/hh={{timestamp:unit=HH}}/{{topic}}-{{partition}}-{{start_offset:padding=true}}.json.gz` |
+| `file.name.timestamp.source` / `file.name.timestamp.timezone` | `EVENT` (CreateTime; mặc định `WALLCLOCK` là giờ xử lý) / `UTC` |
+| `file.compression.type` | `gzip` |
+| `file.max.records` | `2000`. **Không tăng**: mỗi file đang mở giữ 5 MiB heap, ngưỡng cao hơn làm connector OOM khi chạy bù (DR-81) |
+| `format.output.type` | `jsonl` |
+| `format.output.fields` | `key,value,offset,timestamp,headers` |
+| `format.output.fields.value.encoding` | `base64` |
+| `aws.s3.part.size.bytes` | Để mặc định (5 MiB). SeaweedFS từ chối part nhỏ hơn (`EntityTooSmall`) |
+
+Topic phải tồn tại trước khi đăng ký connector (`kafka-init` chạy trước `kafka-connect-init`). Sink đăng ký trước khi topic có chỉ thấy topic sau lần làm mới metadata kế tiếp của consumer.
+
+Replay theo khoảng `[from, to)` chọn các object trong các thư mục `hh` giao với khoảng, rồi lọc từng dòng theo `timestamp` (DOC-22).
 
 ## 8. Kafka headers
 

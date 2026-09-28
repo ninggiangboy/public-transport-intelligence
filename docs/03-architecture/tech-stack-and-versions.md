@@ -73,9 +73,9 @@
 | Thành phần | Image / phiên bản | Ghi chú | License | Trạng thái |
 | --- | --- | --- | --- | --- |
 | Kafka | `apache/kafka:4.3.1` | KRaft, một broker trên compose. 4.4.0 đang ở RC lúc viết | Apache-2.0 | ✅ (S-03) |
-| Kafka Connect + Debezium | build từ `quay.io/debezium/connect:3.6.3.Final` + S3 sink connector | Dockerfile `connect/Dockerfile`. Image gốc chạy được (S-03); plugin S3 sink xác minh ở S-04 | Apache-2.0 | 🔬 (S-04) |
-| S3 sink connector | **Aiven `s3-connector-for-apache-kafka`** (ưu tiên) | Chọn vì license Apache-2.0; phương án dự phòng là Confluent S3 sink (Confluent Community License, được phép dùng trong dự án này). Chốt ở ADR-0012 / S-04 | Apache-2.0 | 🔬 |
-| PostgreSQL | `postgres:17.11` | Dùng 18 nếu S-06 xác nhận Debezium và CNPG hỗ trợ ổn định (DR-53) | PostgreSQL | 🔬 |
+| Kafka Connect + Debezium | build từ `quay.io/debezium/connect:3.6.3.Final` (runtime Kafka Connect 4.3.0) + S3 sink connector | Dockerfile `connect/Dockerfile` (DOC-39 §3.4). Debezium PostgreSQL connector chạy được trên PostgreSQL 17.11 và 18.6 (S-04) | Apache-2.0 | ✅ (S-04) |
+| S3 sink connector | **Aiven `s3-sink-connector-for-apache-kafka` 3.4.3** | Tải từ `https://github.com/Aiven-Open/cloud-storage-connectors-for-apache-kafka/releases/download/v3.4.3/s3-sink-connector-for-apache-kafka-3.4.3.tar`, SHA-256 `85661c4d3d49b85f4a65170a5c27464e4359760aa7140a24628e45323b6d7329`. Cấu hình ở DOC-09 §7; `file.max.records=2000` là bắt buộc để không OOM (DR-81). Không cần phương án dự phòng Confluent (ADR-0012) | Apache-2.0 | ✅ (S-04) |
+| PostgreSQL | `postgres:17.11` | 18.6 đã chạy được với Debezium (S-04) và Spring Batch (S-06). Còn chờ CNPG ở P7-01 rồi mới đổi cả compose lẫn k3d sang 18 trong cùng một thay đổi (DR-53). Lưu ý khi đổi: image 18 đặt `PGDATA=/var/lib/postgresql/18/docker` và khai báo volume ở `/var/lib/postgresql` (image 17 là `/var/lib/postgresql/data`), nên phải sửa mount của volume | PostgreSQL | ✅ 17 / 🔬 18 |
 | Object storage | **SeaweedFS** `chrislusf/seaweedfs:4.47` (`server -s3`); job `s3-init` dùng `amazon/aws-cli` | Thay MinIO vì repository `minio/minio` không còn trên Docker Hub (S-03, DR-66). Dự phòng: RustFS 1.0 (Apache-2.0), đổi không phải sửa code | Apache-2.0 | ✅ (S-03) |
 | Keycloak | `quay.io/keycloak/keycloak:26.7.4` | `start-dev --import-realm` | Apache-2.0 | ✅ (S-03) |
 | Prometheus / Alertmanager | 3.x / 0.2x | | Apache-2.0 | 🔬 |

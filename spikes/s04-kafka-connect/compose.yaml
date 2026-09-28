@@ -1,0 +1,62 @@
+# Spike S-04. Not the product compose file (DOC-39).
+name: s04
+services:
+  kafka:
+    image: apache/kafka:4.3.1
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_NUM_PARTITIONS: 3
+  pg-source:
+    image: ${PG_IMAGE:-postgres:17.11}
+    command: ["postgres", "-c", "wal_level=logical", "-c", "max_replication_slots=4", "-c", "max_wal_senders=4"]
+    environment:
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - ./sql/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+  seaweedfs:
+    image: chrislusf/seaweedfs:4.47
+    command: ["server", "-s3", "-s3.config=/etc/seaweedfs/s3.json", "-dir=/data"]
+    volumes:
+      - ./s3.json:/etc/seaweedfs/s3.json:ro
+  s3-init:
+    image: amazon/aws-cli:2.31.0
+    depends_on: [seaweedfs]
+    environment:
+      AWS_ACCESS_KEY_ID: admin
+      AWS_SECRET_ACCESS_KEY: admin-secret
+      AWS_DEFAULT_REGION: us-east-1
+    entrypoint: ["/bin/sh", "-c", "until aws --endpoint-url http://seaweedfs:8333 s3 mb s3://raw; do sleep 2; done"]
+  kafka-connect:
+    build: .
+    image: pti-connect:s04
+    depends_on: [kafka, pg-source, s3-init]
+    ports: ["127.0.0.1:18083:8083"]
+    mem_limit: ${CONNECT_MEM:-1280m}
+    environment:
+      BOOTSTRAP_SERVERS: kafka:9092
+      GROUP_ID: pti-connect
+      CONFIG_STORAGE_TOPIC: connect-configs
+      OFFSET_STORAGE_TOPIC: connect-offsets
+      STATUS_STORAGE_TOPIC: connect-status
+      CONFIG_STORAGE_REPLICATION_FACTOR: 1
+      OFFSET_STORAGE_REPLICATION_FACTOR: 1
+      STATUS_STORAGE_REPLICATION_FACTOR: 1
+      KEY_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      CONNECT_CONFIG_PROVIDERS: env
+      CONNECT_CONFIG_PROVIDERS_ENV_CLASS: org.apache.kafka.common.config.provider.EnvVarConfigProvider
+      CONNECT_CONFIG_PROVIDERS_ENV_PARAM_ALLOWLIST_PATTERN: ^(DEBEZIUM_PASSWORD|S3_CONNECT_.*)$
+      CONNECT_OFFSET_FLUSH_INTERVAL_MS: ${FLUSH_MS:-300000}
+      DEBEZIUM_PASSWORD: debezium-secret
+      S3_CONNECT_ACCESS_KEY: connect
+      S3_CONNECT_SECRET_KEY: connect-secret
+      HEAP_OPTS: ${CONNECT_HEAP:--Xms256m -Xmx512m}

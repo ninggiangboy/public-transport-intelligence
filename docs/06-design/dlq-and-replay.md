@@ -1,6 +1,6 @@
 # DLQ và replay
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-27 · DOC-22
+> Trạng thái: **Review** · Cập nhật: 2026-09-28 · DOC-22
 > Phụ thuộc: [DOC-15](../05-data/ops-and-insight-model.md) §3–4, [DOC-16](../05-data/data-quality-rules.md), [DOC-18](../05-data/data-lifecycle.md), [DOC-19](batch-and-chunk-processing.md), [DOC-20](etl-streaming.md), [DOC-21](etl-gtfs-static.md) §6, [DOC-09](../03-architecture/messaging-contracts.md) §7, [ADR-0003](../04-adr/0003-effectively-once-upsert.md), [ADR-0012](../04-adr/0012-raw-zone-s3-sink.md), [ADR-0013](../04-adr/0013-replay-request-api-etl-executes.md), [DR](../00-decision-register.md) (DR-16, 18, 20, 37, 38, 60)
 > Người dùng chính: `etl` profile `batch` (P2-16), `api` (DOC-32: endpoint DLQ và replay), `triage-worker` (DOC-24: auto-replay), DOC-36 (Ops console), DOC-42 (RB-10, RB-11)
 
@@ -116,7 +116,7 @@ Thuật toán:
 | --- | --- |
 | `source` | `GTFS_RT_VEHICLE_POSITION`, `GTFS_RT_TRIP_UPDATE`, `TICKETING_SALES`, `TICKETING_SALE_POINTS`. `GTFS_STATIC` không hỗ trợ: nạp lại feed bằng `GtfsStaticLoadJob` với `sourceUri = s3://raw/gtfs-static/<hash>.zip` (DOC-21 §1.1) |
 | `from_ts`, `to_ts` | **Thời điểm record Kafka (CreateTime, giờ thật, UTC)**, không phải event time. `from_ts < to_ts`, khoảng ≤ 7 ngày (CHECK ở DB) |
-| | `to_ts ≤ now − pti.replay.raw-settle` (mặc định 10 phút): S3 sink rotate tối đa 5 phút (DOC-09 §7), nên sau 10 phút mọi object của khoảng đã có mặt và danh sách object không đổi trong lúc replay |
+| | `to_ts ≤ now − pti.replay.raw-settle` (mặc định 10 phút): S3 sink đóng file tối đa sau 5 phút (DOC-09 §7), nên sau 10 phút mọi object của khoảng đã có mặt và danh sách object không đổi trong lúc replay |
 | | `from_ts ≥ now − pti.replay.raw-max-age` (mặc định 29 ngày): tránh object bị lifecycle 30 ngày xóa giữa chừng (DOC-18 §1) |
 | `recompute_analytics` | Chỉ nhận `true` từ P4 (khi `AnalyticsRecomputeService` có mặt); trước đó API trả 422 `analytics-recompute-unavailable` |
 
@@ -135,17 +135,18 @@ Tham số: `replayRequestId` (định danh), `replay = true`, `source`, `fromTs`
 ### 4.3 `listObjects`
 
 1. Topic theo `source`: `gtfs.vehicle_positions`, `gtfs.trip_updates`, `ticketing.sales.cdc`, `ticketing.sale_points.cdc`.
-2. Các thư mục giờ `raw/<topic>/dt=<d>/hh=<h>/` với `[floor_hour(from_ts) − 1h, floor_hour(to_ts) + 1h]` (thêm một giờ mỗi phía vì một object có thể chứa record của giờ kế bên khi rotate, DOC-09 §7).
-3. `ListObjectsV2` từng prefix (Spring Cloud AWS `S3Template.listObjects`), sắp theo `(dt, hh, partition, start_offset)`, lấy từ tên file `<topic>-<partition>-<start_offset>.json.gz` (DOC-18 §2).
-4. Lưu vào `ExecutionContext` key `pti.replay.objects` dạng gọn `{"<dt>/<hh>": ["<partition>-<start_offset>", …]}`. 7 ngày của một topic 12 partition, rotate 5 phút: khoảng 24.000 object, khoảng 500 KB JSON. Vượt `pti.replay.max-objects` (50.000) thì step `FAILED` với thông báo chia nhỏ khoảng.
+2. Các thư mục giờ `raw/<topic>/dt=<d>/hh=<h>/` với `h` từ `floor_hour(from_ts)` tới `floor_hour(to_ts − 1ms)`. Sink phân thư mục theo CreateTime của từng record (S-04), nên không cần quét thêm giờ kế bên (DOC-09 §7).
+3. `ListObjectsV2` từng prefix (Spring Cloud AWS `S3Template.listObjects`), sắp theo `(dt, hh, partition, start_offset)`, lấy từ tên file `<topic>-<partition>-<start_offset>.json.gz` (DOC-18 §2). Tên file không khớp mẫu này thì bỏ qua và ghi `WARN`.
+4. Lưu vào `ExecutionContext` của job, key `pti.replay.objects`, dạng gọn `{"<dt>/<hh>": ["<partition>-<start_offset>", …]}` với `start_offset` không đệm số 0. Ước lượng 7 ngày của `gtfs.vehicle_positions` ở tải nền: file đóng khoảng mỗi 2,5 phút (partition nóng nhất đạt 2.000 record trước mốc 5 phút, DOC-09 §7), tức khoảng 48.000 object và khoảng 700 KB JSON. Sau một lần sink dừng lâu rồi chạy bù, số object nhiều hơn (một object mỗi 2.000 record). Vượt `pti.replay.max-objects` (100.000) thì step `FAILED` với thông báo chia nhỏ khoảng.
 5. Không có object nào → job `COMPLETED`, `stats.objects = 0`, `message = "No raw objects in range"`.
 
 ### 4.4 `replayRecords`
 
 - **Reader:** `MultiResourceItemReader<InboundMessage>` trên danh sách `S3Resource` (theo thứ tự đã lưu), delegate `RawZoneLineItemReader`:
-  - mở `GZIPInputStream`, đọc từng dòng JSON (DOC-09 §7), dựng `InboundMessage` với `key`, `value`, `partition`, `offset`, `timestamp`, `headers`;
+  - mở `GZIPInputStream`, đọc từng dòng JSON (DOC-09 §7), dựng `InboundMessage` với `key`, `value` (**giải base64 thành `byte[]`**, rồi đi qua đúng bước giải mã UTF-8 của `etl-stream`, DOC-20 §4.1), `partition` (**lấy từ tên file**, dòng không có trường này), `offset`, `timestamp` (chuỗi ISO-8601 → `Instant`), `headers`;
+  - khử trùng theo `(partition, offset)` trong phạm vi job: sink at-least-once có thể ghi cùng offset vào hai object. Một record luôn nằm trong thư mục giờ của chính nó, nên bản trùng chỉ có thể ở cùng cặp `(giờ, partition)`. Reader giữ offset lớn nhất đã trả của cặp `(giờ, partition)` đang đọc, đặt lại khi sang cặp mới; dòng có offset ≤ giá trị đó bị bỏ và đếm `duplicate`. Cách này đúng vì trong một cặp, object được đọc theo `start_offset` tăng dần và offset trong một object tăng dần. Giá trị này nằm trong `ExecutionContext` của step để restart giữ được;
   - **lọc** dòng có `timestamp ∉ [from_ts, to_ts)` ngay trong reader (không trả item; đếm `filtered`);
-  - dòng không parse được → `RawZoneLineException` (`DATA`) → skip → DLQ `DESERIALIZE` với `raw_payload` = cả dòng (đã scrub).
+  - dòng không parse được, hoặc `value` không phải base64 hợp lệ → `RawZoneLineException` (`DATA`) → skip → DLQ `DESERIALIZE` với `raw_payload` = cả dòng (đã scrub).
   - Restart: `MultiResourceItemReader` lưu `resourceIndex`, delegate lưu số dòng đã đọc của object hiện tại; restart mở lại object đó và bỏ qua số dòng ấy.
 - **Processor:** router theo `source`, `RuleContext.replay = true`, `ReferenceData` của feed **ACTIVE hiện tại** (DOC-21 §6.2): dữ liệu cũ được kiểm theo feed hiện tại. Nếu feed đã đổi và tuyến cũ bị xóa, record rơi vào DLQ `QUALITY` `DQ-03`. Đây là hạn chế đã chấp nhận; muốn tránh thì activate lại feed cũ trước khi replay (RB-11).
 - **Writer:** `FactChunkWriter` (replay: không registry, `:replay = true`) cộng `DlqResolveWriter`: với mọi message ghi thành công mà có dòng `dead_letter` cùng vị trí Kafka ở trạng thái chưa đóng (`NEW`, `TRIAGED`, `AUTO_REPLAY_SCHEDULED`, `PENDING_CONFIRM`, `MANUAL`), chuyển dòng đó sang `RESOLVED`, `resolved_by = 'system:etl-batch'`, `resolved_at = now()`, và ghi `dlq_action_log` `RESOLVED`. Như vậy replay sau khi sửa lỗi logic tự đóng các dead letter mà nó đã giải quyết.
@@ -253,7 +254,7 @@ Log của job có `batch_id` và `replay_request_id` trong MDC, nên Loki lọc 
 | `pti.replay.raw-settle` | Duration | `10m` | §4.1 |
 | `pti.replay.raw-max-age` | Duration | `29d` | §4.1 |
 | `pti.replay.max-window` | Duration | `7d` | Trùng CHECK của DB; API kiểm trước để trả 422 rõ ràng |
-| `pti.replay.max-objects` | int | `50000` | §4.3 |
+| `pti.replay.max-objects` | int | `100000` | §4.3 |
 | `pti.replay.chunk-size` | int | `500` | = `pti.etl.batch.chunk-size` |
 | `pti.replay.poller.interval` | Duration | `5s` | |
 | `pti.replay.poller.max-claims` | int | `10` | |
@@ -303,6 +304,9 @@ Alert liên quan (DOC-28): `DlqRateHigh` (DOC-16 §4), `DlqBacklogHigh` (`pti_dl
 | R-12 | Truy vết từ `replay_request` (query §7) | Đếm đúng số dòng đã ghi (FR-12.5) |
 | R-13 | Khoảng không có object | `DONE`, `objects = 0` |
 | R-14 | Dòng raw zone hỏng và object gzip hỏng | DLQ `DESERIALIZE`; job hoàn tất; log nêu object |
+| R-15 | Object raw zone có dòng với `value` là base64 của byte `0xFF 0xC3` và `0x00` (như test S-08 của DOC-20 §14) | DLQ `DESERIALIZE` với cùng `error_class` (`MalformedInputException`) như khi `etl-stream` nhận message đó trực tiếp |
+| R-16 | Hai object cùng `(giờ, partition)` chồng offset (`…-3-100` chứa 100..299, `…-3-150` chứa 150..400) | Mỗi offset được xử lý một lần; `duplicate = 150`; restart giữa object thứ hai vẫn cho cùng kết quả |
+| R-17 | Dòng thiếu `partition`, `timestamp` dạng ISO-8601 (đúng định dạng thật của Aiven, DOC-09 §7) | `InboundMessage.partition` lấy từ tên file; lọc `[from_ts, to_ts)` theo `timestamp` đã parse |
 
 ## 12. Câu hỏi còn mở
 

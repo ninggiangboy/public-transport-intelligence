@@ -1,0 +1,48 @@
+{
+  "identities": [
+    {
+      "name": "admin",
+      "credentials": [
+        {
+          "accessKey": "admin",
+          "secretKey": "admin-secret"
+        }
+      ],
+      "actions": [
+        "Admin",
+        "Read",
+        "Write",
+        "List",
+        "Tagging"
+      ]
+    },
+    {
+      "name": "connect",
+      "credentials": [
+        {
+          "accessKey": "connect",
+          "secretKey": "connect-secret"
+        }
+      ],
+      "actions": [
+        "Read:raw",
+        "Write:raw",
+        "List:raw"
+      ]
+    },
+    {
+      "name": "etl",
+      "credentials": [
+        {
+          "accessKey": "etl",
+          "secretKey": "etl-secret"
+        }
+      ],
+      "actions": [
+        "Read:raw",
+        "List:raw",
+        "Write:raw/gtfs-static/*"
+      ]
+    }
+  ]
+}

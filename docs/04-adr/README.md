@@ -17,7 +17,7 @@ Cột **Gate** là phase cần ADR ở trạng thái Accepted trước khi bắt
 | [0009](0009-gtfs-feed-versioning.md) | Phiên bản hóa GTFS static bằng `feed_version` và staging swap | Accepted | P1 | DR-10 |
 | [0010](0010-event-time-insight-episodes.md) | Khóa insight theo event time, mô hình episode, UUIDv5 | Accepted | P4 | DR-29 |
 | [0011](0011-fact-partitioning.md) | Partition bảng fact theo ngày và job bảo trì partition | Accepted | P1 | DR-15 |
-| [0012](0012-raw-zone-s3-sink.md) | Raw zone bằng S3 sink, JSON gzip, phân vùng theo giờ | Accepted (xác minh S-04) | P1 | SDD 4.1, S-04 |
+| [0012](0012-raw-zone-s3-sink.md) | Raw zone bằng S3 sink, JSON gzip, phân vùng theo giờ | Accepted (đã xác minh S-04) | P1 | SDD 4.1, S-04, DR-81 |
 | [0013](0013-replay-request-api-etl-executes.md) | Replay: API ghi yêu cầu, ETL thực thi | Accepted | P2 | DR-18 |
 | [0014](0014-deployment-units.md) | Một image ETL hai profile; analytics là thư viện | Accepted | P1 | DR-26, 35 |
 | [0015](0015-job-exclusivity-and-recovery.md) | Chống chạy trùng job: ShedLock, JobInstance, `VERSION` làm fencing | Accepted | P2 | DR-24 |

@@ -1,6 +1,6 @@
 # Sổ quyết định mở (Decision Register)
 
-> Trạng thái tài liệu: **Approved**, toàn bộ DR đã chốt ngày 2026-09-26 · Cập nhật: 2026-09-27 · Nguồn: phân tích `public-transport-intelligence.md` (gọi tắt là **SDD gốc**)
+> Trạng thái tài liệu: **Approved**, toàn bộ DR đã chốt ngày 2026-09-26 · Cập nhật: 2026-09-28 · Nguồn: phân tích `public-transport-intelligence.md` (gọi tắt là **SDD gốc**)
 
 Tài liệu gốc mô tả tốt *cái gì* và *vì sao*, nhưng còn nhiều chỗ chưa trả lời *chính xác như thế nào*. Nếu không chốt trước, người triển khai sẽ phải dừng lại hỏi hoặc tự đoán, và đoán sai ở tầng dữ liệu thì rất tốn công sửa. Sổ này liệt kê từng khoảng trống, mỗi mục kèm **một phương án đề xuất** để có thể duyệt nhanh.
 
@@ -40,6 +40,7 @@ Tài liệu gốc mô tả tốt *cái gì* và *vì sao*, nhưng còn nhiều c
 | 2026-09-27 | Claude (Owner ủy quyền) | **Demo và báo cáo (tài liệu P8):** demo hai phần (compose rồi k3d dựng sẵn và dừng), kịch bản bunching/gián đoạn gieo trước; lệnh `make` vận hành dùng chung cho k3d qua `PTI_ENV`; báo cáo lấy số liệu duy nhất từ `pti-exp report` | DR-77, DR-78, DR-79 |
 | 2026-09-27 | Owner | **Repo chuyển sang GitHub public** (thay quyết định private): runner chuẩn của GitHub đủ 16 GB để chạy E2E và k3d, không cần self-hosted runner; image GHCR để public | DR-56, DR-76 |
 | 2026-09-28 | Claude (Owner ủy quyền) | **S-06 xong:** Boot 4.1.1 + Java 25 dùng được với mọi thư viện đã chọn, không cần lối lui. Chunk step của job batch dựng bằng builder fault-tolerant cũ của Spring Batch 6, vì `ChunkOrientedStep` mới làm mất DLQ và bỏ sót item khi crash giữa lúc scan | DR-53, DR-80 |
+| 2026-09-28 | Claude (Owner ủy quyền) | **S-04 xong:** image Connect = Debezium 3.6.3 + Aiven S3 sink 3.4.3. Raw zone lưu value dạng base64 để giữ đúng từng byte; thư mục giờ theo CreateTime; `file.max.records=2000` và `mem_limit` 1.280 MB để S3 sink không OOM khi chạy bù. Debezium chạy được trên PostgreSQL 18.6; vẫn dùng 17.11 tới khi kiểm xong CNPG | DR-81, DR-53, DR-66 |
 
 ---
 
@@ -558,6 +559,7 @@ Tài liệu gốc mô tả tốt *cái gì* và *vì sao*, nhưng còn nhiều c
   - 2. springdoc 3.1.1, Testcontainers 2.0.5, Micrometer Tracing (bridge OTel qua `spring-boot-starter-opentelemetry`) và Jib 3.5.4 tương thích.
   - 3. Khác biệt so với Boot 3 ghi ở DOC-11 §6.
   - PostgreSQL 18.1 chạy được với schema Spring Batch và toàn bộ test; việc đổi sang 18 còn chờ S-04 (Debezium) và CNPG.
+- **Kết quả spike S-04** (2026-09-28): Debezium 3.6.3 chạy đúng trên PostgreSQL 18.6 (snapshot, insert, update, delete, heartbeat; slot `pgoutput`). Chỉ còn CNPG chưa kiểm. **Quyết định: giữ 17.11 cho P1–P6.** P7-01 dựng CNPG với image 18; nếu chạy được thì đổi compose và k3d sang 18 trong cùng một thay đổi. Lúc đổi phải sửa mount volume, vì image 18 đặt dữ liệu ở `/var/lib/postgresql/18/docker` (DOC-11 §2). Dữ liệu dev dựng lại được bằng `make reset`, nên không cần `pg_upgrade`.
 - **Ghi vào:** ADR-0029 (mới), DOC-11.
 
 ### DR-54 · Công cụ Kubernetes
@@ -606,7 +608,7 @@ Tài liệu gốc mô tả tốt *cái gì* và *vì sao*, nhưng còn nhiều c
   - **SeaweedFS 4.47** (Apache-2.0, từ 2012, phát hành hằng tuần): đạt cả bộ kiểm tra. Credential riêng theo identity (`s3.json`), có quyền theo bucket: 9/9 trường hợp đúng kỳ vọng (connector chỉ ghi `raw`, etl chỉ đọc, sai key bị từ chối). RAM đỉnh 196 MiB.
   - **RustFS 1.0.0** (Apache-2.0, tương thích MinIO): đạt cả bộ kiểm tra, RAM đỉnh 132 MiB. Tuy nhiên bản 1.0 mới phát hành 10 ngày trước spike.
   - Garage: AGPL, không thử.
-- **Quyết định:** Dùng **SeaweedFS**, pin `chrislusf/seaweedfs:4.47`, chạy `server -s3` (master, volume, filer và S3 gateway trong một container), `mem_limit` 384 MB. Credential của `connect` (Read/Write/List trên `raw`), `etl` (Read/List trên `raw`, thêm Write trên `raw/gtfs-static/` nếu cần, chốt ở DOC-18) và `admin` (chỉ job `s3-init`) nằm trong `s3.json` sinh từ `.env`. Job `s3-init` dùng `amazon/aws-cli` để tạo bucket, bật versioning và đặt lifecycle. Code chỉ dùng API S3 chuẩn với path-style access; RustFS là phương án dự phòng, đổi không phải sửa code.
+- **Quyết định:** Dùng **SeaweedFS**, pin `chrislusf/seaweedfs:4.47`, chạy `server -s3` (master, volume, filer và S3 gateway trong một container), `mem_limit` 384 MB. Credential của `connect` (Read/Write/List trên `raw`), `etl` (Read/List trên `raw`, Write chỉ trên `raw/gtfs-static/*`; S-04 xác nhận SeaweedFS hỗ trợ quyền theo prefix, DOC-18 §3) và `admin` (chỉ job `s3-init`) nằm trong `s3.json` sinh từ `.env`. Job `s3-init` dùng `amazon/aws-cli` để tạo bucket, bật versioning và đặt lifecycle. Code chỉ dùng API S3 chuẩn với path-style access; RustFS là phương án dự phòng, đổi không phải sửa code.
 - **Ghi vào:** DOC-07, DOC-10, DOC-11, ADR-0012, DOC-18, DOC-39, DOC-40.
 
 ### DR-67 · Đồng hồ nghiệp vụ và độ lệch giờ — **Chốt**
@@ -680,13 +682,28 @@ Tài liệu gốc mô tả tốt *cái gì* và *vì sao*, nhưng còn nhiều c
 - **Quyết định:** (a). Mọi chunk step dựng bằng `chunk(size, tx).faultTolerant()` với `@SuppressWarnings("removal")`. Test B-05, B-18 và luật ArchUnit B-19 (DOC-19 §12) giữ lựa chọn này. Khi nâng lên bản Spring Batch không còn builder cũ: nếu step mới đã sửa (B-05, B-18 xanh trên step mới) thì chuyển sang, nếu chưa thì làm (c). Nên báo hai lỗi này lên issue tracker của Spring Batch kèm app mẫu.
 - **Ghi vào:** DOC-19 §4.4, §5, §7.2, §12; ADR-0005; DOC-11.
 
+### DR-81 · Định dạng value và giới hạn bộ nhớ của S3 sink — **Chốt** (sau S-04)
+- **Vấn đề:** S-04 chạy Aiven S3 sink 3.4.3 với cấu hình dự kiến của ADR-0012 và phát hiện hai điểm.
+  1. **Mất byte.** Với `StringConverter`, byte không phải UTF-8 bị thay bằng U+FFFD. `etl-stream` có nhánh riêng cho byte như vậy (DOC-20 §4.1, test S-08): ghi DLQ `DESERIALIZE`. Simulator hiện không sinh loại lỗi này, nhưng một producer bất kỳ thì có thể, và replay từ raw zone lại thấy một chuỗi UTF-8 hợp lệ. Nếu byte hỏng nằm trong một trường chuỗi, record có thể được ghi vào fact, tức replay cho kết quả khác luồng trực tiếp (vi phạm FR-01.4, EXP-04).
+  2. **OOM khi chạy bù.** Mỗi file đang mở giữ một buffer multipart 5 MiB trên heap tới lần commit kế tiếp. SeaweedFS từ chối part nhỏ hơn 5 MiB (`EntityTooSmall`), nên không giảm được buffer. Với `file.max.records=10000`, khi dồn 480 nghìn record rồi cho sink chạy bù, 96–115 file mở cùng lúc và task chết vì `OutOfMemoryError` ở cả heap 512 MB lẫn 768 MB. Task không tự khởi động lại, còn nếu khởi động lại thì gặp đúng tải đó lần nữa.
+- **Các phương án:**
+  - Định dạng: (a) `StringConverter`, chấp nhận mất byte hỏng; (b) `ByteArrayConverter` + `format.output.fields.value.encoding=base64`.
+  - Bộ nhớ: (c) tăng heap lên khoảng 1 GB (đã thử: chạy qua với đỉnh 972/1.024 MiB, không còn dư); (d) giảm `file.max.records` xuống 2.000; (e) part size 1 MiB (bị SeaweedFS từ chối khi file lớn hơn 1 MiB).
+- **Quyết định:** (b) và (d).
+  - Value lưu base64. Replay giải base64 thành `byte[]` rồi đi qua đúng bước giải mã của `etl-stream` (DOC-22 §4.4).
+  - `file.max.records=2000`. Connector yêu cầu commit ngay khi một file đạt ngưỡng, và commit đóng mọi file đang mở. Đo được: tối đa 49 file mở; chạy bù 1,02 triệu record trên 30 partition trong khoảng 15 giây ở `-Xmx512m`; heap đỉnh 468 MiB, container đỉnh 1.009 MiB. Không OOM, không mất, không trùng.
+  - `kafka-connect` có `mem_limit` 1.280 MB (k3d: limit 1280Mi), heap giữ 512 MB. Worker đặt `offset.flush.interval.ms=300000`.
+  - **Không tăng `file.max.records`**, cũng không thêm topic nhiều partition vào sink mà không đo lại (test C-10 của DOC-39).
+- **Hệ quả:** File raw zone không đọc được bằng mắt, nên thêm `make raw-cat`. Số object nhiều hơn: VehiclePosition khoảng 48.000 object mỗi 7 ngày ở tải nền, nên `pti.replay.max-objects` tăng lên 100.000. Aiven không ghi trường `partition`, nên reader lấy partition từ tên file.
+- **Ghi vào:** ADR-0012, DOC-09 §7, DOC-10 §5, DOC-11, DOC-18 §2, DOC-22 §4.3–4.4, DOC-38, DOC-39 §3.4, DOC-40 §6.3.
+
 ---
 
 ## Tổng hợp theo mức ảnh hưởng
 
 | Mức | Mục | Lý do cần chốt sớm |
 | --- | --- | --- |
-| Chặn P1 | DR-01, 02, 03, 04, 05, 06, 09, 10, 11, 26, 53, 64, 66, 67, 68 | Quyết định schema, contract và cấu trúc repo |
+| Chặn P1 | DR-01, 02, 03, 04, 05, 06, 09, 10, 11, 26, 53, 64, 66, 67, 68, 81 | Quyết định schema, contract và cấu trúc repo |
 | Chặn P2 | DR-07, 13, 14, 15, 16, 18, 21, 22, 23, 24, 25, 62, 63, 65, 69, 70, 80 | Quyết định ngữ nghĩa đúng đắn của pipeline |
 | Chặn P3 | DR-27, 28, 50, 57, 58, 71 | Thiếu thì không đo được thực nghiệm |
 | Chặn P4 | DR-12, 17, 19, 20, 29–35, 39–45 | Analytics và API |

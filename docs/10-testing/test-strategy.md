@@ -1,6 +1,6 @@
 # Chiến lược kiểm thử
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-27 · DOC-44
+> Trạng thái: **Review** · Cập nhật: 2026-09-28 · DOC-44
 >
 > Phụ thuộc: DOC-03 (NFR-01…13), DOC-11, DOC-19, DOC-20, DOC-21, DOC-22, DOC-30, DOC-41, ADR-0027, DR-44, DR-46
 >
@@ -336,7 +336,7 @@ Không chạy test hiệu năng trên runner PR: runner dùng chung cho kết qu
 | B-01…B-17 | Chunk, skip, retry, job control | DOC-19 §12 | Unit, integration |
 | S-01…S-17 | ETL streaming | DOC-20 §14 | Integration |
 | G-01…G-13 | GTFS static | DOC-21 §10 | Integration (G-03 slow) |
-| R-01…R-14 | DLQ và replay | DOC-22 §11 | Integration |
+| R-01…R-17 | DLQ và replay | DOC-22 §11 | Integration |
 | E-01…E-10 | Xử lý lỗi, Problem Details | DOC-30 §6 | Unit, slice |
 | L-01…L-08 | Vòng đời dữ liệu, retention, PII | DOC-18 §7 | Integration |
 | DQ 1–30 | Rule chất lượng dữ liệu | DOC-16 §8 | Unit (bảng) |

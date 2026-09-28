@@ -1,6 +1,6 @@
 # Triển khai trên Kubernetes cục bộ (k3d)
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-27 · DOC-40
+> Trạng thái: **Review** · Cập nhật: 2026-09-28 · DOC-40
 > Phụ thuộc: [DOC-07](../03-architecture/system-context-and-containers.md), [DOC-10](../03-architecture/quality-attributes.md) §3.3–6, [DOC-11](../03-architecture/tech-stack-and-versions.md) §2.1, [DOC-17](../05-data/db-roles-and-grants.md) §3.2, §6, [DOC-18](../05-data/data-lifecycle.md), [DOC-20](../06-design/etl-streaming.md) §7, [DOC-24](../06-design/ai-triage.md) §11.3, [DOC-26](../06-design/realtime-delivery.md) §10, [DOC-27](../06-design/security.md) §3.3, §7, [DOC-28](../06-design/observability.md), [DOC-29](../06-design/configuration-reference.md), [DOC-39](deploy-compose.md), [ADR-0014](../04-adr/0014-deployment-units.md), [ADR-0024](../04-adr/0024-flyway-migration-job.md), [ADR-0028](../04-adr/0028-kubernetes-tooling.md), [DR](../00-decision-register.md) (DR-54, 55, 56, 66, 74)
 > Người dùng chính: P7-01…P7-10, P8-02 (deploy k3d trong CI), [EXP-07](../10-testing/experiments/EXP-07-autoscaling.md), [EXP-08](../10-testing/experiments/EXP-08-chaos.md), DOC-46 bước 7, DOC-42 (lệnh k3d)
 
@@ -283,7 +283,7 @@ releases:
 | `source-simulator` | 500m / 448Mi | 512Mi | 1 | 1 | 1 |
 | `frontend` | 50m / 24Mi | 32Mi | 1 | 2 | 1 |
 | Kafka node (Strimzi) | 500m / 768Mi | 768Mi (`-Xms384m -Xmx384m`) | 1 × 1Gi | 3 × 1Gi | 3 × 768Mi |
-| Kafka Connect | 250m / 896Mi | 1Gi (`-Xmx512m`) | 1 | 2 | 1 |
+| Kafka Connect | 250m / 1Gi | 1280Mi (`-Xmx512m`, DR-81) | 1 | 2 | 1 |
 | Strimzi entity operator | 100m / 256Mi | 384Mi | | | |
 | Warehouse (CNPG) | 500m / 1Gi | 1Gi (`shared_buffers=256MB`; staging 1,5Gi và 512MB) | 1 | 2 | 2 |
 | Nguồn (CNPG) | 100m / 384Mi | 384Mi (`shared_buffers=64MB`) | 1 | 1 | 1 |
@@ -294,7 +294,7 @@ releases:
 | Grafana, Alertmanager, kube-state-metrics, Mailpit | nhỏ | 192Mi / 64Mi / 64Mi / 64Mi | | | |
 | Loki, Tempo, Alloy (mỗi node), OTel Collector | | 384Mi / 384Mi / 128Mi / 192Mi | Có | Có | — |
 
-Ước lượng `lite` ở trạng thái cao nhất (4 pod `etl-stream`, 4 pod `api`, 3 pod `triage-worker`): khoảng 11,5 GB tổng limit, gồm khoảng 1,5 GB của operator và k3s. P7-04 đo RAM thật bằng `kubectl top pod -A` dưới tải ×1 và ×10, ghi vào §16. Nếu không vừa 13 GB thì cắt theo thứ tự: `api` HPA 2→3; `triage-worker` 1→2; Kafka Connect limit 896Mi.
+Ước lượng `lite` ở trạng thái cao nhất (4 pod `etl-stream`, 4 pod `api`, 3 pod `triage-worker`): khoảng 11,8 GB tổng limit, gồm khoảng 1,5 GB của operator và k3s. P7-04 đo RAM thật bằng `kubectl top pod -A` dưới tải ×1 và ×10, ghi vào §16. Nếu không vừa 13 GB thì cắt theo thứ tự: `api` HPA 2→3; `triage-worker` 1→2; Kafka Connect limit 896Mi.
 
 ## 6. Hạ tầng (chart `pti-infra`)
 
@@ -372,7 +372,7 @@ COPY --chmod=0644 build/plugins/ /opt/kafka/plugins/
 USER 1001
 ```
 
-`make k8s-images` tải hai plugin (URL và SHA-256 trong `versions.env`, cùng nguồn với `connect/Dockerfile`), giải nén vào `connect/build/plugins/`, build và push `k3d-pti-registry:5000/pti-connect-strimzi:<tag>`.
+`make k8s-images` tải hai plugin (URL và SHA-256 trong `versions.env`, cùng nguồn với `connect/Dockerfile`: Debezium PostgreSQL connector 3.6.3.Final và Aiven S3 sink 3.4.3, DOC-11), giải nén vào `connect/build/plugins/`, build và push `k3d-pti-registry:5000/pti-connect-strimzi:<tag>`.
 
 ```yaml
 apiVersion: kafka.strimzi.io/v1beta2
@@ -392,8 +392,11 @@ spec:
     config.storage.replication.factor: -1        # use broker default
     offset.storage.replication.factor: -1
     status.storage.replication.factor: -1
+    offset.flush.interval.ms: 300000             # same as compose: raw-zone files close at most every 5 min (DOC-09 §7)
     config.providers: dir
     config.providers.dir.class: org.apache.kafka.common.config.provider.DirectoryConfigProvider
+  resources: { requests: { cpu: 250m, memory: 1Gi }, limits: { memory: 1280Mi } }
+  jvmOptions: { "-Xms": 256m, "-Xmx": 512m }
   template:
     pod:
       volumes:

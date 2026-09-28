@@ -1,6 +1,6 @@
 # Tham chiếu cấu hình
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-27 · DOC-29
+> Trạng thái: **Review** · Cập nhật: 2026-09-28 · DOC-29
 > Phụ thuộc: [DR](../00-decision-register.md), [DOC-10](../03-architecture/quality-attributes.md), [DOC-13](../05-data/source-data.md), [DOC-15](../05-data/ops-and-insight-model.md), [DOC-17](../05-data/db-roles-and-grants.md)
 > Người dùng chính: mọi app, compose (DOC-39), Helm (DOC-40)
 
@@ -165,7 +165,7 @@ Mỗi datasource `pti.datasource.<name>` gồm `url`, `username`, `password` (bi
 | `pti.replay.raw-settle` | Duration | `10m` | `to` phải ≤ now − giá trị này | DOC-22 §4.1 | Chốt |
 | `pti.replay.raw-max-age` | Duration | `29d` | `from` phải ≥ now − giá trị này | DOC-22 §4.1 | Chốt |
 | `pti.replay.max-window` | Duration | `7d` | | DOC-22 §4.1 | Chốt |
-| `pti.replay.max-objects` | int | `50000` | | DOC-22 §4.3 | Chốt |
+| `pti.replay.max-objects` | int | `100000` | | DOC-22 §4.3 | Chốt |
 | `pti.replay.chunk-size` | int | `500` | = `pti.etl.batch.chunk-size` | DOC-22 §8 | Chốt |
 | `pti.replay.poller.interval` / `.max-claims` | Duration / int | `5s` / `10` | `ReplayRequestPoller` | DOC-22 §6 | Chốt |
 | `pti.dlq.max-payload-bytes` | DataSize | `1MB` | Giới hạn payload lưu và payload sửa | DOC-22 §1.2 | Chốt |

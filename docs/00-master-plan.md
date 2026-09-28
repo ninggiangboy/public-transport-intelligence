@@ -1,6 +1,6 @@
 # Master Plan: xây dựng Public Transport Intelligence từ đầu đến cuối
 
-> Trạng thái: **Review v1.0** · Cập nhật: 2026-09-27 · Đi kèm: [00-decision-register.md](00-decision-register.md) · Nguồn: `public-transport-intelligence.md` (**SDD gốc**)
+> Trạng thái: **Review v1.0** · Cập nhật: 2026-09-28 · Đi kèm: [00-decision-register.md](00-decision-register.md) · Nguồn: `public-transport-intelligence.md` (**SDD gốc**)
 
 Tài liệu này là bản hướng dẫn tổng. Nó gồm:
 
@@ -219,7 +219,7 @@ Dùng định dạng MADR rút gọn: Bối cảnh / Các phương án / Quyết
 | 0009 | Phiên bản hóa GTFS static: `feed_version` và staging swap | DR-10 | P1 |
 | 0010 | Khóa insight theo event time, mô hình episode, UUIDv5 | DR-29 | P4 |
 | 0011 | Partition bảng fact theo ngày và job bảo trì partition | DR-15 | P1 |
-| 0012 | Raw zone: S3 sink JSON gzip, phân vùng theo giờ của record, giữ key/headers | SDD 4.1, S-04* | P1 |
+| 0012 | Raw zone: S3 sink JSON gzip, phân vùng theo giờ của record, giữ key/headers | SDD 4.1, S-04, DR-81 | P1 |
 | 0013 | Replay: API ghi yêu cầu, ETL thực thi | DR-18 | P2 |
 | 0014 | Đơn vị triển khai: một image ETL hai profile; analytics là thư viện | DR-26, 35 | P1 |
 | 0015 | Chống chạy trùng job: ShedLock, JobInstance của Spring Batch, `VERSION` làm fencing; khôi phục execution kẹt | DR-24 | P2 |
@@ -238,7 +238,7 @@ Dùng định dạng MADR rút gọn: Bối cảnh / Các phương án / Quyết
 | 0028 | K8s: k3d, helmfile, Strimzi, CNPG, KEDA, Chaos Mesh | DR-54 | P7 |
 | 0029 | Nền tảng: Spring Boot 4.1 và Java 25 (bản mới nhất); ghi các thay đổi so với Boot 3 | DR-53 | P1 |
 
-\* ADR-0012 cần chốt thêm: connector S3 sink cụ thể (kiểm tra license), `flush.size`, `rotate.interval.ms`, partitioner theo record timestamp, đường dẫn `raw/{topic}/dt=YYYY-MM-DD/hh=HH/`. **File GTFS static zip cũng được lưu vào raw zone** để EXP-04 dựng lại được cả dimension.
+ADR-0012 đã chốt sau S-04 (2026-09-28): Aiven S3 sink 3.4.3, value base64, phân thư mục theo CreateTime (`file.name.timestamp.source=EVENT`), file đóng mỗi 5 phút hoặc 2.000 record (DR-81), đường dẫn `raw/{topic}/dt=YYYY-MM-DD/hh=HH/`. **File GTFS static zip cũng được lưu vào raw zone** để EXP-04 dựng lại được cả dimension.
 
 #### Nhóm Data
 
@@ -398,7 +398,7 @@ Mục tiêu: không còn câu hỏi nào có thể chặn P1–P2.
 | P0-02 | **S-01 Spike Jev** (phạm vi đã thu hẹp, xem DR-36): gọi thử `TypeSafeClient.systemOne` với Choice, Score và Noul; xác minh `model_version`, API batch, mã lỗi khi bị giới hạn hoặc hết quota | Ghi chú spike cùng một lời gọi thật thành công, lưu làm fixture cho WireMock | — | DOC-24 |
 | P0-03 | ~~S-02 Chọn feed GTFS~~ **Xong 2026-09-26**: Metro Transit, Minneapolis (DR-01) | `sample-data/gtfs/` gồm zip, SHA256SUMS, README thông số, `profile_feed.py` | — | DOC-13 |
 | P0-04 | ~~S-03 Ngân sách tài nguyên~~ **Xong 2026-09-26**: đo RAM của Postgres ×2, Kafka, Connect, object storage, Keycloak và 3 JVM Spring Boot 4.1 dưới tải nền. MinIO không còn image → chọn SeaweedFS (DR-66) | Bảng RAM và kết luận ở DOC-10 §5 | — | DOC-10 |
-| P0-05 | **S-04 Image Kafka Connect**: Debezium và S3 sink chạy được với SeaweedFS (DR-66) | Dockerfile cùng một connector chạy thử | — | ADR-0012 |
+| P0-05 | ~~S-04 Image Kafka Connect~~ **Xong 2026-09-28** (kết quả ở ADR-0012, quyết định mới DR-81; spike `spikes/s04-kafka-connect/`): Debezium 3.6.3 và Aiven S3 sink 3.4.3 chạy được với SeaweedFS (DR-66); value lưu base64, `file.max.records=2000`, Connect 1.280 MB | Dockerfile cùng một connector chạy thử | — | ADR-0012 |
 | P0-06 | **S-05 PMTiles**: cắt vùng bản đồ theo bbox của feed, hiển thị bằng MapLibre | File `.pmtiles` và trang HTML thử | P0-03 | ADR-0021 |
 | P0-07 | ~~S-06 Tương thích Spring Boot 4.1 / Java 25~~ **Xong 2026-09-28** (kết quả ở DR-53, quyết định mới DR-80; app mẫu `spikes/s06-boot41-java25/`) (DR-53): một app mẫu chạy được với Spring Batch 6 (fault-tolerant step, JobRepository JDBC, restart), Spring Kafka, ShedLock, Spring Cloud AWS S3, Resilience4j, springdoc, Testcontainers, Micrometer Tracing, Jib; xác minh đủ các điểm về Spring Batch trong DR-53 | ADR-0029 cùng bảng tương thích trong DOC-11 | — | DOC-11 |
 | P0-08 | Viết DOC-06 Glossary — **Đã viết, trạng thái Review** | Approved | P0-01 | DOC-06 |

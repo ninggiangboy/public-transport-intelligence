@@ -1,6 +1,6 @@
 # Vòng đời dữ liệu
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-27 · DOC-18
+> Trạng thái: **Review** · Cập nhật: 2026-09-28 · DOC-18
 > Phụ thuộc: [DOC-09](../03-architecture/messaging-contracts.md) §1 và §7, [DOC-10](../03-architecture/quality-attributes.md) §3.3, [DOC-14](warehouse-model.md) §7.4, [DOC-15](ops-and-insight-model.md) §3.1, [DOC-17](db-roles-and-grants.md), [DOC-39](../09-operations/deploy-compose.md) §3.5, [ADR-0011](../04-adr/0011-fact-partitioning.md), [ADR-0012](../04-adr/0012-raw-zone-s3-sink.md), [DR](../00-decision-register.md) (DR-15, 16, 22, 28, 60, 62, 63, 66, 67)
 > Người dùng chính: `etl` (P2-17), `source-simulator`, DOC-43 (backup), DOC-40 (values k3d)
 
@@ -87,12 +87,15 @@ Retention nằm trong `deploy/topics.yaml` (nguồn duy nhất cho cả compose 
     { "ID": "ticketing-30d",   "Filter": { "Prefix": "ticketing." }, "Status": "Enabled", "Expiration": { "Days": 30 } },
     { "ID": "noncurrent-7d",   "Filter": { "Prefix": "" },           "Status": "Enabled",
       "NoncurrentVersionExpiration": { "NoncurrentDays": 7 },
+      "AbortIncompleteMultipartUpload": { "DaysAfterInitiation": 1 },
       "Expiration": { "ExpiredObjectDeleteMarker": true } }
   ]
 }
 ```
 
-`s3-init` đọc lại cấu hình bằng `get-bucket-lifecycle-configuration` để chắc rằng SeaweedFS đã nhận. Nếu SeaweedFS 4.47 từ chối một phần rule (API lifecycle của SeaweedFS chưa đầy đủ như AWS), phương án dự phòng là TTL gốc của SeaweedFS theo đường dẫn: `weed shell` → `fs.configure -locationPrefix=/buckets/raw/gtfs. -ttl=30d -apply` (tương tự cho `ticketing.`). Kết quả kiểm tra được ghi vào DOC-11 cùng lúc với S-04.
+`AbortIncompleteMultipartUpload` dọn các multipart upload dở dang: S3 sink mở một multipart upload cho mỗi file và chỉ hoàn tất khi commit, nên connector chết giữa chừng để lại upload dở (DOC-09 §7).
+
+`s3-init` đọc lại cấu hình bằng `get-bucket-lifecycle-configuration` để chắc rằng SeaweedFS đã nhận. S-04 (2026-09-28) xác nhận SeaweedFS 4.47 nhận và trả lại đủ ba rule, kể cả `AbortIncompleteMultipartUpload`. Spike chỉ kiểm được rằng rule được lưu, chưa kiểm được việc xóa sau 30 ngày. Vì vậy test L-09 kiểm việc xóa bằng rule `Days: 1` trên một bucket thử. Nếu rule không có tác dụng, phương án dự phòng là TTL gốc của SeaweedFS theo đường dẫn: `weed shell` → `fs.configure -locationPrefix=/buckets/raw/gtfs. -ttl=30d -apply` (tương tự cho `ticketing.`).
 
 ### 1.5 Observability
 
@@ -109,16 +112,16 @@ Theo DOC-09 §7 và ADR-0012:
 
 ```
 raw/
-  gtfs.vehicle_positions/dt=2026-09-29/hh=21/gtfs.vehicle_positions-7-0000918273.json.gz
-  gtfs.trip_updates/dt=2026-09-29/hh=21/gtfs.trip_updates-3-0000120044.json.gz
-  ticketing.sales.cdc/dt=2026-09-29/hh=21/ticketing.sales.cdc-2-0000004410.json.gz
-  ticketing.sale_points.cdc/dt=2026-09-26/hh=08/ticketing.sale_points.cdc-0-0000000000.json.gz
+  gtfs.vehicle_positions/dt=2026-09-29/hh=21/gtfs.vehicle_positions-7-00000000000000918273.json.gz
+  gtfs.trip_updates/dt=2026-09-29/hh=21/gtfs.trip_updates-3-00000000000000120044.json.gz
+  ticketing.sales.cdc/dt=2026-09-29/hh=21/ticketing.sales.cdc-2-00000000000000004410.json.gz
+  ticketing.sale_points.cdc/dt=2026-09-26/hh=08/ticketing.sale_points.cdc-0-00000000000000000000.json.gz
   gtfs-static/<feed_hash>.zip
 ```
 
 - `dt` và `hh` lấy từ **timestamp của record Kafka** (CreateTime, giờ thật, UTC), không phải `event_timestamp`. Khi đặt `PTI_CLOCK_OFFSET`, hai mốc này lệch nhau đúng bằng offset; replay đổi giờ nghiệp vụ sang giờ record trước khi chọn thư mục (DR-67, DOC-22).
-- `start_offset` được đệm 10 chữ số để sắp xếp theo tên cho đúng thứ tự offset.
-- Mỗi dòng trong file là JSON `{key, value, partition, offset, timestamp, headers}`, `value` là chuỗi nguyên văn.
+- `start_offset` được đệm 20 chữ số (`{{start_offset:padding=true}}` của connector) nên sắp theo tên cũng là sắp theo offset. Partition **không** đệm, nên muốn sắp theo partition thì phải parse tên file.
+- Mỗi dòng trong file là JSON `{key, value, offset, timestamp, headers}`; `value` là base64 của đúng các byte gốc, partition lấy từ tên file (DOC-09 §7).
 - Chỉ Kafka Connect ghi các prefix topic; chỉ `etl-batch` ghi `gtfs-static/` (§3).
 
 ## 3. Quyền trên raw zone
@@ -129,7 +132,7 @@ raw/
 | `etl` | `Read:raw`, `List:raw`, `Write:raw/gtfs-static` | `etl-batch`: replay đọc mọi prefix; `GtfsStaticLoadJob` ghi zip |
 | `admin` | Toàn quyền | Chỉ `s3-init`, `make s3-ls` |
 
-Bước 4 của `s3-init` kiểm tra rằng `etl` **không** ghi được ngoài `gtfs-static/` (DOC-39 §3.5). Nếu SeaweedFS 4.47 không hỗ trợ quyền theo prefix, `etl` được cấp `Write:raw`. Rủi ro còn lại (etl ghi đè object của connector) được giảm nhờ versioning: object bị ghi đè vẫn khôi phục được trong 7 ngày. Trường hợp này phải ghi vào DOC-27 như một rủi ro đã chấp nhận.
+Bước 4 của `s3-init` kiểm tra rằng `etl` **không** ghi được ngoài `gtfs-static/` (DOC-39 §3.5). S-04 xác nhận SeaweedFS 4.47 hỗ trợ quyền theo prefix với cú pháp **`Write:raw/gtfs-static/*`**: `etl` ghi được `raw/gtfs-static/…`, bị từ chối ở `raw/gtfs.vehicle_positions/…` và `raw/gtfs-staticX/…`. Viết thiếu `/*` (`Write:raw/gtfs-static/`) thì mọi lệnh ghi đều bị từ chối.
 
 ## 4. Dữ liệu cá nhân (DR-60)
 
@@ -202,7 +205,8 @@ Warehouse dựng lại được từ raw zone bằng replay (EXP-04), nên dump 
 | L-05 | `DedupRegistryCleanupJob`: dòng cũ hơn TTL bị xóa, dòng mới còn |
 | L-06 | `PiiScrubber`: JSON hợp lệ, JSON lồng nhau, JSON hỏng có và không có `customer_ref` |
 | L-07 | Lifecycle của bucket `raw`: `get-bucket-lifecycle-configuration` trả đúng ba rule (hoặc TTL dự phòng đã áp) |
-| L-08 | Quyền `etl` trên raw zone (bước 4 của `s3-init`) |
+| L-08 | Quyền `etl` trên raw zone (bước 4 của `s3-init`): ghi được `gtfs-static/`, bị từ chối ở prefix topic và ở `gtfs-staticX/` |
+| L-09 | Bucket thử có rule `Expiration: {Days: 1}` và một object; sau khi đồng hồ vượt 1 ngày (chạy thủ công một lần ở P1, SeaweedFS không cho giả lập giờ) object biến mất. Nếu không, chuyển sang TTL dự phòng (§1.4) |
 
 ## 8. Câu hỏi còn mở
 

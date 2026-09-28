@@ -1,6 +1,6 @@
 # Triển khai bằng Docker Compose
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-27 · DOC-39
+> Trạng thái: **Review** · Cập nhật: 2026-09-28 · DOC-39
 > Phụ thuộc: [DOC-07](../03-architecture/system-context-and-containers.md), [DOC-09](../03-architecture/messaging-contracts.md), [DOC-10](../03-architecture/quality-attributes.md) §3.3 và §5, [DOC-11](../03-architecture/tech-stack-and-versions.md), [DOC-17](../05-data/db-roles-and-grants.md), [DOC-29](../06-design/configuration-reference.md), [ADR-0012](../04-adr/0012-raw-zone-s3-sink.md), [ADR-0014](../04-adr/0014-deployment-units.md), [ADR-0024](../04-adr/0024-flyway-migration-job.md), [DR](../00-decision-register.md) (DR-05, 26, 27, 49, 50, 51, 64, 66, 67)
 > Người dùng chính: P1-04, P1-06, P1-12…14, P2-20, P4-16, P5-15, P6-09; môi trường dev, demo và thực nghiệm P3
 
@@ -65,7 +65,7 @@ Image hạ tầng lấy tag và digest từ `deploy/versions.env` (DOC-11). Imag
 | `seaweedfs` | `chrislusf/seaweedfs:4.47` | `server -dir=/data -s3 -s3.config=/etc/seaweedfs/s3.json -s3.port=8333 -master.volumeSizeLimitMB=1024 -volume.max=0` | `seaweedfs-data:/data`; `./.generated/s3.json:/etc/seaweedfs/s3.json:ro` | 384 MB / 0,5 |
 | `s3-init` | `amazon/aws-cli` (pin digest) | `s3-init.sh`, credential `admin` | `./seaweedfs/s3-init.sh:/s3-init.sh:ro` | 128 MB |
 | `db-migrate` | `ghcr.io/<owner>/pti-db-migrate` | Chạy ba bộ Flyway rồi thoát (DOC-17 §5) | — | 384 MB |
-| `kafka-connect` | `ghcr.io/<owner>/pti-connect` (build từ `connect/Dockerfile`) | §3.4 | — (state nằm trong topic `connect-*`) | 1.024 MB / 1,0; `-Xmx512m`. Nâng lên 1.280 MB nếu S-04 đo vượt 900 MiB |
+| `kafka-connect` | `ghcr.io/<owner>/pti-connect` (build từ `connect/Dockerfile`) | §3.4 | — (state nằm trong topic `connect-*`) | 1.280 MB / 1,0; `-Xmx512m`. S-04 đo đỉnh 1.009 MiB khi S3 sink chạy bù 1 triệu record (DR-81) |
 | `kafka-connect-init` | `curlimages/curl` (pin digest) | `register.sh` | `../../connect/connectors:/connectors:ro` | 64 MB |
 | `keycloak` | `quay.io/keycloak/keycloak:26.7.4` | `start-dev --import-realm --http-port=8080`. Env `KC_BOOTSTRAP_ADMIN_USERNAME=admin`, `KC_BOOTSTRAP_ADMIN_PASSWORD=${KEYCLOAK_ADMIN_PASSWORD}`, `KC_HOSTNAME=http://localhost:${HOST_PORT_KEYCLOAK:-8180}`, `KC_HOSTNAME_BACKCHANNEL_DYNAMIC=true`, `KC_HEALTH_ENABLED=true` | `./keycloak/realm-pti.json:/opt/keycloak/data/import/realm-pti.json:ro` | 768 MB / 1,0 |
 
@@ -159,9 +159,9 @@ Image `connect/Dockerfile`:
 
 ```dockerfile
 FROM quay.io/debezium/connect:3.6.3.Final
-# Aiven S3 sink (Apache-2.0), version pinned after S-04. Checksum verified at build time.
-ARG AIVEN_S3_VERSION
-ARG AIVEN_S3_SHA256
+# Aiven S3 sink (Apache-2.0), verified in spike S-04. Checksum verified at build time.
+ARG AIVEN_S3_VERSION=3.4.3
+ARG AIVEN_S3_SHA256=85661c4d3d49b85f4a65170a5c27464e4359760aa7140a24628e45323b6d7329
 RUN curl -fsSL -o /tmp/s3.tar \
       "https://github.com/Aiven-Open/cloud-storage-connectors-for-apache-kafka/releases/download/v${AIVEN_S3_VERSION}/s3-sink-connector-for-apache-kafka-${AIVEN_S3_VERSION}.tar" \
  && echo "${AIVEN_S3_SHA256}  /tmp/s3.tar" | sha256sum -c - \
@@ -169,7 +169,7 @@ RUN curl -fsSL -o /tmp/s3.tar \
  && rm /tmp/s3.tar
 ```
 
-URL và phiên bản chính xác được chốt ở S-04 và ghi vào DOC-11.
+Phiên bản, URL và checksum đã chốt ở S-04 (DOC-11). Image gốc chứa sẵn Debezium PostgreSQL connector 3.6.3; Dockerfile chỉ thêm Aiven vào `/kafka/connect/aiven-s3`. `GET /connector-plugins` phải có `io.aiven.kafka.connect.s3.AivenKafkaConnectS3SinkConnector` `3.4.3`.
 
 Env của worker:
 
@@ -183,8 +183,9 @@ Env của worker:
 | `CONNECT_CONFIG_PROVIDERS` | `env` |
 | `CONNECT_CONFIG_PROVIDERS_ENV_CLASS` | `org.apache.kafka.common.config.provider.EnvVarConfigProvider` |
 | `CONNECT_CONFIG_PROVIDERS_ENV_PARAM_ALLOWLIST_PATTERN` | `^(DEBEZIUM_PASSWORD|S3_CONNECT_.*)$` |
+| `CONNECT_OFFSET_FLUSH_INTERVAL_MS` | `300000`. Chu kỳ commit của mọi connector, cũng là thời gian tối đa một file raw zone còn mở (DOC-09 §7). Với Debezium, offset nguồn được lưu mỗi 5 phút: nếu Connect chết đột ngột thì tối đa 5 phút thay đổi được phát lại, và guard `__lsn` của ETL bỏ qua chúng (DOC-09 §5.2) |
 | `DEBEZIUM_PASSWORD`, `S3_CONNECT_ACCESS_KEY`, `S3_CONNECT_SECRET_KEY` | từ `.env` |
-| `HEAP_OPTS` | `-Xms256m -Xmx512m` |
+| `HEAP_OPTS` | `-Xms256m -Xmx512m` (không tăng; S3 sink được giới hạn bằng `file.max.records`, DR-81) |
 
 File connector tham chiếu secret bằng `${env:DEBEZIUM_PASSWORD}`, `${env:S3_CONNECT_ACCESS_KEY}`. Kafka Connect thay giá trị lúc chạy; GET `/connectors/<name>/config` trả lại nguyên chuỗi `${env:…}`, không lộ mật khẩu. Trên k3d dùng `DirectoryConfigProvider` đọc key của Secret mount (`${dir:/mnt/secrets/debezium:password}`, DOC-40 §6.3).
 
@@ -201,18 +202,18 @@ Healthcheck: `curl -fs http://localhost:8083/connectors` (image Debezium có `cu
   "identities": [
     { "name": "admin",   "credentials": [{ "accessKey": "${S3_ADMIN_ACCESS_KEY}",   "secretKey": "${S3_ADMIN_SECRET_KEY}" }],   "actions": ["Admin", "Read", "Write", "List", "Tagging"] },
     { "name": "connect", "credentials": [{ "accessKey": "${S3_CONNECT_ACCESS_KEY}", "secretKey": "${S3_CONNECT_SECRET_KEY}" }], "actions": ["Read:raw", "Write:raw", "List:raw"] },
-    { "name": "etl",     "credentials": [{ "accessKey": "${S3_ETL_ACCESS_KEY}",     "secretKey": "${S3_ETL_SECRET_KEY}" }],     "actions": ["Read:raw", "List:raw", "Write:raw/gtfs-static"] }
+    { "name": "etl",     "credentials": [{ "accessKey": "${S3_ETL_ACCESS_KEY}",     "secretKey": "${S3_ETL_SECRET_KEY}" }],     "actions": ["Read:raw", "List:raw", "Write:raw/gtfs-static/*"] }
   ]
 }
 ```
 
-`make secrets` render file này bằng `jq` (có trong `mise.toml`) vào `deploy/compose/.generated/s3.json`. Quyền ghi của `etl` chỉ giới hạn trong prefix `gtfs-static/`, và DOC-18 §4 chốt cách kiểm tra quyền này.
+`make secrets` render file này bằng `jq` (có trong `mise.toml`) vào `deploy/compose/.generated/s3.json`. Quyền ghi của `etl` chỉ giới hạn trong prefix `gtfs-static/`; cú pháp `Write:raw/gtfs-static/*` phải có `/*` (S-04). DOC-18 §3 chốt cách kiểm tra quyền này.
 
 `s3-init.sh` (credential `admin`, endpoint `http://seaweedfs:8333`):
 
 1. `aws s3api create-bucket --bucket raw` (bỏ qua lỗi `BucketAlreadyOwnedByYou`).
 2. `aws s3api put-bucket-versioning --bucket raw --versioning-configuration Status=Enabled`.
-3. `aws s3api put-bucket-lifecycle-configuration` theo DOC-18 §4: object phiên bản cũ (noncurrent) hết hạn sau 7 ngày; prefix `gtfs.` và `ticketing.` hết hạn sau 30 ngày trên compose; `gtfs-static/` giữ vô hạn.
+3. `aws s3api put-bucket-lifecycle-configuration` theo DOC-18 §1.4: object phiên bản cũ (noncurrent) hết hạn sau 7 ngày; prefix `gtfs.` và `ticketing.` hết hạn sau 30 ngày trên compose; `gtfs-static/` giữ vô hạn.
 4. Kiểm tra quyền bằng credential `etl`: `ListObjectsV2` thành công, `PutObject` vào `raw/gtfs.vehicle_positions/_probe` phải bị từ chối. Sai kỳ vọng thì thoát 1.
 
 Healthcheck của `seaweedfs`: `wget -qO- http://127.0.0.1:9333/cluster/status && wget -qO /dev/null http://127.0.0.1:8333/` (8333 trả 403 khi chưa ký, nhưng `wget` coi 403 là lỗi, nên câu lệnh thực tế là `wget -S --spider … 2>&1 | grep -q 'HTTP/'`).
@@ -373,7 +374,8 @@ NFR-07 được kiểm chứng bằng: máy sạch, `make secrets && make up && 
 | C-07 | Dừng `pg-warehouse` 30 giây → các app không bị compose restart (liveness không phụ thuộc DB); readiness chuyển `DOWN` rồi `UP` | Thủ công, lặp lại trong EXP-01 |
 | C-08 | `docker stats` khi chạy `make up-all` và `load-ramp` ×5: không container nào bị OOM-kill trên VM 12 GB | P3 |
 | C-09 | `make reset-warehouse` → warehouse trống, Kafka và raw zone còn nguyên, ETL chạy tiếp | Thủ công, dùng trong EXP-04 |
+| C-10 | Pause `pti-raw-sink`, dồn khoảng 1 triệu record vào `gtfs.*`, resume: connector không `FAILED`, lag về 0, `kafka-connect` không bị OOM-kill (lặp lại bài đo S-04 trên stack thật) | P1-13, thủ công |
 
 ## 10. Câu hỏi còn mở
 
-Không có. Các điểm phụ thuộc spike: phiên bản và URL của Aiven S3 sink, lượng RAM của Connect (S-04); tên key virtual thread (S-06: vẫn là `spring.threads.virtual.enabled`, đã xác minh). Kết quả spike cập nhật trực tiếp vào §3.4 và DOC-11.
+Không có. Các điểm phụ thuộc spike đã được xác minh: phiên bản, URL và checksum của Aiven S3 sink, lượng RAM của Connect (S-04, DR-81); tên key virtual thread (S-06: vẫn là `spring.threads.virtual.enabled`).

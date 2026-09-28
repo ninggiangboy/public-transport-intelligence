@@ -1,6 +1,6 @@
 # Môi trường dev cục bộ
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-27 · DOC-38
+> Trạng thái: **Review** · Cập nhật: 2026-09-28 · DOC-38
 > Phụ thuộc: [DOC-10](../03-architecture/quality-attributes.md) §5, [DOC-11](../03-architecture/tech-stack-and-versions.md), [DOC-17](../05-data/db-roles-and-grants.md) §6, [DOC-25](../06-design/source-simulator.md), [DOC-39](deploy-compose.md), [DR](../00-decision-register.md) (DR-40, 56, 61, 66, 67)
 > Người dùng chính: mọi người phát triển; P1-01, P1-15; kiểm chứng NFR-07
 
@@ -11,7 +11,7 @@ Mục tiêu: một người mới clone repo, chạy **hai lệnh** (`make secre
 | Hạng mục | Tối thiểu | Khuyến nghị | Ghi chú |
 | --- | --- | --- | --- |
 | RAM máy | 16 GB | 16 GB trở lên | S-03 đo trên MacBook 16 GB (DOC-10 §5.1) |
-| RAM cấp cho VM Docker | 8 GB (chỉ profile `core`) | **12 GB** khi bật `observability` và `triage` | Tổng `mem_limit` khi bật đủ profile khoảng 10,1 GB. Với 8 GB, VM sẽ OOM-kill container khi mọi thứ cùng tăng |
+| RAM cấp cho VM Docker | 8 GB (chỉ profile `core`) | **12 GB** khi bật `observability` và `triage` | Tổng `mem_limit` khi bật đủ profile khoảng 10,4 GB. Với 8 GB, VM sẽ OOM-kill container khi mọi thứ cùng tăng |
 | CPU | 8 nhân | 8 nhân trở lên | Compose đặt tổng CPU limit khoảng 12 nhưng hiếm khi dùng hết cùng lúc |
 | Ổ đĩa trống | **80 GB** | 100 GB | Trần dữ liệu với retention của compose khoảng 68 GB (DOC-10 §3.3), cộng image khoảng 6 GB |
 | Hệ điều hành | macOS 14+ (Apple Silicon hoặc Intel), Linux x86_64/arm64 | macOS + OrbStack | Windows dùng WSL2; chưa kiểm thử, không hỗ trợ chính thức |
@@ -114,6 +114,7 @@ Offset được làm tròn tới phút. Mọi app dùng chung một giá trị. 
 | `make tail-<topic>` | In message mới của topic, kèm key và headers. Ví dụ `make tail-gtfs.trip_updates`, `make tail-pti.events.ui` |
 | `make connectors` | Trạng thái connector và task của Kafka Connect |
 | `make s3-ls [P=<prefix>]` | Liệt kê object trong bucket `raw` (credential `admin`) |
+| `make raw-cat KEY=<object> [N=20]` | In N dòng đầu của một object raw zone: giải nén gzip, giải base64 trường `value` (ADR-0012), thêm `partition` lấy từ tên file. Dòng có `value` không phải UTF-8 hợp lệ được in kèm `"value_hex"` |
 | `make sim-status` | `GET /sim/status` (DOC-25 §8) |
 
 ### 4.3 Simulator và dữ liệu
