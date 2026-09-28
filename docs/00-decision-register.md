@@ -41,6 +41,7 @@ Tài liệu gốc mô tả tốt *cái gì* và *vì sao*, nhưng còn nhiều c
 | 2026-09-28 | Owner | **Không dùng Quartz Scheduler**; giữ `@Scheduled` + ShedLock cho lịch job batch | DR-83 (mới), ADR-0015 |
 | 2026-09-28 | Owner | **Không dùng Apache Spark**; giữ Spring Batch + Spring Kafka cho cả batch lẫn streaming. Khi cần phân tích trên lịch sử dài thì thử DuckDB trước | DR-84 (mới), ADR-0002 |
 | 2026-09-27 | Owner | **Repo chuyển sang GitHub public** (thay quyết định private): runner chuẩn của GitHub đủ 16 GB để chạy E2E và k3d, không cần self-hosted runner; image GHCR để public | DR-56, DR-76 |
+| 2026-09-28 | Owner | **Hoãn S-01 (spike Jev) tới đầu P6** vì chưa có API key; S-01 không còn là điều kiện thoát M0, chỉ là điều kiện của P6-01. DOC-24 đã có phương án chốt cho mọi kết quả của S-01 | DR-36 |
 | 2026-09-28 | Claude (Owner ủy quyền) | **S-06 xong:** Boot 4.1.1 + Java 25 dùng được với mọi thư viện đã chọn, không cần lối lui. Chunk step của job batch dựng bằng builder fault-tolerant cũ của Spring Batch 6, vì `ChunkOrientedStep` mới làm mất DLQ và bỏ sót item khi crash giữa lúc scan | DR-53, DR-80 |
 | 2026-09-28 | Claude (Owner ủy quyền) | **S-04 xong:** image Connect = Debezium 3.6.3 + Aiven S3 sink 3.4.3. Raw zone lưu value dạng base64 để giữ đúng từng byte; thư mục giờ theo CreateTime; `file.max.records=2000` và `mem_limit` 1.280 MB để S3 sink không OOM khi chạy bù. Debezium chạy được trên PostgreSQL 18.6; vẫn dùng 17.11 tới khi kiểm xong CNPG | DR-81, DR-53, DR-66 |
 | 2026-09-28 | Claude (Owner ủy quyền) | **S-05 xong:** bản đồ nền Twin Cities 84 MB, render offline không có request ra ngoài. Dùng MapLibre 6 (worker cùng origin, CSP không cần `blob:`); font và sprite tải bằng `make tiles` thay vì commit vào repo | DR-47, DR-82 |
@@ -436,7 +437,7 @@ Tài liệu gốc mô tả tốt *cái gì* và *vì sao*, nhưng còn nhiều c
   1. Response có trả phiên bản model không (header hay field)? Nếu không, lưu `model_version = "jev@<sdk-version>"`.
   2. API batch của SDK ("score many items at once") dùng như thế nào?
   3. Mã lỗi khi bị giới hạn tốc độ hoặc hết quota, và các lớp exception tương ứng.
-- **Kết quả spike S-01:** _chưa chạy._ Khi chạy xong, ghi vào đây: (1) phiên bản model lấy từ đâu và nhánh `model_version` nào được dùng (DR-73); (2) API batch có dùng được không, nếu có thì kích thước lô; (3) bảng mã lỗi và lớp exception của SDK, đối chiếu với DOC-24 §11.2; (4) tên phương thức builder để tắt retry; (5) latency median/p95 đo được. Response mẫu đã che API key được lưu làm fixture (DOC-24 §3).
+- **Kết quả spike S-01:** _chưa chạy; hoãn tới đầu P6 (2026-09-28) vì chưa có API key Jev, không chặn M0._ Khi chạy xong, ghi vào đây: (1) phiên bản model lấy từ đâu và nhánh `model_version` nào được dùng (DR-73); (2) API batch có dùng được không, nếu có thì kích thước lô; (3) bảng mã lỗi và lớp exception của SDK, đối chiếu với DOC-24 §11.2; (4) tên phương thức builder để tắt retry; (5) latency median/p95 đo được. Response mẫu đã che API key được lưu làm fixture (DOC-24 §3).
 - **Ghi vào:** ADR-0018, DOC-24, DOC-11.
 
 ### DR-37 · Cách triage worker lấy việc

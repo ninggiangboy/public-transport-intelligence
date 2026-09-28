@@ -398,7 +398,7 @@ Mục tiêu: không còn câu hỏi nào có thể chặn P1–P2.
 | ID | Việc | Đầu ra và nghiệm thu | Phụ thuộc | Tài liệu |
 | --- | --- | --- | --- | --- |
 | P0-01 | Duyệt toàn bộ sổ quyết định | Mỗi DR ở trạng thái Chốt hoặc Đổi. Mục "Chặn P1/P2" phải xong 100% | — | DR |
-| P0-02 | **S-01 Spike Jev** (phạm vi đã thu hẹp, xem DR-36): gọi thử `TypeSafeClient.systemOne` với Choice, Score và Noul; xác minh `model_version`, API batch, mã lỗi khi bị giới hạn hoặc hết quota | Ghi chú spike cùng một lời gọi thật thành công, lưu làm fixture cho WireMock | — | DOC-24 |
+| P0-02 | **S-01 Spike Jev** (phạm vi đã thu hẹp, xem DR-36) — **Hoãn 2026-09-28**: chưa làm được vì cần API key Jev; chuyển sang đầu P6 (điều kiện của P6-01), không chặn M0: gọi thử `TypeSafeClient.systemOne` với Choice, Score và Noul; xác minh `model_version`, API batch, mã lỗi khi bị giới hạn hoặc hết quota | Ghi chú spike cùng một lời gọi thật thành công, lưu làm fixture cho WireMock | — | DOC-24 |
 | P0-03 | ~~S-02 Chọn feed GTFS~~ **Xong 2026-09-26**: Metro Transit, Minneapolis (DR-01) | `sample-data/gtfs/` gồm zip, SHA256SUMS, README thông số, `profile_feed.py` | — | DOC-13 |
 | P0-04 | ~~S-03 Ngân sách tài nguyên~~ **Xong 2026-09-26**: đo RAM của Postgres ×2, Kafka, Connect, object storage, Keycloak và 3 JVM Spring Boot 4.1 dưới tải nền. MinIO không còn image → chọn SeaweedFS (DR-66) | Bảng RAM và kết luận ở DOC-10 §5 | — | DOC-10 |
 | P0-05 | ~~S-04 Image Kafka Connect~~ **Xong 2026-09-28** (kết quả ở ADR-0012, quyết định mới DR-81; spike `spikes/s04-kafka-connect/`): Debezium 3.6.3 và Aiven S3 sink 3.4.3 chạy được với SeaweedFS (DR-66); value lưu base64, `file.max.records=2000`, Connect 1.280 MB | Dockerfile cùng một connector chạy thử | — | ADR-0012 |
@@ -412,7 +412,7 @@ Mục tiêu: không còn câu hỏi nào có thể chặn P1–P2.
 | P0-13 | Viết DOC-38, 39 và khung DOC-41 — **Approved 2026-09-28** | Approved | P0-04 | DOC-38, 39, 41 |
 | P0-14 | Viết khung DOC-25 (simulator cơ bản) — **Approved 2026-09-28** | Mô hình chuyển động và mô hình trễ đã chốt | P0-03 | DOC-25 |
 
-**Tiêu chí thoát P0 (M0):** mọi tài liệu có Gate = P1 đều Approved; spike S-01…S-06 đều có kết luận.
+**Tiêu chí thoát P0 (M0):** mọi tài liệu có Gate = P1 đều Approved; spike S-02…S-06 đều có kết luận. S-01 được hoãn tới đầu P6 (cần API key Jev) và không chặn M0.
 
 ---
 
@@ -548,7 +548,7 @@ Mục tiêu: không còn câu hỏi nào có thể chặn P1–P2.
 | ID | Việc | Đầu ra và nghiệm thu | Phụ thuộc | Tài liệu |
 | --- | --- | --- | --- | --- |
 | P6-00 | Doc gate: DOC-24, EXP-06; ADR 0018, 0019 — **Approved 2026-09-28** | Approved | M4 | — |
-| P6-01 | Cổng `DecisionModel`; `JevDecisionModel` bọc `TypeSafeClient` (`typesafe-java-sdk`, tắt retry của SDK; Resilience4j timeout 2 s, circuit breaker, bulkhead, rate limiter đặt bên ngoài); `FakeDecisionModel`; WireMock stub dựng từ fixture của S-01 | Unit test và contract test với stub | P6-00 | DOC-24 |
+| P6-01 | Cổng `DecisionModel`; `JevDecisionModel` bọc `TypeSafeClient` (`typesafe-java-sdk`, tắt retry của SDK; Resilience4j timeout 2 s, circuit breaker, bulkhead, rate limiter đặt bên ngoài); `FakeDecisionModel`; WireMock stub dựng từ fixture của S-01 | Unit test và contract test với stub | P6-00, P0-02 (S-01, chạy đầu P6) | DOC-24 |
 | P6-02 | App `triage-worker`: lấy việc bằng SKIP LOCKED, lease, gom batch, ghi kết quả và `model_version`, gauge `pti_triage_backlog` (DR-74) | Integration test: 100 record → đều được triage; Jev chết → vẫn `category=null`, không làm hỏng ETL | P6-01 | DOC-24 |
 | P6-03 | Bộ quyết định auto-replay (bảng ngưỡng, kiểm tra sức khỏe nguồn, tối đa 2 lần, `dlq_action_log`) | Test đủ các nhánh của bảng quyết định | P6-02, P2-16 | DOC-24 |
 | P6-04 | Hàng chờ xác nhận (API confirm → replay) | E2E: xác nhận → record được replay | P6-03 | DOC-24 |
@@ -675,7 +675,7 @@ Mục tiêu: không còn câu hỏi nào có thể chặn P1–P2.
 ## 9. Bắt đầu ngay: 10 việc đầu tiên
 
 1. Đọc và chốt các DR thuộc nhóm "Chặn P1" và "Chặn P2" trong [00-decision-register.md](00-decision-register.md).
-2. Chạy song song các spike S-01 (Jev), S-03 (RAM), S-04 (image Connect), S-05 (PMTiles cho vùng Twin Cities), S-06 (Boot 4.1/Java 25). S-02 đã xong.
+2. Chạy song song các spike S-03 (RAM), S-04 (image Connect), S-05 (PMTiles cho vùng Twin Cities), S-06 (Boot 4.1/Java 25). S-02 đã xong. S-01 (Jev) hoãn tới đầu P6 vì cần API key.
 3. Viết DOC-06 Glossary. Mọi tài liệu khác dùng lại từ vựng này.
 4. Viết DOC-03 Requirements có acceptance criteria, sau đó DOC-04 Use cases.
 5. Viết DOC-07 và DOC-09, rồi các ADR thuộc gate P1.
