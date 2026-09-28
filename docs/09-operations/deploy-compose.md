@@ -68,7 +68,7 @@ Image hạ tầng lấy tag và digest từ `deploy/versions.env` (DOC-11). Imag
 | `kafka-init` | cùng image `kafka` | `create-topics.sh /topics.yaml` | `../topics.yaml:/topics.yaml:ro` | 256 MB |
 | `seaweedfs` | `chrislusf/seaweedfs:4.47` | `server -dir=/data -s3 -s3.config=/etc/seaweedfs/s3.json -s3.port=8333 -master.volumeSizeLimitMB=1024 -volume.max=0` | `seaweedfs-data:/data`; `./.generated/s3.json:/etc/seaweedfs/s3.json:ro` | 384 MB / 0,5 |
 | `s3-init` | `amazon/aws-cli` (pin digest) | `s3-init.sh`, credential `admin` | `./seaweedfs/s3-init.sh:/s3-init.sh:ro` | 128 MB |
-| `db-migrate` | `ghcr.io/<owner>/pti-db-migrate` | Chạy ba bộ Flyway rồi thoát (DOC-17 §5) | — | 384 MB |
+| `db-migrate` | `ghcr.io/<owner>/pti-db-migrate` | Chạy ba bộ Flyway rồi thoát (DOC-17 §5). Env: ba mật khẩu owner; URL mặc định trỏ `pg-warehouse`, `pg-source` | — | 384 MB / 1,0 |
 | `kafka-connect` | `ghcr.io/<owner>/pti-connect` (build từ `deploy/connect/Dockerfile`) | §3.4 | — (state nằm trong topic `connect-*`) | 1.280 MB / 1,0; `-Xmx512m`. S-04 đo đỉnh 1.009 MiB khi S3 sink chạy bù 1 triệu record (DR-81) |
 | `kafka-connect-init` | `curlimages/curl` (pin digest) | `register.sh` | `../connect/connectors:/connectors:ro` | 64 MB |
 | `keycloak` | `quay.io/keycloak/keycloak:26.7.4` | `start-dev --import-realm --http-port=8080`. Env `KC_BOOTSTRAP_ADMIN_USERNAME=admin`, `KC_BOOTSTRAP_ADMIN_PASSWORD=${KEYCLOAK_ADMIN_PASSWORD}`, `KC_HOSTNAME=http://localhost:${HOST_PORT_KEYCLOAK:-8180}`, `KC_HOSTNAME_BACKCHANNEL_DYNAMIC=true`, `KC_HEALTH_ENABLED=true` | `./keycloak/realm-pti.json:/opt/keycloak/data/import/realm-pti.json:ro` | 768 MB / 1,0 |
@@ -282,7 +282,7 @@ Quy ước `depends_on`:
 
 | Service | Healthcheck | `interval` / `retries` / `start_period` |
 | --- | --- | --- |
-| `pg-warehouse`, `pg-source` | `pg_isready -U postgres -d postgres` | 5s / 20 / 10s |
+| `pg-warehouse`, `pg-source` | `pg_isready -h 127.0.0.1 -U postgres -d postgres` (qua TCP: trong lúc initdb, server tạm của entrypoint chỉ nghe socket, nên probe qua socket báo healthy trước khi bootstrap tạo xong role và database) | 5s / 20 / 10s |
 | `kafka` | `kafka-broker-api-versions.sh` (§3.3) | 10s / 12 / 20s |
 | `seaweedfs` | §3.5 | 5s / 20 / 10s |
 | `kafka-connect` | `curl -fs localhost:8083/connectors` | 10s / 18 / 60s |

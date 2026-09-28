@@ -6,8 +6,10 @@ x-logging: &default-logging
   driver: json-file
   options: { max-size: "20m", max-file: "3" }
 
+# TCP rather than the socket: during initdb the entrypoint runs a temporary socket-only server, and a socket probe
+# would report healthy before the bootstrap scripts have created the roles and databases.
 x-postgres-healthcheck: &postgres-healthcheck
-  test: ["CMD", "pg_isready", "-U", "postgres", "-d", "postgres"]
+  test: ["CMD", "pg_isready", "-h", "127.0.0.1", "-U", "postgres", "-d", "postgres"]
   interval: 5s
   timeout: 3s
   retries: 20
@@ -154,6 +156,22 @@ services:
     volumes:
       - ./seaweedfs:/s3-init:ro
     mem_limit: 128m
+    logging: *default-logging
+
+  db-migrate:
+    profiles: [core]
+    image: ghcr.io/${GHCR_OWNER:-ninggiangboy}/pti-db-migrate:${PTI_IMAGE_TAG:-local}
+    restart: "no"
+    depends_on:
+      pg-warehouse: { condition: service_healthy }
+      pg-source: { condition: service_healthy }
+    environment:
+      PTI_OWNER_PASSWORD: ${PTI_OWNER_PASSWORD:?run make secrets}
+      TICKETING_OWNER_PASSWORD: ${TICKETING_OWNER_PASSWORD:?run make secrets}
+      SIM_OWNER_PASSWORD: ${SIM_OWNER_PASSWORD:?run make secrets}
+      JAVA_TOOL_OPTIONS: -XX:MaxRAMPercentage=75
+    mem_limit: 384m
+    cpus: 1.0
     logging: *default-logging
 
   kafka-connect:

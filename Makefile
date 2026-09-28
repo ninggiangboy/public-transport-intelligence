@@ -23,7 +23,8 @@ secrets: ## Create .env with generated secrets and render deploy/compose/.genera
 	@echo ".env is missing; run 'make secrets' first" >&2; exit 1
 
 .PHONY: images
-images: .env ## Build every image (Dockerfiles through compose; Jib images from P1-14)
+images: .env ## Build every image: Jib for the Java apps, Dockerfiles through compose
+	cd backend && ./gradlew --quiet jibDockerBuild
 	$(COMPOSE) --profile '*' build
 
 .PHONY: up

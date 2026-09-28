@@ -189,7 +189,7 @@ Chung cho cả ba:
 - **Quy tắc cho `R__grants.sql`:** Flyway chỉ chạy lại migration repeatable khi checksum của nó đổi. Vì vậy **mọi migration có thêm bảng, view hay hàm đều phải sửa `R__grants.sql` trong cùng PR**, kể cả khi chỉ cần thêm dòng grant cho object mới. Test ở §7.3 bắt lỗi quên này.
 - Khối `[P4] insight` của `R__grants.sql` warehouse chỉ được thêm cùng lúc với `V7__insight.sql` (P4-01). Nếu thêm sớm hơn, câu lệnh grant tham chiếu tới bảng chưa tồn tại và migration sẽ lỗi.
 
-`db-migrate` là một app Java nhỏ trong module `db`. App chạy lần lượt ba bộ migration rồi thoát với mã 0; bộ nào lỗi thì thoát với mã khác 0 và ghi log bằng tiếng Anh. Mật khẩu của ba owner lấy từ biến môi trường `PTI_OWNER_PASSWORD`, `TICKETING_OWNER_PASSWORD`, `SIM_OWNER_PASSWORD`.
+`db-migrate` là một app Java nhỏ trong module `db`. App chạy lần lượt ba bộ migration rồi thoát với mã 0; bộ nào lỗi thì thoát với mã khác 0 và ghi log bằng tiếng Anh. Mật khẩu của ba owner lấy từ biến môi trường `PTI_OWNER_PASSWORD`, `TICKETING_OWNER_PASSWORD`, `SIM_OWNER_PASSWORD`. URL mặc định trỏ tới host của compose (`pg-warehouse`, `pg-source`); k3d ghi đè bằng `PTI_DB_WAREHOUSE_URL`, `PTI_DB_TICKETING_URL`, `PTI_DB_SIM_URL`. Mã thoát: `0` thành công, `1` một migration lỗi (các bộ sau không chạy), `2` thiếu mật khẩu.
 
 File `backend/db/src/main/resources/db/migration/warehouse/R__grants.sql`:
 

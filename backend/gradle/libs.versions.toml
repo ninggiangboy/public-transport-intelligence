@@ -48,9 +48,11 @@ jakarta-validation-api = { module = "jakarta.validation:jakarta.validation-api" 
 hibernate-validator = { module = "org.hibernate.validator:hibernate-validator" }
 jspecify = { module = "org.jspecify:jspecify" }
 slf4j-api = { module = "org.slf4j:slf4j-api" }
+slf4j-simple = { module = "org.slf4j:slf4j-simple" }
 postgresql = { module = "org.postgresql:postgresql" }
 flyway-core = { module = "org.flywaydb:flyway-core" }
 flyway-database-postgresql = { module = "org.flywaydb:flyway-database-postgresql" }
+spring-batch-core = { module = "org.springframework.batch:spring-batch-core" }
 micrometer-registry-prometheus = { module = "io.micrometer:micrometer-registry-prometheus" }
 junit-jupiter = { module = "org.junit.jupiter:junit-jupiter" }
 junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher" }
