@@ -146,13 +146,25 @@ Tham số mặc định (DOC-29 §3.2):
 | Tham số | PEAK | OFF_PEAK | Key |
 | --- | --- | --- | --- |
 | `initialMean` / `initialSd` | 60 s / 45 s | 20 s / 30 s | `pti.sim.delay.initial-mean.*`, `initial-sd.*` |
-| `drift` mỗi đoạn | +4 s | +1 s | `pti.sim.delay.drift.*` |
+| `drift` mỗi đoạn | −8 s | −5 s | `pti.sim.delay.drift.*` |
 | `sd` mỗi đoạn | 12 s | 8 s | `pti.sim.delay.segment-sd.*` |
 | `meanDwell` thêm | 8 s | 5 s | `pti.sim.delay.dwell-mean.*` |
 | `earlyLimit` / `lateLimit` | −120 s / +1.200 s | như PEAK | `pti.sim.delay.early-limit`, `late-limit` |
 | `minSpeedRatio` | 0,5 | 0,5 | `pti.sim.delay.min-speed-ratio` |
 
-Với tuyến 40 trạm lúc cao điểm, trễ trung bình ở trạm cuối khoảng 60 + 40 × (4 + 8) ≈ 540 giây trước khi các timepoint kéo lại; thực tế timepoint cắt phần sớm và tổng trễ trung bình rơi vào khoảng 2–5 phút. **Mục tiêu hiệu chỉnh** (test P1-09): trên một ngày thường mô phỏng, tỷ lệ lần đến có `−300 ≤ delay ≤ 300` nằm trong 70–90% (tương đương OTP của một hệ thống bus đô thị). Nếu lệch thì chỉnh `drift`, không đổi cấu trúc mô hình.
+**Mục tiêu hiệu chỉnh** (test P1-09, T-07): trên một ngày thường mô phỏng, tỷ lệ lần đến có `−300 ≤ delay ≤ 300` nằm trong 70–90% (tương đương OTP của một hệ thống bus đô thị). Nếu lệch thì chỉnh `drift`, không đổi cấu trúc mô hình.
+
+Kết quả hiệu chỉnh ở P1-09 (feed đã chốt, ngày 2026-09-29, seed 42, 337 nghìn lần đến): với `drift` ban đầu +4 s / +1 s, chỉ 45% lần đến đúng giờ và trễ trung bình 419 s. Nguyên nhân là `dwellExtra` (8 s / 5 s) cộng dồn ở **mọi** trạm có đón trả khách: tuyến 40 trạm tích thêm khoảng 320 s, còn timepoint chỉ chặn phần sớm chứ không kéo phần trễ về. Vì vậy `drift` phải âm: xe bù lại thời gian trên đường chạy và mất thời gian ở trạm. Kết quả quét:
+
+| `drift` PEAK / OFF_PEAK | Đúng giờ | Trễ trung bình |
+| --- | --- | --- |
+| +4 s / +1 s | 45,1% | 419 s |
+| 0 / 0 | 52,8% | 348 s |
+| −4 s / −4 s | 70,3% | 236 s |
+| **−8 s / −5 s (chốt)** | **80,0%** | **181 s** |
+| −10 s / −6 s | 84,8% | 152 s |
+
+Giá trị chốt nằm giữa khoảng mục tiêu và cho trễ trung bình khoảng 3 phút. Vì `drift` âm nên hệ số tuyến `c` (§5.4) nhân vào một giá trị âm: dấu của tác động đảo lại, nhưng các xe cùng tuyến cùng chiều vẫn trễ lên hoặc xuống cùng nhau, đúng mục đích của §5.4. Biên độ nhỏ, khoảng ±2 s mỗi đoạn.
 
 ### 5.4 Tương quan theo tuyến
 

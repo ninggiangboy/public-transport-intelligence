@@ -1,0 +1,96 @@
+# source-simulator (DOC-25 §11, DOC-29). Secrets and hosts come from the environment (DOC-39).
+spring:
+  application:
+    name: source-simulator
+  main:
+    banner-mode: off
+  threads:
+    virtual:
+      enabled: false
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      acks: all
+      compression-type: zstd
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      properties:
+        enable.idempotence: true
+        max.in.flight.requests.per.connection: 5
+        linger.ms: 20
+        max.block.ms: 1000
+        delivery.timeout.ms: 120000
+    template:
+      observation-enabled: true
+
+server:
+  port: 8080
+  shutdown: graceful
+
+management:
+  server:
+    port: 9080
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+  tracing:
+    enabled: ${PTI_TRACING_ENABLED:false}
+
+logging:
+  structured:
+    format:
+      console: ecs
+
+pti:
+  clock:
+    offset: 0s
+  sim:
+    seed: 42
+    service-date-mapping: auto
+    feed:
+      location: file:/data/gtfs/metrotransit-mn-20260926.zip
+      sha256: 2cfc4a1b6efd7e860cbc0ee4bc90487fb8a5eb3f7946b35df021569d032ee23b
+    tick: 200ms
+    gps-noise: 5
+    vehicle-position:
+      interval: 5s
+      v2-ratio: 0.5
+    trip-update:
+      interval: 30s
+      lookahead-stops: 10
+    vehicle:
+      min-layover: 10m
+      max-layover-emit: 30m
+    delay:
+      initial-mean:
+        peak: 60s
+        off-peak: 20s
+      initial-sd:
+        peak: 45s
+        off-peak: 30s
+      drift:
+        peak: -8s
+        off-peak: -5s
+      segment-sd:
+        peak: 12s
+        off-peak: 8s
+      dwell-mean:
+        peak: 8s
+        off-peak: 5s
+      early-limit: -120s
+      late-limit: 1200s
+      min-speed-ratio: 0.5
+    route-factor:
+      phi: 0.8
+      sigma: 0.15
+      bucket: 5m
+    rate-multiplier:
+      gtfs-rt: 1.0
+      ticketing: 1.0

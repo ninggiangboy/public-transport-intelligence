@@ -91,7 +91,7 @@ Mỗi datasource `pti.datasource.<name>` gồm `url`, `username`, `password` (bi
 | `pti.sim.vehicle.max-layover-emit` | Duration | `30m` | Chờ đầu bến lâu hơn thì xe ngừng phát | DOC-25 §4.4 | Chốt |
 | `pti.sim.delay.initial-mean.peak` / `.off-peak` | Duration | `60s` / `20s` | Trễ trung bình khi rời bến | DOC-25 §5.3 | Chốt |
 | `pti.sim.delay.initial-sd.peak` / `.off-peak` | Duration | `45s` / `30s` | | DOC-25 §5.3 | Chốt |
-| `pti.sim.delay.drift.peak` / `.off-peak` | Duration | `4s` / `1s` | Trễ tăng thêm trung bình mỗi đoạn | DOC-25 §5.3 | Chốt |
+| `pti.sim.delay.drift.peak` / `.off-peak` | Duration | `-8s` / `-5s` | Trễ thay đổi trung bình mỗi đoạn chạy (âm: xe bù giờ trên đường, bù cho thời gian đỗ thêm) | DOC-25 §5.3 (hiệu chỉnh ở P1-09) | Chốt |
 | `pti.sim.delay.segment-sd.peak` / `.off-peak` | Duration | `12s` / `8s` | | DOC-25 §5.3 | Chốt |
 | `pti.sim.delay.dwell-mean.peak` / `.off-peak` | Duration | `8s` / `5s` | Thời gian đỗ thêm trung bình | DOC-25 §5.3 | Chốt |
 | `pti.sim.delay.early-limit` / `.late-limit` | Duration | `-120s` / `1200s` | | DOC-25 §5.3 | Chốt |
