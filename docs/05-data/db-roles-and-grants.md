@@ -312,7 +312,7 @@ Danh sách biến: `PTI_OWNER_PASSWORD`, `ETL_WRITER_PASSWORD`, `TRIAGE_WRITER_P
 
 ## 7. Kiểm thử quyền bắt buộc
 
-Mỗi thao tác chạy trong một subtransaction luôn bị rollback, nên bộ test không để lại dữ liệu. Kết quả được phân loại: **được phép** (câu lệnh chạy xong), **bị từ chối** (lỗi `42501 insufficient_privilege`), hay lỗi khác. Lỗi khác nghĩa là bản thân test sai (ví dụ dữ liệu mẫu vi phạm `CHECK`) và làm test thất bại. P1-06 chuyển bộ này thành integration test (Testcontainers) trong module `db`, dùng đúng các trường hợp dưới đây.
+Mỗi thao tác chạy trong một subtransaction luôn bị rollback, nên bộ test không để lại dữ liệu. Kết quả được phân loại: **được phép** (câu lệnh chạy xong), **bị từ chối** (lỗi `42501 insufficient_privilege`), hay lỗi khác. Lỗi khác nghĩa là bản thân test sai (ví dụ dữ liệu mẫu vi phạm `CHECK`) và làm test thất bại. P1-06 chuyển bộ này thành integration test (Testcontainers) trong module `db`, dùng đúng các trường hợp dưới đây. Test nằm ở `backend/db/src/integrationTest` (`WarehouseGrantsIT`, `SourceGrantsIT`, `GrantCompletenessIT`), giữ nguyên số thứ tự trường hợp. Các trường hợp 7, 18, 35, 36 cần bảng `insight` của `V7__insight.sql`, nên tự bỏ qua (assumption) tới khi bảng tồn tại và chạy từ P4-01.
 
 ### 7.1 `pti_warehouse` (46 trường hợp; 1–41 đã pass ở spike, 42–44 thêm khi viết DOC-32, 45–46 thêm khi viết DOC-24)
 
