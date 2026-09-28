@@ -346,7 +346,7 @@ Mỗi tài liệu trong nhóm này có khung chung: **Mục đích → Phạm vi
 | Phase | Tên | Ước lượng (1 người, toàn thời gian) | Milestone |
 | --- | --- | --- | --- |
 | P0 | Đặc tả, quyết định, spike | 2–3 tuần | M0: DR đã chốt, tài liệu nền Approved |
-| P1 | Nền tảng hạ tầng và nguồn dữ liệu | 2 tuần | M1: `make up` chạy; event lên Kafka; CDC chạy; raw zone có file |
+| P1 | Nền tảng hạ tầng và nguồn dữ liệu | 2 tuần | M1: `make up` chạy; `make sim-start` → event lên Kafka; CDC chạy; raw zone có file |
 | P2 | ETL cốt lõi (Spring Batch + Spring Kafka) | 3–4 tuần | M2: dữ liệu vào warehouse; kill -9 không làm mất hay trùng dữ liệu |
 | P3 | Thực nghiệm độ tin cậy và observability | 2–3 tuần | M3: có số liệu EXP-01…05; Grafana; alert |
 | P4 | Analytics và API | 3–4 tuần | M4: insight thật qua REST và SSE |
@@ -431,10 +431,10 @@ Mục tiêu: không còn câu hỏi nào có thể chặn P1–P2.
 | P1-11 | Simulator: ledger (DR-28) và REST `/sim/status`, `/sim/rate` | Ledger có số dòng bằng số message đã gửi | P1-09 | DOC-25 |
 | P1-12 | Cấu hình Debezium (`deploy/connect/connectors/debezium-ticketing.json`) và script đăng ký idempotent (PUT config) | Event xuất hiện trên `ticketing.sales.cdc` đúng định dạng unwrap | P1-04, P1-10 | DOC-09 |
 | P1-13 | Cấu hình S3 sink cho `gtfs.*` và `ticketing.sales.cdc` → `raw/…` (ADR-0012) | File `.json.gz` trong bucket `raw` đúng bố cục đường dẫn, giữ key và headers | P1-04 | DOC-18 |
-| P1-14 | Đóng gói simulator bằng Jib, đưa vào compose | `make up` chạy luôn simulator | P1-09 | DOC-39 |
+| P1-14 | Đóng gói simulator bằng Jib, đưa vào compose (mặc định không phát, DR-86) | `make up` có simulator healthy ở hệ số 0; `make sim-start` / `make sim-stop` bật và tắt phát | P1-09 | DOC-39 |
 | P1-15 | `Makefile`: `up, down, reset, logs, ps, psql-wh, psql-src, topics, tail-<topic>` | Có trong DOC-38 | P1-04 | DOC-38 |
 
-**Tiêu chí thoát (M1):** trên máy sạch, `make up` → trong ≤ 5 phút có event GTFS-rt trên Kafka, event CDC trên `ticketing.sales.cdc`, file trong raw zone, migration đã áp dụng, CI xanh. (Việc dimension có dữ liệu dời sang M2, xem mục 1.3.)
+**Tiêu chí thoát (M1):** trên máy sạch, `make up && make sim-start` → trong ≤ 5 phút có event GTFS-rt trên Kafka, event CDC trên `ticketing.sales.cdc`, file trong raw zone, migration đã áp dụng, CI xanh. (Việc dimension có dữ liệu dời sang M2, xem mục 1.3.)
 
 ---
 
@@ -462,7 +462,7 @@ Mục tiêu: không còn câu hỏi nào có thể chặn P1–P2.
 | P2-17 | `PartitionMaintenanceJob`, job dọn `dedup_registry` và `etl_stream_batch`, `BatchMetadataCleanupJob` (DR-62); đều là tasklet job | Partition tương lai được tạo; partition quá hạn bị drop | P2-05 | DOC-18 |
 | P2-18 | Chế độ baseline (profile `experiment`, DR-27), bảng bóng `exp_fact_*` | Cờ không bật được ngoài profile `experiment` | P2-12 | DOC-45 |
 | P2-19 | Contract test: JSON Schema ↔ producer và consumer; Debezium thật trong Testcontainers | Chạy trong CI | P2-12, P2-13 | DOC-44 |
-| P2-20 | Đưa `etl-stream` và `etl-batch` vào compose | `make up` → dữ liệu chảy vào warehouse | P2-12 | DOC-39 |
+| P2-20 | Đưa `etl-stream` và `etl-batch` vào compose | `make up && make sim-start` → dữ liệu chảy vào warehouse | P2-12 | DOC-39 |
 
 **Tiêu chí thoát (M2):** dữ liệu vào warehouse liên tục. Kiểm tra tay: `docker kill` etl-stream giữa chừng rồi khởi động lại → so với ledger không mất và không trùng. Một feed GTFS hỏng bị từ chối an toàn. `docker kill` etl-batch giữa `RawZoneReplayJob` → job được khôi phục và restart, đọc tiếp đúng vị trí. Coverage phần dùng chung ≥ 90%.
 

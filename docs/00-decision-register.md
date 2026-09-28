@@ -45,6 +45,7 @@ Tài liệu gốc mô tả tốt *cái gì* và *vì sao*, nhưng còn nhiều c
 | 2026-09-28 | Claude (Owner ủy quyền) | **S-04 xong:** image Connect = Debezium 3.6.3 + Aiven S3 sink 3.4.3. Raw zone lưu value dạng base64 để giữ đúng từng byte; thư mục giờ theo CreateTime; `file.max.records=2000` và `mem_limit` 1.280 MB để S3 sink không OOM khi chạy bù. Debezium chạy được trên PostgreSQL 18.6; vẫn dùng 17.11 tới khi kiểm xong CNPG | DR-81, DR-53, DR-66 |
 | 2026-09-28 | Claude (Owner ủy quyền) | **S-05 xong:** bản đồ nền Twin Cities 84 MB, render offline không có request ra ngoài. Dùng MapLibre 6 (worker cùng origin, CSP không cần `blob:`); font và sprite tải bằng `make tiles` thay vì commit vào repo | DR-47, DR-82 |
 | 2026-09-28 | Owner | **Monorepo:** backend, frontend, hạ tầng và thực nghiệm chung một repo. Gốc chia theo stack: Gradle build gom vào `backend/`, mọi thứ hạ tầng (kể cả `connect/`, `chaos/`, bản đồ nền) gom vào `deploy/`, bỏ thư mục `infra/` | DR-85 (mới), DR-26, ADR-0030 |
+| 2026-09-28 | Owner | **Simulator mặc định không phát:** `make up` dựng simulator ở hệ số 0; `make sim-start` bật khi cần dữ liệu. `make up-demo`, `make up-exp` và `make smoke` tự bật; tạm dừng có chủ đích không làm bắn `GtfsRtFeedStale` | DR-86 (mới), DR-68, DOC-25, DOC-28, DOC-38, DOC-39 |
 
 ---
 
@@ -748,13 +749,24 @@ Tài liệu gốc mô tả tốt *cái gì* và *vì sao*, nhưng còn nhiều c
   - Test backend chỉ đọc file ngoài `backend/` (`deploy/topics.yaml`, `deploy/connect/`, `sample-data/gtfs/`) qua system property `pti.repo-root`.
 - **Hệ quả:** Tên module, đường dẫn Gradle và tên image giữ nguyên, chỉ đổi đường dẫn file. Path filter `backend` của CI gồm `backend/**`, `deploy/topics.yaml` và `deploy/connect/**`. Dependabot dùng `/backend` và `/deploy/connect`. SDD gốc giữ nguyên, ADR-0030 thay cho phụ lục "Cấu trúc repo" của nó.
 - **Ghi vào:** ADR-0030, DR-26, ADR-0014, ADR-0021, DOC-07 §3, DOC-38, DOC-39 §1, DOC-40 §1, DOC-41 §2 và §8, DOC-44, master plan P1-01, P1-02; đường dẫn file trong mọi DOC.
+
+### DR-86 · Simulator mặc định không phát dữ liệu — **Chốt**
+- **Vấn đề:** Trước đây `make up` bật simulator ở hệ số 1,0, nên stack chạy là có khoảng 120 VehiclePosition/giây lúc cao điểm, cộng giao dịch vé qua CDC, dù người dev chỉ đang làm UI, API hay một job batch. Dữ liệu dồn vào warehouse (khoảng 2 GB/ngày partition vehicle position), raw zone và Kafka, làm tốn CPU và ổ đĩa. Muốn dừng thì phải nhớ gọi `make sim-rate GTFS=0 TICKETING=0`.
+- **Quyết định:**
+  - Container `source-simulator` vẫn thuộc profile `core` và khởi động như cũ (nạp feed, seed 187 điểm bán, readiness `UP`, API `/sim/**` dùng được), nhưng **hệ số khởi đầu của cả hai luồng là 0** trên compose: compose đặt `PTI_SIM_RATE_MULTIPLIER_GTFS_RT` và `PTI_SIM_RATE_MULTIPLIER_TICKETING` bằng `${PTI_SIM_START_RATE:-0}`. Không tách simulator ra profile riêng, không tắt container: Demo control, `/sim/status` và kịch bản vẫn cần process đang sống.
+  - Default của app (`pti.sim.rate-multiplier.*` = `1.0`) giữ nguyên, nên k3d (demo phần B, EXP-07, EXP-08) không đổi.
+  - Bật và tắt lúc chạy bằng `make sim-start [GTFS=<x>] [TICKETING=<y>]` (mặc định 1 và 1) và `make sim-stop` (0 và 0), đều gọi `PUT /sim/rate`. Trạng thái không lưu lại: simulator restart hay container được tạo lại thì quay về hệ số khởi đầu.
+  - Các lệnh cần dữ liệu tự bật: `make up-demo` và `make up-exp` đặt `PTI_SIM_START_RATE=1` (như cách đặt `PTI_DQ_MAX_CLOCK_SKEW`); `make smoke` gọi `sim-start` nếu `rate.gtfsRt = 0` và in ra việc đó. Runner thực nghiệm vẫn tự `PUT /sim/rate` ở bước chuẩn bị như trước.
+  - Tạm dừng có chủ đích không phải sự cố: `GtfsRtFeedStale` và `ThroughputDrop` thêm vế `unless on () (max(pti_sim_rate_multiplier{stream="gtfs-rt"}) == 0)`. Simulator chết thì gauge vắng mặt, nên alert vẫn bắn như cũ (cách gây ra của P3-05 không đổi). `StaleBanner` và `GET /system/freshness` vẫn báo `stale`, vì đúng là không có dữ liệu mới.
+- **Hệ quả:** Tiêu chí M1 và P1-14, P2-20 chuyển thành `make up && make sim-start`. NFR-07 và G9 không đổi, vì `make smoke` tự bật simulator. Kịch bản bắt đầu khi hệ số của luồng liên quan bằng 0 vẫn được nhận nhưng không có tác dụng nhìn thấy được, cho tới khi bật lại.
+- **Ghi vào:** DOC-25 §6.5, §10, DOC-28 §6.3, DOC-29 §3.2, DOC-38 §3, §4, §6.2, §8, DOC-39 §3.2, §5, §8, RB-06, master plan P1-14, P2-20, M1.
 ---
 
 ## Tổng hợp theo mức ảnh hưởng
 
 | Mức | Mục | Lý do cần chốt sớm |
 | --- | --- | --- |
-| Chặn P1 | DR-01, 02, 03, 04, 05, 06, 09, 10, 11, 26, 53, 64, 66, 67, 68, 81, 85 | Quyết định schema, contract và cấu trúc repo |
+| Chặn P1 | DR-01, 02, 03, 04, 05, 06, 09, 10, 11, 26, 53, 64, 66, 67, 68, 81, 85, 86 | Quyết định schema, contract và cấu trúc repo |
 | Chặn P2 | DR-07, 13, 14, 15, 16, 18, 21, 22, 23, 24, 25, 62, 63, 65, 69, 70, 80, 83, 84 | Quyết định ngữ nghĩa đúng đắn của pipeline |
 | Chặn P3 | DR-27, 28, 50, 57, 58, 71 | Thiếu thì không đo được thực nghiệm |
 | Chặn P4 | DR-12, 17, 19, 20, 29–35, 39–45 | Analytics và API |

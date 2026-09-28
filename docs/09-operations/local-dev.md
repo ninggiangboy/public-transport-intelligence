@@ -54,13 +54,17 @@ make secrets          # tạo .env từ .env.example, sinh mật khẩu ngẫu n
 make up               # build image (Jib + Dockerfile), khởi động profile core, chờ tới khi healthy
 ```
 
-`make up` lần đầu mất khoảng 10–15 phút (kéo image, tải dependency Gradle và pnpm, build). Từ lần thứ hai, khi image đã có, hệ thống healthy trong **dưới 5 phút** (NFR-07). Sau khi `make up` báo xong:
+`make up` lần đầu mất khoảng 10–15 phút (kéo image, tải dependency Gradle và pnpm, build). Từ lần thứ hai, khi image đã có, hệ thống healthy trong **dưới 5 phút** (NFR-07).
+
+Simulator **mặc định không phát** (DR-86): container chạy và API `/sim/**` dùng được, nhưng hệ số của cả hai luồng là 0. Khi cần dữ liệu chảy qua pipeline thì chạy `make sim-start`; xong việc thì `make sim-stop` để Kafka và warehouse không phình thêm. Restart simulator hay tạo lại container thì nó quay về trạng thái dừng. `make up-demo`, `make up-exp` và `make smoke` tự bật simulator.
+
+Sau khi `make up` và `make sim-start` báo xong:
 
 | Việc | Cách kiểm tra |
 | --- | --- |
 | Mọi container healthy hoặc đã hoàn tất | `make ps` |
 | GTFS static đã nạp (lần đầu mất 1–2 phút sau khi `etl-batch` chạy, DOC-21) | `make psql-wh` → `SELECT status, loaded_at FROM dw.gtfs_feed_version;` có một dòng `ACTIVE` |
-| Simulator đang phát | `make sim-status` có `activeVehicles > 0` (nếu bằng 0, xem §7 mục "Không có xe") |
+| Simulator đang phát | `make sim-status` có `rate.gtfsRt > 0` và `activeVehicles > 0` (nếu bằng 0, xem §8 mục "Không có xe") |
 | Có message trên Kafka | `make tail-gtfs.vehicle_positions` |
 | CDC chạy | `make connectors` → hai connector `RUNNING` |
 | Raw zone có file (sau khoảng 5 phút, DOC-09 §7) | `make s3-ls` |
@@ -94,8 +98,8 @@ Offset được làm tròn tới phút. Mọi app dùng chung một giá trị. 
 | `make up-obs` | Thêm profile `observability` |
 | `make up-triage` | Thêm profile `triage` (triage-worker; cần `TYPESAFE_API_KEY` hoặc `PTI_TRIAGE_PROVIDER=fake`) |
 | `make up-all` | `core` + `observability` + `triage` |
-| `make up-exp` | `core` + `experiment` + `observability`, với `PTI_WAREHOUSE_HOST=toxiproxy` cho `etl-stream` và `etl-stream-baseline` (DOC-39 §3.2, §3.6). Dùng cho EXP-01…04 (DOC-45) |
-| `make up-demo` | Như `up-all`, thêm Spring profile `demo` cho `api` và `source-simulator`, và `PTI_DQ_MAX_CLOCK_SKEW=5m` cho `etl-stream` (DOC-39 §2) |
+| `make up-exp` | `core` + `experiment` + `observability`, với `PTI_WAREHOUSE_HOST=toxiproxy` cho `etl-stream` và `etl-stream-baseline` (DOC-39 §3.2, §3.6), và `PTI_SIM_START_RATE=1` để simulator phát ngay. Dùng cho EXP-01…04 (DOC-45) |
+| `make up-demo` | Như `up-all`, thêm Spring profile `demo` cho `api` và `source-simulator`, `PTI_DQ_MAX_CLOCK_SKEW=5m` cho `etl-stream` (DOC-39 §2), và `PTI_SIM_START_RATE=1` để simulator phát ngay |
 | `make down` | Dừng và xóa container, **giữ volume** |
 | `make reset` | `down -v`: xóa mọi volume (warehouse, source, Kafka, raw zone). Giữ `.env` |
 | `make reset-warehouse` | Chỉ xóa và tạo lại database `pti_warehouse` rồi chạy `db-migrate`. Giữ Kafka, raw zone, `pg-source` (ledger còn nguyên). Dùng cho UC-18, EXP-04 |
@@ -124,6 +128,8 @@ Offset được làm tròn tới phút. Mọi app dùng chung một giá trị. 
 | `make clock-offset AT=<HH:MM\|now>` | §3.1 |
 | `make scenario NAME=<name> [ARGS='<json>']` | `POST /sim/scenarios/<name>`. Ví dụ `make scenario NAME=bunching ARGS='{"routeId":"18","duration":"PT15M"}'` |
 | `make scenario-stop NAME=<name>` | `DELETE /sim/scenarios/<name>` |
+| `make sim-start [GTFS=<x>] [TICKETING=<y>]` | Bật phát: `PUT /sim/rate` với hệ số mặc định 1 cho cả hai luồng (DR-86). Không lưu lại khi simulator restart |
+| `make sim-stop` | Dừng phát: `PUT /sim/rate {"gtfsRt": 0, "ticketing": 0}`. Container vẫn chạy; dữ liệu live thành stale sau khoảng 2 phút |
 | `make sim-rate GTFS=<x> [TICKETING=<y>]` | `PUT /sim/rate` |
 | `make gtfs-load` | Ghi `job_request` để `etl-batch` chạy `GtfsStaticLoadJob` với feed đã cấu hình (DOC-21) |
 | `make flag KEY=<key> VALUE=true\|false` | Upsert `ops.runtime_flag` bằng `pti_owner` (`updated_by = 'user:cli'`); hiệu lực trong ≤ 5 giây (DR-19). Tương đương `PUT /etl/flags/{key}` (P4) |
@@ -240,10 +246,10 @@ Mật khẩu `viewer`/`operator` cố định trong file realm (`deploy/compose/
 | Dimension và lịch (GTFS static) | `sample-data/gtfs/metrotransit-mn-20260926.zip`, `GtfsStaticLoadJob` tự chạy khi chưa có feed `ACTIVE` (DOC-21) | 1–2 phút sau khi `etl-batch` healthy |
 | `dim_date` 2024–2030 | Migration | Ngay sau `db-migrate` |
 | Điểm bán (187) | Simulator (DOC-25 §9.1) | Khi simulator khởi động |
-| Fact GTFS-rt, giao dịch vé | Simulator → Kafka/CDC → ETL | Liên tục |
+| Fact GTFS-rt, giao dịch vé | Simulator → Kafka/CDC → ETL | Liên tục, sau khi `make sim-start` (DR-86) |
 | `runtime_flag` | Migration V5_2 (DOC-29 §4) | Ngay sau `db-migrate` |
 
-Không có bản dump dữ liệu mẫu nào được commit. Muốn có vài giờ dữ liệu để phát triển analytics hay UI thì để hệ thống chạy, có thể tăng tốc bằng `make sim-rate GTFS=5` (nhiều message hơn nhưng không nhiều chuyến hơn, DR-68).
+Không có bản dump dữ liệu mẫu nào được commit. Muốn có vài giờ dữ liệu để phát triển analytics hay UI thì `make sim-start` rồi để hệ thống chạy, có thể tăng tốc bằng `make sim-rate GTFS=5` (nhiều message hơn nhưng không nhiều chuyến hơn, DR-68).
 
 ### 6.3 Reset
 
@@ -280,6 +286,7 @@ cd backend && ./gradlew :etl:bootRun --args='--spring.profiles.active=stream,loc
 | `db-migrate` thoát mã khác 0 | Sửa một migration đã chạy (checksum mismatch) hoặc SQL lỗi | Không sửa migration đã merge. Trên máy dev, `make reset` rồi `make up`. Xem log `make logs S=db-migrate` |
 | `password authentication failed` | `.env` đổi sau khi volume Postgres đã được tạo (bootstrap chỉ chạy một lần) | `make reset`, hoặc đổi mật khẩu bằng `ALTER ROLE` cho khớp |
 | API trả 401 dù đã đăng nhập | Truy cập UI bằng `127.0.0.1` thay vì `localhost`, nên issuer trong token khác cấu hình | Luôn dùng `http://localhost:8080` |
+| Bản đồ trống hoặc đứng yên, UI hiện stale banner, `rate.gtfsRt = 0` | Simulator đang tạm dừng (mặc định sau `make up`, hoặc vừa restart) | `make sim-start` |
 | Không có xe trên bản đồ, `activeVehicles = 0` | Giờ Chicago đang là 02:00–04:30 | `make clock-offset AT=16:30 && make up` (§3.1) |
 | Xe có nhưng bản đồ không có nền | Chưa có file PMTiles | `make tiles` (tải file đã cắt ở S-05) hoặc dùng style online khi dev (DR-47) |
 | `make s3-ls` báo `InvalidAccessKeyId` | Chưa sinh `s3.json` hoặc sinh trước khi đổi `.env` | `make secrets && make restart S=seaweedfs` |

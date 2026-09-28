@@ -1,6 +1,6 @@
 # RB-06: Feed GTFS-realtime không còn dữ liệu mới
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-27 · DOC-42 / RB-06
+> Trạng thái: **Review** · Cập nhật: 2026-09-28 · DOC-42 / RB-06
 >
 > Alert: `GtfsRtFeedStale` (critical, bắn ngay; có từ P4-16) · Dashboard: `pti-overview` (độ tươi theo nguồn), `pti-simulator` · Liên quan: DR-67, DR-71, DOC-20 §6, DOC-25 §6, §8
 
@@ -16,7 +16,7 @@
 
 1. **Nguồn có phát không?** `make sim-status`: `running`, `businessNow`, `ratePerSecond`; Grafana `pti-simulator` → `pti_sim_messages_sent_total` theo topic.
    - Container dừng hoặc không healthy (`make ps`) → nhánh A.
-   - Đang chạy nhưng không gửi: kịch bản có đặt hệ số tải 0 (`pti_sim_rate_multiplier`), hoặc lỗi gửi Kafka (`pti_sim_send_errors_total`, log `{service="source-simulator", level="ERROR"}`).
+   - Đang chạy nhưng không gửi: lỗi gửi Kafka (`pti_sim_send_errors_total`, log `{service="source-simulator", level="ERROR"}`). Hệ số tải bằng 0 (`pti_sim_rate_multiplier`, mặc định trên compose, DR-86) không làm alert này bắn; nếu chỉ thấy `StaleBanner` mà không có alert thì chạy `make sim-start`.
 2. **Kafka có nhận không?** `make tail-gtfs.vehicle_positions` trong 10 giây. Có message → chặng nguồn tốt. Không có và simulator báo lỗi gửi → nhánh B.
 3. **ETL có đọc và ghi không?** `pti_etl_listener_running`, `pti_etl_listener_paused{reason}` và lag (`make topics`).
    - Listener dừng hoặc pause vì `backoff`/`circuit` → RB-03 / RB-08.

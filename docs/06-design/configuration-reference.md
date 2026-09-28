@@ -81,8 +81,8 @@ Mỗi datasource `pti.datasource.<name>` gồm `url`, `username`, `password` (bi
 | `pti.sim.ticketing.rate-profile` | list 24 số (giao dịch/giây theo giờ Chicago) | bảng DOC-25 §9.2 | Tốc độ giao dịch theo giờ (cao điểm 2/giây) | FR-13.2 | Chốt |
 | `pti.sim.ticketing.weekend-factor` | double | `0.6` | Hệ số cho thứ Bảy, Chủ nhật, ngày lễ | DOC-25 §9.2 | Chốt |
 | `pti.sim.ticketing.customer-pool` | int | `50000` | Số khách mô phỏng cho `customer_ref` | DOC-25 §9.3 | Chốt |
-| `pti.sim.rate-multiplier.gtfs-rt` | double | `1.0` | Hệ số tần suất phát GTFS-rt lúc khởi động; đổi lúc chạy qua `PUT /sim/rate` | DR-68 | Chốt |
-| `pti.sim.rate-multiplier.ticketing` | double | `1.0` | Hệ số tốc độ bán vé lúc khởi động | DOC-25 §6.5 | Chốt |
+| `pti.sim.rate-multiplier.gtfs-rt` | double | `1.0` | Hệ số tần suất phát GTFS-rt lúc khởi động; đổi lúc chạy qua `PUT /sim/rate`. Compose đặt `${PTI_SIM_START_RATE:-0}`, nên simulator mặc định tạm dừng (DOC-39 §3.2) | DR-68, DR-86 | Chốt |
+| `pti.sim.rate-multiplier.ticketing` | double | `1.0` | Hệ số tốc độ bán vé lúc khởi động. Compose đặt như trên | DOC-25 §6.5, DR-86 | Chốt |
 | `pti.sim.seed` | long | `42` | Seed của mọi phép lấy mẫu tất định | DOC-25 §5 | Chốt |
 | `pti.sim.feed.location` | Resource | `file:/data/gtfs/metrotransit-mn-20260926.zip` | File GTFS zip | DOC-25 §4.1 | Chốt |
 | `pti.sim.feed.sha256` | string | SHA-256 ở DOC-13 §2.1 | Rỗng thì không kiểm tra | DOC-25 §4.1 | Chốt |

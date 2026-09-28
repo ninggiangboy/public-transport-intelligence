@@ -1,6 +1,6 @@
 # Observability: metric, log, trace, dashboard, alert
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-27 · DOC-28
+> Trạng thái: **Review** · Cập nhật: 2026-09-28 · DOC-28
 >
 > Phụ thuộc: DR-50, DR-51, DR-57, DR-71, ADR-0022, DOC-10 §2, DOC-16 §4, DOC-19 §10, DOC-20 §12, DOC-21 §8, DOC-22 §9, DOC-23 §14, DOC-25 §12, DOC-30 §4–5, DOC-39 §3.7
 >
@@ -308,8 +308,8 @@ Chín alert đầu là SDD 12.2; phần còn lại được thêm ở các tài 
 | 2 | `ConsumerLagHigh` | warning | `(pti:kafka_lag:sum{topic="gtfs.vehicle_positions"} > 3000 or pti:kafka_lag:sum{topic="gtfs.trip_updates"} > 1000 or pti:kafka_lag:sum{topic=~"ticketing\\..*"} > 300) unless on (topic) (max by (topic) (pti_etl_listener_paused{reason="flag"}) == 1)` | 5m | RB-02 |
 | 3 | `DlqRateHigh` | critical | `(pti:etl_skipped:rate5m / pti:etl_input:rate5m > 0.01) and on (source) (pti:etl_input:rate5m > 0.2)` | 5m | RB-04 |
 | 4 | `EndToEndLatencyHigh` | warning | `pti:e2e_latency:p95_5m > 10` | 5m | RB-07 |
-| 5 | `ThroughputDrop` | warning | `(pti:etl_input:rate5m{source=~"GTFS_RT_.*"} < 0.5 * avg_over_time(pti:etl_input:rate5m{source=~"GTFS_RT_.*"}[1h] offset 10m)) and on (source) (avg_over_time(pti:etl_input:rate5m[1h] offset 10m) > 5)` | 10m | RB-07 |
-| 6 | `GtfsRtFeedStale` | critical | `min by (source) (pti_source_last_event_age_seconds{source=~"GTFS_RT_.*"}) > 120` | 0m | RB-06 |
+| 5 | `ThroughputDrop` | warning | `((pti:etl_input:rate5m{source=~"GTFS_RT_.*"} < 0.5 * avg_over_time(pti:etl_input:rate5m{source=~"GTFS_RT_.*"}[1h] offset 10m)) and on (source) (avg_over_time(pti:etl_input:rate5m[1h] offset 10m) > 5)) unless on () (max(pti_sim_rate_multiplier{stream="gtfs-rt"}) == 0)` | 10m | RB-07 |
+| 6 | `GtfsRtFeedStale` | critical | `(min by (source) (pti_source_last_event_age_seconds{source=~"GTFS_RT_.*"}) > 120) unless on () (max(pti_sim_rate_multiplier{stream="gtfs-rt"}) == 0)` | 0m | RB-06 |
 | 7 | `DatabaseBottleneck` | warning | `pti:chunk_duration:p95_5m > 2 and on () (sum(deriv(pti:kafka_lag:sum[5m])) > 0)` | 5m | RB-08 |
 | 8 | `CircuitBreakerOpen` | warning | `max by (application, name) (resilience4j_circuitbreaker_state{state="open"}) == 1` | 1m | RB-08 |
 | 9 | `DebeziumWalRetained` | warning / critical | warning: `max by (slot) (pti_source_replication_slot_retained_bytes) > 2e9`; critical: `> 3.2e9` (80% của `max_slot_wal_keep_size=4GB`) | 5m | RB-09 |
@@ -343,6 +343,7 @@ Ghi chú:
 - **27–29:** triage-worker không tự ghi `alert_event`; API ánh xạ #27 và #29 thành `DLQ_SEVERE`, các alert khác thành `INFRA` (DOC-32 E-80). #29 là luật chặn cuối FR-09.8: dựa trên category tất định do etl gán (`DlqRuleClassifier`), nên vẫn bắn khi Jev sai hoặc triage-worker tắt. N = 50 nằm trong file rule, không phải property.
 - **5 (`ThroughputDrop`):** so với trung bình 1 giờ trước đó. Lúc hết giờ phục vụ ban đêm, lượng xe giảm dần trong khoảng 2 giờ nên hiếm khi giảm quá 50% so với trung bình giờ trước; nếu vẫn báo nhầm thì runbook RB-07 hướng dẫn silence theo khung giờ.
 - **6 (`GtfsRtFeedStale`):** dựa trên DB qua `api` (DR-71), nên báo được cả khi mọi pod `etl-stream` đã chết. Tuổi được tính theo đồng hồ nghiệp vụ (DR-67).
+- **5, 6 và simulator tạm dừng:** trên compose simulator mặc định ở hệ số 0 (DR-86), nên cả hai rule bỏ qua lúc `pti_sim_rate_multiplier{stream="gtfs-rt"}` bằng 0: dừng có chủ đích không phải sự cố. Simulator chết thì gauge vắng mặt và vế `unless` không có tác dụng, nên alert vẫn bắn.
 - **7 (`DatabaseBottleneck`):** "độ trễ ghi vượt ngưỡng trong khi lag tăng" của SDD, với độ trễ ghi là p95 thời gian chunk.
 - **25 (`AnalyticsRunErrors`):** một lần chạy analytics lỗi không làm hỏng micro-batch (đã commit, DR-22), nên cần alert riêng. Lỗi lặp lại được sửa rồi chạy `AnalyticsRecomputeJob` cho khoảng bị ảnh hưởng (DOC-23 §15).
 - **22 (`TargetDown`):** trong EXP-01 và EXP-08, runner tạo silence trước khi kill (§6.5), vì alert này là kết quả mong đợi.

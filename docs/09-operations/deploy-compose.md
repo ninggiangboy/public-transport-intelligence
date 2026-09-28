@@ -110,7 +110,7 @@ x-spring-app: &spring-app
 
 | Service | Image | Env riêng | Cổng host | `mem_limit` / CPU |
 | --- | --- | --- | --- | --- |
-| `source-simulator` | `pti-source-simulator` | `SPRING_PROFILES_INCLUDE: ${PTI_EXTRA_PROFILES:-}`; `PTI_DATASOURCE_TICKETING_URL=jdbc:postgresql://pg-source:5432/ticketing_source`, `PTI_DATASOURCE_SIM_URL=…/pti_sim`, user `source_simulator`, `SOURCE_SIMULATOR_PASSWORD`; `PTI_SIM_FEED_LOCATION=file:/feed/metrotransit-mn-20260926.zip`, `PTI_SIM_FEED_SHA256` | 8084, 9084 | 512 MB / 1,0 |
+| `source-simulator` | `pti-source-simulator` | `SPRING_PROFILES_INCLUDE: ${PTI_EXTRA_PROFILES:-}`; `PTI_DATASOURCE_TICKETING_URL=jdbc:postgresql://pg-source:5432/ticketing_source`, `PTI_DATASOURCE_SIM_URL=…/pti_sim`, user `source_simulator`, `SOURCE_SIMULATOR_PASSWORD`; `PTI_SIM_FEED_LOCATION=file:/feed/metrotransit-mn-20260926.zip`, `PTI_SIM_FEED_SHA256`; `PTI_SIM_RATE_MULTIPLIER_GTFS_RT` và `PTI_SIM_RATE_MULTIPLIER_TICKETING` = `${PTI_SIM_START_RATE:-0}`, nên mặc định không phát (DR-86; `make up-demo`, `make up-exp` đặt `1`) | 8084, 9084 | 512 MB / 1,0 |
 | `etl-stream` | `pti-etl` | `SPRING_PROFILES_ACTIVE: stream${PTI_ETL_EXTRA_PROFILES:-}`; `SPRING_DATASOURCE_URL=jdbc:postgresql://${PTI_WAREHOUSE_HOST:-pg-warehouse}:5432/pti_warehouse`, `etl_writer`; `PTI_DQ_MAX_CLOCK_SKEW=${PTI_DQ_MAX_CLOCK_SKEW:-1h}` (`make up-demo` đặt `5m` để demo auto-replay bằng `late-delivery`, DOC-24, DOC-46) | 9082 | 768 MB / 2,0 |
 | `etl-batch` | `pti-etl` | `SPRING_PROFILES_ACTIVE: batch`; datasource như trên; `PTI_S3_ENDPOINT=http://seaweedfs:8333`, `PTI_S3_ACCESS_KEY=${S3_ETL_ACCESS_KEY}`, `PTI_S3_SECRET_KEY=${S3_ETL_SECRET_KEY}`, `SPRING_CLOUD_AWS_S3_PATH_STYLE_ACCESS_ENABLED=true`, `SPRING_CLOUD_AWS_REGION_STATIC=us-east-1`; `PTI_GTFS_BOOTSTRAP_LOCATION=file:/feed/metrotransit-mn-20260926.zip` | 9083 | 640 MB / 1,0 |
 | `api` | `pti-api` | `SPRING_PROFILES_INCLUDE: ${PTI_EXTRA_PROFILES:-}`; hai datasource `api_reader`, `replay_operator` (DOC-29 §3.1); `SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI=http://keycloak:8080/realms/pti/protocol/openid-connect/certs`, `PTI_API_SECURITY_ISSUER=http://localhost:${HOST_PORT_KEYCLOAK:-8180}/realms/pti` | 8081, 9081 | 640 MB / 1,0 |
@@ -308,7 +308,7 @@ Thời gian từ `make up` (image có sẵn) tới lúc mọi service healthy: m
 | Alert | `ALERTMANAGER_WEBHOOK_TOKEN` | Có | `make secrets` ghi thêm ra `.generated/webhook-token` (Alertmanager đọc bằng `credentials_file`); `api` nhận qua env (DOC-28 §6.4, DOC-27) |
 | Grafana | `GRAFANA_ADMIN_PASSWORD` | Có | |
 | Jev | `TYPESAFE_API_KEY`, `PTI_TRIAGE_PROVIDER` (`fake` \| `jev` \| `disabled`) | Không | Người dùng tự điền; để trống thì dùng `fake` |
-| Hành vi | `PTI_CLOCK_OFFSET` (DR-67), `PTI_EXTRA_PROFILES`, `PTI_ETL_EXTRA_PROFILES`, `PTI_TRACING_ENABLED`, `PTI_WAREHOUSE_HOST`, `PTI_DQ_MAX_CLOCK_SKEW` | Không | Makefile đặt theo lệnh (`make clock-offset`, `make up-demo`…) |
+| Hành vi | `PTI_CLOCK_OFFSET` (DR-67), `PTI_EXTRA_PROFILES`, `PTI_ETL_EXTRA_PROFILES`, `PTI_TRACING_ENABLED`, `PTI_WAREHOUSE_HOST`, `PTI_DQ_MAX_CLOCK_SKEW`, `PTI_SIM_START_RATE` | Không | Makefile đặt theo lệnh (`make clock-offset`, `make up-demo`…) |
 | Cổng host | `HOST_PORT_FRONTEND=8080`, `HOST_PORT_API=8081`, `HOST_PORT_SIM=8084`, `HOST_PORT_KEYCLOAK=8180`, `HOST_PORT_KAFKA=19092`, `HOST_PORT_CONNECT=18083`, `HOST_PORT_PG_WAREHOUSE=15432`, `HOST_PORT_PG_SOURCE=15433`, `HOST_PORT_S3=18333`, `HOST_PORT_GRAFANA=3000` | Không | Mọi cổng bind `127.0.0.1:${HOST_PORT_…}` |
 
 Quy tắc:
@@ -354,7 +354,7 @@ Script `deploy/compose/smoke.sh` chạy sau `make up` và trong CI nightly (DOC-
 | 1 | `docker compose ps --format json`: mọi service chạy lâu ở trạng thái `healthy`, mọi job một lần có `ExitCode = 0` | 10 s |
 | 2 | `GET :9081/actuator/health` → `UP` cho api; tương tự 9082, 9083, 9084 | 10 s |
 | 3 | `dw.gtfs_feed_version` có đúng một dòng `ACTIVE` | 180 s |
-| 4 | `GET :8084/sim/status` → `activeVehicles > 0`. Nếu bằng 0 vì giờ Chicago, script tự đặt `PTI_CLOCK_OFFSET` về 16:30 và báo | 30 s |
+| 4 | `GET :8084/sim/status` → `activeVehicles > 0`. Nếu bằng 0 vì giờ Chicago, script tự đặt `PTI_CLOCK_OFFSET` về 16:30 và báo. Nếu `rate.gtfsRt` hoặc `rate.ticketing` bằng 0 (mặc định sau `make up`, DR-86), script gọi `make sim-start` và in `simulator was paused; started it` | 30 s |
 | 5 | `dw.fact_vehicle_position` có dòng mới trong 60 giây gần nhất (theo `ingested_at`) | 120 s |
 | 6 | Hai connector `RUNNING`; `dw.fact_ticket_sales` có dòng mới | 120 s |
 | 7 | Lấy token `viewer` bằng password grant (client `pti-smoke`, chỉ có trong realm dev), `GET :8081/api/v1/vehicles/live` → 200, danh sách không rỗng | 30 s |

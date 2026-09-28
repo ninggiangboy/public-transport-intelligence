@@ -1,7 +1,7 @@
 # Source simulator
 
-> Trạng thái: **Review** · Cập nhật: 2026-09-27 · DOC-25
-> Phụ thuộc: [DR](../00-decision-register.md) (DR-01, 03, 04, 05, 08, 28, 59, 60, 64, 65, 67, 68), [DOC-09](../03-architecture/messaging-contracts.md), [DOC-13](../05-data/source-data.md), [DOC-17](../05-data/db-roles-and-grants.md), [DOC-29](configuration-reference.md)
+> Trạng thái: **Review** · Cập nhật: 2026-09-28 · DOC-25
+> Phụ thuộc: [DR](../00-decision-register.md) (DR-01, 03, 04, 05, 08, 28, 59, 60, 64, 65, 67, 68, 86), [DOC-09](../03-architecture/messaging-contracts.md), [DOC-13](../05-data/source-data.md), [DOC-17](../05-data/db-roles-and-grants.md), [DOC-29](configuration-reference.md)
 > Người dùng chính: P1-08…P1-11, P1-14 (phần cơ bản), P3-01 (kịch bản), experiment runner (DOC-45), màn Demo control (DOC-36)
 
 ## 1. Mục đích
@@ -267,6 +267,8 @@ public record LedgerEntry(
 Tải gấp N lần (EXP-05, EXP-07) được tạo bằng cách **tăng tần suất phát** chứ không nhân bản chuyến hay xe. Ở hệ số 10, mỗi xe phát vị trí mỗi 0,5 giây, khoảng 1.200 VehiclePosition/giây lúc cao điểm. Cách này giữ mọi tham chiếu (route, trip, stop, vehicle) hợp lệ, không làm thay đổi kết quả analytics (không sinh bunching giả), và vẫn tăng đúng các đại lượng cần đo: số message, số lần upsert, lag. Khi đổi chu kỳ, pha của từng xe giữ nguyên (tính lại theo chu kỳ mới), nên business key không trùng.
 
 Giá trị khởi đầu lấy từ `pti.sim.rate-multiplier.gtfs-rt` và `pti.sim.rate-multiplier.ticketing` (mặc định 1,0); đổi lúc chạy qua `PUT /sim/rate` (§8), không lưu lại khi restart.
+
+Trên compose, hệ số khởi đầu của cả hai luồng là **0** (DR-86): `make up` dựng simulator ở trạng thái tạm dừng, `make sim-start` bật phát, `make sim-stop` dừng lại (DOC-38 §4.3). `make up-demo` và `make up-exp` khởi động ở 1,0. k3d dùng default của app. Khi tạm dừng, simulator vẫn tick và giữ trạng thái xe, nên lúc bật lại xe xuất hiện ngay đúng vị trí. Kịch bản bắt đầu khi hệ số của luồng liên quan bằng 0 vẫn được nhận, nhưng không có tác dụng nhìn thấy được cho tới khi bật lại.
 
 ## 7. Kịch bản (gate P3)
 
@@ -597,7 +599,7 @@ Thread `sim-ticketing` tick mỗi 200 ms, sinh số giao dịch theo Poisson cho
 
 - Ledger: mỗi lần flush là một câu `INSERT` autocommit. Ledger không cần cùng transaction với Kafka; quy tắc "chỉ ghi sau ack" là đủ cho DR-28.
 - `sim_scenario_run`: cập nhật trạng thái bằng câu `UPDATE … WHERE run_id = ? AND status = 'RUNNING'`, nên dừng hai lần là idempotent.
-- **Khởi động:** nạp feed → dựng chỉ mục → `ensure_ledger_partitions` → đánh dấu run `RUNNING` cũ là `FAILED` → seed điểm bán → dựng lại trạng thái các chuyến đang chạy (lấy mẫu tất định từ đầu mỗi chuyến tới `businessNow`, tối đa 141 đoạn mỗi chuyến) → readiness `UP` → bắt đầu các thread. Sau restart, xe xuất hiện đúng vị trí mà mô hình tất định cho ra; `lastReportedIndex` đặt bằng trạm đã qua gần nhất (TripUpdate đầu tiên sau restart không có phần quan sát).
+- **Khởi động:** nạp feed → dựng chỉ mục → `ensure_ledger_partitions` → đánh dấu run `RUNNING` cũ là `FAILED` → seed điểm bán → dựng lại trạng thái các chuyến đang chạy (lấy mẫu tất định từ đầu mỗi chuyến tới `businessNow`, tối đa 141 đoạn mỗi chuyến) → readiness `UP` → bắt đầu các thread, phát theo hệ số khởi đầu (§6.5; bằng 0 thì thread vẫn tick nhưng không gửi). Sau restart, xe xuất hiện đúng vị trí mà mô hình tất định cho ra; `lastReportedIndex` đặt bằng trạm đã qua gần nhất (TripUpdate đầu tiên sau restart không có phần quan sát).
 - **Tắt (SIGTERM, `server.shutdown=graceful`):** dừng `sim-emitter`, `sim-ticketing`, `sim-resend` → `KafkaTemplate.flush()` → chờ callback (tối đa 10 giây) → flush ledger tới rỗng (tối đa 20 giây) → đóng. `spring.lifecycle.timeout-per-shutdown-phase=30s`.
 - **Thực nghiệm không được kill simulator.** Nếu simulator chết đột ngột, các message đã ack nhưng chưa kịp vào ledger sẽ xuất hiện trong warehouse mà không có trong ledger; runner đánh dấu lần chạy đó là không hợp lệ (DOC-45).
 
@@ -615,7 +617,7 @@ Toàn bộ key nằm ở DOC-29 §3.2. Key mới do tài liệu này chốt:
 | `pti.sim.vehicle.max-layover-emit` | `30m` |
 | `pti.sim.delay.*` | bảng §5.3 |
 | `pti.sim.route-factor.phi` / `sigma` / `bucket` | `0.8` / `0.15` / `5m` |
-| `pti.sim.rate-multiplier.gtfs-rt` / `ticketing` | `1.0` / `1.0` |
+| `pti.sim.rate-multiplier.gtfs-rt` / `ticketing` | `1.0` / `1.0` (compose đặt `0` trừ khi có `PTI_SIM_START_RATE`, DR-86) |
 | `pti.sim.ledger.queue-capacity` / `batch-size` / `flush-interval` | `50000` / `500` / `200ms` |
 | `pti.sim.scenario.max-duration` | `2h` |
 | `pti.sim.duplicates.queue-capacity` | `200000` |
