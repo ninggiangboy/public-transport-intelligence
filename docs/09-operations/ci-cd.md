@@ -12,7 +12,7 @@ Các mục §1–§9 có từ gate P1 (cấu trúc workflow, điều kiện ch�
 
 | File | Trigger | Job | Thời gian mục tiêu | Có từ |
 | --- | --- | --- | --- | --- |
-| `.github/workflows/pr.yml` | `pull_request` vào `main` | `changes`, `lint`, `backend`, `frontend`, `experiments`, `compose-config`, `secrets-scan` | ≤ 12 phút | P1-03 (frontend từ P5-01) |
+| `.github/workflows/pr.yml` | `pull_request` vào `dev` hoặc `main`; `push` lên `dev` (nhánh tích hợp, người duy trì commit thẳng) | `changes`, `lint`, `backend`, `frontend`, `experiments`, `compose-config`, `secrets-scan` | ≤ 12 phút | P1-03 (frontend từ P5-01) |
 | `.github/workflows/main.yml` | `push` lên `main` | Mọi job của PR (chạy lại toàn bộ, không lọc theo path) + `contract`, `security`, `images` | ≤ 25 phút | P1 (images), P2 (contract), P3 (security) |
 | `.github/workflows/nightly.yml` | `schedule: '0 19 * * *'` (02:00 giờ Việt Nam) và `workflow_dispatch` | `slow-tests`, `dependency-report`, `ghcr-cleanup` | ≤ 35 phút | P2 |
 | `.github/workflows/full-stack.yml` | `schedule: '0 20 * * *'` (03:00 giờ Việt Nam), `workflow_dispatch` (input `sha`, `run_k3d`) | `e2e-compose`, `k3d-lite` chạy song song, mỗi job một runner (§10.3) | ≤ 60 phút | P5 (e2e), P7 (k3d) |

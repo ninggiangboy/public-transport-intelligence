@@ -1,0 +1,123 @@
+# Fast checks that decide whether a change can be merged (DOC-41 §2).
+name: pr
+
+on:
+  pull_request:
+    branches: [dev, main]
+  push:
+    branches: [dev]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  changes:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+      experiments: ${{ steps.filter.outputs.experiments }}
+      deploy: ${{ steps.filter.outputs.deploy }}
+      docs: ${{ steps.filter.outputs.docs }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dorny/paths-filter@v4
+        id: filter
+        with:
+          filters: |
+            backend:
+              - 'backend/**'
+              - 'deploy/topics.yaml'
+              - 'deploy/connect/**'
+              - '.github/workflows/pr.yml'
+            frontend:
+              - 'frontend/**'
+              - 'backend/api/openapi.json'
+            experiments:
+              - 'experiments/**'
+            deploy:
+              - 'deploy/**'
+            docs:
+              - 'docs/**'
+
+  lint:
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v7
+      - uses: jdx/mise-action@v4
+        with:
+          install_args: java
+      - uses: gradle/actions/setup-gradle@v6
+      - run: ./gradlew spotlessCheck checkstyleMain checkstyleTest checkstyleTestFixtures checkstyleIntegrationTest
+
+  backend:
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: jdx/mise-action@v4
+        with:
+          install_args: java
+      - uses: gradle/actions/setup-gradle@v6
+      - name: Build and unit test
+        run: ./gradlew build
+      - name: Integration tests of affected modules
+        env:
+          # Pull requests test what changed against the target branch; pushes test what the push changed.
+          AFFECTED_BASE: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || github.event.before }}
+        run: |
+          if git cat-file -e "${AFFECTED_BASE}^{commit}" 2>/dev/null; then
+            ./gradlew affectedIntegrationTest -PaffectedBase="$AFFECTED_BASE"
+          else
+            ./gradlew integrationTest
+          fi
+      - name: Upload test reports
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: backend-test-reports
+          path: |
+            backend/*/build/reports/
+            backend/*/build/test-results/
+          retention-days: 7
+
+  secrets-scan:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: jdx/mise-action@v4
+        with:
+          install_args: gitleaks
+      - run: gitleaks git --redact --no-banner --config .gitleaks.toml
+
+  pr-title:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      pull-requests: read
+    steps:
+      - uses: amannn/action-semantic-pull-request@v6
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

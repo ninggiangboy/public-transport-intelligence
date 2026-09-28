@@ -1,0 +1,22 @@
+# Weekly dependency updates (DOC-41 §8). Ecosystems are added as their directories appear.
+version: 2
+updates:
+  - package-ecosystem: gradle
+    directory: /backend
+    schedule:
+      interval: weekly
+    groups:
+      spring-boot:
+        patterns: ["org.springframework*", "io.awspring*"]
+      testcontainers:
+        patterns: ["org.testcontainers*"]
+      others:
+        patterns: ["*"]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    groups:
+      actions:
+        patterns: ["*"]
