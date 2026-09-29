@@ -109,6 +109,13 @@ public final class KafkaMessageSink implements MessageSink {
 
     private void failed(OutboundMessage message, Throwable error) {
         counter("pti.sim.send.errors", "topic", message.topic()).increment();
+        counter(
+                        "pti.errors",
+                        "kind",
+                        "transient_infra",
+                        "type",
+                        error.getClass().getSimpleName())
+                .increment();
         warn("Kafka send failed on {}: {}", message.topic(), error.toString());
     }
 

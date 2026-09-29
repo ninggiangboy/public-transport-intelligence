@@ -16,6 +16,7 @@ import dev.pti.etl.stream.DataBatchFailedException;
 import dev.pti.etl.stream.EtlListeners;
 import dev.pti.etl.stream.ListenerLifecycleManager;
 import dev.pti.etl.stream.ListenerPauseCoordinator;
+import dev.pti.etl.stream.PollTracing;
 import dev.pti.etl.stream.SourceActivity;
 import dev.pti.etl.stream.StreamBatchLog;
 import dev.pti.etl.stream.StreamChunkHandler;
@@ -30,6 +31,7 @@ import dev.pti.etl.write.WriteStats;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.tracing.Tracer;
 import java.net.http.HttpClient;
 import java.time.Clock;
 import java.time.Duration;
@@ -44,6 +46,7 @@ import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.kafka.autoconfigure.KafkaProperties;
 import org.springframework.context.ApplicationEventPublisher;
@@ -216,7 +219,9 @@ public class EtlStreamConfiguration {
             WriteStats stats,
             MeterRegistry meters,
             EtlProperties etl,
-            Environment env) {
+            Environment env,
+            ObjectProvider<Tracer> tracer,
+            @Value("${pti.etl.trace.max-links:20}") int maxLinks) {
         return new StreamChunkTemplate(
                 tx,
                 deadLetters,
@@ -229,7 +234,8 @@ public class EtlStreamConfiguration {
                 reference,
                 stats,
                 meters,
-                etl.baseline().errorMode() == EtlProperties.ErrorMode.FAIL_BATCH);
+                etl.baseline().errorMode() == EtlProperties.ErrorMode.FAIL_BATCH,
+                new PollTracing(tracer.getIfAvailable(() -> Tracer.NOOP), maxLinks));
     }
 
     @Bean
@@ -242,12 +248,13 @@ public class EtlStreamConfiguration {
             EtlProperties etl,
             CircuitBreaker warehouseCircuitBreaker,
             ErrorClassifier classifier,
-            @Value("${HOSTNAME:local}") String instanceId) {
+            @Value("${HOSTNAME:local}") String instanceId,
+            MeterRegistry meters) {
         ChunkWriter chunkWriter = etl.baseline().writeMode() == EtlProperties.WriteMode.INSERT
                 ? new BaselineFactWriter(named, stats)
                 : writer;
         return new StreamChunkHandler(
-                template, processors, chunkWriter, warehouseCircuitBreaker, classifier, instanceId);
+                template, processors, chunkWriter, warehouseCircuitBreaker, classifier, instanceId, meters);
     }
 
     @Bean

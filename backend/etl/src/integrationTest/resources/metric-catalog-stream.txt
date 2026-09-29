@@ -1,0 +1,17 @@
+# etl-stream metrics (DOC-28 §3.1, §3.3, DOC-30 §5), phases P2–P3: <prometheus name> <type> <labels> [lazy]
+pti_etl_records_total counter source,mode,outcome lazy
+pti_etl_stream_batches_total counter source,status lazy
+pti_etl_chunk_duration_seconds histogram source,mode,write_mode lazy
+pti_etl_duplicates_total counter source,mode,reason lazy
+pti_etl_chunk_scan_total counter source,mode lazy
+pti_etl_kafka_to_commit_seconds histogram source lazy
+pti_etl_listener_running gauge listener,topic
+pti_etl_listener_paused gauge listener,topic,reason
+pti_source_health gauge source
+pti_connect_connector_running gauge connector
+pti_etl_reference_feed_version gauge -
+pti_etl_reference_refresh_errors_total counter -
+pti_dq_violations_total counter source,stage,rule lazy
+pti_dlq_records_total counter source,stage,mode,result lazy
+pti_errors_total counter kind,type lazy
+resilience4j_circuitbreaker_state gauge name,state

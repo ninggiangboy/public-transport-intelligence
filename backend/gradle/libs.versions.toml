@@ -59,6 +59,7 @@ spring-kafka = { module = "org.springframework.kafka:spring-kafka" }
 kafka-clients = { module = "org.apache.kafka:kafka-clients" }
 caffeine = { module = "com.github.ben-manes.caffeine:caffeine" }
 micrometer-registry-prometheus = { module = "io.micrometer:micrometer-registry-prometheus" }
+micrometer-tracing-bridge-otel = { module = "io.micrometer:micrometer-tracing-bridge-otel" }
 junit-jupiter = { module = "org.junit.jupiter:junit-jupiter" }
 junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher" }
 assertj-core = { module = "org.assertj:assertj-core" }

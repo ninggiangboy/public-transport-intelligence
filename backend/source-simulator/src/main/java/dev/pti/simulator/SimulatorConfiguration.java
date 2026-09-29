@@ -15,6 +15,7 @@ import dev.pti.simulator.ledger.Ledger;
 import dev.pti.simulator.ledger.LedgerWriter;
 import dev.pti.simulator.motion.DelayModel;
 import dev.pti.simulator.motion.Fleet;
+import dev.pti.simulator.observability.ReplicationSlotProbe;
 import dev.pti.simulator.rate.RateControl;
 import dev.pti.simulator.scenario.ScenarioHooks;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -22,6 +23,7 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.time.Duration;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -160,6 +162,16 @@ public class SimulatorConfiguration {
                 hooks);
         emitter.bindTo(registry);
         return emitter;
+    }
+
+    /** The WAL kept by Debezium's replication slot (DR-71), probed on its own thread. */
+    @Bean
+    TickLoop slotProbeLoop(
+            @Qualifier("simJdbcTemplate") JdbcTemplate jdbc,
+            @Value("${pti.observability.slot-probe.interval:30s}") Duration interval,
+            MeterRegistry registry) {
+        ReplicationSlotProbe probe = new ReplicationSlotProbe(jdbc, registry);
+        return new TickLoop("sim-slot-probe", probe::probe, interval);
     }
 
     @Bean

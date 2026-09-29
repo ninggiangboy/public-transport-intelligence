@@ -1,6 +1,6 @@
 # Observability: metric, log, trace, dashboard, alert
 
-> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-28
+> Trạng thái: **Approved** · Cập nhật: 2026-09-29 (P3-03: instrumentation, DR-98) · DOC-28
 >
 > Phụ thuộc: DR-50, DR-51, DR-57, DR-71, ADR-0022, DOC-10 §2, DOC-16 §4, DOC-19 §10, DOC-20 §12, DOC-21 §8, DOC-22 §9, DOC-23 §14, DOC-25 §12, DOC-30 §4–5, DOC-39 §3.7
 >
@@ -240,7 +240,7 @@ Trong EXP-05 và EXP-07, runner đặt `etl-*` và `api` về `0.1` để đo t�
 | `<topic> send` | simulator, etl (UI), api | cha: span hiện tại | `messaging.destination.name` | Observation của `KafkaTemplate` (`spring.kafka.template.observation-enabled=true`); ghi `traceparent` vào header |
 | `pti.etl.poll` | etl-stream | **gốc**, link tới tối đa `pti.etl.trace.max-links` (20) span producer lấy từ header | `source`, `listener`, `outcome` | Batch listener không có observation theo record; span này do `StreamChunkTemplate` tạo (DOC-20 §3). Event: `records=<n>` |
 | `pti.etl.process` | etl-stream | cha `pti.etl.poll` | `source` | Decode, schema, DQ pre-write, gộp trùng trong chunk |
-| `pti.etl.dedup` | etl-stream, etl-batch | cha chunk | `source` | Tra `dedup_registry` |
+| `pti.etl.dedup` | etl-stream, etl-batch | cha chunk | `source` | Tra `dedup_registry`. *Không làm (DR-98):* câu tra đã hiện thành span JDBC `query` dưới `pti.etl.write` |
 | `pti.etl.write` | etl-stream, etl-batch | cha chunk | `source`, `write_mode` | `FactChunkWriter`; con là span JDBC nếu bật (§5.3) |
 | `pti.etl.dlq.write` | etl-* | cha chunk | `source`, `stage` | |
 | `pti.etl.commit` | etl-stream | cha `pti.etl.poll` | | Commit transaction; offset ack nằm ngoài span này |
@@ -434,7 +434,8 @@ Datasource Postgres dùng user `api_reader` (DOC-39 §3.7): đọc được bộ
 | `management.metrics.distribution.slo.*` | bucket ở §2 | |
 | `management.tracing.enabled` | `${PTI_TRACING_ENABLED:false}` | DOC-39: `make up-obs` bật |
 | `management.tracing.sampling.probability` | §5.1 | |
-| `management.otlp.tracing.endpoint` | `http://otel-collector:4318/v1/traces` | |
+| `management.opentelemetry.tracing.export.otlp.endpoint` | `http://otel-collector:4318/v1/traces` | Tên key của Spring Boot 4.1; `management.otlp.tracing.endpoint` đã deprecated (DR-98) |
+| `management.logging.export.otlp.enabled` | `false` | Log đi qua stdout và Alloy, không qua OTLP (DR-50) |
 | `management.observations.annotations.enabled` | `true` | Cho `@Observed` |
 | `spring.kafka.template.observation-enabled`, `spring.kafka.listener.observation-enabled` | `true` | DR-50 |
 | `logging.structured.format.console` | `ecs` | |
@@ -446,7 +447,7 @@ Datasource Postgres dùng user `api_reader` (DOC-39 §3.7): đọc được bộ
 
 | ID | Kiểm tra | Cách |
 | --- | --- | --- |
-| O-01 | Mọi metric ở §3 có mặt ở `/actuator/prometheus` của app tương ứng sau khởi động (gauge đã đăng ký dù chưa có giá trị) | Integration test mỗi app, danh sách tên lấy từ file `observability/metric-catalog.txt` sinh từ bảng §3 |
+| O-01 | Mọi metric ở §3 có mặt ở `/actuator/prometheus` của app tương ứng sau khởi động (gauge đã đăng ký dù chưa có giá trị) | Integration test mỗi app (`SimulatorMetricsIT`, `StreamObservabilityIT`, `BatchMetricsIT`), danh sách lấy từ `metric-catalog*.txt` trong `src/integrationTest/resources` của module, chép từ bảng §3. Metric có label phụ thuộc dữ liệu (counter theo `source`, `outcome`…) đánh dấu `lazy`: chỉ cần có sau sự kiện đầu tiên (DR-98) |
 | O-02 | Không metric nào có label ngoài danh sách cho phép (chặn cardinality) | Cùng test O-01: so tập label với catalog |
 | O-03 | `promtool check rules` và `promtool test rules` pass; mỗi alert §6.3 có ít nhất một ca bắn và một ca không bắn | CI `compose-config` |
 | O-04 | `pti.etl.poll` có link tới span producer; `pti.api.sse.emit` cùng trace với `pti.events.ui send` | Integration test với `TestObservationRegistry` / in-memory span exporter |

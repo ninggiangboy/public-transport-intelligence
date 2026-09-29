@@ -68,13 +68,41 @@ management:
   metrics:
     tags:
       application: ${spring.application.name}
+    # Fixed buckets instead of client-side percentiles (DOC-28 §2).
+    distribution:
+      slo:
+        pti.etl.kafka.to.commit: 250ms,500ms,1s,2s,3s,4s,5s,7500ms,10s,15s,20s,30s,60s
+        pti.etl.chunk.duration: 10ms,25ms,50ms,100ms,250ms,500ms,1s,2s,5s,10s
+        pti.replay.duration: 1s,5s,15s,30s,1m,2m,5m,10m,30m,1h
+        http.server.requests: 25ms,50ms,100ms,200ms,300ms,500ms,1s,2s,5s
+  observations:
+    annotations:
+      enabled: true
+  # Traces go to the OTel Collector (DOC-28 §5, DR-50); logs stay on stdout for Alloy, never OTLP.
   tracing:
     enabled: ${PTI_TRACING_ENABLED:false}
+    sampling:
+      probability: 1.0
+  opentelemetry:
+    tracing:
+      export:
+        otlp:
+          endpoint: http://localhost:4318/v1/traces
+  logging:
+    export:
+      otlp:
+        enabled: false
 
 logging:
   structured:
     format:
       console: ecs
+
+# JDBC spans (DOC-28 §5.3): statements only, never parameter values.
+jdbc:
+  includes: QUERY
+  datasource-proxy:
+    include-parameter-values: false
 
 pti:
   clock:

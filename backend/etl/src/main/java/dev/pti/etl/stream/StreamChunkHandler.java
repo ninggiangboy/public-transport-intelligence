@@ -8,9 +8,12 @@ import dev.pti.common.error.PtiException;
 import dev.pti.common.error.TransientInfraException;
 import dev.pti.etl.core.InboundMessage;
 import dev.pti.etl.core.MessageProcessors;
+import dev.pti.etl.metrics.ErrorMetrics;
 import dev.pti.etl.write.ChunkWriter;
 import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -33,6 +36,7 @@ public class StreamChunkHandler {
     private final CircuitBreaker breaker;
     private final ErrorClassifier classifier;
     private final String instanceId;
+    private final MeterRegistry meters;
 
     public StreamChunkHandler(
             StreamChunkTemplate template,
@@ -41,12 +45,25 @@ public class StreamChunkHandler {
             CircuitBreaker breaker,
             ErrorClassifier classifier,
             String instanceId) {
+        this(template, processors, writer, breaker, classifier, instanceId, new SimpleMeterRegistry());
+    }
+
+    /** @param meters for {@code pti_errors_total} of failed polls */
+    public StreamChunkHandler(
+            StreamChunkTemplate template,
+            MessageProcessors processors,
+            ChunkWriter writer,
+            CircuitBreaker breaker,
+            ErrorClassifier classifier,
+            String instanceId,
+            MeterRegistry meters) {
         this.template = template;
         this.processors = processors;
         this.writer = writer;
         this.breaker = breaker;
         this.classifier = classifier;
         this.instanceId = instanceId;
+        this.meters = meters;
     }
 
     public StreamChunkResult handle(StreamListener listener, List<ConsumerRecord<String, byte[]>> records) {
@@ -66,12 +83,17 @@ public class StreamChunkHandler {
     private StreamChunkResult execute(StreamChunkRequest request) {
         try {
             return template.execute(request, processors.forSource(request.source()), writer);
-        } catch (DataBatchFailedException | PtiException | CallNotPermittedException e) {
+        } catch (DataBatchFailedException | CallNotPermittedException e) {
+            throw e;
+        } catch (PtiException e) {
+            ErrorMetrics.record(meters, e instanceof FatalException ? ErrorKind.FATAL : classifier.classify(e), e);
             throw e;
         } catch (RuntimeException e) {
             if (classifier.classify(e) == ErrorKind.TRANSIENT_INFRA) {
+                ErrorMetrics.record(meters, ErrorKind.TRANSIENT_INFRA, e);
                 throw new TransientInfraException("Warehouse unavailable: " + e.getMessage(), e);
             }
+            ErrorMetrics.record(meters, ErrorKind.FATAL, e);
             throw new FatalException("Chunk " + request.batchId() + " failed: " + e, e);
         }
     }

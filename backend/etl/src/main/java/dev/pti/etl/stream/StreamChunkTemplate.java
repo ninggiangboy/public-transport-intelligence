@@ -25,6 +25,7 @@ import dev.pti.etl.write.WriteStats;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
+import io.micrometer.tracing.Span;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -35,6 +36,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.transaction.TransactionStatus;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
 /**
@@ -58,6 +61,7 @@ public class StreamChunkTemplate {
     private final WriteStats stats;
     private final MeterRegistry meters;
     private final boolean failBatchOnDataError;
+    private final PollTracing tracing;
 
     public StreamChunkTemplate(
             TransactionTemplate tx,
@@ -71,6 +75,35 @@ public class StreamChunkTemplate {
             WriteStats stats,
             MeterRegistry meters,
             boolean failBatchOnDataError) {
+        this(
+                tx,
+                deadLetters,
+                batchLog,
+                classifier,
+                faults,
+                events,
+                clock,
+                reference,
+                stats,
+                meters,
+                failBatchOnDataError,
+                PollTracing.NOOP);
+    }
+
+    /** @param tracing the spans of DOC-28 §5.2 */
+    public StreamChunkTemplate(
+            TransactionTemplate tx,
+            DeadLetterWriter deadLetters,
+            StreamBatchLog batchLog,
+            ErrorClassifier classifier,
+            FaultInjector faults,
+            ApplicationEventPublisher events,
+            BusinessClock clock,
+            ReferenceDataHolder reference,
+            WriteStats stats,
+            MeterRegistry meters,
+            boolean failBatchOnDataError,
+            PollTracing tracing) {
         this.tx = tx;
         this.deadLetters = deadLetters;
         this.batchLog = batchLog;
@@ -82,6 +115,7 @@ public class StreamChunkTemplate {
         this.stats = stats;
         this.meters = meters;
         this.failBatchOnDataError = failBatchOnDataError;
+        this.tracing = tracing;
     }
 
     /**
@@ -91,19 +125,36 @@ public class StreamChunkTemplate {
      *     container error handler, so the offsets are not committed and the poll is delivered again
      */
     public StreamChunkResult execute(StreamChunkRequest request, MessageProcessor processor, ChunkWriter writer) {
+        try (PollTracing.Poll poll = tracing.poll(request)) {
+            try {
+                StreamChunkResult result = executeInSpan(request, processor, writer);
+                poll.outcome(result.status().name().toLowerCase(Locale.ROOT));
+                return result;
+            } catch (RuntimeException e) {
+                poll.error(e);
+                throw e;
+            }
+        }
+    }
+
+    private StreamChunkResult executeInSpan(
+            StreamChunkRequest request, MessageProcessor processor, ChunkWriter writer) {
         Instant startedAt = clock.realNow();
         faults.hit(FaultPoint.BEFORE_PROCESS);
         RuleContext rules = new RuleContext(
                 clock.instant(), request.replay(), reference.current().orElse(null));
         List<WriteSet> valid = new ArrayList<>(request.messages().size());
         List<DeadLetter> skipped = new ArrayList<>();
-        for (InboundMessage message : request.messages()) {
-            try {
-                valid.add(processor.process(message, rules));
-            } catch (RuntimeException e) {
-                skipped.add(skip(message, e, processor, request));
+        String source = request.source().name();
+        tracing.child("pti.etl.process", source, () -> {
+            for (InboundMessage message : request.messages()) {
+                try {
+                    valid.add(processor.process(message, rules));
+                } catch (RuntimeException e) {
+                    skipped.add(skip(message, e, processor, request));
+                }
             }
-        }
+        });
         faults.hit(FaultPoint.AFTER_PROCESS);
 
         WriteContext context =
@@ -197,8 +248,10 @@ public class StreamChunkTemplate {
             List<WriteSet> valid,
             List<DeadLetter> skipped,
             Instant startedAt) {
+        traceCommit();
         faults.hit(FaultPoint.BEFORE_WRITE);
-        WriteOutcome outcome = writer.write(valid, context);
+        WriteOutcome outcome =
+                tracing.child("pti.etl.write", request.source().name(), () -> writer.write(valid, context));
         return finish(request, context, outcome, skipped, 0, WriteMode.BATCH, startedAt);
     }
 
@@ -210,6 +263,7 @@ public class StreamChunkTemplate {
             List<WriteSet> valid,
             List<DeadLetter> skipped,
             Instant startedAt) {
+        traceCommit();
         faults.hit(FaultPoint.BEFORE_WRITE);
         WriteOutcome outcome = WriteOutcome.none();
         int loadErrors = 0;
@@ -239,8 +293,12 @@ public class StreamChunkTemplate {
             int loadErrors,
             WriteMode mode,
             Instant startedAt) {
-        for (DeadLetter letter : skipped) {
-            writeDeadLetter(letter, context);
+        if (!skipped.isEmpty()) {
+            tracing.child("pti.etl.dlq.write", request.source().name(), () -> {
+                for (DeadLetter letter : skipped) {
+                    writeDeadLetter(letter, context);
+                }
+            });
         }
         stats.recordSkipped(request.source(), RunMode.STREAM, skipped.size() + loadErrors);
         StreamChunkResult result = new StreamChunkResult(
@@ -258,6 +316,31 @@ public class StreamChunkTemplate {
         batchLog.insert(request, result, startedAt, clock.realNow());
         faults.hit(FaultPoint.AFTER_WRITE_BEFORE_COMMIT);
         return result;
+    }
+
+    /** {@code pti.etl.commit}: from just before the commit until the transaction has completed. */
+    private void traceCommit() {
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            return;
+        }
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            private @Nullable Span span;
+
+            @Override
+            public void beforeCommit(boolean readOnly) {
+                span = tracing.startChild("pti.etl.commit");
+            }
+
+            @Override
+            public void afterCompletion(int status) {
+                if (span != null) {
+                    if (status != STATUS_COMMITTED) {
+                        span.tag("outcome", "rolled_back");
+                    }
+                    span.end();
+                }
+            }
+        });
     }
 
     private void writeDeadLetter(DeadLetter letter, WriteContext context) {

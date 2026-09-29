@@ -8,6 +8,7 @@ description = "Source simulator: GTFS-realtime producer, ticketing seeder and le
 dependencies {
     implementation(project(":common"))
     implementation(libs.spring.boot.starter.actuator)
+    implementation(libs.spring.boot.starter.opentelemetry)
     implementation(libs.spring.boot.starter.webmvc)
     implementation(libs.spring.boot.starter.validation)
     implementation(libs.spring.boot.starter.kafka)

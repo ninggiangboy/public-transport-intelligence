@@ -43,8 +43,26 @@ management:
     health:
       probes:
         enabled: true
+  metrics:
+    tags:
+      application: ${spring.application.name}
+    distribution:
+      slo:
+        http.server.requests: 25ms,50ms,100ms,200ms,300ms,500ms,1s,2s,5s
+  # One producer span per message: 5% keeps Tempo within bounds at peak (DOC-28 §5.1).
   tracing:
     enabled: ${PTI_TRACING_ENABLED:false}
+    sampling:
+      probability: 0.05
+  opentelemetry:
+    tracing:
+      export:
+        otlp:
+          endpoint: http://localhost:4318/v1/traces
+  logging:
+    export:
+      otlp:
+        enabled: false
 
 logging:
   structured:
@@ -54,6 +72,9 @@ logging:
 pti:
   clock:
     offset: 0s
+  observability:
+    slot-probe:
+      interval: 30s
   datasource:
     ticketing:
       url: jdbc:postgresql://localhost:5432/ticketing_source

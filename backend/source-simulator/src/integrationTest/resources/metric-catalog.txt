@@ -1,0 +1,18 @@
+# source-simulator metrics (DOC-28 §3.1, §3.2, DOC-30 §5): <prometheus name> <type> <labels> [lazy]
+pti_sim_messages_sent_total counter topic,entity_type,kind lazy
+pti_sim_send_errors_total counter topic lazy
+pti_sim_emissions_skipped_total counter reason
+pti_sim_active_vehicles gauge -
+pti_sim_active_trips gauge -
+pti_sim_synthetic_vehicles gauge -
+pti_sim_ledger_queue_depth gauge -
+pti_sim_ledger_rows_total counter -
+pti_sim_resend_queue_depth gauge -
+pti_sim_tick_lag_seconds gauge -
+pti_sim_rate_multiplier gauge stream
+pti_sim_ticket_transactions_total counter txn_type,action lazy
+pti_sim_ticketing_errors_total counter -
+pti_sim_scenario_active gauge scenario
+pti_source_replication_slot_retained_bytes gauge slot lazy
+pti_sim_slot_probe_errors_total counter -
+pti_errors_total counter kind,type lazy

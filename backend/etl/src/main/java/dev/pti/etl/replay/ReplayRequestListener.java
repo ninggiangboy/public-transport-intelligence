@@ -4,9 +4,11 @@ import dev.pti.common.json.MessageJson;
 import dev.pti.etl.batch.StepValues;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
 import java.time.Duration;
 import java.util.Map;
 import java.util.UUID;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.MDC;
 import org.springframework.batch.core.BatchStatus;
 import org.springframework.batch.core.job.JobExecution;
@@ -62,14 +64,61 @@ public class ReplayRequestListener implements JobExecutionListener {
                             : description.lines().findFirst().orElse(description);
             requests.finish(
                     id, execution.getId(), done, MessageJson.mapper().writeValueAsString(stats), truncate(message));
+            String kind = dlq ? "DLQ_RECORD" : "RAW_RANGE";
             Counter.builder("pti.replay.requests")
-                    .tag("kind", dlq ? "DLQ_RECORD" : "RAW_RANGE")
+                    .tag("kind", kind)
                     .tag("outcome", done ? "done" : "failed")
                     .register(meters)
                     .increment();
+            recordMetrics(execution, kind, dlq, stats);
         } finally {
             MDC.remove(MDC_REQUEST);
         }
+    }
+
+    /** {@code pti_replay_duration_seconds}, {@code pti_replay_records_total}, {@code pti_dlq_resolved_by_replay_total}. */
+    private void recordMetrics(JobExecution execution, String kind, boolean dlq, ObjectNode stats) {
+        if (stats.has("duration_ms")) {
+            Timer.builder("pti.replay.duration")
+                    .tag("kind", kind)
+                    .register(meters)
+                    .record(Duration.ofMillis(stats.get("duration_ms").asLong()));
+        }
+        String source = dlq
+                ? dlqSource(requestId(execution))
+                : execution.getJobParameters().getString("source");
+        if (source == null) {
+            return;
+        }
+        if (dlq) {
+            boolean replayed = "REPLAYED".equals(stats.path("outcome").asString());
+            count("pti.replay.records", source, replayed ? "written" : "skipped", 1);
+            count("pti.dlq.resolved.by.replay", source, null, replayed ? 1 : 0);
+            return;
+        }
+        count("pti.replay.records", source, "written", stats.path("written").asLong());
+        count("pti.replay.records", source, "duplicate", stats.path("duplicate").asLong());
+        count("pti.replay.records", source, "skipped", stats.path("skipped").asLong());
+        count(
+                "pti.dlq.resolved.by.replay",
+                source,
+                null,
+                stats.path("dlq_resolved").asLong());
+    }
+
+    private void count(String name, String source, @Nullable String outcome, long amount) {
+        Counter.Builder builder = Counter.builder(name).tag("source", source);
+        if (outcome != null) {
+            builder.tag("outcome", outcome);
+        }
+        builder.register(meters).increment(amount);
+    }
+
+    private @Nullable String dlqSource(UUID request) {
+        return jdbc.queryForObject("""
+                SELECT d.source::text FROM ops.replay_request r JOIN ops.dead_letter d ON d.id = r.dead_letter_id
+                WHERE r.id = ?
+                """, String.class, request);
     }
 
     private static String truncate(String message) {

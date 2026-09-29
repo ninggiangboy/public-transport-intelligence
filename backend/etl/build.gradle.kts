@@ -16,6 +16,8 @@ dependencies {
     implementation(platform(libs.spring.cloud.aws.dependencies))
 
     implementation(libs.spring.boot.starter.actuator)
+    implementation(libs.spring.boot.starter.opentelemetry)
+    implementation(libs.datasource.micrometer)
     implementation(libs.spring.boot.starter.webmvc)
     implementation(libs.spring.boot.starter.validation)
     implementation(libs.spring.boot.starter.jdbc)
@@ -34,6 +36,7 @@ dependencies {
 
     testImplementation(libs.spring.batch.test)
     testImplementation(libs.hibernate.validator)
+    testImplementation(libs.micrometer.tracing.bridge.otel)
 
     testFixturesImplementation(testFixtures(project(":common")))
     testFixturesImplementation(project(":common"))
@@ -47,6 +50,7 @@ dependencies {
     integrationTestImplementation(libs.spring.batch.test)
     integrationTestImplementation(libs.testcontainers.kafka)
     integrationTestImplementation(libs.testcontainers.postgresql)
+    integrationTestImplementation(libs.micrometer.registry.prometheus)
 
     contractTestImplementation(project(":db"))
     contractTestImplementation(testFixtures(project(":common")))

@@ -1,10 +1,12 @@
 package dev.pti.etl.write;
 
 import com.github.f4b6a3.uuid.UuidCreator;
+import dev.pti.common.error.ErrorKind;
 import dev.pti.common.json.MessageJson;
 import dev.pti.common.pii.PiiScrubber;
 import dev.pti.etl.core.InboundMessage;
 import dev.pti.etl.core.Utf8;
+import dev.pti.etl.metrics.ErrorMetrics;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.nio.charset.StandardCharsets;
@@ -149,10 +151,12 @@ public final class JdbcDeadLetterWriter implements DeadLetterWriter {
                 .tag("stage", stage)
                 .tag("rule", rule)
                 .register(meters);
+        Counter errors = ErrorMetrics.counter(meters, ErrorKind.DATA, letter.errorClass());
         AfterCommit.run(() -> {
             records.increment();
             if (result != DeadLetterResult.IGNORED) {
                 violations.increment();
+                errors.increment();
             }
         });
     }

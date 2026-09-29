@@ -7,6 +7,7 @@ import dev.pti.etl.dq.DataQualityTasklet;
 import dev.pti.etl.dq.DqCheckResults;
 import dev.pti.etl.dq.DqMetrics;
 import dev.pti.etl.gtfs.FeedVersions;
+import dev.pti.etl.metrics.OpsGauges;
 import io.micrometer.core.instrument.MeterRegistry;
 import org.springframework.batch.core.job.Job;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBooleanProperty;
@@ -31,6 +32,11 @@ public class DataQualityConfiguration {
     @Bean
     DqMetrics dqMetrics(DqCheckResults results, MeterRegistry meters, DqProperties dq) {
         return new DqMetrics(results, meters, dq::enabled);
+    }
+
+    @Bean
+    OpsGauges opsGauges(JdbcTemplate jdbc, BusinessClock clock, MeterRegistry meters) {
+        return new OpsGauges(jdbc, clock, meters);
     }
 
     @Bean(name = "DataQualityJob")
