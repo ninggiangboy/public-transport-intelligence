@@ -1,10 +1,10 @@
 # EXP-04: Dựng lại toàn bộ warehouse từ raw zone
 
-> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-45 / EXP-04
+> Trạng thái: **Approved** · Cập nhật: 2026-09-29 (DR-95) · DOC-45 / EXP-04
 >
 > Phụ thuộc: [protocol chung](README.md), DOC-18 §1–2, DOC-21 §1, DOC-22 §4, DOC-39 §6 (`make reset-warehouse`), DOC-43, RB-11, DR-16, DR-58, DR-64, DR-70
 >
-> Người dùng chính: P3-07, P3-08; báo cáo chương đánh giá; người viết RB-11
+> Người dùng chính: P3-07, P3-08 (smoke), P3-10; báo cáo chương đánh giá; người viết RB-11
 
 ## 1. Giả thuyết
 
@@ -137,7 +137,7 @@ H3 được báo cáo (không là tiêu chí đạt): trung vị và p95 của `
 
 ## 11. Kết quả
 
-Điền sau P3-08.
+Điền sau P3-10. Kết quả chuỗi smoke (DR-95) không ghi vào đây.
 
 ## 12. Câu hỏi còn mở
 

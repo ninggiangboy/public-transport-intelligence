@@ -135,11 +135,11 @@ Requirements: 16 GB RAM (12 GB allocated to the Docker VM with every profile ena
 | P0 | Specification, decisions, spikes | Decisions settled, core documents approved | Done |
 | P1 | Infrastructure and data sources | `make up` works; events reach Kafka; CDC and raw zone running | Done (2026-09-29) |
 | P2 | Core ETL (Spring Batch + Spring Kafka) | Data in the warehouse; `kill -9` causes no loss or duplicates | Done (2026-09-29) |
-| P3 | Reliability experiments and observability | EXP-01…05 results; Grafana; alerts | Next |
+| P3 | Reliability experiments and observability | Experiment runner and a 30-minute smoke run of EXP-01…05; Grafana; alerts | Next |
 | P4 | Analytics and API | Real insights over REST and SSE | |
 | P5 | Dashboard | Full real-time UI | |
 | P6 | AI triage | Triage, auto-replay, suggestions in the UI | |
-| P7 | Kubernetes and fault tolerance | Autoscaling and self-healing; EXP-07/08 results | |
+| P7 | Kubernetes and fault tolerance | Full EXP-01…05 runs first (P3-10); autoscaling and self-healing; EXP-07/08 results | |
 | P8 | Polish | Ready for the final defense | |
 
 ## Data attribution

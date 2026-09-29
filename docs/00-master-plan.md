@@ -351,10 +351,11 @@ Mỗi tài liệu trong nhóm này có khung chung: **Mục đích → Phạm vi
 | P0 | Đặc tả, quyết định, spike | 2–3 tuần | M0: DR đã chốt, tài liệu nền Approved |
 | P1 | Nền tảng hạ tầng và nguồn dữ liệu | 2 tuần | M1: `make up` chạy; `make sim-start` → event lên Kafka; CDC chạy; raw zone có file. **Đạt 2026-09-29** |
 | P2 | ETL cốt lõi (Spring Batch + Spring Kafka) | 3–4 tuần | M2: dữ liệu vào warehouse; kill -9 không làm mất hay trùng dữ liệu |
-| P3 | Thực nghiệm độ tin cậy và observability | 2–3 tuần | M3: có số liệu EXP-01…05; Grafana; alert |
+| P3 | Thực nghiệm độ tin cậy và observability | 2–3 tuần | M3: runner EXP-01…05 và chuỗi smoke đạt; Grafana; alert. Đợt chạy đầy đủ (P3-10) làm sau M6, trước P7 (DR-95) |
 | P4 | Analytics và API | 3–4 tuần | M4: insight thật qua REST và SSE |
 | P5 | Dashboard | 3–4 tuần | M5: UI đầy đủ, real-time |
 | P6 | AI triage | 2–3 tuần | M6: triage, auto-replay, gợi ý trên UI |
+| P3-10 | Đợt chạy đầy đủ EXP-01…05 (DR-95) | 3–4 ngày máy chạy, khoảng 3 ngày công | Số liệu EXP-01…05 trong DOC-45 |
 | P7 | Kubernetes và chịu lỗi | 3 tuần | M7: tự scale, tự phục hồi; có số liệu EXP-07/08 |
 | P8 | Hoàn thiện | 2 tuần, thêm 1,5–2 tuần nếu làm demo console (P8-08) | M8: sẵn sàng bảo vệ |
 | | **Tổng** | **~22–30 tuần** | Làm bán thời gian thì nhân khoảng 1,8 |
@@ -371,19 +372,21 @@ flowchart LR
   P2 --> P4[P4 Analytics + API]
   P4 --> P5[P5 Dashboard]
   P4 --> P6[P6 AI triage]
-  P3 --> P7[P7 K8s + Chaos]
+  P3 --> P310[P3-10 Thực nghiệm đầy đủ]
+  P6 --> P310
+  P310 --> P7[P7 K8s + Chaos]
   P5 --> P8[P8 Hoàn thiện]
   P6 --> P8
   P7 --> P8
 ```
 
-P3 và P4 có thể chạy song song nếu có hai người. Nếu chỉ một người thì làm theo thứ tự số.
+P3 và P4 có thể chạy song song nếu có hai người. Nếu chỉ một người thì làm theo thứ tự số. P3-10 là phần tách ra của P3 (DR-95): chạy sau M6, trên máy thực nghiệm, trước khi mở P7.
 
 ### 4.3 Thứ tự cắt giảm khi thiếu thời gian (giữ như SDD gốc)
 
 > **Đã chốt: làm đầy đủ phạm vi.** Thứ tự dưới đây chỉ là phương án dự phòng, dùng khi một milestone trễ quá 50% so với ước lượng.
 
-Demo console (P8-08; demo quay về terminal và Grafana theo DOC-46) → gợi ý điều phối (P6-07) → EXP-06 (P6-11) → ticketing anomaly (P6-05) → OTP (P4-06) → Kubernetes (P7; khi đó EXP-08 chạy trên compose bằng `docker kill`/`docker pause` và Toxiproxy). **P1–P3 không được cắt.**
+Demo console (P8-08; demo quay về terminal và Grafana theo DOC-46) → gợi ý điều phối (P6-07) → EXP-06 (P6-11) → ticketing anomaly (P6-05) → OTP (P4-06) → Kubernetes (P7; khi đó EXP-08 chạy trên compose bằng `docker kill`/`docker pause` và Toxiproxy). **P1–P3 không được cắt**, kể cả đợt chạy đầy đủ P3-10.
 
 ---
 
@@ -512,12 +515,13 @@ Những chỗ lệch tài liệu khi hết P2 được ghi ở DR-90 (claim trư
 | P3-03 | Instrumentation: metrics theo DOC-28, consumer lag, gauge độ tươi feed, histogram theo chặng (DR-57), Micrometer Tracing xuất OTLP (DR-50), trace lan truyền qua Kafka header nhờ observation của Spring Kafka | Một trace nối được simulator → etl → DB; log có `trace_id` và `batch_id` | P3-02 | DOC-28 |
 | P3-04 | Grafana dashboards: Pipeline overview, Kafka, Postgres, JVM, Experiments | Dashboard lưu dạng JSON trong `observability/` | P3-03 | DOC-28 |
 | P3-05 | Alert rules (9 cảnh báo ở SDD 12.2) viết bằng PromQL, định tuyến tới Mailpit, runbook RB-01…09, RB-13, RB-14 (thủ tục RB-10…12) | Mỗi alert được kích hoạt thử bằng kịch bản và gửi tới đúng kênh | P3-04 | DOC-28, 42 |
-| P3-06 | `experiments/`: dự án Python (uv), thư viện chung (điều khiển simulator, docker, truy vấn ledger và warehouse, checksum theo DR-58), CLI `pti-exp run EXP-01 --runs 30` có `--resume`, lệnh `archive` và `fetch` (DR-94) | Chạy thử được; `archive` rồi `fetch` một chuỗi thử khớp SHA-256 | P3-01 | DOC-45 |
-| P3-07 | Runner EXP-01 (kill ngẫu nhiên), EXP-02 (gửi lại), EXP-03 (1/5/20% lỗi), EXP-04 (xóa warehouse, replay), EXP-05 (tăng tải); EXP-01…03 chạy song song chế độ bình thường và baseline, EXP-04 và EXP-05 không có baseline (DOC-45 §5) | Mỗi runner in ra `summary.json` | P3-06, P2-18 | DOC-45 |
-| P3-08 | Chạy thực nghiệm đủ số lần lặp (EXP-01 ≥ 30 lần, các EXP khác ≥ 10 lần) trên máy thực nghiệm (DOC-45 §1.2, DR-94), phân tích và vẽ biểu đồ | Bảng kết quả cùng biểu đồ trong `experiments/results/` và ghi vào DOC-45; file nặng của mọi chuỗi có trên release `exp-results` (DOC-45 §7.1) | P3-07 | DOC-45 |
+| P3-06 | `experiments/`: dự án Python (uv), thư viện chung (điều khiển simulator, docker, truy vấn ledger và warehouse, checksum theo DR-58), CLI `pti-exp run EXP-01 --runs 30` có `--resume` và `--profile smoke\|full`; `archive` và `fetch` dời sang P3-10 (DR-95) | Chạy thử được; `pytest` và `ruff` xanh trong CI | P3-01 | DOC-45 |
+| P3-07 | Runner EXP-01 (kill ngẫu nhiên), EXP-02 (gửi lại), EXP-03 (1/5/20% lỗi), EXP-04 (xóa warehouse, replay), EXP-05 (tăng tải); EXP-01…03 chạy song song chế độ bình thường và baseline, EXP-04 và EXP-05 không có baseline (DOC-45 §5). Mỗi runner có tham số `full` và `smoke`; lệnh `pti-exp smoke` chạy cả chuỗi (DOC-45 §1.3) | Mỗi runner in ra `summary.json` ở cả hai profile | P3-06, P2-18 | DOC-45 |
+| P3-08 | Chạy chuỗi smoke (`pti-exp smoke`, DR-95) trên máy dev | Chuỗi xong trong ≤ 30 phút; mọi tiêu chí đúng đắn của DOC-45 §1.3 đạt; kết quả ghi thành bảng ở mục M3 dưới đây | P3-07 | DOC-45 |
 | P3-09 | Script backup và khôi phục (pg_dump, khôi phục từ raw zone) | Chạy đúng theo DOC-43 | P3-07 | DOC-43 |
+| P3-10 | **Làm sau M6, trước P7-00** (DR-95). Đợt chạy đầy đủ: đủ số lần lặp (EXP-01 ≥ 30 lần mỗi biến thể, các EXP khác ≥ 10 lần mỗi mức), cả hai loạt của EXP-05, trên máy thực nghiệm (DOC-45 §1.2, DR-94); lệnh `archive` và `fetch`; phân tích và vẽ biểu đồ | Bảng kết quả cùng biểu đồ trong `experiments/results/` và ghi vào DOC-45; file nặng của mọi chuỗi có trên release `exp-results` (DOC-45 §7.1); `archive` rồi `fetch` một chuỗi khớp SHA-256. EXP-01…04 đạt kỳ vọng; EXP-05 xác định được ngưỡng tải đáp ứng NFR-03 | P3-07, M6 | DOC-45 |
 
-**Tiêu chí thoát (M3):** EXP-01…04 đạt kỳ vọng (mất = 0, trùng = 0, 100% record hợp lệ được nạp, replay khớp checksum). EXP-05 xác định được ngưỡng tải đáp ứng NFR-03. Dashboard và alert hoạt động.
+**Tiêu chí thoát (M3):** chuỗi smoke (P3-08) đạt: EXP-01…04 không mất, không trùng, 100% record hợp lệ được nạp, replay khớp checksum; EXP-05 chạy hết các bậc và không mất dữ liệu. Dashboard và alert hoạt động. P3-10 không thuộc M3 (DR-95).
 
 ---
 
@@ -542,9 +546,9 @@ Những chỗ lệch tài liệu khi hết P2 được ghi ở DR-90 (claim trư
 | P4-14 | Metric `end_to_end_latency_seconds` tại điểm emit | Có trên Grafana | P4-13 | DOC-28 |
 | P4-15 | Xuất `openapi.json` khi build, check `openapi-diff` trong CI | CI chặn được breaking change | P4-10…12 | DOC-41 |
 | P4-16 | Đưa `api` và `keycloak` vào compose | `make up` → curl được các endpoint | P4-09 | DOC-39 |
-| P4-17 | Tính lại analytics: `AnalyticsRecomputeService` (`plan`/`execute`), step `recomputeAnalytics` của `RawZoneReplayJob`, `AnalyticsRecomputeJob` | Bảng test AN-R của DOC-23; EXP-04 C5 đạt (hoặc `not_applicable` có lý do) | P4-03, 04, P2-16 | DOC-23, 22 |
+| P4-17 | Tính lại analytics: `AnalyticsRecomputeService` (`plan`/`execute`), step `recomputeAnalytics` của `RawZoneReplayJob`, `AnalyticsRecomputeJob` | Bảng test AN-R của DOC-23; EXP-04 C5 (hoặc `not_applicable` có lý do) kiểm ở P3-10, vì chuỗi smoke không so sánh bảng insight (DR-95) | P4-03, 04, P2-16 | DOC-23, 22 |
 
-**Tiêu chí thoát (M4):** mọi endpoint trả dữ liệu thật từ simulator. Dùng `curl -N /stream` thấy sự kiện. Mọi analytics chạy lại đều ra cùng kết quả.
+**Tiêu chí thoát (M4):** mọi endpoint trả dữ liệu thật từ simulator. Dùng `curl -N /stream` thấy sự kiện. Mọi analytics chạy lại đều ra cùng kết quả. Chuỗi smoke `pti-exp smoke` vẫn đạt (DR-95).
 
 ---
 
@@ -591,7 +595,7 @@ Những chỗ lệch tài liệu khi hết P2 được ghi ở DR-90 (claim trư
 | P6-10 | Test chặn PII cho prompt builder | Test pass | P6-01 | DOC-24 |
 | P6-11 | (Tùy chọn) EXP-06: gán nhãn tay tập mẫu (CSV), script đánh giá (precision theo ngưỡng, calibration, độ trễ, chi phí), so sánh với bộ luật | Báo cáo trong DOC-45 | P6-02…07 | DOC-45 |
 
-**Tiêu chí thoát (M6):** bước 2–4 của kịch bản demo có đủ phần AI; chạy được với cả `jev` và `fake`.
+**Tiêu chí thoát (M6):** bước 2–4 của kịch bản demo có đủ phần AI; chạy được với cả `jev` và `fake`. Chuỗi smoke `pti-exp smoke` vẫn đạt khi bật triage và auto-replay (DR-95).
 
 ---
 
@@ -599,7 +603,7 @@ Những chỗ lệch tài liệu khi hết P2 được ghi ở DR-90 (claim trư
 
 | ID | Việc | Đầu ra và nghiệm thu | Phụ thuộc | Tài liệu |
 | --- | --- | --- | --- | --- |
-| P7-00 | Doc gate: DOC-40, EXP-07, EXP-08; ADR 0028 — **Approved 2026-09-28** | Approved | M3 | — |
+| P7-00 | Doc gate: DOC-40, EXP-07, EXP-08; ADR 0028 — **Approved 2026-09-28** | Approved | M3, P3-10 | — |
 | P7-01 | `deploy/k3d/cluster.yaml` (số node, registry cục bộ, port mapping) cùng script tạo và xóa cluster | `make k8s-up` | P7-00 | DOC-40 |
 | P7-02 | `helmfile` cho operators: Strimzi, CNPG, KEDA, Chaos Mesh, Sealed Secrets, kube-prometheus-stack | Mọi operator ở trạng thái Ready | P7-01 | DOC-40 |
 | P7-03 | CR hạ tầng: `Kafka` (KRaft node pools, 3 broker), `KafkaTopic`, `KafkaConnect` (build plugin), `KafkaConnector`; CNPG `Cluster` cho warehouse (1+1) cùng `Pooler` (PgBouncer) và managed roles; ticketing (1); SeaweedFS (StatefulSet một container như compose, ADR-0028) | Hạ tầng Ready; connector RUNNING | P7-02 | DOC-40 |

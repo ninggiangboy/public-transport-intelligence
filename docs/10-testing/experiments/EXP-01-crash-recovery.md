@@ -1,10 +1,10 @@
 # EXP-01: Kill consumer giữa chừng, phục hồi không mất và không trùng
 
-> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-45 / EXP-01
+> Trạng thái: **Approved** · Cập nhật: 2026-09-29 (DR-95) · DOC-45 / EXP-01
 >
 > Phụ thuộc: [protocol chung](README.md), DOC-19 §8 (`FaultPoint`), DOC-20 §3, §5, §9, §10, DOC-39 §3.6 (Toxiproxy), ADR-0003, ADR-0004, DR-27, DR-28
 >
-> Người dùng chính: P3-06, P3-08; báo cáo chương đánh giá
+> Người dùng chính: P3-06, P3-08 (smoke), P3-10; báo cáo chương đánh giá
 
 ## 1. Giả thuyết
 
@@ -136,7 +136,7 @@ Ngoài README §8:
 
 ## 11. Kết quả
 
-Điền sau P3-08 (`pti-exp report`).
+Điền sau P3-10 (`pti-exp report`). Kết quả chuỗi smoke (DR-95) không ghi vào đây.
 
 ## 12. Câu hỏi còn mở
 

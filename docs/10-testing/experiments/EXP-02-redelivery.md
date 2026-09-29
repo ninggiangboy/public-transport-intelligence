@@ -1,10 +1,10 @@
 # EXP-02: Gửi lại message không tạo bản ghi trùng
 
-> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-45 / EXP-02
+> Trạng thái: **Approved** · Cập nhật: 2026-09-29 (DR-95) · DOC-45 / EXP-02
 >
 > Phụ thuộc: [protocol chung](README.md), DOC-14 §8 (upsert và guard), DOC-25 §7.5 (kịch bản `duplicates`), DR-16, DR-27, DR-28, ADR-0003
 >
-> Người dùng chính: P3-07, P3-08; báo cáo chương đánh giá
+> Người dùng chính: P3-07, P3-08 (smoke), P3-10; báo cáo chương đánh giá
 
 ## 1. Giả thuyết
 
@@ -119,7 +119,7 @@ H4 được báo cáo, không là tiêu chí đạt. Nếu `baseline_extra_ratio
 
 ## 11. Kết quả
 
-Điền sau P3-08.
+Điền sau P3-10. Kết quả chuỗi smoke (DR-95) không ghi vào đây.
 
 ## 12. Câu hỏi còn mở
 

@@ -1,10 +1,10 @@
 # EXP-03: Record lỗi không làm mất record hợp lệ
 
-> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-45 / EXP-03
+> Trạng thái: **Approved** · Cập nhật: 2026-09-29 (DR-95) · DOC-45 / EXP-03
 >
 > Phụ thuộc: [protocol chung](README.md), DOC-16 §1–2 (stage, rule), DOC-20 §5, DOC-22 §1, DOC-25 §7.4 (kịch bản `bad-data`), ADR-0006, DR-27, DR-69
 >
-> Người dùng chính: P3-07, P3-08; báo cáo chương đánh giá
+> Người dùng chính: P3-07, P3-08 (smoke), P3-10; báo cáo chương đánh giá
 
 ## 1. Giả thuyết
 
@@ -133,7 +133,7 @@ H4 được báo cáo, không là tiêu chí đạt.
 
 ## 11. Kết quả
 
-Điền sau P3-08.
+Điền sau P3-10. Kết quả chuỗi smoke (DR-95) không ghi vào đây.
 
 ## 12. Câu hỏi còn mở
 

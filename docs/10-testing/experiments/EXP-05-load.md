@@ -1,10 +1,10 @@
 # EXP-05: Ngưỡng tải còn đạt NFR-03 trên compose
 
-> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-45 / EXP-05
+> Trạng thái: **Approved** · Cập nhật: 2026-09-29 (DR-95) · DOC-45 / EXP-05
 >
 > Phụ thuộc: [protocol chung](README.md), DOC-10 §2 (ngân sách độ trễ), §3.1 (khối lượng), §5 (tài nguyên), DOC-25 §6.5, §7.8 (`load-ramp`), DOC-28 §3, §5.1, DR-57, DR-68, DR-71
 >
-> Người dùng chính: P3-07, P3-08 (loạt `etl-only`), P4-14 (loạt `end-to-end`); báo cáo chương đánh giá; EXP-07 (so sánh với k3d)
+> Người dùng chính: P3-07, P3-08 (smoke), P3-10 (loạt `etl-only` và `end-to-end`); báo cáo chương đánh giá; EXP-07 (so sánh với k3d)
 
 ## 1. Giả thuyết và câu hỏi
 
@@ -42,12 +42,12 @@ Hai loạt, cùng quy trình, khác chỉ số chính:
 
 | Loạt | Khi nào | Chỉ số độ trễ chính | Ngưỡng |
 | --- | --- | --- | --- |
-| `etl-only` | P3-08 (chưa có API) | p95 `pti_etl_kafka_to_commit_seconds{source=~"GTFS_RT_.*"}` | 3 giây (ngưỡng `LatencyStageSlow` cho chặng 1–2, DOC-10 §2) |
-| `end-to-end` | Sau P4-14 | p95 `pti_end_to_end_latency_seconds{channel="vehicles"}`; báo cáo thêm kênh `alerts` | 10 giây (NFR-03) |
+| `etl-only` | P3-10; bản rút gọn trong chuỗi smoke (README §1.3) | p95 `pti_etl_kafka_to_commit_seconds{source=~"GTFS_RT_.*"}` | 3 giây (ngưỡng `LatencyStageSlow` cho chặng 1–2, DOC-10 §2) |
+| `end-to-end` | P3-10 (cần P4-14) | p95 `pti_end_to_end_latency_seconds{channel="vehicles"}`; báo cáo thêm kênh `alerts` | 10 giây (NFR-03) |
 
 ```bash
 uv run pti-exp run EXP-05 --series etl-only --runs 10 --seed 9000
-uv run pti-exp run EXP-05 --series end-to-end --runs 10 --seed 9100   # after P4-14
+uv run pti-exp run EXP-05 --series end-to-end --runs 10 --seed 9100
 uv run pti-exp analyze EXP-05
 ```
 
@@ -91,7 +91,7 @@ Mỗi bậc đo trên đoạn `[t_step[i] + 60 s, t_step[i+1])` (bỏ 60 giây c
 | C3 | Không mất dữ liệu dưới tải: `lost = 0` với ledger của cả lần chạy (README §4.1), kể cả ở các bậc không đạt độ trễ | cả hai |
 | C4 | Sau khi về ×1, lag về mức ban đầu trong ≤ 10 phút (`drain_seconds`) | cả hai |
 
-Tiêu chí thoát M3 ("EXP-05 xác định được ngưỡng tải") = C1 và C2 của loạt `etl-only`. NFR-03 chính thức = C1 của loạt `end-to-end`.
+Tiêu chí nghiệm thu P3-10 ("EXP-05 xác định được ngưỡng tải") = C1 và C2 của loạt `etl-only` (DR-95; trước đây là tiêu chí thoát M3). Chuỗi smoke chỉ kiểm C3. NFR-03 chính thức = C1 của loạt `end-to-end`.
 
 ## 8. Phân tích
 
@@ -132,7 +132,7 @@ Tiêu chí thoát M3 ("EXP-05 xác định được ngưỡng tải") = C1 và C
 
 ## 11. Kết quả
 
-Loạt `etl-only`: điền sau P3-08. Loạt `end-to-end`: điền sau P4-14.
+Cả hai loạt: điền sau P3-10. Kết quả chuỗi smoke (DR-95) không ghi vào đây.
 
 ## 12. Câu hỏi còn mở
 

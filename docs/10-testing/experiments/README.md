@@ -1,20 +1,22 @@
 # Thực nghiệm: protocol chung
 
-> Trạng thái: **Approved** · Cập nhật: 2026-09-29 (DR-94: máy thực nghiệm, lưu kết quả) · DOC-45 (phần chung, EXP-01…08)
+> Trạng thái: **Approved** · Cập nhật: 2026-09-29 (DR-94: máy thực nghiệm, lưu kết quả; DR-95: chuỗi smoke, đợt chạy đầy đủ dời sang P3-10) · DOC-45 (phần chung, EXP-01…08)
 >
-> Phụ thuộc: DOC-03 (NFR-01…04), DOC-10, DOC-13 §6 (ledger, business key), DOC-14, DOC-20 §9 (baseline), DOC-22, DOC-25 §7–8, DOC-28, DR-27, DR-28, DR-52, DR-57, DR-58, DR-67, DR-68, ADR-0025
+> Phụ thuộc: DOC-03 (NFR-01…04), DOC-10, DOC-13 §6 (ledger, business key), DOC-14, DOC-20 §9 (baseline), DOC-22, DOC-25 §7–8, DOC-28, DR-27, DR-28, DR-52, DR-57, DR-58, DR-67, DR-68, DR-94, DR-95, ADR-0025
 >
-> Người dùng chính: người chạy thực nghiệm (P3-06…08, P6, P7), người viết báo cáo
+> Người dùng chính: người chạy thực nghiệm (P3-06…08, P3-10, P6, P7), người viết báo cáo
 
 Tài liệu này là phần dùng chung cho mọi thực nghiệm: môi trường, runner, cách tính chỉ số, thống kê, định dạng kết quả, các mối đe dọa chung. Mỗi thực nghiệm có một file riêng theo template phụ lục A.6 của master plan.
 
+EXP-01…05 chạy hai bước (DR-95): ở P3 là **chuỗi smoke** khoảng 30 phút trên máy dev (§1.3), để kiểm runner và tính đúng đắn của pipeline; **đợt chạy đầy đủ** (P3-10) theo mọi quy định còn lại của tài liệu này làm sau M6, trước P7. Số liệu trong báo cáo chỉ lấy từ đợt chạy đầy đủ.
+
 | EXP | File | Câu hỏi | NFR | Phase |
 | --- | --- | --- | --- | --- |
-| EXP-01 | [EXP-01-crash-recovery.md](EXP-01-crash-recovery.md) | Kill consumer giữa chunk có làm mất hoặc trùng dữ liệu không, phục hồi mất bao lâu? | NFR-01, NFR-04 | P3 |
-| EXP-02 | [EXP-02-redelivery.md](EXP-02-redelivery.md) | Gửi lại message có tạo bản ghi trùng không? | NFR-01 | P3 |
-| EXP-03 | [EXP-03-fault-isolation.md](EXP-03-fault-isolation.md) | Record lỗi có làm mất record hợp lệ không? | NFR-02 | P3 |
-| EXP-04 | [EXP-04-full-replay.md](EXP-04-full-replay.md) | Dựng lại warehouse từ raw zone có khớp hoàn toàn không? | NFR-01, FR-12.2 | P3 |
-| EXP-05 | [EXP-05-load.md](EXP-05-load.md) | Tới mức tải nào thì vẫn đạt NFR-03? | NFR-03 | P3 |
+| EXP-01 | [EXP-01-crash-recovery.md](EXP-01-crash-recovery.md) | Kill consumer giữa chunk có làm mất hoặc trùng dữ liệu không, phục hồi mất bao lâu? | NFR-01, NFR-04 | P3 (smoke), P3-10 |
+| EXP-02 | [EXP-02-redelivery.md](EXP-02-redelivery.md) | Gửi lại message có tạo bản ghi trùng không? | NFR-01 | P3 (smoke), P3-10 |
+| EXP-03 | [EXP-03-fault-isolation.md](EXP-03-fault-isolation.md) | Record lỗi có làm mất record hợp lệ không? | NFR-02 | P3 (smoke), P3-10 |
+| EXP-04 | [EXP-04-full-replay.md](EXP-04-full-replay.md) | Dựng lại warehouse từ raw zone có khớp hoàn toàn không? | NFR-01, FR-12.2 | P3 (smoke), P3-10 |
+| EXP-05 | [EXP-05-load.md](EXP-05-load.md) | Tới mức tải nào thì vẫn đạt NFR-03? | NFR-03 | P3 (smoke), P3-10 |
 | EXP-06 | [EXP-06-ai-decision-quality.md](EXP-06-ai-decision-quality.md) | Chất lượng quyết định của Jev so với bộ luật; tự động hóa có an toàn không? | G8, FR-09.1 | P6 (tùy chọn) |
 | EXP-07 | [EXP-07-autoscaling.md](EXP-07-autoscaling.md) | Trên k3d, KEDA có giữ NFR-03 tới 10× tải không; scale có đúng và có dừng khi DB là nút thắt không? | NFR-08 | P7 |
 | EXP-08 | [EXP-08-chaos.md](EXP-08-chaos.md) | Mỗi sự cố đơn lẻ (pod, broker, Postgres primary, mạng, Connect, Jev, batch) có làm mất hoặc trùng dữ liệu không, tự phục hồi mất bao lâu? | NFR-09, NFR-04 | P7 |
@@ -23,7 +25,7 @@ Tài liệu này là phần dùng chung cho mọi thực nghiệm: môi trườn
 
 | Mục | Giá trị |
 | --- | --- |
-| Máy | **Máy thực nghiệm** (DR-94, §1.2): một máy cố định, 16 GB RAM, CPU không chia sẻ với khách thuê khác, SSD. Mọi lần chạy chính thức của EXP-01…05 chạy trên cùng một máy. Runner ghi lại CPU, RAM, hệ điều hành, phiên bản Docker vào `config.json` |
+| Máy | Chuỗi smoke: máy dev (§1.3). Đợt chạy đầy đủ: **máy thực nghiệm** (DR-94, §1.2): một máy cố định, 16 GB RAM, CPU không chia sẻ với khách thuê khác, SSD. Mọi lần chạy chính thức của EXP-01…05 chạy trên cùng một máy. Runner ghi lại CPU, RAM, hệ điều hành, phiên bản Docker vào `config.json` |
 | Triển khai | Docker Compose, profile `core` + `experiment` + `observability` (`make up-exp`, DOC-38 §4). Riêng EXP-05 chạy `core` + `observability`, không có `experiment` (EXP-05 §4). EXP-07 và EXP-08 chạy trên k3d `lite` (DOC-40), mô tả ở §4 của từng file |
 | Phiên bản | Image build từ một commit sạch (`git status` rỗng); runner từ chối chạy nếu cây làm việc bẩn, trừ khi có `--allow-dirty` (khi đó kết quả bị gắn cờ `dirty` và không được dùng trong báo cáo) |
 | Dữ liệu | Feed `metrotransit-mn-20260926.zip` (SHA-256 ở DOC-13 §2.1); `pti.sim.seed = 42` trừ khi thực nghiệm đổi seed theo lần chạy |
@@ -57,6 +59,42 @@ Chạy dài ngày không cần người trông:
 - Runner chạy trong `tmux` (hoặc `nohup`) để mất kết nối SSH không dừng chuỗi.
 - Mỗi lần chạy ghi đủ thư mục kết quả ngay khi xong. Chuỗi bị ngắt giữa chừng (máy restart, runner lỗi) thì chạy lại cùng lệnh với `--resume`: runner bỏ qua các `run_id` đã có `summary.json` và tiếp tục từ lần chạy kế tiếp. Lần chạy dang dở (có thư mục nhưng thiếu `summary.json`) bị đánh dấu `invalid` với lý do `interrupted`, theo §6.
 - Đồng hồ nghiệp vụ vẫn theo §1.1: `--resume` không bao giờ lùi `PTI_CLOCK_OFFSET`.
+
+### 1.3 Chuỗi smoke (DR-95)
+
+`uv run pti-exp smoke` chạy nối tiếp năm lần chạy rút gọn trên cùng một stack, không nghỉ giữa các lần. Mục tiêu tổng thời gian ≤ 30 phút, không tính `make up-exp` và `make smoke`. Mỗi runner dùng đúng code của đợt chạy đầy đủ, chỉ khác bộ tham số (`--profile smoke`).
+
+| Thứ tự | EXP | Tham số smoke (khác với bản đầy đủ) | Thời gian |
+| --- | --- | --- | --- |
+| 1 | EXP-03 | Chỉ mức `ratio` 0,05, không có lần đối chứng; kịch bản `bad-data` `PT3M` thay `PT15M` | ≈ 4,5 phút |
+| 2 | EXP-02 | Chỉ biến thể `short`, `ratio` 0,10; kịch bản `PT3M` thay 10 phút | ≈ 5 phút |
+| 3 | EXP-01 | Chỉ biến thể `kill-external`; cửa sổ 240 giây thay 600 giây, thời điểm kill `U(60, 180)` giây | ≈ 6 phút |
+| 4 | EXP-05 | Loạt `etl-only`; trước khi bắt đầu `docker stop` `etl-stream-baseline`; bậc `[1, 3, 5, 10]`, mỗi bậc `PT90S`; drain tối đa 3 phút | ≈ 8,5 phút |
+| 5 | EXP-04 | Không `make reset` và không pha tải 30 phút riêng; xem dưới bảng. Không có rebuild-2 | ≈ 5 phút |
+
+- Mọi lần chạy chờ ổn định 30 giây thay cho 60 giây (hoặc 3 phút ở EXP-05), và không có 5 phút ấm máy ở đầu chuỗi.
+- **Đồng hồ nghiệp vụ:** lúc bắt đầu chuỗi, giờ nghiệp vụ phải nằm trong 15:15–17:00 CDT ngày thường, để EXP-05 bắt đầu quanh 15:30 với ≥ 500 xe. Nếu không, runner tăng `PTI_CLOCK_OFFSET` tới 15:15 của ngày thường kế tiếp (§1.1, không lùi).
+- **EXP-04 trong chuỗi** dựng lại cửa sổ dữ liệu của EXP-03 và EXP-02 vừa chạy. Cửa sổ này có sẵn dữ liệu lỗi và bản gửi lại, thay cho nhiễu có chủ đích của EXP-04 §2. Cửa sổ là `[t0 của EXP-03 − 1 phút, t1 của EXP-02 + 1 phút]` theo giờ record Kafka. Khi EXP-04 bắt đầu, cửa sổ đã cũ hơn 10 phút nhờ EXP-01 và EXP-05 chạy xen giữa, nên thỏa `raw-settle` (DR-70) mà không phải đổi cấu hình. Các bước:
+  1. `docker stop` source-simulator và drain.
+  2. Chụp trạng thái của cửa sổ: tập key kỳ vọng theo §3, kèm toàn bộ giá trị cột như checksum ở §4.5, cùng tập dead letter theo vị trí Kafka.
+  3. `make reset-warehouse`, nạp feed từ raw zone như bước 6 của EXP-04.
+  4. Replay bốn nguồn trên cửa sổ, theo thứ tự ở bước 7 của EXP-04.
+  5. So sánh với trạng thái đã chụp.
+
+  Chỉ so sánh bảng fact và dead letter giới hạn trong cửa sổ. `vehicle_position_latest` và các dimension không được so sánh, vì trước khi xóa chúng đã chứa dữ liệu của EXP-01 và EXP-05.
+- **Tiêu chí đạt của chuỗi** (mọi tiêu chí đều bắt buộc):
+
+  | EXP | Tiêu chí |
+  | --- | --- |
+  | EXP-03 | C1–C5 |
+  | EXP-02 | C1, C2, C4, C5 |
+  | EXP-01 | C1, C2 |
+  | EXP-05 | C3 |
+  | EXP-04 | C1 (giới hạn như trên), C2, C4 |
+
+  Các số đo khác đều được ghi vào `summary.json` nhưng không dùng để kết luận, vì mỗi số đo chỉ có một lần chạy: `recovery_seconds`, `commit_p95` theo bậc, `drain_seconds`, H3 của baseline, `replay_throughput`. Nếu một lần chạy `invalid` theo tiêu chí của EXP đó thì cả chuỗi phải chạy lại.
+- **Môi trường:** máy dev với profile `core` + `experiment`. Profile `observability` bật nếu Docker còn đủ RAM. Nếu không có Alertmanager, runner bỏ qua bước silence và không có danh sách alert đã phát. Trong EXP-05, `etl-stream` vẫn đi qua Toxiproxy của profile `experiment`; đây là khác biệt so với EXP-05 §4, chấp nhận được vì ngưỡng tải của smoke không dùng để kết luận.
+- **Kết quả** ghi vào `experiments/results/smoke/<series>/<EXP>/`, cùng cấu trúc với §7. Thư mục này bị git-ignore, không archive và không đi vào `pti-exp report`. Kết quả của lần chạy dùng để chốt milestone được tóm tắt thành bảng trong master plan (M3, và chạy lại ở M4, M6).
 
 ## 2. Runner (`experiments/`, ADR-0025)
 
@@ -93,6 +131,7 @@ Lệnh:
 
 ```bash
 uv run pti-exp env check                      # clean tree, stack healthy, clock window, disk space
+uv run pti-exp smoke                          # 30-minute smoke chain of EXP-01…05 (§1.3)
 uv run pti-exp run EXP-01 --runs 30 --seed 1000 --variant kill-external [--resume]
 uv run pti-exp analyze EXP-01 --series 2026-10-12T0930
 uv run pti-exp report                         # regenerates tables and charts for DOC-45
@@ -270,7 +309,7 @@ WHERE event_timestamp >= :from AND event_timestamp < :to;
 | Nhiều mức (EXP-03: 1/5/20%, EXP-05: các bậc tải) | Bảng theo mức; biểu đồ hộp; không gộp các mức |
 
 - Không loại lần chạy ra khỏi phân tích, trừ lần chạy `invalid` theo tiêu chí viết trước trong từng EXP (drain thất bại, simulator tụt hậu `pti_sim_tick_lag_seconds > 2`, hạ tầng ngoài phạm vi lỗi, cây làm việc bẩn). Lần chạy `invalid` vẫn được liệt kê kèm lý do và được thay bằng lần chạy mới.
-- Số lần lặp tối thiểu: EXP-01 30 lần mỗi biến thể; EXP-02…05 10 lần mỗi mức (P3-08). EXP-06, EXP-07, EXP-08 ghi số lần chạy riêng trong file của từng thực nghiệm (mỗi lần chạy dài hơn hoặc là một tập mẫu, không phải lần lặp).
+- Số lần lặp tối thiểu: EXP-01 30 lần mỗi biến thể; EXP-02…05 10 lần mỗi mức (đợt chạy đầy đủ P3-10; chuỗi smoke ở §1.3 không theo mục này). EXP-06, EXP-07, EXP-08 ghi số lần chạy riêng trong file của từng thực nghiệm (mỗi lần chạy dài hơn hoặc là một tập mẫu, không phải lần lặp).
 
 ## 7. Kết quả
 

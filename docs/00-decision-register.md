@@ -53,6 +53,7 @@ Tài liệu gốc mô tả tốt *cái gì* và *vì sao*, nhưng còn nhiều c
 | 2026-09-28 | Claude (Owner ủy quyền) | **S3 sink OOM khi chạy live (P1-14):** Aiven 3.4.3 cắt file mỗi 10 giây trên mỗi partition và giữ buffer của writer tới lần commit, nên với commit 5 phút task chết sau vài phút có traffic. Giữ 3.4.3; `aws.s3.part.size.bytes` = 1 MiB, worker commit mỗi 30 giây. Số object raw zone tăng khoảng 15 lần; replay (P3) phải xem lại `pti.replay.max-objects` | DR-89 (mới), sửa DR-81, ADR-0012, DOC-09 §7, DOC-39 §3.4, DOC-40, DOC-22 §4.3 |
 | 2026-09-29 | Claude (Owner ủy quyền) | **Phase 2 xong:** claim yêu cầu job/replay commit trước khi gọi `JobOperator`; replay raw zone liệt kê object theo giờ thay vì lưu danh sách (đóng mục mở của DR-89); hoãn DQ-27 sang P3; các chi tiết nhỏ khác | DR-90, DR-91, DR-92, DR-93 (mới) |
 | 2026-09-29 | Owner | **Máy thực nghiệm và lưu kết quả:** thực nghiệm chính thức chạy trên một máy riêng cố định 16 GB (không gắn với máy cụ thể), không chạy trên máy dev hay GitHub Actions; file kết quả nhỏ commit vào git, file lớn gói theo chuỗi lên GitHub Release `exp-results` | DR-94 (mới) |
+| 2026-09-29 | Owner | **Thực nghiệm hai bước:** P3 viết đủ runner và chạy một chuỗi smoke ≤ 30 phút (mỗi EXP-01…05 một lần chạy rút gọn) trên máy dev; đợt chạy đầy đủ trên máy thực nghiệm dời thành P3-10, làm sau M6 và trước P7. Chuỗi smoke chạy lại khi chốt M4 và M6 | DR-95 (mới), master plan P3, DOC-45 |
 
 ---
 
@@ -699,6 +700,19 @@ Tài liệu gốc mô tả tốt *cái gì* và *vì sao*, nhưng còn nhiều c
   2. Kết quả chia hai nhóm. File nhẹ (`config.json`, `summary.json`, `keys_diff.csv.gz`, manifest lưu trữ, `results/report/`) commit vào git. File nặng (`timeseries.csv.gz`, `ledger.csv.gz`, biểu đồ của từng lần chạy) gói thành một file cho mỗi chuỗi (`pti-exp archive`) và đính vào GitHub Release `exp-results`, kèm manifest có SHA-256 trong git; `pti-exp fetch` tải lại và kiểm tra. `pti-exp report` chỉ cần file nhẹ.
   3. Commit kết quả sau khi chuỗi kết thúc, trong một commit chỉ chạm `experiments/results/`; kiểm tra cây làm việc sạch của runner bỏ qua thư mục kết quả.
 - **Ghi vào:** DOC-45 §1, §1.2, §2, §7, §7.1, §8; EXP-05 §4; EXP-06; ADR-0025; master plan P3-06, P3-08.
+
+### DR-95 · Chuỗi smoke 30 phút ở P3, đợt chạy đầy đủ dời sau M6 — **Chốt** (P3)
+- **Vấn đề:** Đợt chạy đầy đủ EXP-01…05 (≈ 150 lần chạy, khoảng 60 giờ máy, DR-94) cần máy thực nghiệm riêng và chặn P4 thêm vài tuần, trong khi P4–P6 không phụ thuộc số liệu thực nghiệm; chỉ P7 (EXP-07/08 dùng lại runner) và báo cáo cần. Nếu dời hết thực nghiệm thì lỗi mất hoặc trùng dữ liệu chỉ lộ ra sau khi P4–P6 đã dựng trên ETL (kiểm tra tay ở M2 đã lộ một lỗi như vậy, `f25585b`), và runner chưa được thử trên stack thật.
+- **Phương án đã cân nhắc:** (1) giữ nguyên P3-08: chậm P4 vài tuần; (2) dời toàn bộ P3-06…09: không có kiểm tra đúng đắn tự động nào tới cuối dự án; (3) viết đủ runner ngay, chạy một chuỗi rút gọn, dời đợt chạy đầy đủ.
+- **Quyết định:** phương án 3.
+  1. P3 viết đủ runner EXP-01…05 (P3-06, P3-07), thêm profile tham số `smoke` và lệnh `pti-exp smoke` chạy **một chuỗi ≤ 30 phút** trên máy dev: mỗi EXP một lần chạy rút gọn, nối tiếp trên cùng stack, thứ tự EXP-03 → EXP-02 → EXP-01 → EXP-05 → EXP-04. Tham số ở DOC-45 §1.3.
+  2. EXP-04 trong chuỗi không `make reset` và không phát tải riêng 30 phút: nó dựng lại cửa sổ dữ liệu của EXP-03 và EXP-02 vừa chạy (có sẵn dữ liệu lỗi và bản gửi lại), sau `make reset-warehouse`. Thứ tự trên để cửa sổ đó đã cũ hơn 10 phút khi replay, đúng ràng buộc `raw-settle` của DR-70 mà không cần đổi cấu hình.
+  3. Chuỗi smoke kiểm các tiêu chí đúng đắn có tính nhị phân (mất, trùng, sai giá trị, DLQ nhầm, checksum khớp) và phải đạt; các tiêu chí thống kê (p95 kèm CI, tỷ lệ lần chạy, ngưỡng tải của EXP-05, H3) chỉ ghi lại, không kết luận. Kết quả smoke không vào báo cáo và không commit (`experiments/results/smoke/` bị git-ignore); kết quả lần chạy chốt M3 ghi thành bảng trong master plan như M1, M2.
+  4. Đợt chạy đầy đủ theo DOC-45 (số lần lặp §6, máy thực nghiệm DR-94, `archive`/`fetch`, `report`) thành việc P3-10, làm **sau M6 và trước P7-00**. Khi đó hệ thống được đo đã có analytics (P4) và triage (P6); `config.json` ghi commit nên báo cáo nói rõ phiên bản được đo. Loạt `etl-only` và `end-to-end` của EXP-05 chạy cùng đợt.
+  5. Chuỗi smoke chạy lại ở tiêu chí thoát M4 và M6 để bắt hồi quy của các thay đổi trong đường ETL (analytics sau commit, auto-replay).
+  6. `archive` và `fetch` chuyển từ P3-06 sang P3-10, vì chỉ đợt chạy đầy đủ cần.
+- **Hệ quả:** M3 không còn "có số liệu EXP-01…05"; tiêu chí "EXP-05 xác định được ngưỡng tải" chuyển sang P3-10. P7-00 phụ thuộc thêm P3-10. EXP-04 C5 của P4-17 (bảng insight) chỉ kiểm ở P3-10, vì chuỗi smoke không so sánh bảng insight. DQ-27 (DR-92) vẫn làm ở P3 cùng runner EXP-04.
+- **Ghi vào:** master plan §4.1, §4.2, §4.3, P3, P4-17, M4, M6, P7-00; DOC-45 (README §1, §1.3, §2, §6, §7; EXP-01…05 phần đầu và mục "Kết quả"); README gốc (Roadmap).
 
 ---
 
