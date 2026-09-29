@@ -285,6 +285,56 @@ services:
     mem_limit: 512m
     cpus: 1.0
 
+  etl-stream:
+    <<: *spring-app
+    profiles: [core]
+    image: ghcr.io/${GHCR_OWNER:-ninggiangboy}/pti-etl:${PTI_IMAGE_TAG:-local}
+    depends_on:
+      kafka-init: { condition: service_completed_successfully }
+      db-migrate: { condition: service_completed_successfully }
+    environment:
+      <<: *spring-env
+      SPRING_PROFILES_ACTIVE: stream${PTI_ETL_EXTRA_PROFILES:-}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://${PTI_WAREHOUSE_HOST:-pg-warehouse}:5432/pti_warehouse
+      ETL_WRITER_PASSWORD: ${ETL_WRITER_PASSWORD:?run make secrets}
+      PTI_DQ_MAX_CLOCK_SKEW: ${PTI_DQ_MAX_CLOCK_SKEW:-1h}
+    healthcheck:
+      test: ["CMD", "bash", "-c",
+        "exec 3<>/dev/tcp/127.0.0.1/9080 && printf 'GET /actuator/health/readiness HTTP/1.0\\r\\n\\r\\n' >&3 && grep -q '\"status\":\"UP\"' <&3"]
+      interval: 10s
+      timeout: 3s
+      retries: 12
+      # Readiness waits for the first ACTIVE feed, which etl-batch loads on the first start (DOC-21 §1).
+      start_period: 180s
+    ports: ["127.0.0.1:9082:9080"]
+    mem_limit: 768m
+    cpus: 2.0
+
+  etl-batch:
+    <<: *spring-app
+    profiles: [core]
+    image: ghcr.io/${GHCR_OWNER:-ninggiangboy}/pti-etl:${PTI_IMAGE_TAG:-local}
+    depends_on:
+      kafka-init: { condition: service_completed_successfully }
+      db-migrate: { condition: service_completed_successfully }
+      s3-init: { condition: service_completed_successfully }
+    environment:
+      <<: *spring-env
+      SPRING_PROFILES_ACTIVE: batch
+      SPRING_DATASOURCE_URL: jdbc:postgresql://pg-warehouse:5432/pti_warehouse
+      ETL_WRITER_PASSWORD: ${ETL_WRITER_PASSWORD:?run make secrets}
+      PTI_S3_ENDPOINT: http://seaweedfs:8333
+      PTI_S3_ACCESS_KEY: ${S3_ETL_ACCESS_KEY:?run make secrets}
+      PTI_S3_SECRET_KEY: ${S3_ETL_SECRET_KEY:?run make secrets}
+      SPRING_CLOUD_AWS_S3_PATH_STYLE_ACCESS_ENABLED: "true"
+      SPRING_CLOUD_AWS_REGION_STATIC: us-east-1
+      PTI_GTFS_BOOTSTRAP_LOCATION: file:/feed/metrotransit-mn-20260926.zip
+    volumes:
+      - ../../sample-data/gtfs:/feed:ro
+    ports: ["127.0.0.1:9083:9080"]
+    mem_limit: 640m
+    cpus: 1.0
+
 volumes:
   pg-warehouse-data:
   pg-source-data:
