@@ -1,0 +1,4 @@
+# etl-batch (DOC-19, DOC-21, DOC-22): Spring Batch jobs, pollers and schedules.
+spring:
+  application:
+    name: etl-batch

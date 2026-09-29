@@ -1,0 +1,196 @@
+# etl (DOC-19, DOC-20, DOC-21, DOC-22, DOC-29). Run with profile `stream` (etl-stream) or `batch` (etl-batch).
+# Secrets and hosts come from the environment (DOC-39).
+spring:
+  application:
+    name: etl
+  main:
+    banner-mode: off
+  threads:
+    virtual:
+      enabled: false
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
+  datasource:
+    url: jdbc:postgresql://localhost:5432/pti_warehouse
+    username: etl_writer
+    password: ${ETL_WRITER_PASSWORD:}
+    hikari:
+      pool-name: warehouse
+      maximum-pool-size: 6
+      # Session-level state stays off so a transaction-mode PgBouncer (CNPG pooler, P7) works: no server-side
+      # prepared statements across transactions.
+      data-source-properties:
+        prepareThreshold: 0
+        ApplicationName: ${spring.application.name}
+  batch:
+    job:
+      enabled: false
+    jdbc:
+      table-prefix: batch.BATCH_
+      initialize-schema: never
+      isolation-level-for-create: read_committed
+  kafka:
+    bootstrap-servers: localhost:9092
+    listener:
+      observation-enabled: true
+    template:
+      observation-enabled: true
+  cloud:
+    aws:
+      region:
+        static: us-east-1
+      credentials:
+        access-key: ${PTI_S3_ACCESS_KEY:none}
+        secret-key: ${PTI_S3_SECRET_KEY:none}
+      s3:
+        endpoint: ${PTI_S3_ENDPOINT:http://localhost:8333}
+        path-style-access-enabled: true
+
+server:
+  port: 8080
+  shutdown: graceful
+
+management:
+  server:
+    port: 9080
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      group:
+        sources:
+          show-components: always
+          show-details: never
+  metrics:
+    tags:
+      application: ${spring.application.name}
+  tracing:
+    enabled: ${PTI_TRACING_ENABLED:false}
+
+logging:
+  structured:
+    format:
+      console: ecs
+
+pti:
+  clock:
+    offset: 0s
+  kafka:
+    topic-prefix: ""
+  s3:
+    bucket: raw
+    raw-prefix: ""
+  pii:
+    blocklist: [customer_ref]
+  etl:
+    consumer:
+      max-poll-records: 500
+      fetch-max-wait: 1s
+      fetch-min-bytes: 65536
+    retry:
+      initial-interval: 1s
+      multiplier: 2.0
+      max-interval: 30s
+      max-attempts: 5
+      max-elapsed: 60s
+    reference:
+      refresh-interval: 30s
+      extra-days: 3
+    health:
+      freshness: 30s
+      connect-url: http://kafka-connect:8083
+    known-key-cache:
+      max-size: 20000
+    batch:
+      chunk-size: 500
+      max-skip-ratio: 0.2
+      skip-min-sample: 100
+    dedup:
+      enabled: true
+      ttl: 1h
+    baseline:
+      offset-commit: manual
+      error-mode: skip
+      write-mode: upsert
+      dedup: "on"
+  batch:
+    stale-after: 2m
+    executor:
+      core-size: 2
+      max-size: 3
+      queue-capacity: 20
+    poller:
+      interval: 5s
+    schedule:
+      partition-maintenance: "0 15 1 * * *"
+      ops-retention: "0 0 2 * * *"
+      batch-metadata-cleanup: "0 30 2 * * *"
+      dedup-registry-cleanup: "0 */15 * * * *"
+      data-quality: "0 */5 * * * *"
+  gtfs:
+    bootstrap-location: ""
+    static:
+      source: ""
+      cron: "0 30 3 * * *"
+      zone: America/Chicago
+      allowed-dirs: [/feed]
+      allow-http: false
+      expected-sha256: ""
+      work-dir: /tmp/pti-gtfs
+      max-uncompressed-size: 1GB
+      max-entries: 100
+      max-row-errors: 10000
+      report-samples: 20
+      keep-versions: 3
+      rejected-retention: 7d
+  replay:
+    raw-settle: 10m
+    raw-max-age: 29d
+    max-window: 7d
+    max-objects: 100000
+    chunk-size: 500
+    poller:
+      interval: 5s
+      max-claims: 10
+  dlq:
+    max-payload-bytes: 1MB
+  dq:
+    max-clock-skew: 1h
+    max-delay: 2h
+    bbox-margin: 0.1
+    max-ticket-amount: 500.00
+    refund-grace: 5m
+    post-write:
+      enabled: true
+      statement-timeout: 30s
+  retention:
+    vehicle-position: 14d
+    trip-update: 90d
+    ticket-sales: 365d
+    etl-stream-batch: 7d
+    dead-letter-resolved: 30d
+    replay-request: 30d
+    job-request: 30d
+    dq-check-result: 30d
+    alert-event: 90d
+    batch-metadata: 30d
+  partition:
+    precreate-days: 7
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      warehouse:
+        sliding-window-type: COUNT_BASED
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 10s
+        permitted-number-of-calls-in-half-open-state: 2
+        automatic-transition-from-open-to-half-open-enabled: true
+        record-exceptions:
+          - dev.pti.common.error.TransientInfraException

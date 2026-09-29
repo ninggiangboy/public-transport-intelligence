@@ -1,0 +1,13 @@
+# etl-stream (DOC-20): Kafka listeners, no scheduled jobs.
+spring:
+  application:
+    name: etl-stream
+
+management:
+  endpoint:
+    health:
+      group:
+        readiness:
+          include: readinessState,referenceData
+        sources:
+          include: warehouse-db,source-gtfs-rt,source-ticketing

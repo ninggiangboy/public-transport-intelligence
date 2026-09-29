@@ -18,6 +18,7 @@ fun version(alias: String) = libs.findVersion(alias).get().requiredVersion
 
 val pti = extensions.create<PtiExtension>("pti")
 pti.unitLineCoverage.convention(0.0)
+pti.coverageExcludes.convention(emptyList())
 
 java {
     toolchain {
@@ -125,12 +126,12 @@ tasks.jacocoTestReport {
         xml.required = true
         html.required = true
     }
-    classDirectories.setFrom(sourceSets.main.map { it.output.classesDirs.asFileTree.matching { exclude(coverageExcludes) } })
+    classDirectories.setFrom(sourceSets.main.map { it.output.classesDirs.asFileTree.matching { exclude(coverageExcludes + pti.coverageExcludes.get()) } })
 }
 
 tasks.jacocoTestCoverageVerification {
     dependsOn(tasks.test)
-    classDirectories.setFrom(sourceSets.main.map { it.output.classesDirs.asFileTree.matching { exclude(coverageExcludes) } })
+    classDirectories.setFrom(sourceSets.main.map { it.output.classesDirs.asFileTree.matching { exclude(coverageExcludes + pti.coverageExcludes.get()) } })
     violationRules {
         rule {
             limit {
