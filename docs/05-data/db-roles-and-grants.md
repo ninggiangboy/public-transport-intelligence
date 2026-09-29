@@ -138,7 +138,7 @@ Ký hiệu: S = SELECT, I = INSERT, U = UPDATE, D = DELETE, T = TRUNCATE, X = EX
 | `ops.etl_stream_batch`, `etl_batch_step`, `etl_checkpoint`, `dq_check_result` | SIUD | `etl_stream_batch`, `dq_check_result`: S | `etl_stream_batch`, `dq_check_result`: S | | S |
 | `ops.shedlock` | SIUD | SIUD | | | S |
 | `ops.dedup_registry` | SIUD | | | | |
-| `ops.dead_letter` | S I D, U(status, stage, error_class, error_message, replay_count, last_replay_at, updated_at) | S, U(status, category, category_confidence, severity, severity_confidence, model_version, triaged_at, triage_attempts, triage_lease_until, auto_replay_count, updated_at) | S | S, U(status, edited_payload, resolved_by, resolved_at, updated_at) | S |
+| `ops.dead_letter` | S I D, U(status, stage, error_class, error_message, rule_id, batch_id, replay_count, last_replay_at, triage_lease_until, resolved_by, resolved_at, updated_at) | S, U(status, category, category_confidence, severity, severity_confidence, model_version, triaged_at, triage_attempts, triage_lease_until, auto_replay_count, updated_at) | S | S, U(status, edited_payload, resolved_by, resolved_at, updated_at) | S |
 | `ops.dlq_action_log` | S I D | S I | S | S I | S |
 | `ops.replay_request` | S D, U(status, job_execution_id, started_at, finished_at, stats, message) | S I | S | S I | S |
 | `ops.job_request` | S D, U(status, job_execution_id, started_at, finished_at, message) | | S | S I | S |
@@ -226,8 +226,9 @@ GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA batch TO etl_writer;
 GRANT SELECT, INSERT, UPDATE, DELETE ON ops.etl_stream_batch, ops.etl_batch_step, ops.etl_checkpoint,
                                         ops.shedlock, ops.dedup_registry, ops.dq_check_result TO etl_writer;
 GRANT SELECT, INSERT, DELETE ON ops.dead_letter TO etl_writer;                    -- DELETE: retention job
-GRANT UPDATE (status, stage, error_class, error_message, replay_count, last_replay_at, updated_at)
-  ON ops.dead_letter TO etl_writer;
+GRANT UPDATE (status, stage, error_class, error_message, rule_id, batch_id, replay_count, last_replay_at,
+              triage_lease_until, resolved_by, resolved_at, updated_at)
+  ON ops.dead_letter TO etl_writer;                                               -- replay upsert, DlqResolveWriter (DOC-22)
 GRANT SELECT, INSERT, DELETE ON ops.dlq_action_log TO etl_writer;
 GRANT SELECT, DELETE ON ops.replay_request, ops.job_request TO etl_writer;
 GRANT UPDATE (status, job_execution_id, started_at, finished_at, stats, message) ON ops.replay_request TO etl_writer;

@@ -30,8 +30,9 @@ GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA batch TO etl_writer;
 GRANT SELECT, INSERT, UPDATE, DELETE ON ops.etl_stream_batch, ops.etl_batch_step, ops.etl_checkpoint,
                                         ops.shedlock, ops.dedup_registry, ops.dq_check_result TO etl_writer;
 GRANT SELECT, INSERT, DELETE ON ops.dead_letter TO etl_writer;                    -- DELETE: retention job
-GRANT UPDATE (status, stage, error_class, error_message, replay_count, last_replay_at, updated_at)
-  ON ops.dead_letter TO etl_writer;
+GRANT UPDATE (status, stage, error_class, error_message, rule_id, batch_id, replay_count, last_replay_at,
+              triage_lease_until, resolved_by, resolved_at, updated_at)
+  ON ops.dead_letter TO etl_writer;                                               -- replay upsert, DlqResolveWriter (DOC-22)
 GRANT SELECT, INSERT, DELETE ON ops.dlq_action_log TO etl_writer;
 GRANT SELECT, DELETE ON ops.replay_request, ops.job_request TO etl_writer;
 GRANT UPDATE (status, job_execution_id, started_at, finished_at, stats, message) ON ops.replay_request TO etl_writer;
