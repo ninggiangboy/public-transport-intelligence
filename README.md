@@ -8,7 +8,7 @@ The core of the project is the **ETL pipeline**. It answers one question:
 
 The answer is effectively-once delivery, fault isolation, a dead letter queue and replay across both streaming and batch processing, backed by a set of measurable experiments.
 
-> **Status: phase 1 (infrastructure and data sources) in progress.** The design documents are approved; implementation follows the [roadmap](#roadmap).
+> **Status: phase 1 (infrastructure and data sources) complete; phase 2 (core ETL) is next.** One command starts the local stack, the source simulator publishes GTFS-realtime to Kafka and writes ticket sales that Debezium captures, and every source topic lands in the raw zone. Implementation follows the [roadmap](#roadmap).
 
 ## What it does
 
@@ -116,30 +116,31 @@ The documentation is written in Vietnamese. Everything else (code, UI, logs, API
 
 ## Getting started
 
-The local environment is being built in phase 1. Once it lands:
-
 ```bash
 mise install     # Java 25, Node 24, pnpm, Python, uv and Kubernetes tooling
 make doctor      # check tools, Docker memory, free disk and ports
 make secrets     # create .env with generated passwords
-make up          # build images and start the core profile
+make up          # build images, start the core profile and wait until it is healthy
+make sim-start   # the simulator starts paused; this makes it publish
 ```
+
+Then `make sim-status`, `make tail-gtfs.vehicle_positions`, `make connectors` and `make s3-ls` show the data moving; `make sim-stop` pauses it again. The feed runs on Chicago time, so between 02:00 and 04:30 there (afternoon in Vietnam) no vehicles are in service: run `make clock-offset AT=16:30 && make up` first. `make help` lists every target.
 
 Requirements: 16 GB RAM (12 GB allocated to the Docker VM with every profile enabled), 8 CPU cores and about 80 GB of free disk. See [docs/09-operations/local-dev.md](docs/09-operations/local-dev.md).
 
 ## Roadmap
 
-| Phase | Scope | Milestone |
-| --- | --- | --- |
-| P0 | Specification, decisions, spikes | Decisions settled, core documents approved |
-| P1 | Infrastructure and data sources | `make up` works; events reach Kafka; CDC and raw zone running |
-| P2 | Core ETL (Spring Batch + Spring Kafka) | Data in the warehouse; `kill -9` causes no loss or duplicates |
-| P3 | Reliability experiments and observability | EXP-01…05 results; Grafana; alerts |
-| P4 | Analytics and API | Real insights over REST and SSE |
-| P5 | Dashboard | Full real-time UI |
-| P6 | AI triage | Triage, auto-replay, suggestions in the UI |
-| P7 | Kubernetes and fault tolerance | Autoscaling and self-healing; EXP-07/08 results |
-| P8 | Polish | Ready for the final defense |
+| Phase | Scope | Milestone | Status |
+| --- | --- | --- | --- |
+| P0 | Specification, decisions, spikes | Decisions settled, core documents approved | Done |
+| P1 | Infrastructure and data sources | `make up` works; events reach Kafka; CDC and raw zone running | Done (2026-09-29) |
+| P2 | Core ETL (Spring Batch + Spring Kafka) | Data in the warehouse; `kill -9` causes no loss or duplicates | Next |
+| P3 | Reliability experiments and observability | EXP-01…05 results; Grafana; alerts | |
+| P4 | Analytics and API | Real insights over REST and SSE | |
+| P5 | Dashboard | Full real-time UI | |
+| P6 | AI triage | Triage, auto-replay, suggestions in the UI | |
+| P7 | Kubernetes and fault tolerance | Autoscaling and self-healing; EXP-07/08 results | |
+| P8 | Polish | Ready for the final defense | |
 
 ## Data attribution
 
