@@ -341,9 +341,10 @@ services:
     <<: *spring-app
     profiles: [experiment]
     image: ghcr.io/${GHCR_OWNER:-ninggiangboy}/pti-etl:${PTI_IMAGE_TAG:-local}
+    # Runs together with core (make up-exp); required: false keeps `--profile experiment` alone a valid project.
     depends_on:
-      kafka-init: { condition: service_completed_successfully }
-      db-migrate: { condition: service_completed_successfully }
+      kafka-init: { condition: service_completed_successfully, required: false }
+      db-migrate: { condition: service_completed_successfully, required: false }
     environment:
       <<: *spring-env
       SPRING_PROFILES_ACTIVE: stream,experiment
