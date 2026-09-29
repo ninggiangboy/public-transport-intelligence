@@ -28,6 +28,7 @@ deploy/
     scripts/secrets.sh              # make secrets (§5)
     scripts/wait-stack.sh           # make up: chờ service healthy và job một lần thoát 0 (§4)
     scripts/clock-offset.sh         # make clock-offset: ghi PTI_CLOCK_OFFSET vào .env (DR-67, DOC-38 §3.1)
+    scripts/doctor.sh               # make doctor: kiểm tra máy trước make up (DOC-38 §2)
     scripts/backup.sh, restore-warehouse.sh, ensure-partitions.sh, replay.sh   # DOC-43, DOC-38 §4
     .generated/                     # (gitignored) s3.json, webhook-token
   connect/

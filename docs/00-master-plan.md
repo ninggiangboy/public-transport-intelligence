@@ -435,7 +435,7 @@ Mục tiêu: không còn câu hỏi nào có thể chặn P1–P2.
 | P1-12 | Cấu hình Debezium (`deploy/connect/connectors/debezium-ticketing.json`) và script đăng ký idempotent (PUT config) — **Xong 2026-09-29** (`322384d`) | Event xuất hiện trên `ticketing.sales.cdc` đúng định dạng unwrap | P1-04, P1-10 | DOC-09 |
 | P1-13 | Cấu hình S3 sink cho `gtfs.*` và `ticketing.sales.cdc` → `raw/…` (ADR-0012) — **Xong 2026-09-29** (`287a703`; giảm heap của sink ở `b858a0d`, DR-89) | File `.json.gz` trong bucket `raw` đúng bố cục đường dẫn, giữ key và headers | P1-04 | DOC-18 |
 | P1-14 | Đóng gói simulator bằng Jib, đưa vào compose (mặc định không phát, DR-86) — **Xong 2026-09-29** (`de76d4d`) | `make up` có simulator healthy ở hệ số 0; `make sim-start` / `make sim-stop` bật và tắt phát | P1-09 | DOC-39 |
-| P1-15 | `Makefile`: `up, down, reset, logs, ps, psql-wh, psql-src, topics, tail-<topic>` — **Xong 2026-09-29** (`de76d4d`; thêm `clock-offset` khi chốt M1) | Có trong DOC-38 | P1-04 | DOC-38 |
+| P1-15 | `Makefile`: `up, down, reset, logs, ps, psql-wh, psql-src, topics, tail-<topic>` — **Xong 2026-09-29** (`de76d4d`; thêm `clock-offset` và `doctor` khi chốt M1) | Có trong DOC-38 | P1-04 | DOC-38 |
 
 **Tiêu chí thoát (M1):** trên máy sạch, `make up && make sim-start` → trong ≤ 5 phút có event GTFS-rt trên Kafka, event CDC trên `ticketing.sales.cdc`, file trong raw zone, migration đã áp dụng, CI xanh. (Việc dimension có dữ liệu dời sang M2, xem mục 1.3.)
 
@@ -453,7 +453,7 @@ Mục tiêu: không còn câu hỏi nào có thể chặn P1–P2.
 
 Tổng thời gian từ `make secrets` tới lúc raw zone có file: khoảng 2,4 phút, dưới ngưỡng 5 phút. Lần kiểm chạy lúc 21:13 giờ Chicago. Khi giờ Chicago rơi vào 02:00–04:30 (14:00–16:30 giờ Việt Nam) thì không có xe nào chạy, nên phải `make clock-offset AT=16:30 && make up` trước `make sim-start` (DOC-38 §3.1). Target `clock-offset` được thêm vào lúc chốt M1 vì lý do này.
 
-Những phần còn lệch với tài liệu khi hết P1 đã được ghi vào DOC-41 §1.1 (chưa có `main.yml`; repo private suốt P1, chuyển sang public ngày 2026-09-29 theo DR-56) và DOC-38 §2, §4 (`make doctor` và các target của phase sau chưa có).
+Những phần còn lệch với tài liệu khi hết P1 đã được ghi vào DOC-41 §1.1 (chưa có `main.yml`; repo private suốt P1, chuyển sang public ngày 2026-09-29 theo DR-56) và DOC-38 §4 (các target của phase sau chưa có). `make doctor` được thêm ngay sau khi chốt M1 (DOC-38 §2).
 
 ---
 

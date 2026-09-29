@@ -40,7 +40,24 @@ mise trust && mise install
 make doctor
 ```
 
-`make doctor` **chưa có** khi hết P1 (chưa gán vào việc nào của master plan); trước khi có, kiểm tay theo bảng §1. Khi có, lệnh in ra một bảng `OK`/`FAIL` cho: phiên bản Java, Node, pnpm, Python, uv; Docker chạy được; RAM của VM; ổ trống ≥ 80 GB; các cổng ở §5 còn trống; có file `.env`. Lệnh trả mã khác 0 nếu có mục `FAIL`.
+`make doctor` (`deploy/compose/scripts/doctor.sh`, thêm ngày 2026-09-29) in một dòng `OK`/`WARN`/`FAIL` cho mỗi mục kiểm tra và trả mã 1 nếu có mục `FAIL`. Lệnh chạy được cả trước `make secrets`.
+
+| Mục | `FAIL` khi | `WARN` khi |
+| --- | --- | --- |
+| mise | | Không có (phiên bản tool khi đó là bản có trên `PATH`) |
+| Java | Không có, hoặc < 17 (Gradle 9 cần) | Khác bản ghim trong `mise.toml` (25). Gradle vẫn tự tải toolchain 25 qua foojay |
+| Node, pnpm | Thiếu **và** `frontend/package.json` đã tồn tại | Khác bản ghim, hoặc thiếu khi `frontend/` chưa có code |
+| uv | Thiếu **và** `experiments/pyproject.toml` đã tồn tại | Thiếu khi `experiments/` chưa có code |
+| `python3` | Không có, hoặc < 3.9 (Makefile và script dùng `json`, `zoneinfo`) | Khác bản ghim (3.12) |
+| `git`, `make`, `openssl`, `curl` | Không có | |
+| Docker, Docker Compose | Không có, daemon không trả lời, hoặc thiếu plugin Compose v2 | |
+| RAM của VM Docker | < 8 GB | 8–12 GB (đủ cho `core`, chưa đủ khi bật `observability` và `triage`) |
+| Testcontainers | | Không có `/var/run/docker.sock` và không đặt `DOCKER_HOST` (OrbStack, §1) |
+| Ổ trống | < 80 GB | |
+| `.env` | Chưa có (`make secrets`) | |
+| Cổng host | Một cổng mà compose publish (đọc từ `docker compose config`, mọi profile) đang bị chương trình khác giữ. Cổng do chính stack `pti` đang giữ được tính là `OK` | |
+
+Mức `FAIL` chỉ dành cho những gì chặn `make up` hoặc build. Tool của một stack chưa có code chỉ báo `WARN`; khi stack đó có code, cùng mục đó tự chuyển thành `FAIL`.
 
 IDE: IntelliJ IDEA hoặc VS Code đều được. Mở thư mục gốc repo rồi import `backend/` như một Gradle project (IntelliJ: *Link Gradle Project* → `backend/settings.gradle.kts`); `frontend/` và `experiments/` là hai project riêng (pnpm, uv). Code format bằng Spotless (`./gradlew spotlessApply`), không cần cài plugin format riêng. Trình duyệt cho frontend: Chrome hoặc Firefox bản mới.
 
@@ -88,7 +105,7 @@ Offset được làm tròn tới phút và là độ dời ngắn nhất để t
 
 `Makefile` ở gốc repo gọi `docker compose -f deploy/compose/compose.yaml --env-file deploy/versions.env --env-file .env`. Biến `S=<service>` chọn service cho các lệnh có service. `make help` liệt kê các target đã có.
 
-**Target được thêm dần theo phase.** Khi hết P1 (2026-09-29) Makefile có: `help`, `secrets`, `images`, `up`, `down`, `reset`, `restart`, `ps`, `logs`, `psql-wh`, `psql-src`, `psql-sim`, `topics`, `tail-<topic>`, `connectors`, `s3-ls`, `clock-offset`, `sim-status`, `sim-start`, `sim-stop`, `sim-rate`, `fmt`, `lint`, `test`, `it`. Các target khác trong các bảng dưới đây được thêm cùng việc cần tới chúng. Tham số `PRETTY=1` của `make logs` cũng chưa có.
+**Target được thêm dần theo phase.** Khi hết P1 (2026-09-29) Makefile có: `help`, `doctor`, `secrets`, `images`, `up`, `down`, `reset`, `restart`, `ps`, `logs`, `psql-wh`, `psql-src`, `psql-sim`, `topics`, `tail-<topic>`, `connectors`, `s3-ls`, `clock-offset`, `sim-status`, `sim-start`, `sim-stop`, `sim-rate`, `fmt`, `lint`, `test`, `it`. Các target khác trong các bảng dưới đây được thêm cùng việc cần tới chúng. Tham số `PRETTY=1` của `make logs` cũng chưa có.
 
 ### 4.1 Vòng đời
 

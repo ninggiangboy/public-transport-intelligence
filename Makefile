@@ -15,6 +15,10 @@ help: ## List available targets
 
 # ---------------------------------------------------------------- lifecycle
 
+.PHONY: doctor
+doctor: ## Check tools, Docker, VM memory, disk, .env and host ports; exits 1 on any FAIL
+	@deploy/compose/scripts/doctor.sh
+
 .PHONY: secrets
 secrets: ## Create .env with generated secrets and render deploy/compose/.generated/
 	@deploy/compose/scripts/secrets.sh
