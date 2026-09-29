@@ -1,14 +1,17 @@
 package dev.pti.etl.raw;
 
 import dev.pti.common.error.TransientInfraException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.core.sync.ResponseTransformer;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
 import software.amazon.awssdk.services.s3.model.S3Exception;
+import software.amazon.awssdk.services.s3.model.S3Object;
 
 /** {@link RawZone} on SeaweedFS (compose, k3d) through the AWS SDK that Spring Cloud AWS configures. */
 public class S3RawZone implements RawZone {
@@ -79,6 +82,35 @@ public class S3RawZone implements RawZone {
             throw new TransientInfraException("Raw zone unreachable: " + e.getMessage(), e);
         } catch (java.io.IOException e) {
             throw new java.io.UncheckedIOException(e);
+        }
+    }
+
+    @Override
+    public List<String> list(String prefix) {
+        try {
+            return s3.listObjectsV2Paginator(b -> b.bucket(bucket).prefix(prefix)).contents().stream()
+                    .map(S3Object::key)
+                    .toList();
+        } catch (S3Exception e) {
+            throw transientOrFatal(e);
+        } catch (SdkClientException e) {
+            throw new TransientInfraException("Raw zone unreachable: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    public InputStream open(String key) {
+        try {
+            return s3.getObject(b -> b.bucket(bucket).key(key));
+        } catch (NoSuchKeyException e) {
+            throw new RawObjectMissingException(key);
+        } catch (S3Exception e) {
+            if (e.statusCode() == 404) {
+                throw new RawObjectMissingException(key);
+            }
+            throw transientOrFatal(e);
+        } catch (SdkClientException e) {
+            throw new TransientInfraException("Raw zone unreachable: " + e.getMessage(), e);
         }
     }
 

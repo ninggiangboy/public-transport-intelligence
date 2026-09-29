@@ -14,6 +14,11 @@ public final class StepValues {
     /** Step context key: items the chunk rules sent to the dead-letter queue, which Spring Batch does not count. */
     public static final String REJECTED = "pti.rejected";
 
+    /** Step context counters of dead letters written by a replay: new rows and refreshed ones (DOC-22 §4.6). */
+    public static final String DLQ_INSERTED = "pti.dlq.inserted";
+
+    public static final String DLQ_UPDATED = "pti.dlq.updated";
+
     /** Job parameter that turns on replay semantics (DR-16, DOC-22). */
     public static final String REPLAY = "replay";
 
@@ -44,6 +49,10 @@ public final class StepValues {
 
     public static long rejected(StepExecution step) {
         return step.getExecutionContext().getLong(REJECTED, 0L);
+    }
+
+    public static void increment(StepExecution step, String key) {
+        step.getExecutionContext().putLong(key, step.getExecutionContext().getLong(key, 0L) + 1);
     }
 
     public static void addRejected(StepExecution step, int count) {

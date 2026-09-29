@@ -66,10 +66,13 @@ public class DeadLetterSkipListener implements SkipListener<InboundMessage, Writ
     }
 
     private void write(DeadLetter letter, InboundMessage message) {
-        if (StepValues.replay(step.get())) {
-            deadLetters.writeReplay(letter);
-        } else {
-            deadLetters.write(letter);
+        StepExecution execution = step.get();
+        DeadLetterWriter.DeadLetterResult result =
+                StepValues.replay(execution) ? deadLetters.writeReplay(letter) : deadLetters.write(letter);
+        if (result == DeadLetterWriter.DeadLetterResult.INSERTED) {
+            StepValues.increment(execution, StepValues.DLQ_INSERTED);
+        } else if (result == DeadLetterWriter.DeadLetterResult.UPDATED) {
+            StepValues.increment(execution, StepValues.DLQ_UPDATED);
         }
         stats.recordSkipped(message.source(), RunMode.BATCH, 1);
     }

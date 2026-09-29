@@ -1,6 +1,8 @@
 package dev.pti.etl.raw;
 
+import java.io.InputStream;
 import java.nio.file.Path;
+import java.util.List;
 
 /**
  * The raw zone bucket (ADR-0012, DOC-18 §2). {@code etl} may read every prefix and write {@code gtfs-static/} only
@@ -19,6 +21,16 @@ public interface RawZone {
 
     /** @throws RawObjectMissingException when there is no such object */
     void download(String key, Path target);
+
+    /** Every key under {@code prefix}, in no particular order. */
+    List<String> list(String prefix);
+
+    /**
+     * Streams an object; the caller closes the stream.
+     *
+     * @throws RawObjectMissingException when there is no such object
+     */
+    InputStream open(String key);
 
     /** A missing object is not transient: retrying will not make it appear. */
     final class RawObjectMissingException extends RuntimeException {
