@@ -1,0 +1,30 @@
+# Tempo single binary on local storage, 3 days of traces (DOC-28 §1, DOC-39 §3.7). The OTel Collector sends OTLP
+# over gRPC; the metrics generator is off to stay within the memory budget.
+stream_over_http_enabled: true
+
+server:
+  http_listen_port: 3200
+  log_level: warn
+
+distributor:
+  receivers:
+    otlp:
+      protocols:
+        grpc:
+          endpoint: 0.0.0.0:4317
+
+storage:
+  trace:
+    backend: local
+    wal:
+      path: /var/tempo/wal
+    local:
+      path: /var/tempo/blocks
+
+overrides:
+  defaults:
+    compaction:
+      block_retention: 72h
+
+usage_report:
+  reporting_enabled: false

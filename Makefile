@@ -39,6 +39,12 @@ up: images ## Build images if needed, start the core profile, wait for health an
 	$(COMPOSE) $(PROFILES) up -d
 	@JOBS="$(JOBS)" deploy/compose/scripts/wait-stack.sh $(COMPOSE) --profile '*'
 
+.PHONY: up-obs
+up-obs: images ## Like up, plus the observability profile (Prometheus, Grafana, Loki, Tempo, Alertmanager, Mailpit) and tracing
+	PTI_TRACING_ENABLED=true $(COMPOSE) --profile core --profile observability up -d
+	@JOBS="$(JOBS)" deploy/compose/scripts/wait-stack.sh $(COMPOSE) --profile '*'
+	@echo "Grafana http://localhost:$$(v=$$(sed -n 's/^HOST_PORT_GRAFANA=//p' .env); echo "$${v:-3000}") (admin, GRAFANA_ADMIN_PASSWORD in .env)"
+
 .PHONY: down
 down: .env ## Stop and remove containers, keep volumes
 	$(COMPOSE) --profile '*' down

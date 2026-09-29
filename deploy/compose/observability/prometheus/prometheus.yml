@@ -1,0 +1,63 @@
+# Prometheus for the compose stack (DOC-28 §1, DOC-39 §3.7). Every app exposes /actuator/prometheus on its
+# management port 9080; there is no Kafka or Postgres exporter (DOC-28 §1 principle 1).
+global:
+  scrape_interval: 15s
+  evaluation_interval: 30s
+  external_labels:
+    env: compose
+
+rule_files:
+  - /etc/prometheus/rules/*.yml
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: [alertmanager:9093]
+
+scrape_configs:
+  # Apps of the core profile: always expected, so a stopped container shows up as up == 0 (TargetDown).
+  - job_name: pti-source-simulator
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: [source-simulator:9080]
+  - job_name: pti-etl-stream
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: [etl-stream:9080]
+  - job_name: pti-etl-batch
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: [etl-batch:9080]
+
+  # Apps of optional profiles: found through Docker's DNS, so they are scraped only while they run.
+  - job_name: pti-etl-stream-baseline
+    metrics_path: /actuator/prometheus
+    dns_sd_configs:
+      - names: [etl-stream-baseline]
+        type: A
+        port: 9080
+        refresh_interval: 30s
+
+  - job_name: prometheus
+    static_configs:
+      - targets: [localhost:9090]
+
+  # The observability services themselves; Loki, Tempo and the collector have no healthcheck, so `up` is the check.
+  - job_name: alertmanager
+    static_configs:
+      - targets: [alertmanager:9093]
+  - job_name: grafana
+    static_configs:
+      - targets: [grafana:3000]
+  - job_name: loki
+    static_configs:
+      - targets: [loki:3100]
+  - job_name: tempo
+    static_configs:
+      - targets: [tempo:3200]
+  - job_name: otel-collector
+    static_configs:
+      - targets: [otel-collector:8888]
+  - job_name: alloy
+    static_configs:
+      - targets: [alloy:12345]

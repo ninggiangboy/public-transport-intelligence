@@ -53,6 +53,7 @@ Tài liệu gốc mô tả tốt *cái gì* và *vì sao*, nhưng còn nhiều c
 | 2026-09-28 | Claude (Owner ủy quyền) | **S3 sink OOM khi chạy live (P1-14):** Aiven 3.4.3 cắt file mỗi 10 giây trên mỗi partition và giữ buffer của writer tới lần commit, nên với commit 5 phút task chết sau vài phút có traffic. Giữ 3.4.3; `aws.s3.part.size.bytes` = 1 MiB, worker commit mỗi 30 giây. Số object raw zone tăng khoảng 15 lần; replay (P3) phải xem lại `pti.replay.max-objects` | DR-89 (mới), sửa DR-81, ADR-0012, DOC-09 §7, DOC-39 §3.4, DOC-40, DOC-22 §4.3 |
 | 2026-09-29 | Claude (Owner ủy quyền) | **Phase 2 xong:** claim yêu cầu job/replay commit trước khi gọi `JobOperator`; replay raw zone liệt kê object theo giờ thay vì lưu danh sách (đóng mục mở của DR-89); hoãn DQ-27 sang P3; các chi tiết nhỏ khác | DR-90, DR-91, DR-92, DR-93 (mới) |
 | 2026-09-29 | Owner | **Máy thực nghiệm và lưu kết quả:** thực nghiệm chính thức chạy trên một máy riêng cố định 16 GB (không gắn với máy cụ thể), không chạy trên máy dev hay GitHub Actions; file kết quả nhỏ commit vào git, file lớn gói theo chuỗi lên GitHub Release `exp-results` | DR-94 (mới) |
+| 2026-09-29 | Claude (Owner ủy quyền) | **Profile observability (P3-02):** Grafana 13 và Tempo 3 thay 12.x và 2.x theo nguyên tắc dùng bản mới nhất; Loki, Tempo, OTel Collector không có healthcheck vì image distroless, Prometheus scrape chúng thay thế; app của profile tùy chọn được Prometheus tìm qua DNS | DR-97 (mới), DOC-11 §2, DOC-39 §3.7, §4 |
 | 2026-09-29 | Claude (Owner ủy quyền) | **Kịch bản simulator (P3-01):** bunching ghép xe theo trạm chung đầu tiên phía trước thay vì `dist`, và giữ follower ở đúng khoảng cách mục tiêu; kiểu gây hỏng chỉ chọn trong các loại áp dụng được cho entity type; hàng đợi gửi lại và hoàn vé còn chờ vẫn chạy tiếp sau khi lần chạy kết thúc; lỗi của hook kết thúc lần chạy ở tick kế tiếp | DR-96 (mới), DOC-25 §7 |
 | 2026-09-29 | Owner | **Thực nghiệm hai bước:** P3 viết đủ runner và chạy một chuỗi smoke ≤ 30 phút (mỗi EXP-01…05 một lần chạy rút gọn) trên máy dev; đợt chạy đầy đủ trên máy thực nghiệm dời thành P3-10, làm sau M6 và trước P7. Chuỗi smoke chạy lại khi chốt M4 và M6 | DR-95 (mới), master plan P3, DOC-45 |
 
@@ -722,6 +723,14 @@ Tài liệu gốc mô tả tốt *cái gì* và *vì sao*, nhưng còn nhiều c
 - **Lỗi của hook.** Hook ném lỗi bị gỡ ngay cùng mọi hook của lần chạy đó; lần chạy chuyển `FAILED` ở tick kế tiếp của thread `sim-scenarios` (500 ms), không ngay trên thread của hook, để tránh khóa chéo với `Emitter`.
 - **Lệnh `make`.** Thêm `make scenarios` (liệt kê catalog) cạnh `make scenario` và `make scenario-stop` của DOC-38 §4.3.
 - **Ghi vào:** DOC-25 §7.2–7.7, §8, §14 (T-14); DOC-38 §4.3.
+
+### DR-97 · Chi tiết khi dựng profile observability (P3-02) — **Chốt** (P3)
+- **Phiên bản.** DOC-11 ghi Grafana 12.x và Tempo 2.x, nhưng lúc làm P3-02 đã có Grafana 13.2.3 và Tempo 3.0.3. Theo nguyên tắc dùng bản mới nhất (nhật ký chốt 2026-09-26), dự án dùng hai bản này. Tempo 3 chạy single binary trên local storage như trước; retention 3 ngày đặt bằng `overrides.defaults.compaction.block_retention`. Worker nền của Tempo 3 log `no jobs found` ở mức error vài lần mỗi phút khi không có việc; đây không phải lỗi.
+- **Healthcheck.** Image của Loki, Tempo và OTel Collector là distroless, không có shell hay HTTP client, nên không viết được healthcheck trong container. Ba service này chỉ cần `running`; Prometheus scrape cả ba (và mọi service observability khác), nên `up` cho biết chúng còn trả lời không. Grafana chờ Prometheus `healthy`, còn Loki và Tempo chỉ cần đã khởi động.
+- **Target của Prometheus.** App của profile `core` là target tĩnh, để container bị dừng hiện ra là `up = 0` (cho alert `TargetDown` ở P3-05). App của profile tùy chọn (`etl-stream-baseline`, từ P6 là `triage-worker`) tìm qua DNS của Docker, nên không thành target chết khi profile tắt.
+- **Webhook của Alertmanager** trỏ tới `api` như DOC-28 §6.4 ngay từ P3; cho tới P4 mỗi lần gửi webhook báo lỗi trong log của Alertmanager, email tới Mailpit vẫn đi bình thường.
+- **Tài nguyên.** Grafana 13 cần 256 MB thay 192 MB. Tổng giới hạn RAM của profile là khoảng 2 GB.
+- **Ghi vào:** DOC-11 §2, DOC-39 §3.7, §4, §5, §6.
 
 ---
 

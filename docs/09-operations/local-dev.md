@@ -105,7 +105,7 @@ Offset được làm tròn tới phút và là độ dời ngắn nhất để t
 
 `Makefile` ở gốc repo gọi `docker compose -f deploy/compose/compose.yaml --env-file deploy/versions.env --env-file .env`. Biến `S=<service>` chọn service cho các lệnh có service. `make help` liệt kê các target đã có.
 
-**Target được thêm dần theo phase.** Khi hết P1 (2026-09-29) Makefile có: `help`, `doctor`, `secrets`, `images`, `up`, `down`, `reset`, `restart`, `ps`, `logs`, `psql-wh`, `psql-src`, `psql-sim`, `topics`, `tail-<topic>`, `connectors`, `s3-ls`, `clock-offset`, `sim-status`, `sim-start`, `sim-stop`, `sim-rate`, `fmt`, `lint`, `test`, `it`. P3-01 thêm `scenarios`, `scenario`, `scenario-stop`. Các target khác trong các bảng dưới đây được thêm cùng việc cần tới chúng. Tham số `PRETTY=1` của `make logs` cũng chưa có.
+**Target được thêm dần theo phase.** Khi hết P1 (2026-09-29) Makefile có: `help`, `doctor`, `secrets`, `images`, `up`, `down`, `reset`, `restart`, `ps`, `logs`, `psql-wh`, `psql-src`, `psql-sim`, `topics`, `tail-<topic>`, `connectors`, `s3-ls`, `clock-offset`, `sim-status`, `sim-start`, `sim-stop`, `sim-rate`, `fmt`, `lint`, `test`, `it`. P3-01 thêm `scenarios`, `scenario`, `scenario-stop`; P3-02 thêm `up-obs`. Các target khác trong các bảng dưới đây được thêm cùng việc cần tới chúng. Tham số `PRETTY=1` của `make logs` cũng chưa có.
 
 ### 4.1 Vòng đời
 

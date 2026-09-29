@@ -1,0 +1,63 @@
+# Grafana datasources (DOC-28 §4.2, §7; DOC-39 §3.7). The UIDs are what dashboards refer to.
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    uid: prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    jsonData:
+      timeInterval: 15s
+
+  - name: Loki
+    uid: loki
+    type: loki
+    access: proxy
+    url: http://loki:3100
+    jsonData:
+      derivedFields:
+        # From a log line to its trace (NFR-05: fact row → batch_id → logs → trace).
+        - name: trace_id
+          matcherType: label
+          matcherRegex: trace_id
+          datasourceUid: tempo
+          url: "$${__value.raw}"
+
+  - name: Tempo
+    uid: tempo
+    type: tempo
+    access: proxy
+    url: http://tempo:3200
+    jsonData:
+      tracesToLogsV2:
+        datasourceUid: loki
+        spanStartTimeShift: -5m
+        spanEndTimeShift: 5m
+        filterByTraceID: false
+        customQuery: true
+        query: '{$${__tags}} | trace_id="$${__trace.traceId}"'
+        tags:
+          - key: service.name
+            value: service
+      serviceMap:
+        datasourceUid: prometheus
+      nodeGraph:
+        enabled: true
+
+  # Counters in pg_stat_* for the Postgres dashboard, read as api_reader (DOC-28 §7).
+  - name: Warehouse
+    uid: pti-warehouse
+    type: grafana-postgresql-datasource
+    access: proxy
+    url: pg-warehouse:5432
+    user: api_reader
+    jsonData:
+      database: pti_warehouse
+      sslmode: disable
+      postgresVersion: 1700
+      maxOpenConns: 2
+      timescaledb: false
+    secureJsonData:
+      password: $API_READER_PASSWORD

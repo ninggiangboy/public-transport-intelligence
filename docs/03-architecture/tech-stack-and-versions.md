@@ -1,6 +1,6 @@
 # Công nghệ và phiên bản
 
-> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-11
+> Trạng thái: **Approved** · Cập nhật: 2026-09-29 (P3-02: image observability, DR-97) · DOC-11
 > Phụ thuộc: [DR-53](../00-decision-register.md), DR-36, DR-46, DR-50, DR-52, DR-54, DR-56, [ADR-0029](../04-adr/0029-spring-boot-4-java-25.md)
 
 ## 0. Chính sách phiên bản
@@ -78,11 +78,11 @@
 | PostgreSQL | `postgres:17.11` | 18.6 đã chạy được với Debezium (S-04) và Spring Batch (S-06). Còn chờ CNPG ở P7-01 rồi mới đổi cả compose lẫn k3d sang 18 trong cùng một thay đổi (DR-53). Lưu ý khi đổi: image 18 đặt `PGDATA=/var/lib/postgresql/18/docker` và khai báo volume ở `/var/lib/postgresql` (image 17 là `/var/lib/postgresql/data`), nên phải sửa mount của volume | PostgreSQL | ✅ 17 / 🔬 18 |
 | Object storage | **SeaweedFS** `chrislusf/seaweedfs:4.47` (`server -s3`); job `s3-init` dùng `amazon/aws-cli` | Thay MinIO vì repository `minio/minio` không còn trên Docker Hub (S-03, DR-66). Dự phòng: RustFS 1.0 (Apache-2.0), đổi không phải sửa code | Apache-2.0 | ✅ (S-03) |
 | Keycloak | `quay.io/keycloak/keycloak:26.7.4` | `start-dev --import-realm` | Apache-2.0 | ✅ (S-03) |
-| Prometheus / Alertmanager | 3.x / 0.2x | | Apache-2.0 | 🔬 |
-| Grafana | 12.x | Provision datasource và dashboard | AGPL-3.0 (chỉ chạy nội bộ) | 🔬 |
-| Tempo / Loki / Alloy | 2.x / 3.x / 1.x | | AGPL-3.0 | 🔬 |
-| OpenTelemetry Collector | `otel/opentelemetry-collector-contrib` | Nhận OTLP, xuất sang Tempo | Apache-2.0 | 🔬 |
-| Mailpit | `axllent/mailpit:1.x` | | MIT | 🔬 |
+| Prometheus / Alertmanager | `prom/prometheus:v3.15.0` / `prom/alertmanager:v0.34.1` | | Apache-2.0 | ✅ (P3-02) |
+| Grafana | `grafana/grafana:13.2.3` | Provision datasource và dashboard. Bản 13 đã ra khi làm P3-02, nên dùng 13 thay 12.x (DR-97) | AGPL-3.0 (chỉ chạy nội bộ) | ✅ (P3-02) |
+| Tempo / Loki / Alloy | `grafana/tempo:3.0.3` / `grafana/loki:3.7.8` / `grafana/alloy:v1.20.1` | Tempo 3 thay 2.x (DR-97): single binary vẫn chạy trên local storage, retention đặt ở `overrides.defaults.compaction.block_retention`. Image Tempo, Loki là distroless (không shell) | AGPL-3.0 | ✅ (P3-02) |
+| OpenTelemetry Collector | `otel/opentelemetry-collector-contrib:0.161.0` | Nhận OTLP, xuất sang Tempo. Image distroless | Apache-2.0 | ✅ (P3-02) |
+| Mailpit | `axllent/mailpit:v1.31.3` | Healthcheck bằng `mailpit readyz` | MIT | ✅ (P3-02) |
 | Toxiproxy | `ghcr.io/shopify/toxiproxy:2.x` | Profile `experiment` | MIT | 🔬 |
 | nginx | `nginx:1.30-alpine` (1.30.5, nhánh stable) | Phục vụ SPA và PMTiles (range request đã kiểm ở S-05). `mime.types` không có `.mjs`; build Vite chỉ ra `.js` nên không ảnh hưởng | BSD-2 | ✅ (S-05) |
 

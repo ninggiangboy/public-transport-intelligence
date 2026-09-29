@@ -1,0 +1,64 @@
+// Container logs to Loki (DOC-28 §4.2, DR-50). Only the pti compose project is read. Labels stay few: service,
+// level and env; trace_id, batch_id, source and job go into structured metadata.
+
+discovery.docker "pti" {
+  host = "unix:///var/run/docker.sock"
+  filter {
+    name   = "label"
+    values = ["com.docker.compose.project=pti"]
+  }
+}
+
+discovery.relabel "pti" {
+  targets = discovery.docker.pti.targets
+
+  rule {
+    source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
+    target_label  = "service"
+  }
+}
+
+loki.source.docker "pti" {
+  host          = "unix:///var/run/docker.sock"
+  targets       = discovery.relabel.pti.output
+  relabel_rules = discovery.relabel.pti.rules
+  forward_to    = [loki.process.pti.receiver]
+}
+
+loki.process "pti" {
+  forward_to = [loki.write.local.receiver]
+
+  stage.static_labels {
+    values = { env = "compose" }
+  }
+
+  // Spring Boot writes ECS JSON (DOC-28 §4.1); other containers log plain text and keep only service and env.
+  stage.json {
+    expressions = {
+      level    = "log.level",
+      trace_id = "trace.id || traceId",
+      batch_id = "batch_id",
+      source   = "source",
+      job      = "job",
+    }
+  }
+
+  stage.labels {
+    values = { level = "" }
+  }
+
+  stage.structured_metadata {
+    values = {
+      trace_id = "",
+      batch_id = "",
+      source   = "",
+      job      = "",
+    }
+  }
+}
+
+loki.write "local" {
+  endpoint {
+    url = "http://loki:3100/loki/api/v1/push"
+  }
+}

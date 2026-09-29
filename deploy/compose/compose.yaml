@@ -359,8 +359,173 @@ services:
     mem_limit: 768m
     cpus: 2.0
 
+  # ---------------------------------------------------------------- observability (DOC-39 §3.7, DOC-28)
+
+  prometheus:
+    profiles: [observability]
+    image: ${PROMETHEUS_IMAGE:?deploy/versions.env is not loaded}
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=7d
+      - --web.enable-lifecycle
+    volumes:
+      - ./observability/prometheus:/etc/prometheus:ro
+      - prometheus-data:/prometheus
+    ports: ["127.0.0.1:${HOST_PORT_PROMETHEUS:-9090}:9090"]
+    healthcheck:
+      test: ["CMD", "wget", "-qO", "/dev/null", "http://127.0.0.1:9090/-/ready"]
+      interval: 10s
+      timeout: 3s
+      retries: 12
+      start_period: 10s
+    mem_limit: 512m
+    cpus: 0.5
+    logging: *default-logging
+
+  alertmanager:
+    profiles: [observability]
+    image: ${ALERTMANAGER_IMAGE:?deploy/versions.env is not loaded}
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/alertmanager/alertmanager.yml
+      - --storage.path=/alertmanager
+    volumes:
+      - ./observability/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - ./.generated/webhook-token:/etc/alertmanager/webhook-token:ro
+      - alertmanager-data:/alertmanager
+    ports: ["127.0.0.1:${HOST_PORT_ALERTMANAGER:-9093}:9093"]
+    healthcheck:
+      test: ["CMD", "wget", "-qO", "/dev/null", "http://127.0.0.1:9093/-/ready"]
+      interval: 10s
+      timeout: 3s
+      retries: 12
+      start_period: 10s
+    mem_limit: 64m
+    cpus: 0.25
+    logging: *default-logging
+
+  grafana:
+    profiles: [observability]
+    image: ${GRAFANA_IMAGE:?deploy/versions.env is not loaded}
+    restart: unless-stopped
+    depends_on:
+      prometheus: { condition: service_healthy }
+      loki: { condition: service_started }
+      tempo: { condition: service_started }
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?run make secrets}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+      GF_ANALYTICS_CHECK_FOR_PLUGIN_UPDATES: "false"
+      GF_NEWS_NEWS_FEED_ENABLED: "false"
+      # Read by the Warehouse datasource (provisioning/datasources/datasources.yml).
+      API_READER_PASSWORD: ${API_READER_PASSWORD:?run make secrets}
+    volumes:
+      - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    ports: ["127.0.0.1:${HOST_PORT_GRAFANA:-3000}:3000"]
+    healthcheck:
+      test: ["CMD", "wget", "-qO", "/dev/null", "http://127.0.0.1:3000/api/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 12
+      start_period: 20s
+    mem_limit: 256m
+    cpus: 0.5
+    logging: *default-logging
+
+  # Loki, Tempo and the OTel Collector ship distroless images without a shell or HTTP client, so they have no
+  # healthcheck; Prometheus scrapes each of them, and `up` shows whether they answer.
+  loki:
+    profiles: [observability]
+    image: ${LOKI_IMAGE:?deploy/versions.env is not loaded}
+    restart: unless-stopped
+    command: ["-config.file=/etc/loki/loki.yml"]
+    volumes:
+      - ./observability/loki/loki.yml:/etc/loki/loki.yml:ro
+      - loki-data:/loki
+    mem_limit: 384m
+    cpus: 0.5
+    logging: *default-logging
+
+  tempo:
+    profiles: [observability]
+    image: ${TEMPO_IMAGE:?deploy/versions.env is not loaded}
+    restart: unless-stopped
+    command: ["-config.file=/etc/tempo/tempo.yml"]
+    volumes:
+      - ./observability/tempo/tempo.yml:/etc/tempo/tempo.yml:ro
+      - tempo-data:/var/tempo
+    mem_limit: 384m
+    cpus: 0.5
+    logging: *default-logging
+
+  otel-collector:
+    profiles: [observability]
+    image: ${OTEL_COLLECTOR_IMAGE:?deploy/versions.env is not loaded}
+    restart: unless-stopped
+    command: ["--config=/etc/otelcol/config.yml"]
+    volumes:
+      - ./observability/otel-collector/config.yml:/etc/otelcol/config.yml:ro
+    mem_limit: 192m
+    cpus: 0.5
+    logging: *default-logging
+
+  alloy:
+    profiles: [observability]
+    image: ${ALLOY_IMAGE:?deploy/versions.env is not loaded}
+    restart: unless-stopped
+    command:
+      - run
+      - --server.http.listen-addr=0.0.0.0:12345
+      - --storage.path=/var/lib/alloy/data
+      - /etc/alloy/config.alloy
+    volumes:
+      - ./observability/alloy/config.alloy:/etc/alloy/config.alloy:ro
+      # Reads the logs of the pti containers (DR-50); the image runs as root, which the socket requires.
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    ports: ["127.0.0.1:${HOST_PORT_ALLOY:-12345}:12345"]
+    healthcheck:
+      test: ["CMD", "bash", "-c",
+        "exec 3<>/dev/tcp/127.0.0.1/12345 && printf 'GET /-/ready HTTP/1.0\\r\\n\\r\\n' >&3 && grep -q ' 200 ' <&3"]
+      interval: 10s
+      timeout: 3s
+      retries: 12
+      start_period: 10s
+    mem_limit: 192m
+    cpus: 0.5
+    logging: *default-logging
+
+  mailpit:
+    profiles: [observability]
+    image: ${MAILPIT_IMAGE:?deploy/versions.env is not loaded}
+    restart: unless-stopped
+    environment:
+      MP_SMTP_AUTH_ACCEPT_ANY: "true"
+      MP_SMTP_AUTH_ALLOW_INSECURE: "true"
+    ports: ["127.0.0.1:${HOST_PORT_MAILPIT:-8025}:8025"]
+    healthcheck:
+      test: ["CMD", "/mailpit", "readyz"]
+      interval: 10s
+      timeout: 3s
+      retries: 12
+      start_period: 5s
+    mem_limit: 64m
+    cpus: 0.25
+    logging: *default-logging
+
 volumes:
   pg-warehouse-data:
   pg-source-data:
   kafka-data:
   seaweedfs-data:
+  prometheus-data:
+  alertmanager-data:
+  grafana-data:
+  loki-data:
+  tempo-data:

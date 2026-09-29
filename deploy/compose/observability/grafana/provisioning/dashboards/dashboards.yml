@@ -1,0 +1,13 @@
+# Dashboards are JSON files in the repository, read-only in Grafana: edit, export, commit (DOC-28 §7).
+apiVersion: 1
+
+providers:
+  - name: pti
+    folder: PTI
+    type: file
+    disableDeletion: true
+    allowUiUpdates: false
+    updateIntervalSeconds: 30
+    options:
+      path: /var/lib/grafana/dashboards
+      foldersFromFilesStructure: false

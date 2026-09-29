@@ -1,6 +1,6 @@
 # Triển khai bằng Docker Compose
 
-> Trạng thái: **Approved** · Cập nhật: 2026-09-29 · DOC-39
+> Trạng thái: **Approved** · Cập nhật: 2026-09-29 (P3-02: profile observability, DR-97) · DOC-39
 > Phụ thuộc: [DOC-07](../03-architecture/system-context-and-containers.md), [DOC-09](../03-architecture/messaging-contracts.md), [DOC-10](../03-architecture/quality-attributes.md) §3.3 và §5, [DOC-11](../03-architecture/tech-stack-and-versions.md), [DOC-17](../05-data/db-roles-and-grants.md), [DOC-29](../06-design/configuration-reference.md), [ADR-0012](../04-adr/0012-raw-zone-s3-sink.md), [ADR-0014](../04-adr/0014-deployment-units.md), [ADR-0024](../04-adr/0024-flyway-migration-job.md), [DR](../00-decision-register.md) (DR-05, 26, 27, 49, 50, 51, 64, 66, 67)
 > Người dùng chính: P1-04, P1-06, P1-12…14, P2-20, P4-16, P5-15, P6-09; môi trường dev, demo và thực nghiệm P3
 
@@ -238,13 +238,13 @@ Runner điều khiển qua API `http://localhost:8474` (thêm latency, cắt k�
 
 | Service | Image (DOC-11) | Cấu hình | Volume | `mem_limit` |
 | --- | --- | --- | --- | --- |
-| `prometheus` | Prometheus 3.x | `--storage.tsdb.retention.time=7d`, `--web.enable-lifecycle`; scrape mọi app ở `:9080/actuator/prometheus` (kể cả consumer lag, lấy từ metric Kafka client mà Micrometer xuất). Không chạy exporter riêng cho Kafka và Postgres, để giữ ngân sách RAM; panel Postgres đọc `pg_stat_*` qua datasource Postgres của Grafana (DOC-28) | `prometheus-data` | 512 MB |
-| `alertmanager` | 0.2x | Route mọi alert tới email `mailpit:1025` (DR-51) | — | 64 MB |
-| `grafana` | 12.x | `GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}`; provisioning datasource (Prometheus, Loki, Tempo, Postgres warehouse với user `api_reader`) và dashboard từ `observability/grafana/` | `grafana-data` | 192 MB |
+| `prometheus` | Prometheus 3.x | `--storage.tsdb.retention.time=7d`, `--web.enable-lifecycle`; scrape mọi app ở `:9080/actuator/prometheus` (kể cả consumer lag, lấy từ metric Kafka client mà Micrometer xuất). App của profile `core` là target tĩnh, nên container dừng thì `up = 0`; app của profile tùy chọn (`etl-stream-baseline`, sau này `triage-worker`) tìm qua DNS của Docker (`dns_sd_configs`), chỉ được scrape khi đang chạy. Prometheus cũng scrape chính các service observability (DR-97). Không chạy exporter riêng cho Kafka và Postgres, để giữ ngân sách RAM; panel Postgres đọc `pg_stat_*` qua datasource Postgres của Grafana (DOC-28) | `prometheus-data` | 512 MB |
+| `alertmanager` | 0.3x | Route mọi alert tới email `mailpit:1025` và webhook `api` (DR-51); webhook báo lỗi cho tới khi có `api` ở P4 | `alertmanager-data` (silence) | 64 MB |
+| `grafana` | 13.x | `GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}`; provisioning datasource (Prometheus, Loki, Tempo, Postgres warehouse với user `api_reader`, UID `prometheus`, `loki`, `tempo`, `pti-warehouse`) và dashboard từ `observability/grafana/` | `grafana-data` | 256 MB (đo 133 MB lúc rảnh; 192 MB không đủ chỗ cho lúc render dashboard) |
 | `loki` | 3.x | Single binary, filesystem, retention 7 ngày | `loki-data` | 384 MB |
-| `tempo` | 2.x | Local storage, retention 3 ngày | `tempo-data` | 384 MB |
+| `tempo` | 3.x | Local storage, retention 3 ngày; metrics generator tắt. Worker nền log `no jobs found` ở mức error vài lần mỗi phút khi rảnh, không phải lỗi | `tempo-data` | 384 MB |
 | `otel-collector` | contrib | Nhận OTLP HTTP 4318, xuất sang `tempo:4317` | — | 192 MB |
-| `alloy` | 1.x | `discovery.docker` + `loki.source.docker` đọc log container qua `/var/run/docker.sock:ro`, parse JSON, gắn label `service`, đẩy lên Loki | — | 192 MB |
+| `alloy` | 1.x | `discovery.docker` (chỉ project `pti`) + `loki.source.docker` đọc log container qua `/var/run/docker.sock:ro`, parse JSON ECS, gắn label `service`, `level`, `env`, đưa `trace_id`, `batch_id`, `source`, `job` vào structured metadata, đẩy lên Loki. UI debug ở 12345 | — | 192 MB |
 | `mailpit` | `axllent/mailpit:1.x` | UI 8025, SMTP 1025 | — | 64 MB |
 
 Danh sách metric, panel và alert rule nằm ở DOC-28. Tại sao log đi qua Alloy chứ không qua OTLP: DR-50.
@@ -291,7 +291,7 @@ Quy ước `depends_on`:
 | `keycloak` | `bash -c` gọi `/dev/tcp/127.0.0.1/9000` (`GET /health/ready`, cổng quản trị của Keycloak 26) | 10s / 18 / 30s |
 | app Spring | `/actuator/health/readiness` trên 9080 (§3.2) | 10s / 12 / 30s |
 | `frontend` | `wget -qO- http://127.0.0.1/healthz` (nginx trả `ok`) | 10s / 6 / 5s |
-| observability | endpoint `/-/ready` hoặc `/ready` của từng công cụ | 10s / 12 / 10s |
+| observability | `/-/ready` (Prometheus, Alertmanager, Alloy), `/api/health` (Grafana), `mailpit readyz`. Loki, Tempo, OTel Collector dùng image distroless không có shell hay HTTP client nên không có healthcheck; Prometheus scrape chúng và `up` cho biết còn trả lời không (DR-97) | 10s / 12 / 10s |
 
 Readiness của app Spring gồm: datasource, Kafka (qua `KafkaAdmin` describe cluster), và riêng `etl-stream` thêm trạng thái listener container đã được gán partition (DOC-20). Liveness chỉ phản ánh JVM còn sống, không phụ thuộc hệ thống ngoài, để compose (và k8s sau này) không restart app chỉ vì Postgres chết.
 
@@ -313,7 +313,7 @@ Thời gian từ `make up` (image có sẵn) tới lúc mọi service healthy: m
 | Grafana | `GRAFANA_ADMIN_PASSWORD` | Có | |
 | Jev | `TYPESAFE_API_KEY`, `PTI_TRIAGE_PROVIDER` (`fake` \| `jev` \| `disabled`) | Không | Người dùng tự điền; để trống thì dùng `fake` |
 | Hành vi | `PTI_CLOCK_OFFSET` (DR-67), `PTI_EXTRA_PROFILES`, `PTI_ETL_EXTRA_PROFILES`, `PTI_TRACING_ENABLED`, `PTI_WAREHOUSE_HOST`, `PTI_DQ_MAX_CLOCK_SKEW`, `PTI_SIM_START_RATE` | Không | Makefile đặt theo lệnh (`make clock-offset`, `make up-demo`…) |
-| Cổng host | `HOST_PORT_FRONTEND=8080`, `HOST_PORT_API=8081`, `HOST_PORT_SIM=8084`, `HOST_PORT_KEYCLOAK=8180`, `HOST_PORT_KAFKA=19092`, `HOST_PORT_CONNECT=18083`, `HOST_PORT_PG_WAREHOUSE=15432`, `HOST_PORT_PG_SOURCE=15433`, `HOST_PORT_S3=18333`, `HOST_PORT_GRAFANA=3000` | Không | Mọi cổng bind `127.0.0.1:${HOST_PORT_…}` |
+| Cổng host | `HOST_PORT_FRONTEND=8080`, `HOST_PORT_API=8081`, `HOST_PORT_SIM=8084`, `HOST_PORT_KEYCLOAK=8180`, `HOST_PORT_KAFKA=19092`, `HOST_PORT_CONNECT=18083`, `HOST_PORT_PG_WAREHOUSE=15432`, `HOST_PORT_PG_SOURCE=15433`, `HOST_PORT_S3=18333`, `HOST_PORT_GRAFANA=3000`, `HOST_PORT_PROMETHEUS=9090`, `HOST_PORT_ALERTMANAGER=9093`, `HOST_PORT_MAILPIT=8025`, `HOST_PORT_ALLOY=12345` | Không | Mọi cổng bind `127.0.0.1:${HOST_PORT_…}` |
 
 Quy tắc:
 
@@ -330,7 +330,7 @@ Quy tắc:
 | `pg-source-data` | pg-source | ≈ 8 GB (ledger 7,5 GB, WAL giữ bởi slot tối đa 4 GB khi Connect dừng) | Không |
 | `kafka-data` | kafka | ≈ 9 GB | Không |
 | `seaweedfs-data` | seaweedfs | ≈ 30 GB (30 ngày, gzip) | Không |
-| `prometheus-data`, `loki-data`, `tempo-data`, `grafana-data` | observability | ≈ 2 GB | Không |
+| `prometheus-data`, `alertmanager-data`, `loki-data`, `tempo-data`, `grafana-data` | observability | ≈ 2 GB | Không |
 
 - Một mạng bridge mặc định `pti_default`. Không dùng `network_mode: host`.
 - Log của mọi container: driver `json-file`, `max-size 20m`, `max-file 3` (tối đa 60 MB mỗi container). App ghi log JSON ra stdout (DOC-28 §2).

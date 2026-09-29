@@ -1,0 +1,47 @@
+# Alert routing (DOC-28 §6.4, DR-51): email to Mailpit, and a webhook to the API, which records ops.alert_event
+# (the API exists from P4; until then the webhook calls fail and are only logged).
+route:
+  receiver: default
+  group_by: [alertname, source, listener, job]
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+  routes:
+    - matchers: [severity="critical"]
+      repeat_interval: 1h
+      receiver: default
+    - matchers: [severity="info"]
+      receiver: webhook-only
+
+receivers:
+  - name: default
+    email_configs:
+      - to: oncall@pti.local
+        from: alertmanager@pti.local
+        smarthost: mailpit:1025
+        require_tls: false
+        send_resolved: true
+    webhook_configs:
+      - url: http://api:8080/internal/alerts/alertmanager
+        send_resolved: true
+        http_config:
+          authorization: { credentials_file: /etc/alertmanager/webhook-token }
+  - name: webhook-only
+    webhook_configs:
+      - url: http://api:8080/internal/alerts/alertmanager
+        send_resolved: true
+        http_config:
+          authorization: { credentials_file: /etc/alertmanager/webhook-token }
+
+inhibit_rules:
+  - source_matchers: [alertname="TargetDown"]
+    target_matchers: [severity=~"warning|info"]
+    equal: [job]
+  - source_matchers: [alertname="ConsumerStopped"]
+    target_matchers: [alertname="ConsumerLagHigh"]
+  - source_matchers: [alertname="CircuitBreakerOpen", name="warehouse"]
+    target_matchers: [alertname=~"DatabaseBottleneck|ConsumerPaused|ConsumerLagHigh|EndToEndLatencyHigh|LatencyStageSlow"]
+  - source_matchers: [alertname="GtfsRtFeedStale"]
+    target_matchers: [alertname=~"ThroughputDrop|EndToEndLatencyHigh"]
+  - source_matchers: [alertname="ConnectorDown"]
+    target_matchers: [alertname="DebeziumWalRetained", severity="warning"]
