@@ -72,7 +72,7 @@ class JobControlTest {
         assertThat(PtiJob.byName("NoSuchJob")).isEmpty();
         assertThat(PtiJob.DLQ_REPLAY.manualRun()).isFalse();
         assertThat(PtiJob.DATA_QUALITY.stale()).isEqualTo(PtiJob.Stale.FAIL);
-        assertThat(PtiJob.GTFS_STATIC_LOAD.extraParameters()).containsExactly("sourceUri");
+        assertThat(PtiJob.GTFS_STATIC_LOAD.extraParameters()).containsExactlyInAnyOrder("sourceUri", "allowReactivate");
         assertThat(PtiJob.RAW_ZONE_REPLAY.identity().parameter()).isEqualTo("replayRequestId");
     }
 
@@ -139,7 +139,19 @@ class JobControlTest {
                 operator, List.of(retention, dedup, job(PtiJob.GTFS_STATIC_LOAD, true), job(PtiJob.DLQ_REPLAY, true)));
         boolean room = true;
         final JobRequestPoller poller = new JobRequestPoller(
-                requests, launcher, operator, repository, CLOCK, () -> room, new SimpleMeterRegistry());
+                requests,
+                launcher,
+                operator,
+                repository,
+                CLOCK,
+                () -> room,
+                new SimpleMeterRegistry(),
+                List.of((job, name, value) -> {
+                    if (name.equals("sourceUri") && value.startsWith("file:/etc")) {
+                        throw new IllegalArgumentException(
+                                "sourceUri " + value + " is outside the allowed directories");
+                    }
+                }));
 
         JobRequest run(String job, Map<String, String> parameters) {
             return new JobRequest(UUID.randomUUID(), Kind.RUN, job, parameters, null);
@@ -211,6 +223,8 @@ class JobControlTest {
                 .contains("not a valid run_date");
         assertThat(f.rejection(f.run("DedupRegistryCleanupJob", Map.of("slot", "now"))))
                 .contains("not a valid slot");
+        assertThat(f.rejection(f.run("GtfsStaticLoadJob", Map.of("sourceUri", "file:/etc/hosts"))))
+                .contains("outside the allowed directories");
 
         when(f.operator.start(eq(f.retention), any()))
                 .thenThrow(new JobExecutionAlreadyRunningException("r"))

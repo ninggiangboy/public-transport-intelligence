@@ -4,11 +4,21 @@ import static org.awaitility.Awaitility.await;
 
 import dev.pti.db.MigratedDatabases;
 import dev.pti.etl.EtlApplication;
+import dev.pti.etl.gtfs.LocalRawZone;
+import dev.pti.etl.raw.RawZone;
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Duration;
 import org.springframework.batch.core.job.JobExecution;
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
+import org.springframework.context.annotation.Primary;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
@@ -35,7 +45,32 @@ import org.springframework.test.context.DynamicPropertySource;
             "pti.etl.batch.skip-min-sample=100",
         })
 @ActiveProfiles({"batch", "test"})
-abstract class BatchContextSupport {
+@Import(BatchContextSupport.TestRawZone.class)
+public abstract class BatchContextSupport {
+
+    /** Feeds a test may load ({@code pti.gtfs.static.allowed-dirs}), the work dir and the local raw zone. */
+    public static final Path FEEDS = temp("pti-feeds");
+
+    public static final Path WORK = temp("pti-gtfs-work");
+
+    public static final Path RAW = temp("pti-raw");
+
+    private static Path temp(String prefix) {
+        try {
+            return Files.createTempDirectory(prefix).toRealPath();
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    @TestConfiguration(proxyBeanMethods = false)
+    static class TestRawZone {
+        @Bean
+        @Primary
+        RawZone localRawZone() {
+            return new LocalRawZone(RAW);
+        }
+    }
 
     @Autowired
     protected JdbcTemplate jdbc;
@@ -49,12 +84,18 @@ abstract class BatchContextSupport {
         registry.add("spring.datasource.password", () -> MigratedDatabases.password("etl_writer"));
         registry.add("server.port", () -> "0");
         registry.add("management.server.port", () -> "0");
+        registry.add("pti.gtfs.static.allowed-dirs", FEEDS::toString);
+        registry.add("pti.gtfs.static.work-dir", WORK::toString);
     }
 
     /** Jobs run on the asynchronous executor: wait until the execution has ended. */
-    protected JobExecution awaitEnd(JobExecution execution) {
+    public JobExecution awaitEnd(JobExecution execution) {
+        return awaitEnd(execution, Duration.ofSeconds(60));
+    }
+
+    public JobExecution awaitEnd(JobExecution execution, Duration timeout) {
         long id = execution.getId();
-        await().atMost(Duration.ofSeconds(60))
+        await().atMost(timeout)
                 .pollInterval(Duration.ofMillis(100))
                 .until(() -> !jobRepository.getJobExecution(id).isRunning());
         return jobRepository.getJobExecution(id);

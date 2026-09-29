@@ -42,6 +42,7 @@ dependencies {
 
     integrationTestImplementation(project(":db"))
     integrationTestImplementation(testFixtures(project(":db")))
+    integrationTestImplementation(testFixtures(project(":common")))
     integrationTestImplementation(libs.postgresql)
     integrationTestImplementation(libs.spring.batch.test)
     integrationTestImplementation(libs.testcontainers.kafka)

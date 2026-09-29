@@ -13,6 +13,7 @@ import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.step.Step;
 import org.springframework.batch.core.step.builder.SimpleStepBuilder;
 import org.springframework.batch.core.step.builder.StepBuilder;
+import org.springframework.batch.core.step.builder.TaskletStepBuilder;
 import org.springframework.batch.core.step.tasklet.Tasklet;
 import org.springframework.batch.infrastructure.item.ItemProcessor;
 import org.springframework.batch.infrastructure.item.ItemReader;
@@ -116,10 +117,29 @@ public class BatchSteps {
     }
 
     /** A tasklet step; it gets a {@code batch_id} too, so that every row it writes can be traced (DR-63). */
-    public Step tasklet(String name, Tasklet tasklet) {
-        return new StepBuilder(name, jobRepository)
+    public Step tasklet(String name, Tasklet tasklet, StepExecutionListener... listeners) {
+        TaskletStepBuilder builder = new StepBuilder(name, jobRepository)
                 .tasklet(tasklet, transactionManager)
-                .listener((StepExecutionListener) batchIdListener)
-                .build();
+                .listener((StepExecutionListener) batchIdListener);
+        for (StepExecutionListener listener : listeners) {
+            builder.listener(listener);
+        }
+        return builder.build();
+    }
+
+    public BatchIdStepListener batchIdListener() {
+        return batchIdListener;
+    }
+
+    public FaultStepListener faultListener() {
+        return faultListener;
+    }
+
+    public TransientRetryPolicy retryPolicy() {
+        return retryPolicy;
+    }
+
+    public BackOffPolicy backOffPolicy() {
+        return backOffPolicy;
     }
 }

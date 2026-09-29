@@ -9,7 +9,8 @@ import java.util.Set;
  * {@code job_request} may pass, and how {@link StaleExecutionRecoverer} treats a stale execution.
  */
 public enum PtiJob {
-    GTFS_STATIC_LOAD("GtfsStaticLoadJob", Identity.RUN_KEY, Set.of("sourceUri"), Stale.RESTART, true),
+    GTFS_STATIC_LOAD(
+            "GtfsStaticLoadJob", Identity.RUN_KEY, Set.of("sourceUri", "allowReactivate"), Stale.RESTART, true),
     DLQ_REPLAY("DlqReplayJob", Identity.REPLAY_REQUEST, Set.of(), Stale.FAIL_REPLAY_REQUEST, false),
     RAW_ZONE_REPLAY("RawZoneReplayJob", Identity.REPLAY_REQUEST, Set.of(), Stale.FAIL_REPLAY_REQUEST, false),
     PARTITION_MAINTENANCE("PartitionMaintenanceJob", Identity.RUN_DATE, Set.of(), Stale.RESTART, true),

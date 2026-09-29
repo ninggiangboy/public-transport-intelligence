@@ -9,6 +9,8 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeParseException;
+import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.BooleanSupplier;
@@ -50,6 +52,7 @@ public class JobRequestPoller {
     private final BusinessClock clock;
     private final BooleanSupplier executorHasRoom;
     private final MeterRegistry meters;
+    private final List<JobParameterCheck> parameterChecks;
 
     public JobRequestPoller(
             JobRequests requests,
@@ -58,7 +61,9 @@ public class JobRequestPoller {
             JobRepository jobRepository,
             BusinessClock clock,
             BooleanSupplier executorHasRoom,
-            MeterRegistry meters) {
+            MeterRegistry meters,
+            List<JobParameterCheck> parameterChecks) {
+        this.parameterChecks = List.copyOf(parameterChecks);
         this.requests = requests;
         this.launcher = launcher;
         this.jobOperator = jobOperator;
@@ -145,7 +150,14 @@ public class JobRequestPoller {
         return builder.addString(JobParams.JOB_REQUEST_ID, request.id().toString(), false);
     }
 
-    private static String validated(PtiJob job, String key, String value) {
+    private String validated(PtiJob job, String key, String value) {
+        for (JobParameterCheck check : parameterChecks) {
+            try {
+                check.check(job, key, value);
+            } catch (IllegalArgumentException e) {
+                throw new Rejected(e.getMessage());
+            }
+        }
         if (!key.equals(job.identity().parameter())) {
             return value;
         }
@@ -157,7 +169,7 @@ public class JobRequestPoller {
             };
         } catch (DateTimeParseException e) {
             throw new Rejected("Parameter " + key + " is not a valid "
-                    + job.identity().name().toLowerCase(java.util.Locale.ROOT) + ": " + value);
+                    + job.identity().name().toLowerCase(Locale.ROOT) + ": " + value);
         }
     }
 

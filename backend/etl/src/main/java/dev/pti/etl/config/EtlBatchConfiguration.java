@@ -9,6 +9,7 @@ import dev.pti.etl.batch.BatchStartupTask;
 import dev.pti.etl.batch.BatchSteps;
 import dev.pti.etl.batch.DeadLetterSkipListener;
 import dev.pti.etl.batch.FaultStepListener;
+import dev.pti.etl.batch.JobParameterCheck;
 import dev.pti.etl.batch.JobRequestListener;
 import dev.pti.etl.batch.JobRequestPoller;
 import dev.pti.etl.batch.JobRequests;
@@ -182,9 +183,17 @@ public class EtlBatchConfiguration {
             JobRepository jobRepository,
             BusinessClock clock,
             ThreadPoolTaskExecutor batchTaskExecutor,
-            MeterRegistry meters) {
+            MeterRegistry meters,
+            ObjectProvider<JobParameterCheck> checks) {
         return new JobRequestPoller(
-                requests, launcher, jobOperator, jobRepository, clock, () -> hasRoom(batchTaskExecutor), meters);
+                requests,
+                launcher,
+                jobOperator,
+                jobRepository,
+                clock,
+                () -> hasRoom(batchTaskExecutor),
+                meters,
+                checks.orderedStream().toList());
     }
 
     private static boolean hasRoom(ThreadPoolTaskExecutor executor) {
