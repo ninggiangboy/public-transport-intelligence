@@ -143,7 +143,7 @@ Ký hiệu: S = SELECT, I = INSERT, U = UPDATE, D = DELETE, T = TRUNCATE, X = EX
 | `ops.replay_request` | S D, U(status, job_execution_id, started_at, finished_at, stats, message) | S I | S | S I | S |
 | `ops.job_request` | S D, U(status, job_execution_id, started_at, finished_at, message) | | S | S I | S |
 | `ops.runtime_flag` | S | S | S | S I, U(value, updated_by, updated_at) | S |
-| `ops.alert_event` | S I, U(title, body, severity, resolved_at) | S, U(audience, title, body, severity) | S | S I, U(acknowledged_by, acknowledged_at, resolved_at) | S |
+| `ops.alert_event` | S I D, U(title, body, severity, resolved_at) | S, U(audience, title, body, severity) | S | S I, U(acknowledged_by, acknowledged_at, resolved_at) | S |
 | `ops.ops_job_run_v`, `ops.ops_job_step_v`, `ops.ops_job_execution_param_v` | | | S | | S |
 | `insight.insight_*` (trừ dispatch) | SIUD | S, U(các cột enrichment, xem file) | S | | S |
 | `insight.insight_dispatch_suggestion` | S | S I, U(action, action_confidence, state_snapshot, model_version) | S | S, U(operator_feedback, feedback_by, feedback_at) | S |
@@ -233,7 +233,7 @@ GRANT SELECT, INSERT, DELETE ON ops.dlq_action_log TO etl_writer;
 GRANT SELECT, DELETE ON ops.replay_request, ops.job_request TO etl_writer;
 GRANT UPDATE (status, job_execution_id, started_at, finished_at, stats, message) ON ops.replay_request TO etl_writer;
 GRANT UPDATE (status, job_execution_id, started_at, finished_at, message)        ON ops.job_request    TO etl_writer;
-GRANT SELECT, INSERT ON ops.alert_event TO etl_writer;
+GRANT SELECT, INSERT, DELETE ON ops.alert_event TO etl_writer;                   -- DELETE: retention job
 GRANT UPDATE (title, body, severity, resolved_at) ON ops.alert_event TO etl_writer;
 GRANT SELECT ON ops.runtime_flag TO etl_writer;
 

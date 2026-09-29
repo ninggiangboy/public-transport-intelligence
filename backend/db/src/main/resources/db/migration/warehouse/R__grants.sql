@@ -37,7 +37,7 @@ GRANT SELECT, INSERT, DELETE ON ops.dlq_action_log TO etl_writer;
 GRANT SELECT, DELETE ON ops.replay_request, ops.job_request TO etl_writer;
 GRANT UPDATE (status, job_execution_id, started_at, finished_at, stats, message) ON ops.replay_request TO etl_writer;
 GRANT UPDATE (status, job_execution_id, started_at, finished_at, message)        ON ops.job_request    TO etl_writer;
-GRANT SELECT, INSERT ON ops.alert_event TO etl_writer;
+GRANT SELECT, INSERT, DELETE ON ops.alert_event TO etl_writer;                   -- DELETE: retention job
 GRANT UPDATE (title, body, severity, resolved_at) ON ops.alert_event TO etl_writer;
 GRANT SELECT ON ops.runtime_flag TO etl_writer;
 
