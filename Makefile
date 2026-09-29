@@ -134,6 +134,23 @@ sim-rate: .env ## Set the rate multipliers: GTFS=<x> and/or TICKETING=<y> (0, or
 	@body=$$(python3 -c 'import json, sys; print(json.dumps({k: float(v) for k, v in zip(("gtfsRt", "ticketing"), sys.argv[1:]) if v}))' \
 		'$(GTFS)' '$(TICKETING)'); $(SIM_PUT_RATE)
 
+.PHONY: scenarios
+scenarios: .env ## List the scenarios and their parameters (GET /sim/scenarios)
+	@set -o pipefail; curl -sS --fail-with-body $(SIM_URL)/scenarios | python3 -c 'import json, sys; \
+	[print(s["name"].ljust(14), ", ".join(p["name"] + ("*" if p["required"] else "") for p in s["params"])) \
+	 for s in json.load(sys.stdin)["items"]]'
+
+.PHONY: scenario
+scenario: .env ## Start a scenario: NAME=<name> [ARGS='<json>'], e.g. NAME=bunching ARGS='{"routeId":"18"}'
+	@test -n "$(NAME)" || { echo "Usage: make scenario NAME=<name> [ARGS='<json>']" >&2; exit 2; }
+	@set -o pipefail; curl -sS --fail-with-body -X POST -H 'Content-Type: application/json' \
+		-H 'X-Requested-By: cli' -d '$(or $(ARGS),{})' $(SIM_URL)/scenarios/$(NAME) | python3 -m json.tool
+
+.PHONY: scenario-stop
+scenario-stop: .env ## Stop every running run of a scenario: NAME=<name>
+	@test -n "$(NAME)" || { echo "Usage: make scenario-stop NAME=<name>" >&2; exit 2; }
+	@curl -sS --fail-with-body -X DELETE $(SIM_URL)/scenarios/$(NAME) && echo "Stopped $(NAME)"
+
 # ---------------------------------------------------------------- development
 
 .PHONY: fmt

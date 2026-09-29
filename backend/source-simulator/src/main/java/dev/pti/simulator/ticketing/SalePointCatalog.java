@@ -9,6 +9,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.random.RandomGenerator;
 
@@ -93,6 +94,15 @@ public final class SalePointCatalog {
 
     public List<SalePoint> all() {
         return all;
+    }
+
+    public Optional<SalePoint> find(String salePointId) {
+        return all.stream().filter(p -> p.id().equals(salePointId)).findFirst();
+    }
+
+    /** The kiosk with the most departures ({@code KIOSK-001}), else the first point: the scenarios' default. */
+    public SalePoint busiest() {
+        return all.getFirst();
     }
 
     /** A sale point for the next sale. */

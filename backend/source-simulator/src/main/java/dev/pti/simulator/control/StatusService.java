@@ -8,6 +8,7 @@ import dev.pti.simulator.feed.Feed;
 import dev.pti.simulator.feed.ServiceDays;
 import dev.pti.simulator.ledger.Ledger;
 import dev.pti.simulator.rate.RateControl;
+import dev.pti.simulator.scenario.ScenarioEngine;
 import dev.pti.simulator.ticketing.TicketingSeeder;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -29,6 +30,7 @@ public class StatusService {
     private final Emitter emitter;
     private final Throughput throughput;
     private final Ledger ledger;
+    private final ScenarioEngine scenarios;
 
     public StatusService(
             BusinessClock clock,
@@ -37,7 +39,8 @@ public class StatusService {
             RateControl rate,
             Emitter emitter,
             Throughput throughput,
-            Ledger ledger) {
+            Ledger ledger,
+            ScenarioEngine scenarios) {
         this.clock = clock;
         this.feed = feed;
         this.serviceDays = serviceDays;
@@ -45,6 +48,7 @@ public class StatusService {
         this.emitter = emitter;
         this.throughput = throughput;
         this.ledger = ledger;
+        this.scenarios = scenarios;
     }
 
     public SimStatus status() {
@@ -62,7 +66,9 @@ public class StatusService {
                 messagesPerSecond,
                 throughput.perSecond(TicketingSeeder.SALES),
                 new SimStatus.Ledger(ledger.queueDepth(), ledger.lastFlushAt()),
-                List.of());
+                scenarios.running().stream()
+                        .map(r -> new SimStatus.RunningScenario(r.runId().toString(), r.scenario(), r.plannedEndAt()))
+                        .toList());
     }
 
     private SimStatus.ServiceDate serviceDate(LocalDate realDate) {

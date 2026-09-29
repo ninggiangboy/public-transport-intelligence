@@ -53,6 +53,7 @@ Tài liệu gốc mô tả tốt *cái gì* và *vì sao*, nhưng còn nhiều c
 | 2026-09-28 | Claude (Owner ủy quyền) | **S3 sink OOM khi chạy live (P1-14):** Aiven 3.4.3 cắt file mỗi 10 giây trên mỗi partition và giữ buffer của writer tới lần commit, nên với commit 5 phút task chết sau vài phút có traffic. Giữ 3.4.3; `aws.s3.part.size.bytes` = 1 MiB, worker commit mỗi 30 giây. Số object raw zone tăng khoảng 15 lần; replay (P3) phải xem lại `pti.replay.max-objects` | DR-89 (mới), sửa DR-81, ADR-0012, DOC-09 §7, DOC-39 §3.4, DOC-40, DOC-22 §4.3 |
 | 2026-09-29 | Claude (Owner ủy quyền) | **Phase 2 xong:** claim yêu cầu job/replay commit trước khi gọi `JobOperator`; replay raw zone liệt kê object theo giờ thay vì lưu danh sách (đóng mục mở của DR-89); hoãn DQ-27 sang P3; các chi tiết nhỏ khác | DR-90, DR-91, DR-92, DR-93 (mới) |
 | 2026-09-29 | Owner | **Máy thực nghiệm và lưu kết quả:** thực nghiệm chính thức chạy trên một máy riêng cố định 16 GB (không gắn với máy cụ thể), không chạy trên máy dev hay GitHub Actions; file kết quả nhỏ commit vào git, file lớn gói theo chuỗi lên GitHub Release `exp-results` | DR-94 (mới) |
+| 2026-09-29 | Claude (Owner ủy quyền) | **Kịch bản simulator (P3-01):** bunching ghép xe theo trạm chung đầu tiên phía trước thay vì `dist`, và giữ follower ở đúng khoảng cách mục tiêu; kiểu gây hỏng chỉ chọn trong các loại áp dụng được cho entity type; hàng đợi gửi lại và hoàn vé còn chờ vẫn chạy tiếp sau khi lần chạy kết thúc; lỗi của hook kết thúc lần chạy ở tick kế tiếp | DR-96 (mới), DOC-25 §7 |
 | 2026-09-29 | Owner | **Thực nghiệm hai bước:** P3 viết đủ runner và chạy một chuỗi smoke ≤ 30 phút (mỗi EXP-01…05 một lần chạy rút gọn) trên máy dev; đợt chạy đầy đủ trên máy thực nghiệm dời thành P3-10, làm sau M6 và trước P7. Chuỗi smoke chạy lại khi chốt M4 và M6 | DR-95 (mới), master plan P3, DOC-45 |
 
 ---
@@ -713,6 +714,14 @@ Tài liệu gốc mô tả tốt *cái gì* và *vì sao*, nhưng còn nhiều c
   6. `archive` và `fetch` chuyển từ P3-06 sang P3-10, vì chỉ đợt chạy đầy đủ cần.
 - **Hệ quả:** M3 không còn "có số liệu EXP-01…05"; tiêu chí "EXP-05 xác định được ngưỡng tải" chuyển sang P3-10. P7-00 phụ thuộc thêm P3-10. EXP-04 C5 của P4-17 (bảng insight) chỉ kiểm ở P3-10, vì chuỗi smoke không so sánh bảng insight. DQ-27 (DR-92) vẫn làm ở P3 cùng runner EXP-04.
 - **Ghi vào:** master plan §4.1, §4.2, §4.3, P3, P4-17, M4, M6, P7-00; DOC-45 (README §1, §1.3, §2, §6, §7; EXP-01…05 phần đầu và mục "Kết quả"); README gốc (Roadmap).
+
+### DR-96 · Chi tiết khi làm kịch bản simulator (P3-01) — **Chốt** (P3)
+- **Bunching ghép xe theo trạm chung.** DOC-25 §7.2 sắp xe theo `dist`, nhưng `dist` đo trên shape riêng của từng chuyến. Tuyến 18 có nhiều nhánh và chuyến chạy ngắn, nên trên mini feed không có cặp nào được chọn. Leader của một xe là xe có giờ theo lịch muộn nhất mà vẫn sớm hơn nó tại trạm chung đầu tiên từ trạm hiện tại của nó trở đi; headway và `gap` cũng đo tại trạm chung. Khi `gap ≤ target`, follower bị giữ ở đúng `target` thay vì chép `eps` của leader (hai chuyến lấy mẫu đoạn ở hai thời điểm khác nhau).
+- **Chọn kiểu gây hỏng theo entity type.** `bad-data` chỉ chọn trong các `kinds` áp dụng được cho message (`out_of_bbox` chỉ VehiclePosition, `delay_out_of_range` chỉ TripUpdate); không loại nào áp dụng thì gửi nguyên. `unknown_schema_version` đổi cả header và `schema_version` trong ledger.
+- **Hiệu ứng kéo dài sau lần chạy.** Bản gửi lại đã xếp hàng, hoàn vé còn chờ của `refund-burst` và phần hồi phục của `disruption` vẫn chạy sau khi lần chạy chuyển `COMPLETED`/`STOPPED`; hook tự gỡ khi xong. `ticket-spike` không sinh hoàn vé, hủy, xóa cho giao dịch của nó.
+- **Lỗi của hook.** Hook ném lỗi bị gỡ ngay cùng mọi hook của lần chạy đó; lần chạy chuyển `FAILED` ở tick kế tiếp của thread `sim-scenarios` (500 ms), không ngay trên thread của hook, để tránh khóa chéo với `Emitter`.
+- **Lệnh `make`.** Thêm `make scenarios` (liệt kê catalog) cạnh `make scenario` và `make scenario-stop` của DOC-38 §4.3.
+- **Ghi vào:** DOC-25 §7.2–7.7, §8, §14 (T-14); DOC-38 §4.3.
 
 ---
 

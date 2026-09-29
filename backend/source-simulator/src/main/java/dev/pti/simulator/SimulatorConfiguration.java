@@ -2,9 +2,11 @@ package dev.pti.simulator;
 
 import dev.pti.common.time.BusinessClock;
 import dev.pti.simulator.emit.Emitter;
+import dev.pti.simulator.emit.InterceptingSink;
 import dev.pti.simulator.emit.KafkaFlush;
 import dev.pti.simulator.emit.KafkaMessageSink;
 import dev.pti.simulator.emit.MessageFactory;
+import dev.pti.simulator.emit.ResendQueue;
 import dev.pti.simulator.feed.Feed;
 import dev.pti.simulator.feed.FeedLoader;
 import dev.pti.simulator.feed.ServiceDateMapper;
@@ -14,6 +16,7 @@ import dev.pti.simulator.ledger.LedgerWriter;
 import dev.pti.simulator.motion.DelayModel;
 import dev.pti.simulator.motion.Fleet;
 import dev.pti.simulator.rate.RateControl;
+import dev.pti.simulator.scenario.ScenarioHooks;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -51,9 +54,15 @@ public class SimulatorConfiguration {
                 properties.vehicle().minLayover());
     }
 
+    /** Where running scenarios attach (DOC-25 §7.1). */
     @Bean
-    DelayModel delayModel(Feed feed, SimProperties properties) {
-        return new DelayModel(properties.seed(), properties.delayParameters(), feed.zone());
+    ScenarioHooks scenarioHooks() {
+        return new ScenarioHooks();
+    }
+
+    @Bean
+    DelayModel delayModel(Feed feed, SimProperties properties, ScenarioHooks hooks) {
+        return new DelayModel(properties.seed(), properties.delayParameters(), feed.zone(), hooks);
     }
 
     @Bean
@@ -112,6 +121,18 @@ public class SimulatorConfiguration {
         return new KafkaFlush(sink);
     }
 
+    /** Resends of the {@code duplicates} scenario, sent on {@code sim-resend} (DOC-25 §7.5, §10). */
+    @Bean
+    ResendQueue resendQueue(
+            KafkaMessageSink sink, BusinessClock clock, SimProperties properties, MeterRegistry registry) {
+        return new ResendQueue(sink, clock, properties.duplicates().queueCapacity(), registry);
+    }
+
+    @Bean
+    TickLoop resendLoop(ResendQueue resends, SimProperties properties) {
+        return new TickLoop("sim-resend", resends::tick, properties.tick());
+    }
+
     @Bean
     Emitter emitter(
             BusinessClock clock,
@@ -120,6 +141,7 @@ public class SimulatorConfiguration {
             MessageFactory messages,
             KafkaMessageSink sink,
             RateControl rate,
+            ScenarioHooks hooks,
             SimProperties properties,
             MeterRegistry registry) {
         Fleet fleet = new Fleet(
@@ -131,10 +153,11 @@ public class SimulatorConfiguration {
                 clock,
                 fleet,
                 messages,
-                sink,
+                new InterceptingSink(sink, hooks, clock),
                 rate,
                 properties.vehiclePosition().interval(),
-                properties.tripUpdate().interval());
+                properties.tripUpdate().interval(),
+                hooks);
         emitter.bindTo(registry);
         return emitter;
     }

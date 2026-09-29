@@ -14,6 +14,8 @@ import dev.pti.simulator.feed.ServiceDateMapper;
 import dev.pti.simulator.feed.ServiceDays;
 import dev.pti.simulator.ledger.Ledger;
 import dev.pti.simulator.ledger.LedgerEntry;
+import dev.pti.simulator.scenario.ScenarioEngine;
+import dev.pti.simulator.scenario.ScenarioEngines;
 import java.time.Duration;
 import java.time.Instant;
 import org.jspecify.annotations.Nullable;
@@ -38,9 +40,10 @@ class SimControllerTest {
         ServiceDays days =
                 new ServiceDays(feed, new ServiceDateMapper(feed.calendar(), "auto"), Duration.ofMinutes(10));
         Throughput throughput = new Throughput(() -> harness.clock().realNow().toEpochMilli());
+        ScenarioEngine engine = ScenarioEngines.idle(harness);
         StatusService service = new StatusService(
-                harness.clock(), feed, days, harness.rate(), harness.emitter(), throughput, new IdleLedger());
-        mvc = MockMvcBuilders.standaloneSetup(new SimController(service, harness.rate()))
+                harness.clock(), feed, days, harness.rate(), harness.emitter(), throughput, new IdleLedger(), engine);
+        mvc = MockMvcBuilders.standaloneSetup(new SimController(service, harness.rate(), engine))
                 .setControllerAdvice(new ProblemHandler())
                 .build();
     }

@@ -1,5 +1,6 @@
 package dev.pti.simulator.control;
 
+import dev.pti.simulator.scenario.ScenarioException;
 import jakarta.servlet.http.HttpServletRequest;
 import java.net.URI;
 import java.util.List;
@@ -22,21 +23,46 @@ public class ProblemHandler {
     }
 
     @ExceptionHandler
+    ProblemDetail scenario(ScenarioException e, HttpServletRequest request) {
+        ScenarioException.Problem p = e.problem();
+        List<InvalidParamException.FieldError> errors = e.errors().stream()
+                .map(f -> new InvalidParamException.FieldError(f.field(), f.message()))
+                .toList();
+        if (p == ScenarioException.Problem.INVALID_PARAM) {
+            return invalidParam(e.getMessage(), errors, request);
+        }
+        return problem(HttpStatus.valueOf(p.status()), p.slug(), p.title(), e.getMessage(), request);
+    }
+
+    /** {@code PUT /sim/rate} while {@code load-ramp} owns the multipliers (DOC-25 §7.8). */
+    @ExceptionHandler
+    ProblemDetail loadRamp(LoadRampRunningException e, HttpServletRequest request) {
+        ScenarioException.Problem p = ScenarioException.Problem.LOAD_RAMP_RUNNING;
+        return problem(HttpStatus.valueOf(p.status()), p.slug(), p.title(), e.getMessage(), request);
+    }
+
+    @ExceptionHandler
     ProblemDetail unreadable(HttpMessageNotReadableException e, HttpServletRequest request) {
         return invalidParam("The request body is not valid JSON of the expected shape.", List.of(), request);
     }
 
     private static ProblemDetail invalidParam(
             String detail, List<InvalidParamException.FieldError> errors, HttpServletRequest request) {
-        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, detail);
-        problem.setType(INVALID_PARAM);
-        problem.setTitle("Invalid parameter");
+        ProblemDetail problem = problem(HttpStatus.BAD_REQUEST, "invalid-param", "Invalid parameter", detail, request);
+        problem.setProperty("errors", errors);
+        return problem;
+    }
+
+    private static ProblemDetail problem(
+            HttpStatus status, String slug, String title, String detail, HttpServletRequest request) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(status, detail);
+        problem.setType(URI.create("urn:pti:problem:" + slug));
+        problem.setTitle(title);
         problem.setInstance(URI.create(request.getRequestURI()));
         String traceId = MDC.get("traceId");
         if (traceId != null) {
             problem.setProperty("traceId", traceId);
         }
-        problem.setProperty("errors", errors);
         return problem;
     }
 }

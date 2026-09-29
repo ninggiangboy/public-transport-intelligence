@@ -44,7 +44,11 @@ public final class SaleGenerator {
     }
 
     public Transaction sale(RandomGenerator rng, Instant at) {
-        SalePoint point = catalog.pick(rng);
+        return saleAt(rng, catalog.pick(rng), at);
+    }
+
+    /** A sale at a given point, with the usual ticket mix, fares and customers (DOC-25 §7.6). */
+    public Transaction saleAt(RandomGenerator rng, SalePoint point, Instant at) {
         TicketType type = ticketType(rng);
         boolean identified = point.kind() == SalePoint.Kind.APP || rng.nextDouble() < CARD_SHARE;
         return new Transaction(

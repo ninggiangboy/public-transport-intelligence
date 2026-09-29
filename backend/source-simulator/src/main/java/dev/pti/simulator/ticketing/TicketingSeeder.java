@@ -10,9 +10,11 @@ import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.List;
 import java.util.PriorityQueue;
 import java.util.SplittableRandom;
 import java.util.UUID;
+import java.util.function.Supplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataAccessException;
@@ -20,9 +22,10 @@ import org.springframework.dao.DataAccessException;
 /**
  * Writes simulated ticket sales into {@code ticketing_source} (DOC-25 §9): a Poisson process at
  * {@code λ(hour) × dayFactor × rateMultiplier.ticketing}, plus refunds, voids and deletes some time after a sale.
- * Pending follow-ups live in memory and are lost on restart. Not thread-safe; runs on the {@code sim-ticketing} thread.
+ * Pending follow-ups live in memory and are lost on restart. Scenario overlays run after the regular sales of each
+ * tick (DOC-25 §7.6, §7.7). Not thread-safe; runs on the {@code sim-ticketing} thread.
  */
-public final class TicketingSeeder {
+public final class TicketingSeeder implements TicketingActions {
 
     private static final Logger log = LoggerFactory.getLogger(TicketingSeeder.class);
 
@@ -42,6 +45,7 @@ public final class TicketingSeeder {
     private final TicketingSettings settings;
     private final MeterRegistry registry;
     private final Throughput throughput;
+    private final Supplier<List<TicketingOverlay>> overlays;
     private final SplittableRandom rng;
     private final PriorityQueue<FollowUp> followUps =
             new PriorityQueue<>(Comparator.comparingLong(FollowUp::dueMillis));
@@ -60,6 +64,21 @@ public final class TicketingSeeder {
             long seed,
             MeterRegistry registry,
             Throughput throughput) {
+        this(clock, generator, catalog, repository, rate, settings, seed, registry, throughput, List::of);
+    }
+
+    /** @param overlays the running scenarios' ticketing overlays */
+    public TicketingSeeder(
+            BusinessClock clock,
+            SaleGenerator generator,
+            SalePointCatalog catalog,
+            TicketingRepository repository,
+            RateControl rate,
+            TicketingSettings settings,
+            long seed,
+            MeterRegistry registry,
+            Throughput throughput,
+            Supplier<List<TicketingOverlay>> overlays) {
         this.clock = clock;
         this.generator = generator;
         this.catalog = catalog;
@@ -68,6 +87,7 @@ public final class TicketingSeeder {
         this.settings = settings;
         this.registry = registry;
         this.throughput = throughput;
+        this.overlays = overlays;
         this.rng = new SplittableRandom(Seeds.of(seed, "ticketing"));
         this.errors = Counter.builder("pti.sim.ticketing.errors").register(registry);
     }
@@ -91,6 +111,9 @@ public final class TicketingSeeder {
             }
             runFollowUps(now);
             sell(from, now);
+            for (TicketingOverlay overlay : overlays.get()) {
+                overlay.onTick(this, from, now);
+            }
         } catch (DataAccessException e) {
             // The ticketing system is "down": this tick's sales are lost, the next tick tries again (DOC-25 §9.4).
             errors.increment();
@@ -114,10 +137,34 @@ public final class TicketingSeeder {
         Arrays.sort(times);
         for (long t : times) {
             Transaction sale = generator.sale(rng, Instant.ofEpochMilli(t));
-            repository.insert(sale);
+            insert(sale);
+            scheduleFollowUp(sale, t);
+        }
+    }
+
+    @Override
+    public boolean paused() {
+        return rate.ticketing() == 0;
+    }
+
+    @Override
+    public SaleGenerator generator() {
+        return generator;
+    }
+
+    @Override
+    public SalePointCatalog catalog() {
+        return catalog;
+    }
+
+    @Override
+    public void insert(Transaction transaction) {
+        repository.insert(transaction);
+        if (transaction.isRefund()) {
+            counter("REFUND", "insert").increment();
+        } else {
             counter("SALE", "insert").increment();
             throughput.record(SALES);
-            scheduleFollowUp(sale, t);
         }
     }
 
@@ -136,39 +183,26 @@ public final class TicketingSeeder {
     private void runFollowUps(long now) {
         while (!followUps.isEmpty() && followUps.peek().dueMillis() <= now) {
             FollowUp next = followUps.poll();
-            Counter done =
-                    switch (next.action()) {
-                        case REFUND -> {
-                            UUID refundId = UuidCreator.getTimeOrderedEpoch();
-                            repository.insert(next.sale().refund(refundId, Instant.ofEpochMilli(next.dueMillis())));
-                            yield counter("REFUND", "insert");
-                        }
-                        case VOID -> {
-                            repository.voidTransaction(next.sale().id());
-                            yield counter("SALE", "void");
-                        }
-                        case DELETE -> {
-                            repository.delete(next.sale().id());
-                            yield counter("SALE", "delete");
-                        }
-                    };
-            done.increment();
+            switch (next.action()) {
+                case REFUND -> {
+                    UUID refundId = UuidCreator.getTimeOrderedEpoch();
+                    insert(next.sale().refund(refundId, Instant.ofEpochMilli(next.dueMillis())));
+                }
+                case VOID -> {
+                    repository.voidTransaction(next.sale().id());
+                    counter("SALE", "void").increment();
+                }
+                case DELETE -> {
+                    repository.delete(next.sale().id());
+                    counter("SALE", "delete").increment();
+                }
+                default -> throw new IllegalStateException("Unknown follow-up " + next.action());
+            }
         }
     }
 
-    /** Knuth's method for the usual few sales per tick; a normal approximation after a stall or at high rates. */
     private int poisson(double mean) {
-        if (mean > 30) {
-            return (int) Math.max(0, Math.round(rng.nextGaussian(mean, Math.sqrt(mean))));
-        }
-        double limit = Math.exp(-mean);
-        double p = rng.nextDouble();
-        int n = 0;
-        while (p > limit) {
-            p *= rng.nextDouble();
-            n++;
-        }
-        return n;
+        return Poisson.sample(rng, mean);
     }
 
     private Counter counter(String txnType, String action) {

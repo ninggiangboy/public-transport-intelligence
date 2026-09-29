@@ -33,6 +33,7 @@ public record SimStatus(
     /** @param lastFlushAt real time */
     public record Ledger(int queueDepth, @Nullable Instant lastFlushAt) {}
 
-    /** Filled by the scenario engine (P3). */
-    public record RunningScenario(String runId, String scenario, Instant plannedEndAt) {}
+    /** @param plannedEndAt real time */
+    public record RunningScenario(
+            String runId, String scenario, @Nullable Instant plannedEndAt) {}
 }

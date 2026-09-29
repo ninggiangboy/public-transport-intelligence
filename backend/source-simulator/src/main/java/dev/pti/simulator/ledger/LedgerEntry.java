@@ -29,4 +29,45 @@ public record LedgerEntry(
     public LedgerEntry {
         businessKeys = List.copyOf(businessKeys);
     }
+
+    /** The same message, marked as produced or affected by a scenario run (DOC-25 §7.1). */
+    public LedgerEntry withScenarioRun(UUID runId) {
+        return new LedgerEntry(
+                messageId,
+                entityType,
+                businessKeys,
+                eventTimestamp,
+                producedAt,
+                schemaVersion,
+                payloadHash,
+                invalidKind,
+                resendOf,
+                runId);
+    }
+
+    /**
+     * The entry of a message corrupted by {@code bad-data}: the business keys stay those of the original message
+     * (DOC-25 §7.4).
+     *
+     * @param hash the hash of the corrupted message; {@code null} when it is not valid JSON
+     */
+    public LedgerEntry corrupted(String kind, int version, @Nullable String hash, UUID runId) {
+        return new LedgerEntry(
+                messageId, entityType, businessKeys, eventTimestamp, producedAt, version, hash, kind, null, runId);
+    }
+
+    /** The entry of a resend by {@code duplicates}: new id and send time, same keys and hash (DOC-25 §7.5). */
+    public LedgerEntry resend(UUID newMessageId, Instant newProducedAt, UUID runId) {
+        return new LedgerEntry(
+                newMessageId,
+                entityType,
+                businessKeys,
+                eventTimestamp,
+                newProducedAt,
+                schemaVersion,
+                payloadHash,
+                null,
+                messageId,
+                runId);
+    }
 }

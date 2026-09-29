@@ -119,6 +119,10 @@ pti:
       batch-size: 500
       flush-interval: 200ms
       retention: 2d
+    scenario:
+      max-duration: 2h
+    duplicates:
+      queue-capacity: 200000
     ticketing:
       fare:
         single: 2.00

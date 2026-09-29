@@ -1,6 +1,7 @@
 package dev.pti.simulator.control;
 
 import dev.pti.simulator.rate.RateControl;
+import dev.pti.simulator.scenario.ScenarioEngine;
 import java.util.ArrayList;
 import java.util.List;
 import org.jspecify.annotations.Nullable;
@@ -19,10 +20,12 @@ public class SimController {
 
     private final StatusService status;
     private final RateControl rate;
+    private final ScenarioEngine scenarios;
 
-    public SimController(StatusService status, RateControl rate) {
+    public SimController(StatusService status, RateControl rate, ScenarioEngine scenarios) {
         this.status = status;
         this.rate = rate;
+        this.scenarios = scenarios;
     }
 
     @GetMapping("/status")
@@ -30,7 +33,7 @@ public class SimController {
         return status.status();
     }
 
-    /** Sets one or both multipliers (DOC-25 §6.5). Returns the status after the change. */
+    /** Sets one or both multipliers (DOC-25 §6.5), unless a load ramp owns them. Returns the status after. */
     @PutMapping("/rate")
     public SimStatus rate(@RequestBody(required = false) @Nullable RateRequest request) {
         if (request == null || (request.gtfsRt() == null && request.ticketing() == null)) {
@@ -41,6 +44,9 @@ public class SimController {
         check("ticketing", request.ticketing(), errors);
         if (!errors.isEmpty()) {
             throw new InvalidParamException("A rate multiplier is out of range.", errors);
+        }
+        if (scenarios.loadRampRunning()) {
+            throw new LoadRampRunningException();
         }
         rate.set(request.gtfsRt(), request.ticketing());
         return status.status();

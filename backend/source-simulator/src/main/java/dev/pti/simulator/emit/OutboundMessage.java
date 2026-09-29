@@ -2,6 +2,7 @@ package dev.pti.simulator.emit;
 
 import dev.pti.simulator.ledger.LedgerEntry;
 import java.util.Map;
+import java.util.UUID;
 
 /**
  * A message ready to send (DOC-25 §6.4).
@@ -13,5 +14,10 @@ public record OutboundMessage(String topic, String key, String value, Map<String
 
     public OutboundMessage {
         headers = Map.copyOf(headers);
+    }
+
+    /** The same message with its ledger entry marked by a scenario run (DOC-25 §7.1). */
+    public OutboundMessage withScenarioRun(UUID runId) {
+        return new OutboundMessage(topic, key, value, headers, ledger.withScenarioRun(runId));
     }
 }

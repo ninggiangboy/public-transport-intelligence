@@ -36,6 +36,8 @@ public record SimProperties(
         @NotNull @Valid RouteFactor routeFactor,
         @NotNull @Valid RateMultiplier rateMultiplier,
         @NotNull @Valid LedgerSettings ledger,
+        @NotNull @Valid ScenarioSettings scenario,
+        @NotNull @Valid DuplicatesSettings duplicates,
         @NotNull @Valid TicketingSettings ticketing) {
 
     /** @param sha256 empty to skip the check */
@@ -87,6 +89,12 @@ public record SimProperties(
             @Min(1) int batchSize,
             @NotNull Duration flushInterval,
             @NotNull Duration retention) {}
+
+    /** {@code pti.sim.scenario.*} (DOC-25 §7.1): the longest run allowed. */
+    public record ScenarioSettings(@NotNull Duration maxDuration) {}
+
+    /** {@code pti.sim.duplicates.*} (DOC-25 §7.5): resends waiting to be sent at most. */
+    public record DuplicatesSettings(@Min(1) int queueCapacity) {}
 
     public DelayParameters delayParameters() {
         return new DelayParameters(

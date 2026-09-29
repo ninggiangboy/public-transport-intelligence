@@ -3,6 +3,7 @@ package dev.pti.simulator.emit;
 import dev.pti.common.time.BusinessClock;
 import dev.pti.simulator.Throughput;
 import dev.pti.simulator.ledger.Ledger;
+import dev.pti.simulator.ledger.LedgerEntry;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.nio.charset.StandardCharsets;
@@ -95,8 +96,15 @@ public final class KafkaMessageSink implements MessageSink {
                         "entity_type",
                         message.ledger().entityType(),
                         "kind",
-                        message.ledger().invalidKind() == null ? "valid" : "invalid")
+                        kind(message.ledger()))
                 .increment();
+    }
+
+    private static String kind(LedgerEntry entry) {
+        if (entry.invalidKind() != null) {
+            return "invalid";
+        }
+        return entry.resendOf() != null ? "resend" : "valid";
     }
 
     private void failed(OutboundMessage message, Throwable error) {

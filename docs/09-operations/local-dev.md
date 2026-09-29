@@ -105,7 +105,7 @@ Offset được làm tròn tới phút và là độ dời ngắn nhất để t
 
 `Makefile` ở gốc repo gọi `docker compose -f deploy/compose/compose.yaml --env-file deploy/versions.env --env-file .env`. Biến `S=<service>` chọn service cho các lệnh có service. `make help` liệt kê các target đã có.
 
-**Target được thêm dần theo phase.** Khi hết P1 (2026-09-29) Makefile có: `help`, `doctor`, `secrets`, `images`, `up`, `down`, `reset`, `restart`, `ps`, `logs`, `psql-wh`, `psql-src`, `psql-sim`, `topics`, `tail-<topic>`, `connectors`, `s3-ls`, `clock-offset`, `sim-status`, `sim-start`, `sim-stop`, `sim-rate`, `fmt`, `lint`, `test`, `it`. Các target khác trong các bảng dưới đây được thêm cùng việc cần tới chúng. Tham số `PRETTY=1` của `make logs` cũng chưa có.
+**Target được thêm dần theo phase.** Khi hết P1 (2026-09-29) Makefile có: `help`, `doctor`, `secrets`, `images`, `up`, `down`, `reset`, `restart`, `ps`, `logs`, `psql-wh`, `psql-src`, `psql-sim`, `topics`, `tail-<topic>`, `connectors`, `s3-ls`, `clock-offset`, `sim-status`, `sim-start`, `sim-stop`, `sim-rate`, `fmt`, `lint`, `test`, `it`. P3-01 thêm `scenarios`, `scenario`, `scenario-stop`. Các target khác trong các bảng dưới đây được thêm cùng việc cần tới chúng. Tham số `PRETTY=1` của `make logs` cũng chưa có.
 
 ### 4.1 Vòng đời
 
@@ -147,6 +147,7 @@ Offset được làm tròn tới phút và là độ dời ngắn nhất để t
 | Lệnh | Việc |
 | --- | --- |
 | `make clock-offset AT=<HH:MM\|now>` | §3.1 |
+| `make scenarios` | `GET /sim/scenarios`: tên kịch bản và tham số, dấu `*` là bắt buộc |
 | `make scenario NAME=<name> [ARGS='<json>']` | `POST /sim/scenarios/<name>`. Ví dụ `make scenario NAME=bunching ARGS='{"routeId":"18","duration":"PT15M"}'` |
 | `make scenario-stop NAME=<name>` | `DELETE /sim/scenarios/<name>` |
 | `make sim-start [GTFS=<x>] [TICKETING=<y>]` | Bật phát: `PUT /sim/rate` với hệ số mặc định 1 cho cả hai luồng (DR-86). Không lưu lại khi simulator restart |

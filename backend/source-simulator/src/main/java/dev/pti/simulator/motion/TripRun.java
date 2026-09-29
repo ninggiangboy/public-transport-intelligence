@@ -70,7 +70,8 @@ public final class TripRun {
         return baseMillis;
     }
 
-    long scheduledMillis(int gtfsSeconds) {
+    /** A scheduled GTFS time of this run's service date, in epoch milliseconds. */
+    public long scheduledMillis(int gtfsSeconds) {
         return baseMillis + gtfsSeconds * 1000L;
     }
 
@@ -119,6 +120,11 @@ public final class TripRun {
     /** Whether the vehicle reached a stop exactly at {@code t}. Call {@link #advanceTo} with {@code t} first. */
     public boolean arrivesAt(long t) {
         return arrival[segment + 1] == t || (segment > 0 && arrival[segment] == t);
+    }
+
+    /** The segment the vehicle is on or has just finished: it left stop {@code segment()} last. */
+    public int segment() {
+        return segment;
     }
 
     Period period(int scheduledSeconds) {
@@ -178,6 +184,10 @@ public final class TripRun {
         List<StopTimeUpdate> updates = new ArrayList<>();
         int passed = passedIndex(t);
         for (int j = Math.max(1, lastReportedIndex + 1); j <= passed; j++) {
+            if (model.skipped(this, j)) {
+                updates.add(skippedUpdate(j));
+                continue;
+            }
             StopTimeEvent arrive = event(arrival[j], schedule.arrival(j));
             StopTimeEvent leave = j < schedule.lastIndex() && departure[j] != Long.MIN_VALUE
                     ? event(departure[j], schedule.departure(j))
@@ -192,6 +202,10 @@ public final class TripRun {
         if (first <= end) {
             long delayMillis = currentDelayMillis(t, passed);
             for (int j = first; j <= end; j++) {
+                if (model.skipped(this, j)) {
+                    updates.add(skippedUpdate(j));
+                    continue;
+                }
                 long predicted = Math.max(scheduledMillis(schedule.arrival(j)) + delayMillis, t + 1);
                 updates.add(new StopTimeUpdate(
                         schedule.stopSequence(j),
@@ -202,6 +216,12 @@ public final class TripRun {
             }
         }
         return updates;
+    }
+
+    /** A stop the vehicle does not serve: neither arrival nor departure (DOC-09 §4). */
+    private StopTimeUpdate skippedUpdate(int j) {
+        return new StopTimeUpdate(
+                schedule.stopSequence(j), schedule.stop(j).id(), null, null, ScheduleRelationship.SKIPPED);
     }
 
     /** Arrival delay while running to the next stop, departure delay while standing at one (DOC-25 §6.3). */

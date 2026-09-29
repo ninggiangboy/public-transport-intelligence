@@ -111,6 +111,16 @@ public final class TripSchedule {
         return servesPassengers[index];
     }
 
+    /** The first index of {@code stopId} on this trip, or -1 when the trip does not serve it. */
+    public int indexOf(String stopId) {
+        for (int i = 0; i < stops.length; i++) {
+            if (stops[i].id().equals(stopId)) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
     public int firstDeparture() {
         return departure[0];
     }

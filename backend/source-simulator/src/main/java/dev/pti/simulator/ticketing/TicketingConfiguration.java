@@ -7,6 +7,7 @@ import dev.pti.simulator.TickLoop;
 import dev.pti.simulator.feed.Feed;
 import dev.pti.simulator.feed.ServiceDateMapper;
 import dev.pti.simulator.rate.RateControl;
+import dev.pti.simulator.scenario.ScenarioHooks;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
@@ -35,7 +36,8 @@ public class TicketingConfiguration {
             RateControl rate,
             SimProperties properties,
             MeterRegistry registry,
-            Throughput throughput) {
+            Throughput throughput,
+            ScenarioHooks hooks) {
         SaleGenerator generator = new SaleGenerator(catalog, properties.ticketing(), feed.zone(), properties.seed());
         return new TicketingSeeder(
                 clock,
@@ -46,7 +48,8 @@ public class TicketingConfiguration {
                 properties.ticketing(),
                 properties.seed(),
                 registry,
-                throughput);
+                throughput,
+                hooks::ticketing);
     }
 
     @Bean

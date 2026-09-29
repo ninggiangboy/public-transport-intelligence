@@ -1,6 +1,6 @@
 # Source simulator
 
-> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-25
+> Trạng thái: **Approved** · Cập nhật: 2026-09-29 (P3-01: kịch bản, DR-96) · DOC-25
 > Phụ thuộc: [DR](../00-decision-register.md) (DR-01, 03, 04, 05, 08, 28, 59, 60, 64, 65, 67, 68, 86), [DOC-09](../03-architecture/messaging-contracts.md), [DOC-13](../05-data/source-data.md), [DOC-17](../05-data/db-roles-and-grants.md), [DOC-29](configuration-reference.md)
 > Người dùng chính: P1-08…P1-11, P1-14 (phần cơ bản), P3-01 (kịch bản), experiment runner (DOC-45), màn Demo control (DOC-36)
 
@@ -330,10 +330,10 @@ public interface TicketingOverlay {              // ticket-spike, refund-burst
 
 Thuật toán:
 
-1. Lúc bắt đầu, lấy các xe đang chạy trên `(routeId, directionId)`, sắp theo tiến độ trên tuyến (`dist`). Bỏ xe đang ở 2 trạm đầu hoặc 2 trạm cuối (giống quy tắc loại trừ của DR-30). Chọn `pairs` cặp liên tiếp (leader L đi trước, follower F đi sau) có nhiều trạm phía trước nhất. Không đủ cặp thì trả 409 `no-eligible-vehicles`.
-2. Headway `H` lấy từ lịch: hiệu giờ đi qua trạm hiện tại của F giữa chuyến của F và chuyến của L.
-3. Mỗi khi F bắt đầu đoạn mới, overlay cộng `−min(0.5 × travelSched, gap − target)`, với `gap` là khoảng thời gian dự kiến giữa hai xe tại trạm kế tiếp của F và `target = targetGapRatio × H`. Mỗi khi L đỗ, dwell cộng thêm `min(60 s, gap − target)`. Giới hạn `minSpeedRatio` ở §5.3 vẫn áp dụng.
-4. Khi `gap ≤ target`, hai xe giữ cùng nhịp: F nhận cùng `eps` với L. Với headway 10 phút, cặp xe thường sát nhau sau 5–10 phút.
+1. Lúc bắt đầu, lấy các xe đang chạy trên `(routeId, directionId)`. Bỏ xe đang ở 2 trạm đầu hoặc 2 trạm cuối (giống quy tắc loại trừ của DR-30). Với mỗi xe F, leader L là xe có giờ theo lịch muộn nhất nhưng vẫn sớm hơn F tại **trạm chung đầu tiên** từ trạm hiện tại của F trở đi. Chọn `pairs` cặp không trùng xe, ưu tiên cặp mà F còn nhiều trạm phía trước nhất. Không có cặp nào thì trả 409 `no-eligible-vehicles`. *Sửa khi làm P3-01 (DR-96):* bản trước sắp xe theo `dist`, nhưng `dist` đo trên shape riêng của từng chuyến, nên không so được các chuyến khác nhánh hay chuyến chạy ngắn (tuyến 18 có cả hai).
+2. Headway `H` lấy từ lịch: hiệu giờ theo lịch của chuyến F và chuyến L tại trạm chung ở bước 1.
+3. Mỗi khi F bắt đầu đoạn mới, overlay cộng `−min(0.5 × max(travelSched, 15 s), gap − target)`, với `gap` là khoảng thời gian dự kiến giữa hai xe tại trạm chung đầu tiên từ trạm kế tiếp của F trở đi (L đã qua thì lấy giờ đến thực tế của L, chưa qua thì lấy giờ theo lịch cộng độ trễ hiện tại của L) và `target = targetGapRatio × H`. Mỗi khi L đỗ, dwell cộng thêm `min(60 s, gap − target)`. Giới hạn `minSpeedRatio` ở §5.3 vẫn áp dụng.
+4. Khi `gap ≤ target`, F bị giữ lại ở đúng `target`: overlay cộng `min(0.5 × max(travelSched, 15 s), target − gap)`, nên hai xe chạy cùng nhịp. *Sửa (DR-96):* không chép `eps` của L sang F, vì hai chuyến lấy mẫu đoạn ở hai thời điểm khác nhau. Với headway 10–15 phút, cặp xe sát nhau sau 5–10 phút (test trên mini feed: tuyến 18, headway 11 phút).
 5. Khi kịch bản kết thúc, overlay bị gỡ; hai xe dần tách ra theo mô hình trễ thường.
 
 Nếu L hoặc F kết thúc chuyến trước khi hết `duration` thì cặp đó dừng; kịch bản không chọn cặp mới.
@@ -351,7 +351,7 @@ Tăng mạnh độ trễ trên một tuyến (FR-07, demo bước 3).
 | `skipStops` | bool | false | Nếu true, mỗi chuyến bỏ 20% số trạm còn lại (`SKIPPED`), mô phỏng đổi lộ trình |
 | `duration` | ISO-8601 | `PT20M` | |
 
-Overlay cộng `extraDelayPerStop` cho mỗi đoạn của mọi chuyến trên tuyến (và chiều) cho tới khi phần trễ thêm của chuyến đạt `maxExtraDelay`. Sau khi kết thúc: các chuyến đang chạy nhận `−30 s` mỗi đoạn cho tới khi phần trễ thêm về 0, chuyến mới không bị ảnh hưởng. Với mặc định, trễ trung bình quan sát được trên tuyến tăng khoảng 5 phút trong 5 trạm, lớn hơn nhiều ngưỡng `z > 2,5` của DR-31.
+Overlay cộng `extraDelayPerStop` cho mỗi đoạn của mọi chuyến trên tuyến (và chiều) cho tới khi phần trễ thêm của chuyến đạt `maxExtraDelay`. Sau khi kết thúc: các chuyến đang chạy nhận `−30 s` mỗi đoạn cho tới khi phần trễ thêm về 0, chuyến mới không bị ảnh hưởng. Overlay tự gỡ khi không còn chuyến nào đang chạy mang phần trễ thêm; trong lúc đó message của các chuyến này vẫn mang `scenario_run_id`. Với `skipStops`, mỗi chuyến chọn trạm bỏ qua (theo hash) một lần, lúc chuyến bị tác động lần đầu, và không bao giờ bỏ trạm cuối. Với mặc định, trễ trung bình quan sát được trên tuyến tăng khoảng 5 phút trong 5 trạm, lớn hơn nhiều ngưỡng `z > 2,5` của DR-31.
 
 ### 7.4 `bad-data`
 
@@ -364,7 +364,7 @@ Làm hỏng một tỷ lệ message (FR-02, EXP-03, demo bước 4).
 | `entityTypes` | list | `VEHICLE_POSITION`, `TRIP_UPDATE` | |
 | `duration` | ISO-8601 | `PT10M` | |
 
-Message được chọn khi `hash(seed, message_id) mod 10⁶ < ratio × 10⁶`, nên tỷ lệ đúng theo kỳ vọng và tái lập được. Message bị làm hỏng **thay thế** message gốc (bản sạch không được gửi). Ledger ghi `intended_invalid = true`, `invalid_kind`, và **business key của message gốc**.
+Message được chọn khi `hash(seed, message_id) mod 10⁶ < ratio × 10⁶`, nên tỷ lệ đúng theo kỳ vọng và tái lập được. Message bị làm hỏng **thay thế** message gốc (bản sạch không được gửi). Ledger ghi `intended_invalid = true`, `invalid_kind`, và **business key của message gốc**. `invalid_kind` của mỗi message chọn theo hash trong số các loại được yêu cầu **áp dụng được cho entity type của nó** (`out_of_bbox` chỉ cho VehiclePosition, `delay_out_of_range` chỉ cho TripUpdate); không loại nào áp dụng được thì message được gửi nguyên vẹn. `unknown_schema_version` đổi cả header `schema_version` lẫn cột `schema_version` của ledger. Đo trên stack thật khi xong P3-01: 646/646 message hỏng vào DLQ đúng stage và rule của bảng dưới (EXP-03 §6).
 
 | `invalid_kind` | Cách làm hỏng | ETL phải xếp vào `stage` (DOC-16, DOC-30) |
 | --- | --- | --- |
@@ -390,7 +390,7 @@ Gửi lại message đã gửi (FR-03, EXP-02).
 | `entityTypes` | list | cả hai | |
 | `duration` | ISO-8601 | `PT10M` | |
 
-Message được chọn (theo hash như §7.4) được đưa vào hàng đợi gửi lại với độ trễ ngẫu nhiên đều trong `[minDelay, maxDelay]`. Bản gửi lại **giống hệt** bản gốc ở mọi trường trừ `message_id` (UUIDv7 mới) và `produced_at` (DOC-09 §2). Ledger: `is_resend = true`, `resend_of` = `message_id` gốc, cùng business key và cùng `payload_hash`. Hàng đợi tối đa 200.000 message; đầy thì bỏ lượt gửi lại và tăng metric (lượt bị bỏ không có trong ledger nên không ảnh hưởng số liệu).
+Message được chọn (theo hash như §7.4) được đưa vào hàng đợi gửi lại với độ trễ ngẫu nhiên đều trong `[minDelay, maxDelay]`, tính theo giờ thật. Hàng đợi vẫn gửi tiếp sau khi lần chạy kết thúc; thread `sim-resend` chỉ đưa bản gửi lại tới Kafka, không qua các interceptor. Bản gốc không mang `scenario_run_id`; bản gửi lại thì có. Bản gửi lại **giống hệt** bản gốc ở mọi trường trừ `message_id` (UUIDv7 mới) và `produced_at` (DOC-09 §2). Ledger: `is_resend = true`, `resend_of` = `message_id` gốc, cùng business key và cùng `payload_hash`. Hàng đợi tối đa 200.000 message; đầy thì bỏ lượt gửi lại và tăng metric (lượt bị bỏ không có trong ledger nên không ảnh hưởng số liệu).
 
 `maxDelay` vượt TTL của `dedup_registry` (1 giờ, DR-16) là có chủ đích: kiểm chứng rằng không trùng là nhờ upsert, không phải nhờ registry.
 
@@ -404,7 +404,7 @@ Tăng đột biến giao dịch tại một điểm bán (FR-09.4, DR-34).
 | `extraPerMinute` | double | 6 | 1–120 |
 | `duration` | ISO-8601 | `PT30M` | ≥ `PT15M` để phủ trọn một cửa sổ 15 phút |
 
-Mỗi phút sinh thêm `extraPerMinute` giao dịch `SALE` (Poisson) tại điểm bán đó, loại vé và giá theo quy tắc thường. Với mặc định, mỗi cửa sổ 15 phút có khoảng 90 giao dịch thêm, vượt `txn_count ≥ 20` và `z > 3` của DR-34.
+Mỗi phút sinh thêm `extraPerMinute` giao dịch `SALE` (Poisson) tại điểm bán đó, loại vé và giá theo quy tắc thường. Các giao dịch này không có hoàn vé, hủy hay xóa về sau (§9.3), và không sinh khi `rateMultiplier.ticketing = 0`. Với mặc định, mỗi cửa sổ 15 phút có khoảng 90 giao dịch thêm, vượt `txn_count ≥ 20` và `z > 3` của DR-34.
 
 ### 7.7 `refund-burst`
 
@@ -418,7 +418,7 @@ Chuỗi hoàn vé dồn dập (FR-09.4).
 | `refundDelay` | ISO-8601 | `PT2M` | 0–30 phút |
 | `duration` | ISO-8601 | `PT30M` | ≥ `PT15M` |
 
-Sinh `salesPerMinute` giao dịch bán tại điểm bán, và hoàn `refundRatio` trong số đó sau `refundDelay` (hoàn vé luôn trỏ tới giao dịch có thật, đúng ràng buộc DB ở DOC-13 §5.2). Tỉ lệ hoàn của DOC-23 §9.1 tính trên **mọi** giao dịch của điểm bán trong cửa sổ, gồm cả 13–25 giao dịch thường của một kiosk. Mặc định cho khoảng 30 bán và 24 hoàn của kịch bản mỗi 15 phút, tức `refund_ratio ≈ 24 / 50 ≈ 0,48 > 0,3` và `refund_count ≥ 5`. Với 0,5 như bản trước, tỉ lệ chỉ khoảng 15 / 50 = 0,3 và không vượt ngưỡng (DOC-23 §16).
+Sinh `salesPerMinute` giao dịch bán tại điểm bán, và hoàn `refundRatio` trong số đó sau `refundDelay` (hoàn vé luôn trỏ tới giao dịch có thật, đúng ràng buộc DB ở DOC-13 §5.2). Hoàn vé còn chờ khi lần chạy kết thúc vẫn được thực hiện, sau đó overlay mới tự gỡ. Tỉ lệ hoàn của DOC-23 §9.1 tính trên **mọi** giao dịch của điểm bán trong cửa sổ, gồm cả 13–25 giao dịch thường của một kiosk. Mặc định cho khoảng 30 bán và 24 hoàn của kịch bản mỗi 15 phút, tức `refund_ratio ≈ 24 / 50 ≈ 0,48 > 0,3` và `refund_count ≥ 5`. Với 0,5 như bản trước, tỉ lệ chỉ khoảng 15 / 50 = 0,3 và không vượt ngưỡng (DOC-23 §16).
 
 ### 7.8 `load-ramp`
 
@@ -497,7 +497,8 @@ App lắng nghe cổng ứng dụng 8080 trong container (DOC-38 §5). API là *
 | `options` | Với `ENUM`/`ENUM_LIST`: giá trị cho phép dạng chuỗi (`directionId`: `"0"`, `"1"`; UI gửi số khi mọi option là số) |
 | `suggestions` | Chỉ `salePointId`: tối đa 20 `sale_point_id` đang hoạt động từ bảng `sale_point`, sắp theo số giao dịch 7 ngày gần nhất |
 
-- `duration` có `max` = `pti.sim.scenario.max-duration`. `load-ramp` **không** có tham số `duration` (§7.8).
+- `duration` có `max` = `pti.sim.scenario.max-duration`. `load-ramp` **không** có tham số `duration` (§7.8); nếu `stepDuration × số bậc` vượt `max-duration` thì `POST` trả 400 với lỗi ở `stepDuration`.
+- Tới P6 catalog có 7 kịch bản; `late-delivery` (§7.9) được thêm ở P6 cùng T-19. Tham số lạ trong body trả 400 với `message` "unknown parameter".
 - Kiểm tra thật vẫn là Bean Validation lúc `POST`; catalog chỉ để UI phản hồi sớm. Test T-18 của §14 so catalog với ràng buộc của record.
 
 Ví dụ:
@@ -693,7 +694,7 @@ Log (JSON, tiếng Anh): khởi động (`Feed loaded: sha256=…, trips=20220, 
 | T-11 | Integration (Kafka + Postgres Testcontainers) | Chạy 2 phút với `rate=5`: số dòng ledger = số message được ack (đếm từ offset các partition); không có dòng ledger cho message gửi lỗi (tiêm lỗi bằng cách dừng Kafka 10 giây) |
 | T-12 | Integration | Backpressure: làm `pti_sim` chậm (khóa bảng) → không mất dòng ledger nào của message đã ack; `emissions_skipped_total` tăng |
 | T-13 | Integration | TicketingSeeder: tốc độ nằm trong ±15% của λ sau 10 phút với `rate=10`; mọi `REFUND` trỏ tới giao dịch có thật; có đủ `u` và `d` |
-| T-14 | Integration | Mỗi kịch bản ở §7 (P3-01): `bunching` → trong 15 phút có cặp xe với gap ≤ `targetGapRatio × H`; `disruption` → trễ trung bình trên tuyến tăng ≥ 4 phút; `bad-data` → tỷ lệ message hỏng trong ledger nằm trong ±20% của `ratio` và mỗi loại xuất hiện; `duplicates` → mỗi bản gửi lại có cùng hash và business key với bản gốc; `ticket-spike`, `refund-burst` → điều kiện của DR-34 thỏa trên DB nguồn; `load-ramp` → tốc độ phát ở mỗi bậc bằng hệ số × tốc độ nền (±10%) |
+| T-14 | Unit (mini feed); Integration cho `ticket-spike`, `refund-burst` | Mỗi kịch bản ở §7 (P3-01): `bunching` → trong 15 phút có cặp xe với gap ≤ `targetGapRatio × H`; `disruption` → trễ trung bình trên tuyến tăng ≥ 4 phút; `bad-data` → tỷ lệ message hỏng trong ledger nằm trong ±20% của `ratio` và mỗi loại xuất hiện; `duplicates` → mỗi bản gửi lại có cùng hash và business key với bản gốc; `ticket-spike`, `refund-burst` → điều kiện của DR-34 thỏa trên DB nguồn; `load-ramp` → tốc độ phát ở mỗi bậc bằng hệ số × tốc độ nền (±10%) |
 | T-15 | Web (MockMvc) | API: 201/400/404/409 theo bảng §8; `X-Requested-By` được lưu; `DELETE` idempotent |
 | T-16 | Integration | Restart simulator khi đang có kịch bản chạy → dòng `RUNNING` chuyển `FAILED`; xe xuất hiện lại đúng vị trí tất định |
 | T-17 | Integration | = DOC-28 O-07: gauge slot đọc được bằng role `source_simulator` và tăng khi không có consumer đọc slot |

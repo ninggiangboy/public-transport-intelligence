@@ -510,7 +510,7 @@ Những chỗ lệch tài liệu khi hết P2 được ghi ở DR-90 (claim trư
 | ID | Việc | Đầu ra và nghiệm thu | Phụ thuộc | Tài liệu |
 | --- | --- | --- | --- | --- |
 | P3-00 | Doc gate: DOC-25 (phần kịch bản), 28, 42 (phần P3), 43, 45 (EXP-01…05); ADR 0022, 0025 — **Approved 2026-09-28** | Approved | M2 | — |
-| P3-01 | Kịch bản simulator: `Bunching`, `Disruption`, `BadData(pct, kinds)`, `Duplicates(pct)`, `TicketSpike`, `RefundBurst`, `LoadRamp`; API `POST /sim/scenarios/{name}` (tham số, thời lượng), `DELETE` để dừng; mọi message sinh ra đều ghi vào ledger | Mỗi kịch bản có integration test kiểm tra dữ liệu sinh ra | P2-20 | DOC-25 |
+| P3-01 | Kịch bản simulator: `Bunching`, `Disruption`, `BadData(pct, kinds)`, `Duplicates(pct)`, `TicketSpike`, `RefundBurst`, `LoadRamp`; API `POST /sim/scenarios/{name}` (tham số, thời lượng), `DELETE` để dừng; mọi message sinh ra đều ghi vào ledger — **Xong 2026-09-29** (chi tiết lệch tài liệu ở DR-96) | Mỗi kịch bản có integration test kiểm tra dữ liệu sinh ra | P2-20 | DOC-25 |
 | P3-02 | Compose profile `observability`: Prometheus, Alertmanager, Grafana (provision datasource và dashboard), OTel Collector, Tempo, Loki, Alloy, Mailpit | `make up-obs` chạy được; Grafana có datasource | P2-20 | DOC-28, 39 |
 | P3-03 | Instrumentation: metrics theo DOC-28, consumer lag, gauge độ tươi feed, histogram theo chặng (DR-57), Micrometer Tracing xuất OTLP (DR-50), trace lan truyền qua Kafka header nhờ observation của Spring Kafka | Một trace nối được simulator → etl → DB; log có `trace_id` và `batch_id` | P3-02 | DOC-28 |
 | P3-04 | Grafana dashboards: Pipeline overview, Kafka, Postgres, JVM, Experiments | Dashboard lưu dạng JSON trong `observability/` | P3-03 | DOC-28 |

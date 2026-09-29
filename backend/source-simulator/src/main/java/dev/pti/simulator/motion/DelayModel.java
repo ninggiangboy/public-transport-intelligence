@@ -18,12 +18,19 @@ public final class DelayModel {
     private final DelayParameters parameters;
     private final RouteFactors routeFactors;
     private final ZoneId zone;
+    private final SegmentOverlay overlay;
 
     public DelayModel(long seed, DelayParameters parameters, ZoneId zone) {
+        this(seed, parameters, zone, SegmentOverlay.NONE);
+    }
+
+    /** @param overlay the scenarios' changes to the model (DOC-25 §7.1) */
+    public DelayModel(long seed, DelayParameters parameters, ZoneId zone, SegmentOverlay overlay) {
         this.seed = seed;
         this.parameters = parameters;
         this.routeFactors = new RouteFactors(seed, parameters);
         this.zone = zone;
+        this.overlay = overlay;
     }
 
     public long seed() {
@@ -57,6 +64,7 @@ public final class DelayModel {
         double c = routeFactors.at(run.serviceDate(), s.routeId(), s.directionId(), secondsOfDay);
         double eps = rng.nextGaussian(
                 parameters.drift().of(period) * (1 + c), parameters.segmentSd().of(period));
+        eps += overlay.segmentDelta(run, i, departureMillis, departureDelay);
         double arrivalDelay = Math.clamp(departureDelay + eps, parameters.earlyLimit(), parameters.lateLimit());
 
         double travelSched = s.arrival(i + 1) - s.departure(i);
@@ -73,6 +81,7 @@ public final class DelayModel {
             double dwellExtra = s.servesPassengers(i + 1)
                     ? rng.nextExponential() * parameters.dwellMean().of(period)
                     : 0;
+            dwellExtra += overlay.dwellDelta(run, i + 1, arrivalMillis);
             double nextDelay = arrivalDelay + dwellExtra;
             if (s.timepoint(i + 1) && nextDelay < 0) {
                 nextDelay = 0;
@@ -81,6 +90,11 @@ public final class DelayModel {
             nextDepartureMillis = Math.max(scheduled + Math.round(nextDelay * 1000), arrivalMillis);
         }
         return new Segment(arrivalMillis, nextDepartureMillis);
+    }
+
+    /** Whether a scenario reports stop {@code index} of the run as skipped (DOC-25 §7.3). */
+    boolean skipped(TripRun run, int index) {
+        return overlay.skipped(run, index);
     }
 
     /** Peak or off-peak at a scheduled time of the run (DOC-25 §5.3). */
