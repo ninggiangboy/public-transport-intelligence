@@ -1,0 +1,40 @@
+{
+  "business_key" : "2026-09-29|1361959",
+  "event_timestamp" : "2026-09-29T21:19:30Z",
+  "vehicle_positions" : [ ],
+  "trip_updates" : [ {
+    "serviceDate" : "2026-09-29",
+    "tripId" : "1361959",
+    "stopSequence" : 14,
+    "routeId" : "18",
+    "directionId" : 0,
+    "stopId" : "51631",
+    "vehicleId" : "2050",
+    "scheduleRelationship" : "SCHEDULED",
+    "scheduledArrival" : "2026-09-29T21:16:00.000Z",
+    "arrivalTime" : "2026-09-29T21:19:12.000Z",
+    "departureTime" : "2026-09-29T21:19:25.000Z",
+    "delaySeconds" : 192,
+    "observed" : true,
+    "eventTimestamp" : "2026-09-29T21:19:30.000Z",
+    "payloadHash" : "2dbf100f9140c562550a0ae97a903e4e428ed79a2215282f12f3393eb7be39d3"
+  }, {
+    "serviceDate" : "2026-09-29",
+    "tripId" : "1361959",
+    "stopSequence" : 15,
+    "routeId" : "18",
+    "directionId" : 0,
+    "stopId" : "51821",
+    "vehicleId" : "2050",
+    "scheduleRelationship" : "SCHEDULED",
+    "scheduledArrival" : "2026-09-29T21:17:00.000Z",
+    "arrivalTime" : "2026-09-29T21:20:20.000Z",
+    "delaySeconds" : 200,
+    "observed" : false,
+    "eventTimestamp" : "2026-09-29T21:19:30.000Z",
+    "payloadHash" : "2dbf100f9140c562550a0ae97a903e4e428ed79a2215282f12f3393eb7be39d3"
+  } ],
+  "ticket_sales" : [ ],
+  "sale_points" : [ ],
+  "vehicle_ids" : [ "2050" ]
+}

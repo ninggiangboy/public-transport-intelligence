@@ -1,0 +1,4 @@
+{"schema_version":1,"message_id":"0192f4a6-7c1e-7b3a-9d2e-5f0a1b2c3d4f","entity_type":"VEHICLE_POSITION",
+ "source":"gtfs-rt-simulator","event_timestamp":"2026-09-29T21:19:35.000Z","produced_at":"2026-09-29T21:19:35.100Z",
+ "payload":{"vehicle_id":"2050","trip_id":"1361959","route_id":"18","direction_id":0,"start_date":"20260929",
+  "lat":44.82412,"lon":-93.28991,"current_stop_sequence":15,"stop_id":"51821","current_status":"STOPPED_AT"}}

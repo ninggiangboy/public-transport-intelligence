@@ -1,0 +1,17 @@
+{
+  "business_key" : "KIOSK-053",
+  "event_timestamp" : "2026-09-29T12:00:00Z",
+  "vehicle_positions" : [ ],
+  "trip_updates" : [ ],
+  "ticket_sales" : [ ],
+  "sale_points" : [ {
+    "salePointId" : "KIOSK-053",
+    "name" : "Nicollet & Lake",
+    "kind" : "KIOSK",
+    "stopId" : "51631",
+    "routeId" : "18",
+    "deleted" : false,
+    "sourceLsn" : 1300
+  } ],
+  "vehicle_ids" : [ ]
+}

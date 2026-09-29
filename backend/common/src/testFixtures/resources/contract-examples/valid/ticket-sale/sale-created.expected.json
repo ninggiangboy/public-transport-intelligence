@@ -1,0 +1,27 @@
+{
+  "business_key" : "2026-09-29|01a0e9de-0000-7000-8000-000000000001",
+  "event_timestamp" : "2026-09-29T21:19:00.100Z",
+  "vehicle_positions" : [ ],
+  "trip_updates" : [ ],
+  "ticket_sales" : [ {
+    "saleDate" : "2026-09-29",
+    "transactionId" : "01a0e9de-0000-7000-8000-000000000001",
+    "salePointId" : "KIOSK-053",
+    "stopId" : "51631",
+    "ticketType" : "DAY",
+    "txnType" : "SALE",
+    "amount" : 5.00,
+    "currency" : "USD",
+    "status" : "COMPLETED",
+    "deleted" : false,
+    "createdAt" : "2026-09-29T21:19:00.000Z",
+    "sourceUpdatedAt" : "2026-09-29T21:19:00.000Z",
+    "sourceLsn" : 32093984,
+    "eventTimestamp" : "2026-09-29T21:19:00.100Z",
+    "payloadHash" : "fe85f17f732315ab6c18ebaad67f0200c894d2f6571c2c65bc01e6e4825100f9",
+    "op" : "c",
+    "refund" : false
+  } ],
+  "sale_points" : [ ],
+  "vehicle_ids" : [ ]
+}

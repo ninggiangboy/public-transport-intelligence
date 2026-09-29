@@ -1,0 +1,8 @@
+{"schema_version":1,"message_id":"0192f4a6-8a10-7d44-b0c1-22aa4c1e9f10","entity_type":"TRIP_UPDATE",
+ "source":"gtfs-rt-simulator","event_timestamp":"2026-09-29T21:19:30.000Z","produced_at":"2026-09-29T21:19:30.107Z",
+ "payload":{"trip_id":"1361959","route_id":"18","direction_id":0,"start_date":"20260929","vehicle_id":"2050",
+  "stop_time_updates":[
+   {"stop_sequence":14,"stop_id":"51631","arrival":{"time":"2026-09-29T21:19:12.000Z","delay":192},
+    "departure":{"time":"2026-09-29T21:19:25.000Z","delay":205},"schedule_relationship":"SCHEDULED"},
+   {"stop_sequence":15,"stop_id":"51821","arrival":{"time":"2026-09-29T21:20:20.000Z","delay":200},
+    "schedule_relationship":"SCHEDULED"}]}}

@@ -49,7 +49,14 @@ dependencies {
     integrationTestImplementation(libs.testcontainers.postgresql)
 
     contractTestImplementation(project(":db"))
+    contractTestImplementation(testFixtures(project(":common")))
+    contractTestImplementation(libs.hibernate.validator)
     contractTestImplementation(testFixtures(project(":db")))
     contractTestImplementation(libs.postgresql)
     contractTestImplementation(libs.testcontainers.kafka)
+}
+
+// `./gradlew :etl:contractTest -PcontractWriteExpected=true` writes missing expectations of the contract examples.
+tasks.named<Test>("contractTest") {
+    systemProperty("pti.contract.write-expected", providers.gradleProperty("contractWriteExpected").getOrElse("false"))
 }

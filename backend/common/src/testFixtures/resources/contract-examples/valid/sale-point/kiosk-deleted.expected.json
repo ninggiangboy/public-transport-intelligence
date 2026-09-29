@@ -1,0 +1,15 @@
+{
+  "business_key" : "KIOSK-054",
+  "event_timestamp" : "2026-09-29T12:01:40Z",
+  "vehicle_positions" : [ ],
+  "trip_updates" : [ ],
+  "ticket_sales" : [ ],
+  "sale_points" : [ {
+    "salePointId" : "KIOSK-054",
+    "name" : "Hennepin & 7th",
+    "kind" : "KIOSK",
+    "deleted" : true,
+    "sourceLsn" : 1400
+  } ],
+  "vehicle_ids" : [ ]
+}

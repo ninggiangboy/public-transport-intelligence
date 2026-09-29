@@ -1,0 +1,5 @@
+{"transaction_id":"01a0e9de-0000-7000-8000-000000000003","sale_point_id":"KIOSK-053","route_id":null,
+ "stop_id":"51631","ticket_type":"DAY","txn_type":"SALE","amount":"5.00","currency":"USD","refund_of":null,
+ "customer_ref":"cust-2ce2921a","status":"COMPLETED","created_at":"2026-09-29T21:19:00.000000Z",
+ "updated_at":"2026-09-29T21:19:00.000000Z","__deleted":"false","__op":"c","__lsn":32093985,
+ "__source_ts_ms":1790716740100,"foo":"bar"}

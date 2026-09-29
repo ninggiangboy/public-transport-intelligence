@@ -1,0 +1,28 @@
+{
+  "business_key" : "2026-09-29|01a0e9de-0000-7000-8000-000000000002",
+  "event_timestamp" : "2026-09-29T20:00:00.200Z",
+  "vehicle_positions" : [ ],
+  "trip_updates" : [ ],
+  "ticket_sales" : [ {
+    "saleDate" : "2026-09-29",
+    "transactionId" : "01a0e9de-0000-7000-8000-000000000002",
+    "salePointId" : "APP-IOS",
+    "routeId" : "18",
+    "ticketType" : "SINGLE",
+    "txnType" : "REFUND",
+    "amount" : 2.50,
+    "currency" : "USD",
+    "refundOf" : "01a0e9de-0000-7000-8000-000000000099",
+    "status" : "COMPLETED",
+    "deleted" : false,
+    "createdAt" : "2026-09-29T20:00:00.123Z",
+    "sourceUpdatedAt" : "2026-09-29T20:00:00.123Z",
+    "sourceLsn" : 1200,
+    "eventTimestamp" : "2026-09-29T20:00:00.200Z",
+    "payloadHash" : "c6db0e45796a36144785f55e009c68a5f9b754c8c7386ab0bc36b12359aa42a0",
+    "op" : "r",
+    "refund" : true
+  } ],
+  "sale_points" : [ ],
+  "vehicle_ids" : [ ]
+}

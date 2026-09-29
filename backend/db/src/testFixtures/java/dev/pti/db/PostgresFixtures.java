@@ -55,6 +55,14 @@ public final class PostgresFixtures {
         return env;
     }
 
+    /** Runs db-migrate against two started containers, for tests that need their own pair (e.g. on a network). */
+    public static void migrate(PostgreSQLContainer warehouse, PostgreSQLContainer source) {
+        int exitCode = DbMigrate.run(migrateEnv(warehouse, source));
+        if (exitCode != DbMigrate.EXIT_OK) {
+            throw new IllegalStateException("db-migrate exited with " + exitCode);
+        }
+    }
+
     private static PostgreSQLContainer container(String name, List<String> command) {
         Path bootstrap = repoRoot().resolve("deploy/compose/postgres/" + name + "/10-bootstrap.sh");
         PostgreSQLContainer container = new PostgreSQLContainer(postgresImage())

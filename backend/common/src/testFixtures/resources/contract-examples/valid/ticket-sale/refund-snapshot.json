@@ -1,0 +1,5 @@
+{"transaction_id":"01a0e9de-0000-7000-8000-000000000002","sale_point_id":"APP-IOS","route_id":"18",
+ "stop_id":null,"ticket_type":"SINGLE","txn_type":"REFUND","amount":"2.50","currency":"USD",
+ "refund_of":"01a0e9de-0000-7000-8000-000000000099","customer_ref":null,"status":"COMPLETED",
+ "created_at":"2026-09-29T20:00:00.123456Z","updated_at":"2026-09-29T20:00:00.123456Z","__deleted":"false",
+ "__op":"r","__lsn":1200,"__source_ts_ms":1790712000200}

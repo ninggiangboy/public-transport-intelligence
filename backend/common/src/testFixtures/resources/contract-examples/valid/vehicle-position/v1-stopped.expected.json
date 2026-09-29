@@ -1,0 +1,23 @@
+{
+  "business_key" : "2050|2026-09-29T21:19:35.000Z",
+  "event_timestamp" : "2026-09-29T21:19:35Z",
+  "vehicle_positions" : [ {
+    "serviceDate" : "2026-09-29",
+    "vehicleId" : "2050",
+    "eventTimestamp" : "2026-09-29T21:19:35.000Z",
+    "tripId" : "1361959",
+    "routeId" : "18",
+    "directionId" : 0,
+    "lat" : 44.82412,
+    "lon" : -93.28991,
+    "currentStopSequence" : 15,
+    "stopId" : "51821",
+    "currentStatus" : "STOPPED_AT",
+    "schemaVersion" : 1,
+    "payloadHash" : "2171379c6096a8a0304dd452015b9a78402ada2f6771910a942b38d7f11f5354"
+  } ],
+  "trip_updates" : [ ],
+  "ticket_sales" : [ ],
+  "sale_points" : [ ],
+  "vehicle_ids" : [ "2050" ]
+}
