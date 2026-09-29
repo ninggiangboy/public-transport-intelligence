@@ -122,6 +122,17 @@ class ErrorClassifierTest {
                 Arguments.of(
                         new CannotGetJdbcConnectionException("no connection", connection), ErrorKind.TRANSIENT_INFRA),
                 Arguments.of(new CannotGetJdbcConnectionException("no connection"), ErrorKind.TRANSIENT_INFRA),
+                // Postgres restarted under a chunk: the rollback fails on a closed connection (no SQLState).
+                Arguments.of(
+                        new org.springframework.transaction.TransactionSystemException(
+                                "JDBC rollback failed", new SQLException("Connection is closed")),
+                        ErrorKind.TRANSIENT_INFRA),
+                Arguments.of(
+                        new org.springframework.transaction.CannotCreateTransactionException("no connection"),
+                        ErrorKind.TRANSIENT_INFRA),
+                Arguments.of(new java.sql.SQLTransientConnectionException("pool timeout"), ErrorKind.TRANSIENT_INFRA),
+                Arguments.of(new java.sql.SQLRecoverableException("gone"), ErrorKind.TRANSIENT_INFRA),
+                Arguments.of(new java.sql.SQLNonTransientConnectionException("closed"), ErrorKind.TRANSIENT_INFRA),
                 Arguments.of(new TransientDataAccessResourceException("pool"), ErrorKind.TRANSIENT_INFRA),
                 Arguments.of(new QueryTimeoutException("slow"), ErrorKind.TRANSIENT_INFRA),
                 Arguments.of(new RecoverableDataAccessException("recover"), ErrorKind.TRANSIENT_INFRA),

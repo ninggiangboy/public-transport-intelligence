@@ -60,7 +60,7 @@ Quy tắc:
 | 3 | `FatalException` | `FATAL` |
 | 4 | `SkipLimitExceededException`, `OptimisticLockingFailureException` (của `JobRepository`) | `FATAL` (step phải dừng; restart xử lý tiếp) |
 | 5 | `java.sql.SQLException` hoặc `DataAccessException` có `SQLException` bên trong | Theo SQLState, §2.3 |
-| 6 | `CannotGetJdbcConnectionException`, `TransientDataAccessResourceException`, `QueryTimeoutException`, `RecoverableDataAccessException`, `CannotAcquireLockException`, `PessimisticLockingFailureException` | `TRANSIENT_INFRA` |
+| 6 | `CannotGetJdbcConnectionException`, `TransientDataAccessResourceException`, `QueryTimeoutException`, `RecoverableDataAccessException`, `CannotAcquireLockException`, `PessimisticLockingFailureException`; `TransactionSystemException` và `CannotCreateTransactionException` (kết nối chết giữa transaction: rollback hoặc commit hỏng, hoặc không mở được transaction); `java.sql.SQLTransientException`, `SQLRecoverableException`, `SQLNonTransientConnectionException` không có SQLState | `TRANSIENT_INFRA`. Bổ sung P2 sau kiểm tra dừng Postgres: rollback hỏng trên kết nối đã đóng từng bị xếp `FATAL` và dừng container |
 | 7 | `DataIntegrityViolationException`, `EmptyResultDataAccessException` không có SQLState | `DATA` |
 | 8 | `io.github.resilience4j.circuitbreaker.CallNotPermittedException` | `TRANSIENT_INFRA` (DOC-20 §5.2) |
 | 9 | `org.apache.kafka.common.errors.RetriableException`, `org.apache.kafka.common.errors.TimeoutException`, `org.springframework.kafka.KafkaException` bọc một trong hai | `TRANSIENT_INFRA` |

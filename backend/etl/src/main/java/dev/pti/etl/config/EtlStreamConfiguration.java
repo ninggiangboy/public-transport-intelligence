@@ -55,6 +55,7 @@ import org.springframework.core.env.Profiles;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.kafka.KafkaException;
 import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
 import org.springframework.kafka.config.KafkaListenerEndpointRegistry;
 import org.springframework.kafka.core.ConsumerFactory;
@@ -140,6 +141,8 @@ public class EtlStreamConfiguration {
                 backOff,
                 new ContainerPausingBackOffHandler(new ListenerContainerPauseService(registry, kafkaPauseScheduler)));
         retrying.setClassifications(Map.of(), true);
+        // Each retry of an infrastructure error re-seeks the poll; that is expected, so WARN, not ERROR (DOC-19 §10).
+        retrying.setLogLevel(KafkaException.Level.WARN);
 
         Map<Class<? extends Throwable>, CommonErrorHandler> delegates = new LinkedHashMap<>();
         delegates.put(FatalException.class, new CommonContainerStoppingErrorHandler());

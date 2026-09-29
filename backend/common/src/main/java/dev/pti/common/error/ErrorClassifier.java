@@ -5,6 +5,9 @@ import java.lang.reflect.Method;
 import java.net.ConnectException;
 import java.nio.charset.CharacterCodingException;
 import java.sql.SQLException;
+import java.sql.SQLNonTransientConnectionException;
+import java.sql.SQLRecoverableException;
+import java.sql.SQLTransientException;
 import java.time.format.DateTimeParseException;
 import java.util.IdentityHashMap;
 import java.util.Map;
@@ -33,7 +36,10 @@ public final class ErrorClassifier {
             "org.springframework.dao.QueryTimeoutException",
             "org.springframework.dao.RecoverableDataAccessException",
             "org.springframework.dao.CannotAcquireLockException",
-            "org.springframework.dao.PessimisticLockingFailureException");
+            "org.springframework.dao.PessimisticLockingFailureException",
+            // The connection died under the transaction: rollback or commit failed, or begin found no connection.
+            "org.springframework.transaction.TransactionSystemException",
+            "org.springframework.transaction.CannotCreateTransactionException");
 
     private static final Set<String> DATA_ACCESS_DATA = Set.of(
             "org.springframework.dao.DataIntegrityViolationException",
@@ -106,6 +112,11 @@ public final class ErrorClassifier {
                 || t instanceof DateTimeParseException
                 || t instanceof NumberFormatException) {
             return phase == ErrorPhase.READ || phase == ErrorPhase.PROCESS ? ErrorKind.DATA : ErrorKind.FATAL;
+        }
+        if (t instanceof SQLTransientException
+                || t instanceof SQLRecoverableException
+                || t instanceof SQLNonTransientConnectionException) {
+            return ErrorKind.TRANSIENT_INFRA;
         }
         if (t instanceof ConnectException || t instanceof InterruptedIOException) {
             return ErrorKind.TRANSIENT_INFRA;
