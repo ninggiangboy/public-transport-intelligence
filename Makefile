@@ -45,6 +45,11 @@ up-obs: images ## Like up, plus the observability profile (Prometheus, Grafana, 
 	@JOBS="$(JOBS)" deploy/compose/scripts/wait-stack.sh $(COMPOSE) --profile '*'
 	@echo "Grafana http://localhost:$$(v=$$(sed -n 's/^HOST_PORT_GRAFANA=//p' .env); echo "$${v:-3000}") (admin, GRAFANA_ADMIN_PASSWORD in .env)"
 
+.PHONY: check-dashboards
+check-dashboards: .env ## Run every query of the Grafana dashboards and report errors or empty panels (DOC-28 O-09)
+	@GRAFANA_URL=http://localhost:$$(v=$$(sed -n 's/^HOST_PORT_GRAFANA=//p' .env); echo "$${v:-3000}") \
+		GRAFANA_PASSWORD=$$(sed -n 's/^GRAFANA_ADMIN_PASSWORD=//p' .env) deploy/compose/observability/check-dashboards.py $(ARGS)
+
 .PHONY: down
 down: .env ## Stop and remove containers, keep volumes
 	$(COMPOSE) --profile '*' down

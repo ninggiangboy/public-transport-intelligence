@@ -407,7 +407,7 @@ Runner (DOC-45) gọi `POST /api/v2/silences` của Alertmanager trước mỗi 
 
 ## 7. Dashboard Grafana
 
-JSON lưu ở `deploy/compose/observability/grafana/dashboards/`, provision chỉ đọc (sửa trên UI thì export lại vào repo). Mọi dashboard có biến `$application`, `$instance` và annotation từ `pti_sim_scenario_active` và annotation của runner thực nghiệm (Grafana API, tag `experiment`).
+JSON lưu ở `deploy/compose/observability/grafana/dashboards/`, provision chỉ đọc (sửa trên UI thì export lại vào repo). Bảng lần chạy job đọc view `ops.ops_job_run_v`, vì `api_reader` không có quyền trên `batch.*` (DOC-17). Panel độ trễ đầu-cuối có sẵn từ P3 nhưng chỉ có dữ liệu khi `api` phát metric ở P4. Mọi dashboard có biến `$application`, `$instance` và annotation từ `pti_sim_scenario_active` và annotation của runner thực nghiệm (Grafana API, tag `experiment`).
 
 | UID | Dashboard | Panel chính |
 | --- | --- | --- |
@@ -455,7 +455,7 @@ Datasource Postgres dùng user `api_reader` (DOC-39 §3.7): đọc được bộ
 | O-06 | `pti_source_last_event_age_seconds` tăng khi dừng publish và về < 10 s khi publish lại | Integration test `api` |
 | O-07 | `pti_source_replication_slot_retained_bytes` đọc được bằng role `source_simulator` (không cần superuser) và tăng khi Connect dừng | Integration test simulator (Postgres `wal_level=logical`, tạo slot bằng owner) |
 | O-08 | Mỗi alert được kích hoạt thật bằng kịch bản và tới Mailpit và `alert_event` | Thủ công ở P3-05, ghi kết quả vào DOC-42 |
-| O-09 | Dashboard JSON hợp lệ và mọi truy vấn trả về dữ liệu trên compose đang chạy | Script `observability/check-dashboards.sh` gọi Grafana API; chạy trong job `e2e-compose` của `full-stack.yml` (DOC-41 §10.3) |
+| O-09 | Dashboard JSON hợp lệ và mọi truy vấn trả về dữ liệu trên compose đang chạy | Script `deploy/compose/observability/check-dashboards.py` (`make check-dashboards`) chạy mọi truy vấn qua Grafana API, in `OK`/`EMPTY`/`ERROR`; thoát 1 khi có `ERROR`, và khi có `EMPTY` nếu thêm `--strict`. Chạy trong job `e2e-compose` của `full-stack.yml` (DOC-41 §10.3) với `--strict` từ P8, khi mọi panel đều có nguồn dữ liệu |
 
 ## 10. Câu hỏi còn mở
 
