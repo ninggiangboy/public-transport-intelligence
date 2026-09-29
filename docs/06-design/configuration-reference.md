@@ -165,7 +165,7 @@ Mỗi datasource `pti.datasource.<name>` gồm `url`, `username`, `password` (bi
 | `pti.replay.raw-settle` | Duration | `10m` | `to` phải ≤ now − giá trị này | DOC-22 §4.1 | Chốt |
 | `pti.replay.raw-max-age` | Duration | `29d` | `from` phải ≥ now − giá trị này | DOC-22 §4.1 | Chốt |
 | `pti.replay.max-window` | Duration | `7d` | | DOC-22 §4.1 | Chốt |
-| `pti.replay.max-objects` | int | `100000` | | DOC-22 §4.3 | Chốt |
+| `pti.replay.max-objects` | int | `1000000` | Giới hạn an toàn; danh sách object không lưu trong `ExecutionContext` (DR-91). 7 ngày VehiclePosition khoảng 730.000 object | DOC-22 §4.3, DR-91 | Chốt |
 | `pti.replay.chunk-size` | int | `500` | = `pti.etl.batch.chunk-size` | DOC-22 §8 | Chốt |
 | `pti.replay.poller.interval` / `.max-claims` | Duration / int | `5s` / `10` | `ReplayRequestPoller` | DOC-22 §6 | Chốt |
 | `pti.dlq.max-payload-bytes` | DataSize | `1MB` | Giới hạn payload lưu và payload sửa | DOC-22 §1.2 | Chốt |
@@ -203,7 +203,7 @@ Mỗi datasource `pti.datasource.<name>` gồm `url`, `username`, `password` (bi
 
 | Key | Kiểu | Mặc định | Mô tả | Trạng thái |
 | --- | --- | --- | --- | --- |
-| `pti.test.fault.<point>` / `pti.test.fault.after-n` | enum / int | — | Tiêm lỗi; chỉ có hiệu lực ở profile `test`, `experiment` | Chốt |
+| `pti.test.fault.<point>` / `pti.test.fault.after-n` / `pti.test.fault.times` | enum / int / int | — / `0` / `1` | Tiêm lỗi: cho qua `after-n` lần rồi làm hỏng `times` lần; chỉ có hiệu lực ở profile `test`, `experiment` | Chốt |
 | `pti.kafka.topic-prefix` | string | rỗng | Ghép trước tên topic (DOC-09) ở mọi producer và listener; chỉ đổi trong integration test (mọi app) | Chốt |
 | `pti.s3.raw-prefix` | string | rỗng | Prefix trong bucket `raw` khi đọc/ghi raw zone; chỉ đổi trong integration test | Chốt |
 

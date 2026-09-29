@@ -123,7 +123,7 @@ Chạy bởi `DataQualityJob` (etl-batch, tasklet, `@Scheduled` + ShedLock, DOC-
 | DQ-24 | `dw.fact_trip_update` | TABLE, như trên | Mỗi giờ | Vi phạm bất biến của DR-13: `is_observed = true` nhưng `coalesce(arrival_time, departure_time) > event_timestamp` | > 0 |
 | DQ-25 | `dw.vehicle_position_latest` | TABLE | Mỗi 5 phút | Dòng có `event_timestamp` mới hơn dòng mới nhất trong `fact_vehicle_position` của cùng xe (bảng latest và fact lệch nhau) | > 0 |
 | DQ-26 | `dw.dim_vehicle` | TABLE | Mỗi ngày | Số xe `source = 'REALTIME'` (xe không có trong `vehicles.txt`) | > 5% số xe (chỉ ghi nhận, severity 0) |
-| DQ-27 | fact do job batch ghi | BATCH (theo `batch_id` của step) | `afterStep` của mọi step ghi fact (replay, DOC-22) | `write_count` của step bằng số dòng có `batch_id` đó trong bảng đích, trừ số dòng bị guard chặn | ≠ 0 |
+| DQ-27 | fact do job batch ghi | BATCH (theo `batch_id` của step) | `afterStep` của mọi step ghi fact (replay, DOC-22) | `write_count` của step bằng số dòng có `batch_id` đó trong bảng đích, trừ số dòng bị guard chặn. **Hoãn sang P3 (DR-92)** | ≠ 0 |
 
 Ví dụ `DQ-22.sql`:
 

@@ -8,7 +8,7 @@ The core of the project is the **ETL pipeline**. It answers one question:
 
 The answer is effectively-once delivery, fault isolation, a dead letter queue and replay across both streaming and batch processing, backed by a set of measurable experiments.
 
-> **Status: phase 1 (infrastructure and data sources) complete; phase 2 (core ETL) is next.** One command starts the local stack, the source simulator publishes GTFS-realtime to Kafka and writes ticket sales that Debezium captures, and every source topic lands in the raw zone. Implementation follows the [roadmap](#roadmap).
+> **Status: phase 2 (core ETL) complete; phase 3 (reliability experiments and observability) is next.** One command starts the local stack: the simulator publishes GTFS-realtime and writes ticket sales that Debezium captures, `etl-batch` loads the GTFS feed, and `etl-stream` writes every source into the warehouse exactly once, with a dead-letter queue, replay from the raw zone and post-write data quality checks. Killing either ETL container or stopping Postgres loses and duplicates nothing. Implementation follows the [roadmap](#roadmap).
 
 ## What it does
 
@@ -124,7 +124,7 @@ make up          # build images, start the core profile and wait until it is hea
 make sim-start   # the simulator starts paused; this makes it publish
 ```
 
-Then `make sim-status`, `make tail-gtfs.vehicle_positions`, `make connectors` and `make s3-ls` show the data moving; `make sim-stop` pauses it again. The feed runs on Chicago time, so between 02:00 and 04:30 there (afternoon in Vietnam) no vehicles are in service: run `make clock-offset AT=16:30 && make up` first. `make help` lists every target.
+On the first start `etl-batch` loads the pinned GTFS feed (about a minute); `etl-stream` turns ready once that feed is active. Then `make sim-status`, `make tail-gtfs.vehicle_positions`, `make connectors` and `make s3-ls` show the data moving, and `make psql-wh Q='select count(*) from dw.fact_vehicle_position'` shows it arriving in the warehouse; `make sim-stop` pauses it again. The ETL health is on `localhost:9082/actuator/health/sources` (stream) and `localhost:9083/actuator/health` (batch). The feed runs on Chicago time, so between 02:00 and 04:30 there (afternoon in Vietnam) no vehicles are in service: run `make clock-offset AT=16:30 && make up` first. `make help` lists every target.
 
 Requirements: 16 GB RAM (12 GB allocated to the Docker VM with every profile enabled), 8 CPU cores and about 80 GB of free disk. See [docs/09-operations/local-dev.md](docs/09-operations/local-dev.md).
 
@@ -134,8 +134,8 @@ Requirements: 16 GB RAM (12 GB allocated to the Docker VM with every profile ena
 | --- | --- | --- | --- |
 | P0 | Specification, decisions, spikes | Decisions settled, core documents approved | Done |
 | P1 | Infrastructure and data sources | `make up` works; events reach Kafka; CDC and raw zone running | Done (2026-09-29) |
-| P2 | Core ETL (Spring Batch + Spring Kafka) | Data in the warehouse; `kill -9` causes no loss or duplicates | Next |
-| P3 | Reliability experiments and observability | EXP-01…05 results; Grafana; alerts | |
+| P2 | Core ETL (Spring Batch + Spring Kafka) | Data in the warehouse; `kill -9` causes no loss or duplicates | Done (2026-09-29) |
+| P3 | Reliability experiments and observability | EXP-01…05 results; Grafana; alerts | Next |
 | P4 | Analytics and API | Real insights over REST and SSE | |
 | P5 | Dashboard | Full real-time UI | |
 | P6 | AI triage | Triage, auto-replay, suggestions in the UI | |

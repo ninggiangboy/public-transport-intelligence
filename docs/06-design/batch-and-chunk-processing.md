@@ -78,7 +78,7 @@ Mọi tác vụ `@Scheduled` chạy trên một `ThreadPoolTaskScheduler` riêng
 | `pti.skip.data` | Step context | Số item bị skip vì `DATA`, để tính tỷ lệ skip sau restart |
 | Key của reader (`FlatFileItemReader.read.count`, `MultiResourceItemReader.resourceIndex`…) | Step context | Do Spring Batch ghi, dùng cho restart |
 | `pti.feedVersionId` | Job context | `GtfsStaticLoadJob`: phiên bản `STAGED` đang nạp |
-| `pti.replay.objectKeys` | Job context | `RawZoneReplayJob`: danh sách object đã chọn ở step `listObjects` (lưu tối đa 10.000 key; nhiều hơn thì ghi ra bảng tạm, xem DOC-22) |
+| `pti.replay.objects` | Job context | `RawZoneReplayJob`: **số** object của khoảng; danh sách không được lưu, reader liệt kê lại theo giờ (DR-91, DOC-22 §4.3) |
 
 `ExecutionContext` được ghi **trong transaction của chunk**, nên vị trí restart luôn khớp với dữ liệu đã commit.
 
@@ -467,7 +467,7 @@ FOR UPDATE SKIP LOCKED;
 | `RESTART` | `jobOperator.restart(targetJobExecutionId)` | `REJECTED` nếu execution không ở `FAILED`/`STOPPED` hoặc job không restart được |
 | `STOP` | `jobOperator.stop(targetJobExecutionId)` | `REJECTED` nếu execution không chạy |
 
-Trong cùng transaction với câu `SELECT … FOR UPDATE`: gọi `JobOperator` (chỉ tạo execution rồi đưa vào executor, trả về ngay), cập nhật `status = RUNNING`, `job_execution_id`, `started_at`. Một `JobExecutionListener` chung cập nhật `DONE`/`FAILED` khi job kết thúc.
+Transaction của câu `SELECT … FOR UPDATE` chỉ đặt `status = RUNNING`, `started_at` rồi commit; sau đó mới gọi `JobOperator` (chỉ tạo execution rồi đưa vào executor, trả về ngay) và ghi `job_execution_id`. Spring Batch từ chối tạo execution bên trong transaction của người gọi, nên hai bước không thể chung transaction; yêu cầu `RUNNING` mà chưa có `job_execution_id` sau 2 phút bị đặt `FAILED` (DR-90). Một `JobExecutionListener` chung cập nhật `DONE`/`FAILED` khi job kết thúc, tìm yêu cầu theo `job_execution_id` hoặc tham số không định danh `jobRequestId`.
 
 ## 8. Điểm tiêm lỗi (test và thực nghiệm)
 

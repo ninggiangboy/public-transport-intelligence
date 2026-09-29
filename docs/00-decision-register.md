@@ -51,6 +51,7 @@ Tài liệu gốc mô tả tốt *cái gì* và *vì sao*, nhưng còn nhiều c
 | 2026-09-28 | Owner | **Giao diện theo prototype "Wayfinding":** token mới (Geist, canvas xám nhạt, một màu nhấn indigo, motif route shield và line-and-stop strip), sidebar chung thay thanh trên, thêm màn Overview, danh sách + khung chi tiết cho Alerts, Dead letters, Ticketing. Dữ liệu vẫn theo DOC-32; khối minh họa không có dữ liệu thì thay hoặc bỏ | DR-88 (mới), DOC-34–37, DOC-48 |
 | 2026-09-28 | Owner | **Duyệt toàn bộ tài liệu:** master plan và DOC-01…48 chuyển từ Review sang Approved, gồm cả các gate tài liệu P0-08…14 và P2-00…P8-00 | Master plan §5, `docs/README.md` |
 | 2026-09-28 | Claude (Owner ủy quyền) | **S3 sink OOM khi chạy live (P1-14):** Aiven 3.4.3 cắt file mỗi 10 giây trên mỗi partition và giữ buffer của writer tới lần commit, nên với commit 5 phút task chết sau vài phút có traffic. Giữ 3.4.3; `aws.s3.part.size.bytes` = 1 MiB, worker commit mỗi 30 giây. Số object raw zone tăng khoảng 15 lần; replay (P3) phải xem lại `pti.replay.max-objects` | DR-89 (mới), sửa DR-81, ADR-0012, DOC-09 §7, DOC-39 §3.4, DOC-40, DOC-22 §4.3 |
+| 2026-09-29 | Claude (Owner ủy quyền) | **Phase 2 xong:** claim yêu cầu job/replay commit trước khi gọi `JobOperator`; replay raw zone liệt kê object theo giờ thay vì lưu danh sách (đóng mục mở của DR-89); hoãn DQ-27 sang P3; các chi tiết nhỏ khác | DR-90, DR-91, DR-92, DR-93 (mới) |
 
 ---
 
@@ -363,6 +364,36 @@ Tài liệu gốc mô tả tốt *cái gì* và *vì sao*, nhưng còn nhiều c
   3. Raw zone replay ghi thành công một record có dead letter chưa đóng thì chuyển dead letter đó sang `RESOLVED` (`resolved_by = 'system:etl-batch'`).
   4. `GtfsStaticLoadJob` định danh bằng `runKey` thay vì `feedHash` (DOC-21 §1).
 - **Ghi vào:** DOC-15, DOC-19, DOC-21, DOC-22, DOC-32, DOC-36.
+
+### DR-90 · Nhận `job_request`/`replay_request` và khôi phục execution kẹt khi triển khai — **Chốt** (P2)
+- **Vấn đề:** DOC-19 §7.3 và DOC-22 §6 muốn gọi `JobOperator` trong cùng transaction với câu `SELECT … FOR UPDATE SKIP LOCKED`. Spring Batch 6 (`validateTransactionState`) từ chối tạo execution bên trong transaction của người gọi, và nếu tắt kiểm tra đó thì thread của job cập nhật một execution chưa commit. DOC-19 §7.2 cũng muốn `StaleExecutionRecoverer` bỏ qua execution khi khóa ShedLock của job còn giữ, nhưng lịch chỉ khởi chạy job bất đồng bộ rồi trả khóa ngay, nên khóa không phản ánh việc job còn chạy.
+- **Quyết định:**
+  - Claim là một transaction riêng (`PENDING → RUNNING`, `started_at`) đã commit; sau đó mới gọi `JobOperator`, rồi ghi `job_execution_id`. Listener của job tìm yêu cầu theo `job_execution_id` hoặc tham số không định danh `jobRequestId`/`replayRequestId`, nên job kết thúc trước khi poller kịp ghi `job_execution_id` vẫn được ghi nhận.
+  - Yêu cầu `RUNNING` mà chưa có `job_execution_id` sau 2 phút (pod chết giữa claim và start) bị đặt `FAILED` với lời nhắn gửi lại.
+  - `StaleExecutionRecoverer` chỉ dựa vào `LAST_UPDATED` (2 phút) và fencing `VERSION`; không đọc `ops.shedlock`, không dùng `KeepAliveLockProvider`. Hai execution cùng instance tạo đồng thời (READ_COMMITTED) nhận `DuplicateKeyException`, được coi như `JobExecutionAlreadyRunningException`.
+- **Ghi vào:** DOC-19 §7.3, DOC-22 §6.
+
+### DR-91 · Replay raw zone không lưu danh sách object — **Chốt** (đóng mục mở của DR-89)
+- **Vấn đề:** Sau DR-89 một tuần VehiclePosition có khoảng 730.000 object; lưu danh sách trong `ExecutionContext` (DOC-22 §4.3 bản cũ) vừa quá lớn vừa buộc `pti.replay.max-objects` thấp.
+- **Quyết định:** `listObjects` chỉ đếm và kiểm giới hạn; `RawZoneReader` liệt kê lại từng thư mục giờ khi tới giờ đó (sau `raw-settle` danh sách không đổi). Vị trí restart là `(giờ, object trong giờ, số dòng đã đọc)` cùng offset lớn nhất của cặp `(giờ, partition)` đang đọc, lưu trong step context sau mỗi chunk. `pti.replay.max-objects` nâng lên 1.000.000.
+- **Đã kiểm:** IT R-08 và kiểm tra M2 trên compose: `docker kill etl-batch` sau 1.500 dòng của một giờ 27.301 dòng, recoverer đánh dấu `STALE`, restart qua `job_request` đọc tiếp 25.801 dòng; 27.301 dòng fact, không trùng, không mất.
+- **Ghi vào:** DOC-22 §4.3, §4.4, §8, DOC-19 §3.2, DOC-29.
+
+### DR-92 · Hoãn DQ-27 sang P3 — **Tạm** (P2)
+- **Vấn đề:** DQ-27 so `write_count` của step với số dòng mang `batch_id` của step, trừ dòng bị guard chặn. Writer chỉ đếm theo message; một TripUpdate ghi nhiều dòng và replay ghi lại cùng dòng nhiều lần (`:replay`), nên phép so sánh báo vi phạm giả với mọi replay TripUpdate. Muốn đúng thì `FactChunkWriter` phải trả số dòng khác nhau thực sự đổi.
+- **Quyết định:** P2 làm DQ-20…26; DQ-27 làm ở P3 cùng EXP-04, khi checksum của replay kiểm được cùng tính chất một cách chặt hơn.
+- **Ghi vào:** DOC-16 §3 (chú thích), master plan P2-15.
+
+### DR-93 · Chi tiết nhỏ khác khi làm Phase 2 — **Chốt** (P2)
+- Workspace của `GtfsStaticLoadJob` đặt theo **job instance** (`<work-dir>/<jobInstanceId>`) thay vì job execution, để restart trên cùng pod dùng lại file; pod khác thì `FeedWorkspaceListener` tải lại từ raw zone như DOC-21 §3.1.
+- Luồng của `GtfsStaticLoadJob` rẽ nhánh theo exit code của step (`NOOP`, `REACTIVATE`, `REJECTED`) thay vì một `JobExecutionDecider` riêng; kết quả như DOC-21 §2.
+- DQ-23 lưu `{population, rows}` vào `dq_check_result.sample` để ngưỡng tương đối vẫn tính được sau restart.
+- Ví dụ contract nằm ở `backend/common/src/testFixtures/resources/contract-examples/` (thay `src/test/resources`) để `etl` đọc được qua test fixtures.
+- TripUpdate: DQ-02 gộp theo từng trạm; `ErrorClassifier` nhận exception của thư viện theo tên lớp; `etl_writer` có thêm quyền `UPDATE` các cột DLQ mà replay và `DlqResolveWriter` cần, và `DELETE` trên `ops.alert_event` cho `OpsRetentionJob` (DOC-17).
+- Sự kiện UI (`vehicles.batch`), analytics sau commit và span tracing của listener chưa làm ở P2; lần lượt thuộc P4 và P3-03.
+- `RatioSkipPolicy` tính tỷ lệ trên step execution hiện tại, không lưu `pti.skip.data`.
+- Container của nhóm baseline có id hậu tố `-baseline` (DOC-20 §9).
+- **Ghi vào:** DOC-17, DOC-21, DOC-44.
 
 ---
 
@@ -800,7 +831,7 @@ Tài liệu gốc mô tả tốt *cái gì* và *vì sao*, nhưng còn nhiều c
   - Đo trên compose (2026-09-28): 6 phút live ở hệ số 1 và 10, rồi dồn 329 nghìn record (sink pause, simulator hệ số 20 trong 150 giây) và resume: task không lỗi, chạy bù xong trong khoảng 7 giây, heap dưới 500 MiB (phần lớn là rác chưa GC, sau GC khoảng 110–200 MiB).
 - **Hệ quả:**
   - File raw zone đóng **mỗi 10 giây** trên mỗi partition có traffic (hoặc khi đạt 2.000 record), không còn mỗi 5 phút. VehiclePosition ở tải nền: khoảng 104.000 object mỗi ngày (12 partition × 8.640), tức khoảng 730.000 mỗi 7 ngày, gấp khoảng 15 lần ước lượng của DR-81.
-  - **Mở:** replay (DOC-22 §4.3) lưu danh sách object trong `ExecutionContext` và giới hạn `pti.replay.max-objects` 100.000, nên một replay VehiclePosition dài hơn khoảng 1 ngày sẽ bị từ chối. Phải xem lại khi làm replay (P3): nâng giới hạn và không lưu cả danh sách trong context (liệt kê lại theo giờ khi restart), hoặc gộp file nhỏ bằng một job compact. Nếu Aiven cho cấu hình chu kỳ ghi (hiện là hằng số), cân nhắc quay lại file 5 phút.
+  - **Mở (đã đóng ở DR-91):** replay (DOC-22 §4.3) lưu danh sách object trong `ExecutionContext` và giới hạn `pti.replay.max-objects` 100.000, nên một replay VehiclePosition dài hơn khoảng 1 ngày sẽ bị từ chối. Phải xem lại khi làm replay (P3): nâng giới hạn và không lưu cả danh sách trong context (liệt kê lại theo giờ khi restart), hoặc gộp file nhỏ bằng một job compact. Nếu Aiven cho cấu hình chu kỳ ghi (hiện là hằng số), cân nhắc quay lại file 5 phút.
   - Test C-10 của DOC-39 đo thêm pha live ở hệ số 10 sau khi chạy bù.
 - **Ghi vào:** DR-81, ADR-0012, DOC-09 §7, DOC-39 §3.4, DOC-40 (values Connect), DOC-22 §4.3, `deploy/connect/connectors/pti-raw-sink.json`, `deploy/compose/compose.yaml`.
 

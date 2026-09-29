@@ -137,7 +137,7 @@ Tham số: `replayRequestId` (định danh), `replay = true`, `source`, `fromTs`
 1. Topic theo `source`: `gtfs.vehicle_positions`, `gtfs.trip_updates`, `ticketing.sales.cdc`, `ticketing.sale_points.cdc`.
 2. Các thư mục giờ `raw/<topic>/dt=<d>/hh=<h>/` với `h` từ `floor_hour(from_ts)` tới `floor_hour(to_ts − 1ms)`. Sink phân thư mục theo CreateTime của từng record (S-04), nên không cần quét thêm giờ kế bên (DOC-09 §7).
 3. `ListObjectsV2` từng prefix (Spring Cloud AWS `S3Template.listObjects`), sắp theo `(dt, hh, partition, start_offset)`, lấy từ tên file `<topic>-<partition>-<start_offset>.json.gz` (DOC-18 §2). Tên file không khớp mẫu này thì bỏ qua và ghi `WARN`.
-4. Lưu vào `ExecutionContext` của job, key `pti.replay.objects`, dạng gọn `{"<dt>/<hh>": ["<partition>-<start_offset>", …]}` với `start_offset` không đệm số 0. Ước lượng 7 ngày của `gtfs.vehicle_positions` ở tải nền: ~~file đóng khoảng mỗi 2,5 phút, khoảng 48.000 object~~ — **đã sai sau DR-89**: sink cắt file mỗi 10 giây trên mỗi partition, tức khoảng 104.000 object mỗi ngày, 730.000 mỗi 7 ngày. Cách lưu danh sách object và giới hạn dưới đây phải thiết kế lại khi làm replay (P3, DR-89). Sau một lần sink dừng lâu rồi chạy bù, số object nhiều hơn (một object mỗi 2.000 record). Vượt `pti.replay.max-objects` (100.000) thì step `FAILED` với thông báo chia nhỏ khoảng.
+4. **Không lưu danh sách object** (DR-91, thay thiết kế cũ vốn lưu cả danh sách vào `ExecutionContext` và không chịu được số object sau DR-89). Step `listObjects` chỉ đếm object của khoảng (lưu `pti.replay.objects` là số đếm) và từ chối khoảng có quá `pti.replay.max-objects` (mặc định 1.000.000) object với thông báo chia nhỏ khoảng. Reader liệt kê lại từng thư mục giờ khi tới giờ đó; sau `raw-settle`, danh sách của một giờ không còn đổi, nên liệt kê lại cho cùng kết quả.
 5. Không có object nào → job `COMPLETED`, `stats.objects = 0`, `message = "No raw objects in range"`.
 
 ### 4.4 `replayRecords`
@@ -147,7 +147,7 @@ Tham số: `replayRequestId` (định danh), `replay = true`, `source`, `fromTs`
   - khử trùng theo `(partition, offset)` trong phạm vi job: sink at-least-once có thể ghi cùng offset vào hai object. Một record luôn nằm trong thư mục giờ của chính nó, nên bản trùng chỉ có thể ở cùng cặp `(giờ, partition)`. Reader giữ offset lớn nhất đã trả của cặp `(giờ, partition)` đang đọc, đặt lại khi sang cặp mới; dòng có offset ≤ giá trị đó bị bỏ và đếm `duplicate`. Cách này đúng vì trong một cặp, object được đọc theo `start_offset` tăng dần và offset trong một object tăng dần. Giá trị này nằm trong `ExecutionContext` của step để restart giữ được;
   - **lọc** dòng có `timestamp ∉ [from_ts, to_ts)` ngay trong reader (không trả item; đếm `filtered`);
   - dòng không parse được, hoặc `value` không phải base64 hợp lệ → `RawZoneLineException` (`DATA`) → skip → DLQ `DESERIALIZE` với `raw_payload` = cả dòng (đã scrub).
-  - Restart: `MultiResourceItemReader` lưu `resourceIndex`, delegate lưu số dòng đã đọc của object hiện tại; restart mở lại object đó và bỏ qua số dòng ấy.
+  - Restart: step context lưu vị trí `(giờ, object trong giờ, số dòng đã đọc)` cùng offset lớn nhất của cặp `(giờ, partition)` đang đọc (DR-91); restart liệt kê lại giờ đó, mở lại object và bỏ qua số dòng ấy.
 - **Processor:** router theo `source`, `RuleContext.replay = true`, `ReferenceData` của feed **ACTIVE hiện tại** (DOC-21 §6.2): dữ liệu cũ được kiểm theo feed hiện tại. Nếu feed đã đổi và tuyến cũ bị xóa, record rơi vào DLQ `QUALITY` `DQ-03`. Đây là hạn chế đã chấp nhận; muốn tránh thì activate lại feed cũ trước khi replay (RB-11).
 - **Writer:** `FactChunkWriter` (replay: không registry, `:replay = true`) cộng `DlqResolveWriter`: với mọi message ghi thành công mà có dòng `dead_letter` cùng vị trí Kafka ở trạng thái chưa đóng (`NEW`, `TRIAGED`, `AUTO_REPLAY_SCHEDULED`, `PENDING_CONFIRM`, `MANUAL`), chuyển dòng đó sang `RESOLVED`, `resolved_by = 'system:etl-batch'`, `resolved_at = now()`, và ghi `dlq_action_log` `RESOLVED`. Như vậy replay sau khi sửa lỗi logic tự đóng các dead letter mà nó đã giải quyết.
 - **DLQ** khi lỗi dữ liệu: câu lệnh replay ở §1.3 (cập nhật dòng cũ nếu có, không thì tạo mới).
@@ -221,7 +221,7 @@ LIMIT :freeSlots
 FOR UPDATE SKIP LOCKED;
 ```
 
-Với mỗi dòng: `JobOperator.start(...)` (bất đồng bộ), `status = RUNNING`, `job_execution_id`, `started_at`, cùng transaction. `JobOperator.start` ném lỗi (tham số sai) thì `FAILED` kèm `message`.
+Với mỗi dòng: `status = RUNNING`, `started_at` rồi commit; sau đó `JobOperator.start(...)` (bất đồng bộ), và `ReplayRequestListener.beforeJob` ghi `job_execution_id`. Spring Batch không cho tạo execution trong transaction của người gọi, nên không thể làm cùng transaction; yêu cầu `RUNNING` mà chưa có `job_execution_id` sau 2 phút (pod chết giữa hai bước) bị đặt `FAILED` (DR-90). `JobOperator.start` ném lỗi (tham số sai) thì `FAILED` kèm `message`.
 
 ## 7. Truy vết (FR-12.5)
 
@@ -254,7 +254,7 @@ Log của job có `batch_id` và `replay_request_id` trong MDC, nên Loki lọc 
 | `pti.replay.raw-settle` | Duration | `10m` | §4.1 |
 | `pti.replay.raw-max-age` | Duration | `29d` | §4.1 |
 | `pti.replay.max-window` | Duration | `7d` | Trùng CHECK của DB; API kiểm trước để trả 422 rõ ràng |
-| `pti.replay.max-objects` | int | `100000` | §4.3 |
+| `pti.replay.max-objects` | int | `1000000` | §4.3, DR-91 |
 | `pti.replay.chunk-size` | int | `500` | = `pti.etl.batch.chunk-size` |
 | `pti.replay.poller.interval` | Duration | `5s` | |
 | `pti.replay.poller.max-claims` | int | `10` | |
