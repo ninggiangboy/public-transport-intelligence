@@ -115,6 +115,16 @@ class StepComponentsTest {
         step.setReadCount(1000);
         assertThat(policy.shouldSkip(new DeserializationException("bad", null), 150))
                 .isTrue();
+
+        StepSynchronizationManager.register(step);
+        try {
+            assertThat(new RatioSkipPolicy(new ErrorClassifier(), 0.2, 100)
+                            .shouldSkip(new DeserializationException("bad", null), 0))
+                    .as("the public constructor reads the step of the thread")
+                    .isTrue();
+        } finally {
+            StepSynchronizationManager.close();
+        }
     }
 
     @Test
@@ -206,6 +216,7 @@ class StepComponentsTest {
         listener.onSkipInRead(
                 new UnreadableRecordException(MESSAGE, new DeserializationException("broken line", null)));
         listener.onSkipInRead(new IllegalStateException("no record"));
+        new DeadLetterSkipListener(writer, processors(processor("TX-3")), stats);
 
         ArgumentCaptor<DeadLetter> letters = ArgumentCaptor.forClass(DeadLetter.class);
         verify(writer, org.mockito.Mockito.times(4)).write(letters.capture());
@@ -221,6 +232,9 @@ class StepComponentsTest {
     @Test
     void deadLetterSkipListenerUpdatesOnReplayAndSurvivesAMissingKey() {
         DeadLetterWriter writer = mock(DeadLetterWriter.class);
+        when(writer.writeReplay(any()))
+                .thenReturn(DeadLetterWriter.DeadLetterResult.INSERTED)
+                .thenReturn(DeadLetterWriter.DeadLetterResult.UPDATED);
         MessageProcessor processor = processor(null);
         when(processor.businessKey(any())).thenThrow(new IllegalStateException("unparsable"));
         StepExecution step = step(true);
@@ -228,10 +242,13 @@ class StepComponentsTest {
                 writer, processors(processor), new WriteStats(new SimpleMeterRegistry()), () -> step);
 
         listener.onSkipInProcess(MESSAGE, new DeserializationException("bad", null));
+        listener.onSkipInProcess(MESSAGE, new DeserializationException("bad", null));
 
         ArgumentCaptor<DeadLetter> letter = ArgumentCaptor.forClass(DeadLetter.class);
-        verify(writer).writeReplay(letter.capture());
+        verify(writer, org.mockito.Mockito.times(2)).writeReplay(letter.capture());
         assertThat(letter.getValue().businessKey()).isNull();
+        assertThat(step.getExecutionContext().getLong(StepValues.DLQ_INSERTED)).isEqualTo(1);
+        assertThat(step.getExecutionContext().getLong(StepValues.DLQ_UPDATED)).isEqualTo(1);
     }
 
     @Test

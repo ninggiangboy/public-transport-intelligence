@@ -151,7 +151,7 @@ pti:
     raw-settle: 10m
     raw-max-age: 29d
     max-window: 7d
-    max-objects: 100000
+    max-objects: 1000000
     chunk-size: 500
     poller:
       interval: 5s

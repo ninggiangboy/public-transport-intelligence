@@ -269,4 +269,56 @@ class StreamChunkTemplateIT {
         assertThat(run(messages).written()).isEqualTo(10);
         assertThat(deadLetters(prefix)).isEmpty();
     }
+
+    static java.util.stream.Stream<org.junit.jupiter.params.provider.Arguments> faults() {
+        List<org.junit.jupiter.params.provider.Arguments> cases = new ArrayList<>();
+        for (FaultPoint point : List.of(
+                FaultPoint.BEFORE_PROCESS,
+                FaultPoint.AFTER_PROCESS,
+                FaultPoint.BEFORE_WRITE,
+                FaultPoint.AFTER_WRITE_BEFORE_COMMIT,
+                FaultPoint.AFTER_COMMIT_BEFORE_ACK)) {
+            for (FaultAction action : List.of(FaultAction.THROW_TRANSIENT, FaultAction.HALT)) {
+                cases.add(org.junit.jupiter.params.provider.Arguments.of(point, action));
+            }
+        }
+        return cases.stream();
+    }
+
+    /**
+     * B-06, streaming half: a failure at any point of the second poll makes the container deliver that poll again,
+     * as it does when the offsets were not committed. The result has every message exactly once; a failure after the
+     * commit shows up as duplicates of the redelivered poll, not as extra rows. HALT is a thrown error here, which
+     * ends the transaction the way a dead process does.
+     */
+    @org.junit.jupiter.params.ParameterizedTest(name = "{0} {1}")
+    @org.junit.jupiter.params.provider.MethodSource("faults")
+    void b06EveryFaultPointEndsWithEveryMessageExactlyOnce(FaultPoint point, FaultAction action) {
+        String prefix = unique("B06");
+        List<InboundMessage> all = poll(prefix, 2000, Map.of(), nextOffsets());
+        FAULTS.arm(point, action, 1, 1);
+        int failures = 0;
+        long duplicates = 0;
+        for (int from = 0; from < all.size(); from += 500) {
+            List<InboundMessage> poll = all.subList(from, from + 500);
+            while (true) {
+                try {
+                    duplicates += run(poll).duplicate();
+                    break;
+                } catch (RuntimeException e) {
+                    failures++;
+                    assertThat(failures).as("the fault fires once").isEqualTo(1);
+                }
+            }
+        }
+
+        assertThat(failures).isEqualTo(1);
+        assertThat(facts(prefix)).isEqualTo(2000);
+        assertThat(deadLetters(prefix)).isEmpty();
+        if (point == FaultPoint.AFTER_COMMIT_BEFORE_ACK) {
+            assertThat(duplicates).as("the redelivered poll is recognised").isEqualTo(500);
+        } else {
+            assertThat(duplicates).isZero();
+        }
+    }
 }

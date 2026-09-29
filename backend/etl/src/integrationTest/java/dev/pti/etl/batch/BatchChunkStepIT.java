@@ -366,6 +366,61 @@ class BatchChunkStepIT extends BatchContextSupport {
                 .containsExactly(step(replayed).getExecutionContext().getString("pti.batchId"));
     }
 
+    @Autowired
+    dev.pti.etl.fault.ConfigurableFaultInjector faults;
+
+    @org.junit.jupiter.api.AfterEach
+    void disarm() {
+        faults.disarmAll();
+    }
+
+    static java.util.stream.Stream<org.junit.jupiter.params.provider.Arguments> faultCases() {
+        List<org.junit.jupiter.params.provider.Arguments> cases = new ArrayList<>();
+        for (dev.pti.etl.fault.FaultPoint point : List.of(
+                dev.pti.etl.fault.FaultPoint.BEFORE_READ,
+                dev.pti.etl.fault.FaultPoint.BEFORE_PROCESS,
+                dev.pti.etl.fault.FaultPoint.AFTER_PROCESS,
+                dev.pti.etl.fault.FaultPoint.BEFORE_WRITE,
+                dev.pti.etl.fault.FaultPoint.AFTER_WRITE_BEFORE_COMMIT)) {
+            for (dev.pti.etl.fault.FaultAction action :
+                    List.of(dev.pti.etl.fault.FaultAction.THROW_TRANSIENT, dev.pti.etl.fault.FaultAction.THROW_FATAL)) {
+                cases.add(org.junit.jupiter.params.provider.Arguments.of(point, action));
+            }
+        }
+        return cases.stream();
+    }
+
+    /**
+     * B-06, batch half: a fault in the second chunk either is retried inside the step (transient) or fails the job,
+     * which a restart continues from the last committed chunk. Either way every item is written exactly once.
+     * THROW_FATAL stands in for a killed process here; a real halt would end the test JVM.
+     */
+    @org.junit.jupiter.params.ParameterizedTest(name = "{0} {1}")
+    @org.junit.jupiter.params.provider.MethodSource("faultCases")
+    void b06EveryFaultPointEndsWithEveryItemExactlyOnce(
+            dev.pti.etl.fault.FaultPoint point, dev.pti.etl.fault.FaultAction action) throws Exception {
+        String prefix = prefix();
+        int afterN =
+                switch (point) {
+                    case BEFORE_READ, BEFORE_WRITE, AFTER_WRITE_BEFORE_COMMIT -> 1;
+                    default -> 700;
+                };
+        faults.arm(point, action, afterN, 1);
+        Job job = job(prefix, items(prefix, 2000, Map.of()), 500, writer);
+        JobParameters parameters = parameters();
+
+        JobExecution execution = run(job, parameters);
+        int runs = 1;
+        while (execution.getStatus() != BatchStatus.COMPLETED && runs < 3) {
+            execution = run(job, parameters);
+            runs++;
+        }
+
+        assertThat(execution.getStatus()).isEqualTo(BatchStatus.COMPLETED);
+        assertThat(facts(prefix)).isEqualTo(2000);
+        assertThat(deadLetters(prefix)).isEmpty();
+    }
+
     /** Stands in for {@code kill -9} during a scan: an Error that the chunk loop does not handle. */
     static final class SimulatedCrash extends Error {
         private static final long serialVersionUID = 1L;

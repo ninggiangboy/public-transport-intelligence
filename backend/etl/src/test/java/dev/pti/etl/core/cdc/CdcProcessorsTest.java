@@ -198,4 +198,30 @@ class CdcProcessorsTest {
                 .isInstanceOfSatisfying(
                         DataException.class, e -> assertThat(e.stage()).isEqualTo(DlqStage.SCHEMA));
     }
+
+    @Test
+    void edgeCasesOfTicketSales() {
+        assertThat(sales.source()).isEqualTo(dev.pti.etl.core.EtlSource.TICKETING_SALES);
+        assertThat(sales.process(
+                                dev.pti.etl.testing.EtlFixtures.tombstone(dev.pti.etl.core.EtlSource.TICKETING_SALES),
+                                context())
+                        .ticketSales())
+                .isEmpty();
+        assertThat(catchThrowable(() -> sales.process(
+                        message(
+                                dev.pti.etl.core.EtlSource.TICKETING_SALES,
+                                ticketSale().put("amount", "abc")),
+                        context())))
+                .isInstanceOf(dev.pti.common.error.SchemaViolationException.class)
+                .hasMessageContaining("amount");
+        assertThat(sales.businessKey(message(dev.pti.etl.core.EtlSource.TICKETING_SALES, "{\"x\":1}")))
+                .isNull();
+        assertThat(sales.businessKey(
+                        message(dev.pti.etl.core.EtlSource.TICKETING_SALES, "{\"transaction_id\":\"t-1\"}")))
+                .isEqualTo("t-1");
+        assertThat(sales.businessKey(message(
+                        dev.pti.etl.core.EtlSource.TICKETING_SALES,
+                        "{\"transaction_id\":\"t-1\",\"created_at\":\"yesterday\"}")))
+                .isEqualTo("t-1");
+    }
 }
