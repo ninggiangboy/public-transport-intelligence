@@ -222,5 +222,11 @@ class StreamRuntimeTest {
         assertThat(StreamListener.pausedBy(StreamListener.TICKETING_FLAG))
                 .containsExactly(StreamListener.TICKETING_SALES, StreamListener.TICKETING_SALE_POINTS);
         assertThat(StreamListener.TICKETING_SALES.needsReferenceData()).isFalse();
+        assertThat(StreamListener.GTFS_RT_TRIP_UPDATE.containerId(true)).isEqualTo("gtfs-rt-trip-update-baseline");
+        assertThat(StreamListener.GTFS_RT_TRIP_UPDATE.containerId(false)).isEqualTo("gtfs-rt-trip-update");
+        BaselineListeners baseline = new BaselineListeners(handler);
+        baseline.onVehiclePositions(poll);
+        baseline.onTripUpdates(poll);
+        verify(handler, org.mockito.Mockito.times(2)).handle(StreamListener.GTFS_RT_VEHICLE_POSITION, poll);
     }
 }

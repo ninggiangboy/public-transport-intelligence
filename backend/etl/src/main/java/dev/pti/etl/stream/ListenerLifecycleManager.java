@@ -20,9 +20,19 @@ public class ListenerLifecycleManager {
     private final KafkaListenerEndpointRegistry registry;
     private final ReferenceDataHolder reference;
     private final ListenerPauseCoordinator pauses;
+    private final boolean baseline;
 
     public ListenerLifecycleManager(
             KafkaListenerEndpointRegistry registry, ReferenceDataHolder reference, ListenerPauseCoordinator pauses) {
+        this(registry, reference, pauses, false);
+    }
+
+    public ListenerLifecycleManager(
+            KafkaListenerEndpointRegistry registry,
+            ReferenceDataHolder reference,
+            ListenerPauseCoordinator pauses,
+            boolean baseline) {
+        this.baseline = baseline;
         this.registry = registry;
         this.reference = reference;
         this.pauses = pauses;
@@ -44,13 +54,13 @@ public class ListenerLifecycleManager {
             return;
         }
         for (StreamListener l : StreamListener.values()) {
-            MessageListenerContainer c = registry.getListenerContainer(l.id());
+            MessageListenerContainer c = registry.getListenerContainer(l.containerId(baseline));
             if (l.needsReferenceData() && c != null && !c.isRunning()) {
                 if (pauses.shouldBePaused(l)) {
                     c.pause();
                 }
                 c.start();
-                log.info("Listener {} started", l.id());
+                log.info("Listener {} started", l.containerId(baseline));
             }
         }
     }

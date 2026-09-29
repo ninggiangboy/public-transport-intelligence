@@ -11,6 +11,7 @@ import dev.pti.etl.health.ReferenceDataHealthIndicator;
 import dev.pti.etl.health.SourceHealthIndicator;
 import dev.pti.etl.health.WarehouseHealthIndicator;
 import dev.pti.etl.reference.ReferenceDataHolder;
+import dev.pti.etl.stream.BaselineListeners;
 import dev.pti.etl.stream.DataBatchFailedException;
 import dev.pti.etl.stream.EtlListeners;
 import dev.pti.etl.stream.ListenerLifecycleManager;
@@ -21,6 +22,8 @@ import dev.pti.etl.stream.StreamChunkHandler;
 import dev.pti.etl.stream.StreamChunkTemplate;
 import dev.pti.etl.stream.StreamListener;
 import dev.pti.etl.stream.TopicNames;
+import dev.pti.etl.write.BaselineFactWriter;
+import dev.pti.etl.write.ChunkWriter;
 import dev.pti.etl.write.DeadLetterWriter;
 import dev.pti.etl.write.FactChunkWriter;
 import dev.pti.etl.write.WriteStats;
@@ -47,6 +50,8 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
+import org.springframework.core.env.Environment;
+import org.springframework.core.env.Profiles;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -176,8 +181,8 @@ public class EtlStreamConfiguration {
 
     @Bean
     ListenerPauseCoordinator listenerPauseCoordinator(
-            KafkaListenerEndpointRegistry registry, MeterRegistry meters, TopicNames topics) {
-        ListenerPauseCoordinator coordinator = new ListenerPauseCoordinator(registry);
+            KafkaListenerEndpointRegistry registry, MeterRegistry meters, TopicNames topics, Environment env) {
+        ListenerPauseCoordinator coordinator = new ListenerPauseCoordinator(registry, isBaseline(env));
         coordinator.bindTo(meters, topics);
         return coordinator;
     }
@@ -207,14 +212,16 @@ public class EtlStreamConfiguration {
             ReferenceDataHolder reference,
             WriteStats stats,
             MeterRegistry meters,
-            EtlProperties etl) {
+            EtlProperties etl,
+            Environment env) {
         return new StreamChunkTemplate(
                 tx,
                 deadLetters,
                 batchLog,
                 classifier,
                 faults,
-                events,
+                // DOC-20 §9: the baseline publishes nothing after a commit.
+                isBaseline(env) ? event -> {} : events,
                 clock,
                 reference,
                 stats,
@@ -227,21 +234,43 @@ public class EtlStreamConfiguration {
             StreamChunkTemplate template,
             MessageProcessors processors,
             FactChunkWriter writer,
+            NamedParameterJdbcTemplate named,
+            WriteStats stats,
+            EtlProperties etl,
             CircuitBreaker warehouseCircuitBreaker,
             ErrorClassifier classifier,
             @Value("${HOSTNAME:local}") String instanceId) {
-        return new StreamChunkHandler(template, processors, writer, warehouseCircuitBreaker, classifier, instanceId);
+        ChunkWriter chunkWriter = etl.baseline().writeMode() == EtlProperties.WriteMode.INSERT
+                ? new BaselineFactWriter(named, stats)
+                : writer;
+        return new StreamChunkHandler(
+                template, processors, chunkWriter, warehouseCircuitBreaker, classifier, instanceId);
     }
 
     @Bean
+    @Profile("!experiment")
     EtlListeners etlListeners(StreamChunkHandler handler) {
         return new EtlListeners(handler);
     }
 
+    /** DR-27: in the experiment profile only the baseline group consumes (DOC-20 §9). */
+    @Bean
+    @Profile("experiment")
+    BaselineListeners baselineListeners(StreamChunkHandler handler) {
+        return new BaselineListeners(handler);
+    }
+
     @Bean
     ListenerLifecycleManager listenerLifecycleManager(
-            KafkaListenerEndpointRegistry registry, ReferenceDataHolder reference, ListenerPauseCoordinator pauses) {
-        return new ListenerLifecycleManager(registry, reference, pauses);
+            KafkaListenerEndpointRegistry registry,
+            ReferenceDataHolder reference,
+            ListenerPauseCoordinator pauses,
+            Environment env) {
+        return new ListenerLifecycleManager(registry, reference, pauses, isBaseline(env));
+    }
+
+    private static boolean isBaseline(Environment env) {
+        return env.acceptsProfiles(Profiles.of("experiment"));
     }
 
     @Bean

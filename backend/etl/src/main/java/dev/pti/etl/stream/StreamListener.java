@@ -25,6 +25,8 @@ public enum StreamListener {
 
     public static final String TICKETING_FLAG = "etl.consumer.ticketing.paused";
 
+    public static final String BASELINE_SUFFIX = "-baseline";
+
     private final String id;
     private final EtlSource source;
     private final String groupId;
@@ -39,6 +41,11 @@ public enum StreamListener {
 
     public String id() {
         return id;
+    }
+
+    /** The listener container id; the baseline group of DR-27 runs its own containers with a suffix. */
+    public String containerId(boolean baseline) {
+        return baseline ? id + BASELINE_SUFFIX : id;
     }
 
     public EtlSource source() {

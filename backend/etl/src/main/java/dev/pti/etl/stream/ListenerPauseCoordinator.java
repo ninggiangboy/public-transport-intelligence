@@ -38,10 +38,17 @@ public class ListenerPauseCoordinator {
     private static final Logger log = LoggerFactory.getLogger(ListenerPauseCoordinator.class);
 
     private final KafkaListenerEndpointRegistry registry;
+    private final boolean baseline;
     private final Map<StreamListener, Set<Reason>> reasons = new EnumMap<>(StreamListener.class);
 
     public ListenerPauseCoordinator(KafkaListenerEndpointRegistry registry) {
+        this(registry, false);
+    }
+
+    /** @param baseline true in the {@code experiment} profile, whose containers carry the baseline suffix */
+    public ListenerPauseCoordinator(KafkaListenerEndpointRegistry registry, boolean baseline) {
         this.registry = registry;
+        this.baseline = baseline;
         for (StreamListener l : StreamListener.values()) {
             reasons.put(l, EnumSet.noneOf(Reason.class));
         }
@@ -138,6 +145,6 @@ public class ListenerPauseCoordinator {
     }
 
     private @Nullable MessageListenerContainer container(StreamListener listener) {
-        return registry.getListenerContainer(listener.id());
+        return registry.getListenerContainer(listener.containerId(baseline));
     }
 }

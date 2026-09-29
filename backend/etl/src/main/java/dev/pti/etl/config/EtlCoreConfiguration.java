@@ -67,6 +67,11 @@ public class EtlCoreConfiguration {
         return new BusinessClock(Clock.systemUTC(), offset);
     }
 
+    @Bean
+    BaselineModeGuard baselineModeGuard(EtlProperties etl, Environment env) {
+        return new BaselineModeGuard(etl, env);
+    }
+
     /** Every {@code @Scheduled} task runs here, apart from job execution (DOC-19 §2.1). */
     @Bean
     ThreadPoolTaskScheduler ptiTaskScheduler() {
