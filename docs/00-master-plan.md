@@ -453,7 +453,7 @@ Mục tiêu: không còn câu hỏi nào có thể chặn P1–P2.
 
 Tổng thời gian từ `make secrets` tới lúc raw zone có file: khoảng 2,4 phút, dưới ngưỡng 5 phút. Lần kiểm chạy lúc 21:13 giờ Chicago. Khi giờ Chicago rơi vào 02:00–04:30 (14:00–16:30 giờ Việt Nam) thì không có xe nào chạy, nên phải `make clock-offset AT=16:30 && make up` trước `make sim-start` (DOC-38 §3.1). Target `clock-offset` được thêm vào lúc chốt M1 vì lý do này.
 
-Những phần còn lệch với tài liệu khi hết P1 đã được ghi vào DOC-41 §1.1 (repo còn private, chưa có `main.yml`) và DOC-38 §2, §4 (`make doctor` và các target của phase sau chưa có).
+Những phần còn lệch với tài liệu khi hết P1 đã được ghi vào DOC-41 §1.1 (chưa có `main.yml`; repo private suốt P1, chuyển sang public ngày 2026-09-29 theo DR-56) và DOC-38 §2, §4 (`make doctor` và các target của phase sau chưa có).
 
 ---
 

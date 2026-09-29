@@ -22,7 +22,7 @@ Các mục §1–§9 có từ gate P1 (cấu trúc workflow, điều kiện ch�
 
 Phần đã có khác thiết kế ở trên như sau; các mục chưa làm sẽ được thêm khi phase tương ứng cần tới:
 
-- **Repo đang private**, trái với DR-56 (chốt public từ 2026-09-27). Runner chuẩn của repo private nhỏ hơn và số phút giới hạn theo gói tài khoản, nên các giả định về runner 4 vCPU/16 GB ở đầu tài liệu và ở §7 chỉ đúng sau khi chuyển repo sang public. Phải chuyển trước khi dựng `full-stack.yml` (P5) và `k3d-lite` (P7), nếu không thì xem lại DR-56.
+- Suốt P1 repo vẫn private, trái với DR-56. **Đã chuyển sang public ngày 2026-09-29**, bật secret scanning và push protection (§9.1). Từ đó các giả định về runner 4 vCPU/16 GB và số phút ở đầu tài liệu và ở §7 đều áp dụng.
 - **Chỉ có `pr.yml`.** Remote mới có nhánh `dev` (nhánh mặc định), chưa có `main`, nên `main.yml`, job `images` (§3, §5), check `main-healthy` và branch protection (§4) chưa có. Chúng được tạo trước lần promote `dev` → `main` đầu tiên.
 - Job trong `pr.yml`: `changes`, `lint`, `backend`, `compose-config`, `secrets-scan`, và `pr-title` (`amannn/action-semantic-pull-request`, chỉ chạy với `pull_request`; §4 mô tả kiểm tra này như một điều kiện merge). Chưa có: `frontend` (P5-01), `experiments` (khi `experiments/` có code Python), `k8s-render` (P7), `markdown-links`. Filter `backend` gồm thêm `.github/workflows/pr.yml`, để sửa workflow thì build backend chạy lại.
 - `compose-config` hiện chỉ gồm `docker compose config -q` cho mọi profile, `shellcheck` và kiểm tra `.env.example` không có giá trị. Kiểm tra `deploy/topics.yaml` theo schema, `promtool` và `amtool` sẽ được thêm cùng observability (P3).
