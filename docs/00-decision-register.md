@@ -52,6 +52,7 @@ Tài liệu gốc mô tả tốt *cái gì* và *vì sao*, nhưng còn nhiều c
 | 2026-09-28 | Owner | **Duyệt toàn bộ tài liệu:** master plan và DOC-01…48 chuyển từ Review sang Approved, gồm cả các gate tài liệu P0-08…14 và P2-00…P8-00 | Master plan §5, `docs/README.md` |
 | 2026-09-28 | Claude (Owner ủy quyền) | **S3 sink OOM khi chạy live (P1-14):** Aiven 3.4.3 cắt file mỗi 10 giây trên mỗi partition và giữ buffer của writer tới lần commit, nên với commit 5 phút task chết sau vài phút có traffic. Giữ 3.4.3; `aws.s3.part.size.bytes` = 1 MiB, worker commit mỗi 30 giây. Số object raw zone tăng khoảng 15 lần; replay (P3) phải xem lại `pti.replay.max-objects` | DR-89 (mới), sửa DR-81, ADR-0012, DOC-09 §7, DOC-39 §3.4, DOC-40, DOC-22 §4.3 |
 | 2026-09-29 | Claude (Owner ủy quyền) | **Phase 2 xong:** claim yêu cầu job/replay commit trước khi gọi `JobOperator`; replay raw zone liệt kê object theo giờ thay vì lưu danh sách (đóng mục mở của DR-89); hoãn DQ-27 sang P3; các chi tiết nhỏ khác | DR-90, DR-91, DR-92, DR-93 (mới) |
+| 2026-09-29 | Owner | **Máy thực nghiệm và lưu kết quả:** thực nghiệm chính thức chạy trên một máy riêng cố định 16 GB (không gắn với máy cụ thể), không chạy trên máy dev hay GitHub Actions; file kết quả nhỏ commit vào git, file lớn gói theo chuỗi lên GitHub Release `exp-results` | DR-94 (mới) |
 
 ---
 
@@ -689,6 +690,15 @@ Tài liệu gốc mô tả tốt *cái gì* và *vì sao*, nhưng còn nhiều c
   2. DR-57 được hiện thực bằng bốn histogram: `pti_etl_kafka_to_commit_seconds` (ETL, chặng 1–2), `pti_ui_commit_to_publish_seconds` (ETL, chặng 3), `pti_api_publish_to_emit_seconds` (API, chặng 4–5, `emit − occurred_at`) và `pti_end_to_end_latency_seconds` (API, `emit − source_record_ts`). "`commit_to_emit_seconds`" của DR-57 và DOC-10 là tổng của chặng 3 và chặng 4–5, không phải một metric riêng. Không đổi hợp đồng sự kiện UI.
   3. Danh mục alert và số runbook chốt ở DOC-28 §6: RB-01…09 và RB-13, 14 cho alert, RB-10…12 cho thao tác (giữ nguyên các số đã được tài liệu trước dùng).
 - **Ghi vào:** DOC-28, DOC-08 (§13), DOC-10, DOC-20, DOC-25, DOC-42.
+
+### DR-94 · Máy thực nghiệm và nơi lưu kết quả — **Chốt** (P3)
+- **Vấn đề:** DOC-45 §1 cho thực nghiệm chạy trên "máy dev tham chiếu". P3-08 cần khoảng 60 giờ máy chạy nối tiếp (EXP-01 riêng đã khoảng 17 giờ), trong lúc máy dev vẫn phải dùng để code, và máy dev đang cấp cho Docker ít hơn 12 GB mà DOC-45 yêu cầu. DOC-45 §7 cũng commit toàn bộ thư mục kết quả, gồm ledger và chuỗi thời gian của khoảng 150 lần chạy, tức hàng trăm MB trong git.
+- **Phương án đã cân nhắc:** (1) máy dev: chiếm máy nhiều ngày, thiếu RAM cho Docker; (2) runner GitHub Actions chạy song song theo matrix: nhanh nhưng mỗi job một máy khác, hiệu năng dao động, không hợp EXP-05 và các số đo thời gian, còn giới hạn 6 giờ mỗi job và artifact hết hạn sau tối đa 90 ngày; (3) một máy riêng cố định.
+- **Quyết định:**
+  1. Thực nghiệm chính thức (EXP-01…05, và EXP-06…08 về sau) chạy trên một **máy thực nghiệm** dành riêng: 16 GB RAM, CPU không chia sẻ (tối thiểu 4 nhân, khuyến nghị 8), SSD còn trống ≥ 100 GB, chỉ mở SSH. Tài liệu không gắn với một máy cụ thể (máy cá nhân hay máy thuê đều được); mọi lần chạy chính thức của một đợt dùng cùng một máy, cấu hình ghi trong `config.json`. Runner có `--resume` để chuỗi dài ngày chạy tiếp được sau khi bị ngắt.
+  2. Kết quả chia hai nhóm. File nhẹ (`config.json`, `summary.json`, `keys_diff.csv.gz`, manifest lưu trữ, `results/report/`) commit vào git. File nặng (`timeseries.csv.gz`, `ledger.csv.gz`, biểu đồ của từng lần chạy) gói thành một file cho mỗi chuỗi (`pti-exp archive`) và đính vào GitHub Release `exp-results`, kèm manifest có SHA-256 trong git; `pti-exp fetch` tải lại và kiểm tra. `pti-exp report` chỉ cần file nhẹ.
+  3. Commit kết quả sau khi chuỗi kết thúc, trong một commit chỉ chạm `experiments/results/`; kiểm tra cây làm việc sạch của runner bỏ qua thư mục kết quả.
+- **Ghi vào:** DOC-45 §1, §1.2, §2, §7, §7.1, §8; EXP-05 §4; EXP-06; ADR-0025; master plan P3-06, P3-08.
 
 ---
 

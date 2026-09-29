@@ -33,7 +33,7 @@ Không chạy baseline DR-27. Baseline đo cơ chế đúng đắn (commit, upse
 ## 4. Môi trường
 
 - `make up-obs` (profile `core` + `observability`). **Không** bật profile `experiment`: không có `etl-stream-baseline`, và `etl-stream` nối thẳng `pg-warehouse` không qua Toxiproxy.
-- VM Docker ≥ 12 GB (DOC-10 §5.1 điểm 2). Không chạy ứng dụng khác trên máy (trình duyệt đóng, IDE đóng).
+- Máy thực nghiệm theo README §1.2 (16 GB RAM, CPU không chia sẻ); Docker có ≥ 12 GB (DOC-10 §5.1 điểm 2). Không chạy ứng dụng khác trên máy.
 - Runner scrape trực tiếp `/actuator/prometheus` (README §4.4). Prometheus và Grafana chỉ để quan sát.
 
 ## 5. Các bước
@@ -127,7 +127,7 @@ Tiêu chí thoát M3 ("EXP-05 xác định được ngưỡng tải") = C1 và C
 | Kích thước bảng tăng theo thời gian (partition ngày nghiệp vụ lớn dần) làm các lần chạy sau chậm hơn | Mỗi lần chạy thường sang ngày nghiệp vụ mới (partition mới); kiểm xu hướng theo thứ tự lần chạy, báo cáo nếu có |
 | Bậc 5 phút có thể chưa đủ để thấy lag tăng chậm | `lag_slope` thay vì `lag_end`; một lần chạy phụ với bậc 15 phút quanh ngưỡng tìm được |
 | Tracing 0,1 và profile `observability` tốn tài nguyên | Giữ cố định trong mọi lần chạy; DOC-28 §5.1 |
-| Trên macOS, Docker chạy trong VM nên IO đĩa và mạng khác Linux | Ghi cấu hình máy; EXP-07 trên k3d là phép đo thứ hai |
+| Ngưỡng tải phụ thuộc máy thực nghiệm (số nhân, Docker chạy thẳng trên Linux hay trong VM) | Ghi cấu hình máy trong `config.json` và báo cáo ngưỡng kèm cấu hình; mọi lần chạy trên cùng một máy (README §1.2); EXP-07 trên k3d là phép đo thứ hai |
 | Tải chỉ tăng GTFS-rt, không tăng ticketing | Đúng phạm vi NFR-08 (DOC-10 §3.1); ticketing ×1 là hằng số |
 
 ## 11. Kết quả

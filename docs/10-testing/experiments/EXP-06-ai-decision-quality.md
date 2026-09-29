@@ -47,7 +47,7 @@ Baseline DR-27 (`etl-stream-baseline`) không liên quan tới thực nghiệm n
 ## 4. Môi trường
 
 - Tạo tập dữ liệu: compose `make up-exp` (README §1) có thêm profile `triage` nhưng triage-worker chạy với `pti.triage.provider=disabled`, để dead letter giữ `NEW` và state export không bị ảnh hưởng bởi triage. etl-stream chạy với `PTI_DQ_MAX_CLOCK_SKEW=5m` (DR-73) để record của `late-delivery` vào DQ-07.
-- Chạy `decide`: chỉ cần image triage-worker và mạng tới Jev; không cần stack. Runner chạy `decide` trên máy dev tham chiếu, không chạy việc khác cùng lúc (độ trễ đo từ máy này tới Jev, gồm cả mạng Internet).
+- Chạy `decide`: chỉ cần image triage-worker và mạng tới Jev; không cần stack. Runner chạy `decide` trên máy thực nghiệm (README §1.2), không chạy việc khác cùng lúc (độ trễ đo từ máy này tới Jev, gồm cả mạng Internet).
 - `config.json` ghi thêm: `provider`, `modelVersion` (lấy từ dòng đầu của kết quả), phiên bản `typesafe-java-sdk`, SHA-256 của file states và file nhãn, commit của triage-worker, giờ bắt đầu (UTC) và vị trí mạng (tên mạng, không ghi IP).
 
 ## 5. Tập dữ liệu và gán nhãn

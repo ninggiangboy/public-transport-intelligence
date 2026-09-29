@@ -24,9 +24,9 @@ Chọn **phương án 1**, đặt trong thư mục `experiments/` (dự án uv r
 
 - CLI `pti-exp` (typer): `pti-exp run EXP-01 --variant kill-external --runs 30 --seed 1000 [--env compose|k3d]`, `pti-exp analyze EXP-01`, `pti-exp report`. Chế độ normal và baseline chạy **song song** trong cùng một lần chạy (DR-27, DOC-45 README §5), nên không có cờ chọn chế độ.
 - Thư viện chung `pti_exp/`: điều khiển simulator (API `/sim/*`), điều khiển hạ tầng (docker SDK cho compose, `kubectl` và CR Chaos Mesh cho k3d), truy vấn ledger và warehouse (psycopg), checksum DR-58, Alertmanager silence, Grafana annotation, đọc lag bằng `kafka-consumer-groups.sh` qua `docker exec`/`kubectl exec`.
-- Mỗi lần chạy lưu `experiments/results/<EXP>/<run_id>/` gồm `config.json` (git SHA, tham số, môi trường, digest image), `timeseries.csv.gz`, `ledger.csv.gz`, `summary.json`, biểu đồ PNG (DOC-45 README §7). Thư mục kết quả được commit cho các lần chạy chính thức (P3-08) để báo cáo trích dẫn được.
+- Mỗi lần chạy lưu `experiments/results/<EXP>/<run_id>/` gồm `config.json` (git SHA, tham số, môi trường, digest image), `timeseries.csv.gz`, `ledger.csv.gz`, `summary.json`, biểu đồ PNG (DOC-45 README §7). Với các lần chạy chính thức (P3-08), file nhỏ được commit để báo cáo trích dẫn được, file lớn được gói theo chuỗi và lưu ở GitHub Release (DR-94, DOC-45 README §7.1).
 - Test logic của runner bằng pytest trên dữ liệu giả; CI chạy `ruff` và `pytest` (DOC-41 §2).
-- Thực nghiệm chính thức chạy trên máy dev tham chiếu; không chạy trên runner CI, vì runner dùng chung hạ tầng với người khác nên số đo hiệu năng không ổn định. CI chỉ dùng lệnh `check` (E2E-DEMO-12, 13), vốn chỉ kiểm đúng hay sai, không đo thời gian.
+- Thực nghiệm chính thức chạy trên một máy thực nghiệm dành riêng (DR-94, DOC-45 README §1.2); không chạy trên runner CI, vì runner dùng chung hạ tầng với người khác nên số đo hiệu năng không ổn định. CI chỉ dùng lệnh `check` (E2E-DEMO-12, 13), vốn chỉ kiểm đúng hay sai, không đo thời gian.
 
 ## Hệ quả
 

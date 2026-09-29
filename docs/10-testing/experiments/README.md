@@ -1,6 +1,6 @@
 # Thực nghiệm: protocol chung
 
-> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-45 (phần chung, EXP-01…08)
+> Trạng thái: **Approved** · Cập nhật: 2026-09-29 (DR-94: máy thực nghiệm, lưu kết quả) · DOC-45 (phần chung, EXP-01…08)
 >
 > Phụ thuộc: DOC-03 (NFR-01…04), DOC-10, DOC-13 §6 (ledger, business key), DOC-14, DOC-20 §9 (baseline), DOC-22, DOC-25 §7–8, DOC-28, DR-27, DR-28, DR-52, DR-57, DR-58, DR-67, DR-68, ADR-0025
 >
@@ -23,12 +23,12 @@ Tài liệu này là phần dùng chung cho mọi thực nghiệm: môi trườn
 
 | Mục | Giá trị |
 | --- | --- |
-| Máy | Máy dev tham chiếu của DOC-38 (16 GB RAM, 8 nhân, SSD). Runner ghi lại CPU, RAM, hệ điều hành, phiên bản Docker vào `config.json` |
+| Máy | **Máy thực nghiệm** (DR-94, §1.2): một máy cố định, 16 GB RAM, CPU không chia sẻ với khách thuê khác, SSD. Mọi lần chạy chính thức của EXP-01…05 chạy trên cùng một máy. Runner ghi lại CPU, RAM, hệ điều hành, phiên bản Docker vào `config.json` |
 | Triển khai | Docker Compose, profile `core` + `experiment` + `observability` (`make up-exp`, DOC-38 §4). Riêng EXP-05 chạy `core` + `observability`, không có `experiment` (EXP-05 §4). EXP-07 và EXP-08 chạy trên k3d `lite` (DOC-40), mô tả ở §4 của từng file |
 | Phiên bản | Image build từ một commit sạch (`git status` rỗng); runner từ chối chạy nếu cây làm việc bẩn, trừ khi có `--allow-dirty` (khi đó kết quả bị gắn cờ `dirty` và không được dùng trong báo cáo) |
 | Dữ liệu | Feed `metrotransit-mn-20260926.zip` (SHA-256 ở DOC-13 §2.1); `pti.sim.seed = 42` trừ khi thực nghiệm đổi seed theo lần chạy |
 | Đồng hồ nghiệp vụ | Runner đặt `PTI_CLOCK_OFFSET` sao cho giờ nghiệp vụ lúc bắt đầu chuỗi nằm trong khung của thực nghiệm (§1.1) |
-| Khởi động | `make down`, bật các profile như trên, chờ `make smoke` pass, chờ thêm 5 phút ấm máy (JIT, cache, pool) trước lần chạy đầu tiên. VM Docker ≥ 12 GB (DOC-10 §5.1) |
+| Khởi động | `make down`, bật các profile như trên, chờ `make smoke` pass, chờ thêm 5 phút ấm máy (JIT, cache, pool) trước lần chạy đầu tiên. Docker có ≥ 12 GB RAM (DOC-10 §5.1; nếu Docker chạy trong VM thì là RAM cấp cho VM) |
 
 ### 1.1 Đồng hồ nghiệp vụ trong chuỗi thực nghiệm
 
@@ -37,13 +37,34 @@ Tài liệu này là phần dùng chung cho mọi thực nghiệm: môi trườn
 - Ngày nghiệp vụ phải nằm trong khoảng lịch của feed (tới 2026-11-13, DOC-13 §2.1) và tránh 2026-11-01 (đổi giờ DST). Hết khoảng thì chuỗi kết thúc; chuỗi mới bắt đầu bằng `make reset` (xóa mọi volume, kể cả ledger) nên lại được dùng ngày sớm nhất. EXP-04 luôn bắt đầu bằng `make reset` nên không chịu ràng buộc này.
 - Số xe đang chạy (`pti_sim_active_vehicles`) được ghi vào mỗi dòng `raw.csv` làm biến kiểm soát.
 
+### 1.2 Máy thực nghiệm
+
+Thực nghiệm chính thức không chạy trên máy đang dùng để dev và không chạy trên runner CI (ADR-0025). Chúng chạy trên một **máy thực nghiệm** dành riêng trong suốt đợt chạy. Tài liệu không gắn với một máy cụ thể: máy có thể là máy cá nhân hay máy thuê, miễn đạt yêu cầu dưới đây và giữ nguyên trong cả đợt.
+
+| Yêu cầu | Giá trị | Lý do |
+| --- | --- | --- |
+| RAM | 16 GB | Ngân sách compose khi bật đủ profile khoảng 10,4 GB (DOC-10 §5), cộng `etl-stream-baseline` và Toxiproxy của profile `experiment`. Cùng cỡ với máy mà k3d `lite` nhắm tới (DOC-40), nên EXP-07/08 ở P7 dùng lại được máy này |
+| CPU | Tối thiểu 4 nhân, khuyến nghị 8; **không chia sẻ** (không dùng vCPU "shared") | CPU bị máy khác chiếm làm thời gian phục hồi và ngưỡng tải của EXP-05 dao động, và không kiểm soát được |
+| Đĩa | SSD, còn trống ≥ 100 GB | Kafka, raw zone, warehouse qua nhiều chuỗi (DOC-10 §3.3 yêu cầu 80 GB cho compose), cộng kết quả thô trước khi lưu trữ (§7) |
+| Kiến trúc | `linux/amd64` hoặc `linux/arm64` | Image build cho cả hai (DOC-41 §5). `config.json` ghi kiến trúc |
+| Việc khác trên máy | Không có | Không IDE, trình duyệt hay job khác trong lúc một chuỗi chạy (§8) |
+| Mạng | Chỉ mở SSH vào máy | Stack compose dùng credential bootstrap trong `.env` và mở port Kafka, Postgres, Grafana. Nếu máy nằm trên Internet thì chặn mọi port vào trừ SSH; xem Grafana, Mailpit qua SSH tunnel |
+
+Chuẩn bị một lần: cài Docker Engine (hoặc Docker trong VM ≥ 12 GB), `mise` (DOC-38 §2); clone repo, checkout commit sạch sẽ dùng cho đợt chạy, tạo `.env` từ `.env.example`, `make up-exp`, `uv run pti-exp env check`. Nếu máy mới dựng (không có cache image) thì build image trên máy hoặc kéo image của commit đó; `config.json` ghi digest nên hai cách cho kết quả truy vết như nhau.
+
+Chạy dài ngày không cần người trông:
+
+- Runner chạy trong `tmux` (hoặc `nohup`) để mất kết nối SSH không dừng chuỗi.
+- Mỗi lần chạy ghi đủ thư mục kết quả ngay khi xong. Chuỗi bị ngắt giữa chừng (máy restart, runner lỗi) thì chạy lại cùng lệnh với `--resume`: runner bỏ qua các `run_id` đã có `summary.json` và tiếp tục từ lần chạy kế tiếp. Lần chạy dang dở (có thư mục nhưng thiếu `summary.json`) bị đánh dấu `invalid` với lý do `interrupted`, theo §6.
+- Đồng hồ nghiệp vụ vẫn theo §1.1: `--resume` không bao giờ lùi `PTI_CLOCK_OFFSET`.
+
 ## 2. Runner (`experiments/`, ADR-0025)
 
 ```text
 experiments/
   pyproject.toml, uv.lock
   pti_exp/
-    cli.py                # typer: run, analyze, report, env, label (EXP-06), check (demo), sensitivity (DOC-47), console (DOC-48)
+    cli.py                # typer: run, analyze, report, archive, fetch, env, label (EXP-06), check (demo), sensitivity (DOC-47), console (DOC-48)
     env/compose.py        # docker SDK: kill/start/pause container, make targets
     env/k3d.py            # kubectl, port-forward, KEDA pause annotation, Chaos Mesh CR, cnpg promote, Toxiproxy (P7)
     sim.py                # /sim/status, /sim/rate, /sim/scenarios
@@ -61,7 +82,10 @@ experiments/
   sql/
     checksum/<table>.sql  # DR-58, shared with WarehouseAssert (DOC-44 §5.3)
     expected/*.sql, actual/*.sql
-  results/<EXP>/<run_id>/ # committed for official runs
+  results/<EXP>/<run_id>/ # light files committed; heavy files packed per series (§7)
+  results/<EXP>/archives/ # one manifest per archived series (committed)
+  results/report/         # generated tables and charts (committed)
+  archive/                # series tarballs before upload (git-ignored)
   tests/                  # pytest
 ```
 
@@ -69,9 +93,11 @@ Lệnh:
 
 ```bash
 uv run pti-exp env check                      # clean tree, stack healthy, clock window, disk space
-uv run pti-exp run EXP-01 --runs 30 --seed 1000 --variant kill-external
+uv run pti-exp run EXP-01 --runs 30 --seed 1000 --variant kill-external [--resume]
 uv run pti-exp analyze EXP-01 --series 2026-10-12T0930
 uv run pti-exp report                         # regenerates tables and charts for DOC-45
+uv run pti-exp archive EXP-01 --series 2026-10-12T0930 [--upload]  # pack heavy files, upload to the release (§7)
+uv run pti-exp fetch EXP-01 [--series 2026-10-12T0930]              # download, verify SHA-256, unpack into run folders
 uv run pti-exp check --since 10m [--env k3d]   # live reconciliation for the demo (DOC-46)
 uv run pti-exp sensitivity --hours 6            # analytics threshold sweep for the report (DOC-47 §6)
 uv run pti-exp console --env compose            # demo console on 127.0.0.1:8095 (DOC-48)
@@ -114,7 +140,7 @@ sequenceDiagram
   R->>R: drain: wait until committed lag = 0 for 30 s (timeout 10 min)
   R->>DB: export ledger slice, compute expected/actual sets, checksums
   R->>AM: delete silences#59; list alerts that fired
-  R->>R: write summary.json, raw.csv.gz, charts
+  R->>R: write summary.json, timeseries.csv.gz, ledger.csv.gz, charts
 ```
 
 - **Cửa sổ của lần chạy** `[t0, t1]` là khoảng `produced_at` của ledger từ lúc bắt đầu kịch bản tới lúc dừng. Mọi phép so sánh chỉ xét message trong cửa sổ.
@@ -250,12 +276,12 @@ WHERE event_timestamp >= :from AND event_timestamp < :to;
 
 ```text
 experiments/results/EXP-01/2026-10-12T0930-r07/
-  config.json      # git_sha, dirty, image_digests, machine, compose_profiles, clock_offset, params, seed, series
-  timeseries.csv.gz# t, lag_committed, lag_client, throughput_in/out, container_state, sim_tick_lag, active_vehicles
-  ledger.csv.gz    # ledger slice for the window (ledger retention is 2 days, DOC-13 §6.3)
-  keys_diff.csv.gz # only keys that are lost / wrong / duplicated (normally empty)
-  summary.json     # every metric of §4 for normal and baseline, validity flag, fired alerts
-  charts/*.png
+  config.json      # [git]     git_sha, dirty, image_digests, machine, compose_profiles, clock_offset, params, seed, series
+  summary.json     # [git]     every metric of §4 for normal and baseline, validity flag, fired alerts
+  keys_diff.csv.gz # [git]     only keys that are lost / wrong / duplicated (normally empty)
+  timeseries.csv.gz# [archive] t, lag_committed, lag_client, throughput_in/out, container_state, sim_tick_lag, active_vehicles
+  ledger.csv.gz    # [archive] ledger slice for the window (ledger retention is 2 days, DOC-13 §6.3)
+  charts/*.png     # [archive] per-run charts
 ```
 
 `summary.json` (rút gọn):
@@ -274,13 +300,32 @@ experiments/results/EXP-01/2026-10-12T0930-r07/
 }
 ```
 
-Kết quả của lần chạy chính thức (P3-08) được commit. `pti-exp report` sinh bảng Markdown và biểu đồ vào `experiments/results/report/`, rồi người chạy chép bảng tổng hợp vào mục "Kết quả" của từng file EXP.
+### 7.1 Lưu kết quả (DR-94)
+
+Kết quả của một lần chạy chia làm hai nhóm theo kích thước. Máy thực nghiệm có thể bị xóa sau đợt chạy, nên không nhóm nào được chỉ nằm trên máy đó.
+
+| Nhóm | File | Nơi lưu | Lý do |
+| --- | --- | --- | --- |
+| Nhẹ | `config.json`, `summary.json`, `keys_diff.csv.gz` của mọi lần chạy (kể cả `invalid`); `results/<EXP>/archives/*.json`; `results/report/` | Git, trong `experiments/results/` | Vài KB mỗi lần chạy. Đủ để sinh lại mọi bảng và biểu đồ tổng hợp của báo cáo mà không cần tải gì thêm |
+| Nặng | `timeseries.csv.gz`, `ledger.csv.gz`, `charts/` | Một file nén cho mỗi chuỗi, đính vào GitHub Release `exp-results` của repo | Vài MB mỗi lần chạy, hàng trăm MB cho cả đợt; commit vào git làm repo phình mãi mãi. Chỉ cần khi phân tích lại hoặc kiểm tra một lần chạy cụ thể |
+
+`.gitignore` của `experiments/` loại các file nhóm nặng và thư mục `archive/`. Kiểm tra cây làm việc sạch của runner (§1) bỏ qua `experiments/results/` và `experiments/archive/`.
+
+**Quy trình sau mỗi chuỗi** (chuỗi = một lệnh `run`, cùng `series` trong `config.json`):
+
+1. `pti-exp archive <EXP> --series <series> --upload` gói file nặng của mọi lần chạy trong chuỗi thành `experiments/archive/<EXP>-<series>.tar.gz`, tính SHA-256, tải lên release `exp-results` bằng `gh release upload` (tạo release nếu chưa có), và ghi manifest `results/<EXP>/archives/<series>.json` gồm tên file, SHA-256, kích thước, URL, danh sách `run_id`, `git_sha`.
+2. Kiểm tra: `pti-exp fetch <EXP> --series <series>` trên một thư mục trống tải lại được và khớp SHA-256. Sau đó mới được xóa file nặng trên máy.
+3. Commit các file nhóm nhẹ của chuỗi cùng manifest trong **một commit chỉ chạm `experiments/results/`**, message dạng `chore(experiments): add EXP-01 kill-external results (series 2026-10-12T0930)`. Commit sau khi chuỗi kết thúc, không commit giữa chuỗi, để mọi lần chạy của một chuỗi có cùng `git_sha`. Commit từ máy thực nghiệm (khóa SSH chỉ dùng để push) hoặc chép `experiments/results/` về máy dev rồi commit ở đó; hai cách như nhau.
+
+**Báo cáo:** `pti-exp report` chỉ đọc file nhóm nhẹ, sinh bảng Markdown và biểu đồ tổng hợp vào `experiments/results/report/` (được commit), rồi người chạy chép bảng tổng hợp vào mục "Kết quả" của từng file EXP. Biểu đồ theo thời gian của một lần chạy tiêu biểu (ví dụ đường lag quanh lúc kill ở EXP-01) được `report` chép vào `report/`, tự gọi `fetch` nếu file nặng chưa có trên máy.
+
+Dữ liệu trong release là dữ liệu mô phỏng (DOC-25), không có dữ liệu cá nhân thật, nên để công khai cùng repo được. Release `exp-results` không bị xóa hay ghi đè: chạy lại một chuỗi thì tạo `series` mới.
 
 ## 8. Mối đe dọa chung tới tính hợp lệ
 
 | Mối đe dọa | Ảnh hưởng | Giảm thiểu |
 | --- | --- | --- |
-| Máy đơn, mọi thứ chạy chung | Tranh chấp CPU/IO làm độ trễ và thời gian phục hồi dao động; kết quả không đại diện cho cụm nhiều máy | Ghi cấu hình máy; không chạy việc khác; EXP-07/08 lặp lại trên k3d |
+| Máy đơn, mọi thứ chạy chung | Tranh chấp CPU/IO làm độ trễ và thời gian phục hồi dao động; kết quả không đại diện cho cụm nhiều máy | Máy thực nghiệm dành riêng, CPU không chia sẻ (§1.2); ghi cấu hình máy; EXP-07/08 lặp lại trên k3d |
 | Simulator không theo kịp | Tải thực tế thấp hơn tải danh nghĩa | Chỉ số `pti_sim_tick_lag_seconds`; lần chạy có giá trị > 2 s là `invalid` |
 | Dữ liệu tổng hợp | Mô hình trễ và chuyển động là mô phỏng, không phải dữ liệu thật | Tham số hiệu chỉnh theo phân phối thực tế (DOC-25 §5); kết luận chỉ về cơ chế pipeline, không về hành vi giao thông |
 | Ledger sai | Ground truth sai thì mọi chỉ số sai | Ledger chỉ ghi message đã ack; test T-11, T-12 (DOC-25); lần chạy "đối chứng" không tiêm lỗi phải có `lost = 0` ở cả hai chế độ |

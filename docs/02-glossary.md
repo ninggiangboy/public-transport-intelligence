@@ -1,6 +1,6 @@
 # Glossary: thuật ngữ
 
-> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-06
+> Trạng thái: **Approved** · Cập nhật: 2026-09-29 · DOC-06
 > Phụ thuộc: [00-decision-register.md](00-decision-register.md)
 
 Mọi tài liệu và mọi dòng code đều dùng đúng các thuật ngữ trong bảng này. Nếu cần một từ mới, hãy thêm vào đây trước.
@@ -238,5 +238,8 @@ Mọi tài liệu và mọi dòng code đều dùng đúng các thuật ngữ tr
 | base load | tải nền | Tải của lịch thật vào giờ cao điểm ngày thường của feed Minneapolis: khoảng 606 xe đang phục vụ, mỗi xe phát 1 VehiclePosition mỗi 5 giây, và 472 chuyến đang chạy, mỗi chuyến phát 1 TripUpdate mỗi 30 giây và thêm 1 TripUpdate mỗi lần xe tới trạm (khoảng 6,3 lần/giây toàn mạng). Tổng khoảng **143 message/giây** (121 + 16 + 6) | DR-01, DOC-10, EXP-07 |
 | load multiplier | hệ số tải | Hệ số nhân tốc độ phát event (1× … 10×) trong kịch bản `load-ramp` | EXP-05, EXP-07 |
 | experiment run | lần chạy thực nghiệm | Một lần chạy một EXP, lưu trong `experiments/results/<EXP>/<run_id>/` | DR-52 |
+| experiment series | chuỗi thực nghiệm | Các lần chạy do một lệnh `pti-exp run` sinh ra, cùng `series` trong `config.json` và cùng `git_sha`; là đơn vị để gói và lưu trữ file kết quả nặng | DOC-45 §1.1, §7.1 |
+| experiment machine | máy thực nghiệm | Máy cố định, dành riêng cho các lần chạy chính thức (16 GB RAM, CPU không chia sẻ); không phải máy dev, không phải runner CI | DR-94, DOC-45 §1.2 |
+| results archive | kho kết quả | GitHub Release `exp-results` chứa file nặng của từng chuỗi, mỗi chuỗi một file nén có SHA-256 ghi trong manifest ở git | DR-94, DOC-45 §7.1 |
 | loss / duplicate rate | tỷ lệ mất / trùng | Tính bằng cách so ledger với warehouse theo DR-28 | DOC-45 |
 | end-to-end latency | độ trễ đầu-cuối | `thời điểm API phát SSE − Kafka CreateTime` của event gốc | DR-57 |
