@@ -1,6 +1,6 @@
 # Master Plan: xây dựng Public Transport Intelligence từ đầu đến cuối
 
-> Trạng thái: **Approved v1.0** · Cập nhật: 2026-09-28 · Đi kèm: [00-decision-register.md](00-decision-register.md) · Nguồn: `public-transport-intelligence.md` (**SDD gốc**)
+> Trạng thái: **Approved v1.0** · Cập nhật: 2026-09-29 · Đi kèm: [00-decision-register.md](00-decision-register.md) · Nguồn: `public-transport-intelligence.md` (**SDD gốc**)
 
 Tài liệu này là bản hướng dẫn tổng. Nó gồm:
 
@@ -349,7 +349,7 @@ Mỗi tài liệu trong nhóm này có khung chung: **Mục đích → Phạm vi
 | Phase | Tên | Ước lượng (1 người, toàn thời gian) | Milestone |
 | --- | --- | --- | --- |
 | P0 | Đặc tả, quyết định, spike | 2–3 tuần | M0: DR đã chốt, tài liệu nền Approved |
-| P1 | Nền tảng hạ tầng và nguồn dữ liệu | 2 tuần | M1: `make up` chạy; `make sim-start` → event lên Kafka; CDC chạy; raw zone có file |
+| P1 | Nền tảng hạ tầng và nguồn dữ liệu | 2 tuần | M1: `make up` chạy; `make sim-start` → event lên Kafka; CDC chạy; raw zone có file. **Đạt 2026-09-29** |
 | P2 | ETL cốt lõi (Spring Batch + Spring Kafka) | 3–4 tuần | M2: dữ liệu vào warehouse; kill -9 không làm mất hay trùng dữ liệu |
 | P3 | Thực nghiệm độ tin cậy và observability | 2–3 tuần | M3: có số liệu EXP-01…05; Grafana; alert |
 | P4 | Analytics và API | 3–4 tuần | M4: insight thật qua REST và SSE |
@@ -420,24 +420,40 @@ Mục tiêu: không còn câu hỏi nào có thể chặn P1–P2.
 
 | ID | Việc | Đầu ra và nghiệm thu | Phụ thuộc | Tài liệu |
 | --- | --- | --- | --- | --- |
-| P1-00 | Doc gate | Các tài liệu gate P1 đều Approved | M0 | — |
-| P1-01 | Khởi tạo repo theo bố cục monorepo của ADR-0030 (`backend/`, `frontend/`, `deploy/`, `experiments/`): `git init`, `.gitignore`, `.editorconfig`, `mise.toml`, `Makefile` rỗng, README, LICENSE, quy ước commit (Conventional Commits), `CONTRIBUTING.md` | Repo có commit đầu tiên | — | DOC-38 |
-| P1-02 | Gradle multi-module trong `backend/` với `build-logic` (convention plugin: Java 25 toolchain, Spotless, Checkstyle, SpotBugs, JaCoCo, Jib), `backend/gradle/libs.versions.toml`, các module rỗng theo DR-26 | `./gradlew build` pass | P1-01 | DOC-11 |
-| P1-03 | CI tối thiểu (GitHub Actions): spotlessCheck, build, unit test, cache Gradle | Workflow xanh trên PR | P1-02 | DOC-41 |
-| P1-04 | Compose `core`: `pg-warehouse` (PG17), `pg-source` (`wal_level=logical`, chứa `ticketing_source` và `pti_sim`, DR-64), `kafka` (KRaft, 1 node), `kafka-connect` (image tự build từ S-04), `seaweedfs` (S3, credential riêng cho `connect` và `etl` trong `s3.json`) và job `s3-init` (tạo bucket `raw`, bật versioning, đặt lifecycle; DR-66), `kafka-init` (tạo topic theo DR-05), healthcheck, `mem_limit`, `.env.example` | `docker compose --profile core up -d` → mọi container healthy trong ≤ 3 phút | P0-05 | DOC-39 |
-| P1-05 | Module `db`: Flyway warehouse (V1 schemas, V2 feed_version và dimension, V3 bảng lịch GTFS, V4 fact partitioned cùng partition ban đầu, V5_1 schema Spring Batch, V5_2 ops tables, V6 dim_date seed, `R__grants`). Bộ `ticketing` và `sim` cho `pg-source`. V7 insight để sang P4-01. Container `db-migrate` chạy xong rồi thoát | Migration chạy sạch trên DB trống và chạy lại lần hai không lỗi. Có test Testcontainers | P1-04 | DOC-13, 14, 15, 17 |
-| P1-06 | Script bootstrap role và database (`deploy/compose/postgres/*/10-bootstrap.sh`) cùng `R__grants.sql` theo DOC-17. Mật khẩu lấy từ env/secret | Toàn bộ ma trận test ở DOC-17 §7 pass (41 ca cho warehouse) | P1-04, P1-05 | DOC-17 |
-| P1-07 | Module `common`: envelope, DTO VehiclePosition/TripUpdate v1 và v2 kèm Bean Validation, JSON Schema, lớp business key, canonical JSON và SHA-256, tiện ích thời gian GTFS (DR-09), Jackson config, test fixture GTFS thu nhỏ | Unit test ≥ 90%. Test: DTO serialize ra JSON khớp JSON Schema | P1-02 | DOC-09, 13 |
-| P1-08 | Simulator: đọc và parse GTFS zip (routes, trips, stop_times, shapes, calendar*), chọn chuyến đang chạy theo đồng hồ và ánh xạ ngày (DR-08) | Unit test: tại giờ X có N chuyến đang chạy (khớp tính tay trên fixture) | P1-07, P0-03 | DOC-25 |
-| P1-09 | Simulator: mô hình chuyển động và mô hình trễ, publish VehiclePosition và TripUpdate (key `route_id`, `acks=all`, idempotent producer), tốc độ cấu hình được | Thấy message trên topic (kcat hoặc kafka-ui), message hợp lệ theo schema | P1-08 | DOC-25 |
-| P1-10 | Simulator: TicketingSeeder ghi giao dịch và hoàn vé vào `ticketing_source` trên `pg-source` | Số dòng tăng theo tốc độ đã cấu hình | P1-05 | DOC-25 |
-| P1-11 | Simulator: ledger (DR-28) và REST `/sim/status`, `/sim/rate` | Ledger có số dòng bằng số message đã gửi | P1-09 | DOC-25 |
-| P1-12 | Cấu hình Debezium (`deploy/connect/connectors/debezium-ticketing.json`) và script đăng ký idempotent (PUT config) | Event xuất hiện trên `ticketing.sales.cdc` đúng định dạng unwrap | P1-04, P1-10 | DOC-09 |
-| P1-13 | Cấu hình S3 sink cho `gtfs.*` và `ticketing.sales.cdc` → `raw/…` (ADR-0012) | File `.json.gz` trong bucket `raw` đúng bố cục đường dẫn, giữ key và headers | P1-04 | DOC-18 |
-| P1-14 | Đóng gói simulator bằng Jib, đưa vào compose (mặc định không phát, DR-86) | `make up` có simulator healthy ở hệ số 0; `make sim-start` / `make sim-stop` bật và tắt phát | P1-09 | DOC-39 |
-| P1-15 | `Makefile`: `up, down, reset, logs, ps, psql-wh, psql-src, topics, tail-<topic>` | Có trong DOC-38 | P1-04 | DOC-38 |
+| P1-00 | Doc gate — **Approved 2026-09-28** (M0) | Các tài liệu gate P1 đều Approved | M0 | — |
+| P1-01 | Khởi tạo repo theo bố cục monorepo của ADR-0030 (`backend/`, `frontend/`, `deploy/`, `experiments/`): `git init`, `.gitignore`, `.editorconfig`, `mise.toml`, `Makefile` rỗng, README, LICENSE, quy ước commit (Conventional Commits), `CONTRIBUTING.md` — **Xong 2026-09-28** (`43e31d8`) | Repo có commit đầu tiên | — | DOC-38 |
+| P1-02 | Gradle multi-module trong `backend/` với `build-logic` (convention plugin: Java 25 toolchain, Spotless, Checkstyle, SpotBugs, JaCoCo, Jib), `backend/gradle/libs.versions.toml`, các module rỗng theo DR-26 — **Xong 2026-09-28** (`0e7dad1`) | `./gradlew build` pass | P1-01 | DOC-11 |
+| P1-03 | CI tối thiểu (GitHub Actions): spotlessCheck, build, unit test, cache Gradle — **Xong 2026-09-28** (`536389d`) | Workflow xanh trên PR | P1-02 | DOC-41 |
+| P1-04 | Compose `core`: `pg-warehouse` (PG17), `pg-source` (`wal_level=logical`, chứa `ticketing_source` và `pti_sim`, DR-64), `kafka` (KRaft, 1 node), `kafka-connect` (image tự build từ S-04), `seaweedfs` (S3, credential riêng cho `connect` và `etl` trong `s3.json`) và job `s3-init` (tạo bucket `raw`, bật versioning, đặt lifecycle; DR-66), `kafka-init` (tạo topic theo DR-05), healthcheck, `mem_limit`, `.env.example` — **Xong 2026-09-29** (`15d8a21`) | `docker compose --profile core up -d` → mọi container healthy trong ≤ 3 phút | P0-05 | DOC-39 |
+| P1-05 | Module `db`: Flyway warehouse (V1 schemas, V2 feed_version và dimension, V3 bảng lịch GTFS, V4 fact partitioned cùng partition ban đầu, V5_1 schema Spring Batch, V5_2 ops tables, V6 dim_date seed, `R__grants`). Bộ `ticketing` và `sim` cho `pg-source`. V7 insight để sang P4-01. Container `db-migrate` chạy xong rồi thoát — **Xong 2026-09-29** (`cfd99b6`) | Migration chạy sạch trên DB trống và chạy lại lần hai không lỗi. Có test Testcontainers | P1-04 | DOC-13, 14, 15, 17 |
+| P1-06 | Script bootstrap role và database (`deploy/compose/postgres/*/10-bootstrap.sh`) cùng `R__grants.sql` theo DOC-17. Mật khẩu lấy từ env/secret — **Xong 2026-09-29** (`7895094`) | Toàn bộ ma trận test ở DOC-17 §7 pass (41 ca cho warehouse) | P1-04, P1-05 | DOC-17 |
+| P1-07 | Module `common`: envelope, DTO VehiclePosition/TripUpdate v1 và v2 kèm Bean Validation, JSON Schema, lớp business key, canonical JSON và SHA-256, tiện ích thời gian GTFS (DR-09), Jackson config, test fixture GTFS thu nhỏ — **Xong 2026-09-29** (`9333f68`) | Unit test ≥ 90%. Test: DTO serialize ra JSON khớp JSON Schema | P1-02 | DOC-09, 13 |
+| P1-08 | Simulator: đọc và parse GTFS zip (routes, trips, stop_times, shapes, calendar*), chọn chuyến đang chạy theo đồng hồ và ánh xạ ngày (DR-08) — **Xong 2026-09-29** (`3e388ff`) | Unit test: tại giờ X có N chuyến đang chạy (khớp tính tay trên fixture) | P1-07, P0-03 | DOC-25 |
+| P1-09 | Simulator: mô hình chuyển động và mô hình trễ, publish VehiclePosition và TripUpdate (key `route_id`, `acks=all`, idempotent producer), tốc độ cấu hình được — **Xong 2026-09-29** (`350b3c7`) | Thấy message trên topic (kcat hoặc kafka-ui), message hợp lệ theo schema | P1-08 | DOC-25 |
+| P1-10 | Simulator: TicketingSeeder ghi giao dịch và hoàn vé vào `ticketing_source` trên `pg-source` — **Xong 2026-09-29** (`7efe502`) | Số dòng tăng theo tốc độ đã cấu hình | P1-05 | DOC-25 |
+| P1-11 | Simulator: ledger (DR-28) và REST `/sim/status`, `/sim/rate` — **Xong 2026-09-29** (`cea1e52`) | Ledger có số dòng bằng số message đã gửi | P1-09 | DOC-25 |
+| P1-12 | Cấu hình Debezium (`deploy/connect/connectors/debezium-ticketing.json`) và script đăng ký idempotent (PUT config) — **Xong 2026-09-29** (`322384d`) | Event xuất hiện trên `ticketing.sales.cdc` đúng định dạng unwrap | P1-04, P1-10 | DOC-09 |
+| P1-13 | Cấu hình S3 sink cho `gtfs.*` và `ticketing.sales.cdc` → `raw/…` (ADR-0012) — **Xong 2026-09-29** (`287a703`; giảm heap của sink ở `b858a0d`, DR-89) | File `.json.gz` trong bucket `raw` đúng bố cục đường dẫn, giữ key và headers | P1-04 | DOC-18 |
+| P1-14 | Đóng gói simulator bằng Jib, đưa vào compose (mặc định không phát, DR-86) — **Xong 2026-09-29** (`de76d4d`) | `make up` có simulator healthy ở hệ số 0; `make sim-start` / `make sim-stop` bật và tắt phát | P1-09 | DOC-39 |
+| P1-15 | `Makefile`: `up, down, reset, logs, ps, psql-wh, psql-src, topics, tail-<topic>` — **Xong 2026-09-29** (`de76d4d`; thêm `clock-offset` khi chốt M1) | Có trong DOC-38 | P1-04 | DOC-38 |
 
 **Tiêu chí thoát (M1):** trên máy sạch, `make up && make sim-start` → trong ≤ 5 phút có event GTFS-rt trên Kafka, event CDC trên `ticketing.sales.cdc`, file trong raw zone, migration đã áp dụng, CI xanh. (Việc dimension có dữ liệu dời sang M2, xem mục 1.3.)
+
+**M1 đạt ngày 2026-09-29.** Chạy trên một bản clone mới của `dev` (`de76d4d`), volume trống, profile `core`, MacBook Apple Silicon với OrbStack cấp 8 GB; image và cache Gradle đã có sẵn trên máy, nên số đo ứng với "từ lần thứ hai" của DOC-38 §3:
+
+| Tiêu chí | Kết quả |
+| --- | --- |
+| `make up` (build image, mọi service healthy, mọi job một lần thoát 0) | 76 giây |
+| Event GTFS-rt trên `gtfs.vehicle_positions` và `gtfs.trip_updates` | 6 giây sau `make sim-start` |
+| Event CDC trên `ticketing.sales.cdc` | 6 giây sau `make sim-start` |
+| File `.json.gz` của cả ba topic trong bucket `raw` | 65 giây sau `make sim-start` (có key, headers, offset, timestamp đúng DOC-09 §7) |
+| Migration đã áp dụng | 8 migration warehouse thành công trong `flyway_schema_history` |
+| Ledger khớp số message đã gửi (P1-11) | 5.326/5.326 VehiclePosition, 1.166/1.166 TripUpdate, không trùng `(partition, offset)` |
+| CI xanh | `pr.yml` xanh trên mọi push của P1 |
+
+Tổng thời gian từ `make secrets` tới lúc raw zone có file: khoảng 2,4 phút, dưới ngưỡng 5 phút. Lần kiểm chạy lúc 21:13 giờ Chicago. Khi giờ Chicago rơi vào 02:00–04:30 (14:00–16:30 giờ Việt Nam) thì không có xe nào chạy, nên phải `make clock-offset AT=16:30 && make up` trước `make sim-start` (DOC-38 §3.1). Target `clock-offset` được thêm vào lúc chốt M1 vì lý do này.
+
+Những phần còn lệch với tài liệu khi hết P1 đã được ghi vào DOC-41 §1.1 (repo còn private, chưa có `main.yml`) và DOC-38 §2, §4 (`make doctor` và các target của phase sau chưa có).
 
 ---
 
@@ -646,11 +662,11 @@ Mục tiêu: không còn câu hỏi nào có thể chặn P1–P2.
 
 ### 7.3 Git và code
 
-- Nhánh `main` luôn build được. Làm việc trên nhánh `feat/…`, `fix/…`, `docs/…`, mở PR vào `main`, squash merge.
+- `dev` là nhánh tích hợp và luôn build được; CI (`pr.yml`) chạy trên mỗi lần push lên `dev` và mỗi PR vào `dev` hoặc `main`. Người duy trì commit thẳng lên `dev` từng thay đổi nhỏ, trọn vẹn; người khác làm trên nhánh `feat/…`, `fix/…`, `docs/…` rồi mở PR vào `dev`, squash merge (`CONTRIBUTING.md`). `main` chỉ nhận bản promote từ `dev` (điều chỉnh khi làm P1: ban đầu kế hoạch cho mọi nhánh mở PR thẳng vào `main`).
 - Commit và tiêu đề PR theo Conventional Commits, viết tiếng Anh (`feat(etl): add scan-mode fallback`).
 - **Ngôn ngữ (DR-61):** `docs/` viết tiếng Việt. Mọi thứ khác dùng tiếng Anh: UI, code, comment, log, thông báo lỗi API, metric, dashboard, alert, commit, PR, tên test.
 - Có `.github/PULL_REQUEST_TEMPLATE.md` (tạo ở P1-01) gồm: mục tiêu, việc liên quan (Pn-xx), DOC đã sửa, cách test, checklist DoD.
-- Java: format bằng Spotless (google-java-format hoặc palantir, chốt ở P1-02). Package theo feature, không theo layer. Không dùng Lombok (hoặc chốt khác ở ADR).
+- Java: format bằng Spotless với palantir-java-format (chốt ở P1-02, DOC-11). Package theo feature, không theo layer. Không dùng Lombok.
 - SQL: file migration đặt tên `V<n>__<mô_tả>.sql`; không sửa migration đã merge.
 
 ---

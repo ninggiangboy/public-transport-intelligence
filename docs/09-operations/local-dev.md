@@ -1,6 +1,6 @@
 # Môi trường dev cục bộ
 
-> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-38
+> Trạng thái: **Approved** · Cập nhật: 2026-09-29 · DOC-38
 > Phụ thuộc: [DOC-10](../03-architecture/quality-attributes.md) §5, [DOC-11](../03-architecture/tech-stack-and-versions.md), [DOC-17](../05-data/db-roles-and-grants.md) §6, [DOC-25](../06-design/source-simulator.md), [DOC-39](deploy-compose.md), [DR](../00-decision-register.md) (DR-40, 56, 61, 66, 67)
 > Người dùng chính: mọi người phát triển; P1-01, P1-15; kiểm chứng NFR-07
 
@@ -40,7 +40,7 @@ mise trust && mise install
 make doctor
 ```
 
-`make doctor` in ra một bảng `OK`/`FAIL` cho: phiên bản Java, Node, pnpm, Python, uv; Docker chạy được; RAM của VM; ổ trống ≥ 80 GB; các cổng ở §5 còn trống; có file `.env`. Lệnh trả mã khác 0 nếu có mục `FAIL`.
+`make doctor` **chưa có** khi hết P1 (chưa gán vào việc nào của master plan); trước khi có, kiểm tay theo bảng §1. Khi có, lệnh in ra một bảng `OK`/`FAIL` cho: phiên bản Java, Node, pnpm, Python, uv; Docker chạy được; RAM của VM; ổ trống ≥ 80 GB; các cổng ở §5 còn trống; có file `.env`. Lệnh trả mã khác 0 nếu có mục `FAIL`.
 
 IDE: IntelliJ IDEA hoặc VS Code đều được. Mở thư mục gốc repo rồi import `backend/` như một Gradle project (IntelliJ: *Link Gradle Project* → `backend/settings.gradle.kts`); `frontend/` và `experiments/` là hai project riêng (pnpm, uv). Code format bằng Spotless (`./gradlew spotlessApply`), không cần cài plugin format riêng. Trình duyệt cho frontend: Chrome hoặc Firefox bản mới.
 
@@ -55,6 +55,8 @@ make up               # build image (Jib + Dockerfile), khởi động profile c
 ```
 
 `make up` lần đầu mất khoảng 10–15 phút (kéo image, tải dependency Gradle và pnpm, build). Từ lần thứ hai, khi image đã có, hệ thống healthy trong **dưới 5 phút** (NFR-07).
+
+Số đo khi nghiệm thu M1 (2026-09-29, MacBook Apple Silicon, OrbStack cấp 8 GB, profile `core`, bản clone mới của `dev` với volume trống, image và cache Gradle đã có sẵn trên máy): `make up` xong trong **76 giây**. Sau `make sim-start`, message GTFS-rt và event CDC có trên Kafka sau 6 giây, file đầu tiên của cả ba topic xuất hiện trong raw zone sau 65 giây. Từ `make secrets` tới lúc raw zone có file mất khoảng 2,4 phút.
 
 Simulator **mặc định không phát** (DR-86): container chạy và API `/sim/**` dùng được, nhưng hệ số của cả hai luồng là 0. Khi cần dữ liệu chảy qua pipeline thì chạy `make sim-start`; xong việc thì `make sim-stop` để Kafka và warehouse không phình thêm. Restart simulator hay tạo lại container thì nó quay về trạng thái dừng. `make up-demo`, `make up-exp` và `make smoke` tự bật simulator.
 
@@ -80,11 +82,13 @@ make up                      # tạo lại các container app để nhận offse
 make clock-offset AT=now     # về lại giờ thật (offset 0)
 ```
 
-Offset được làm tròn tới phút. Mọi app dùng chung một giá trị. Đổi offset khi đang có dữ liệu cũ thì dữ liệu mới có thể "nhảy" về quá khứ hoặc tương lai so với dữ liệu cũ; khi cần sạch thì `make reset-warehouse` (§6).
+Offset được làm tròn tới phút và là độ dời ngắn nhất để tới giờ đã chọn (trong khoảng ±12 giờ), ghi dưới dạng số phút, ví dụ `PTI_CLOCK_OFFSET=-288m`. Mọi app dùng chung một giá trị. Kiểm tra bằng `make sim-status`: `clock.businessNow` đổi sang giờ Chicago đã chọn. Đổi offset khi đang có dữ liệu cũ thì dữ liệu mới có thể "nhảy" về quá khứ hoặc tương lai so với dữ liệu cũ; khi cần sạch thì `make reset-warehouse` (§6).
 
 ## 4. Các lệnh `make`
 
-`Makefile` ở gốc repo gọi `docker compose -f deploy/compose/compose.yaml --env-file deploy/versions.env --env-file .env`. Biến `S=<service>` chọn service cho các lệnh có service.
+`Makefile` ở gốc repo gọi `docker compose -f deploy/compose/compose.yaml --env-file deploy/versions.env --env-file .env`. Biến `S=<service>` chọn service cho các lệnh có service. `make help` liệt kê các target đã có.
+
+**Target được thêm dần theo phase.** Khi hết P1 (2026-09-29) Makefile có: `help`, `secrets`, `images`, `up`, `down`, `reset`, `restart`, `ps`, `logs`, `psql-wh`, `psql-src`, `psql-sim`, `topics`, `tail-<topic>`, `connectors`, `s3-ls`, `clock-offset`, `sim-status`, `sim-start`, `sim-stop`, `sim-rate`, `fmt`, `lint`, `test`, `it`. Các target khác trong các bảng dưới đây được thêm cùng việc cần tới chúng. Tham số `PRETTY=1` của `make logs` cũng chưa có.
 
 ### 4.1 Vòng đời
 
@@ -94,7 +98,7 @@ Offset được làm tròn tới phút. Mọi app dùng chung một giá trị. 
 | `make tiles` | Chạy `deploy/tiles/fetch.sh`: cắt bản đồ nền Twin Cities bằng `pmtiles extract` từ bản build Protomaps mới nhất vào `deploy/tiles/twin-cities.pmtiles` (khoảng 84 MB), tải font và sprite vào `deploy/tiles/fonts/`, `deploy/tiles/sprites/` (khoảng 13 MB); tất cả gitignored (ADR-0021). Phần nào đã có thì bỏ qua |
 | `make secrets` | Tạo `.env` nếu chưa có; điền biến trống bằng `openssl rand -base64 24`; sinh `deploy/compose/.generated/s3.json`. Chạy lại không ghi đè giá trị đã có |
 | `make images` | Build mọi image: `./gradlew jibDockerBuild` (các app Java), `docker build` cho `deploy/connect/` và `frontend/` |
-| `make up` | `images` (nếu code đổi) rồi `docker compose --profile core up -d` và `deploy/compose/scripts/wait-stack.sh`. Lệnh chỉ trả về khi mọi service healthy và mọi job một lần (`db-migrate`, `kafka-init`, `s3-init`, `kafka-connect-init`) đã thoát mã 0 (tối đa 300 giây, `WAIT_TIMEOUT_SECONDS`). Không dùng `up --wait`: Compose 5.1 báo lỗi khi một job một lần không có service nào phụ thuộc thoát, kể cả với mã 0 |
+| `make up` | `images` (Jib và cache build của Docker bỏ qua phần không đổi) rồi `docker compose --profile core up -d` và `deploy/compose/scripts/wait-stack.sh`. Lệnh chỉ trả về khi mọi service healthy và mọi job một lần (`db-migrate`, `kafka-init`, `s3-init`, `kafka-connect-init`) đã thoát mã 0 (tối đa 300 giây, `WAIT_TIMEOUT_SECONDS`). Không dùng `up --wait`: Compose 5.1 báo lỗi khi một job một lần không có service nào phụ thuộc thoát, kể cả với mã 0 |
 | `make up-obs` | Thêm profile `observability` |
 | `make up-triage` | Thêm profile `triage` (triage-worker; cần `TYPESAFE_API_KEY` hoặc `PTI_TRIAGE_PROVIDER=fake`) |
 | `make up-all` | `core` + `observability` + `triage` |
@@ -145,7 +149,7 @@ Offset được làm tròn tới phút. Mọi app dùng chung một giá trị. 
 
 ### 4.4 Build và test
 
-Gradle build nằm trọn trong `backend/` (ADR-0030). Makefile gọi `backend/gradlew -p backend`; lệnh `./gradlew …` trong mọi tài liệu hiểu là chạy trong `backend/`.
+Gradle build nằm trọn trong `backend/` (ADR-0030). Makefile chạy `cd backend && ./gradlew …`; lệnh `./gradlew …` trong mọi tài liệu hiểu là chạy trong `backend/`.
 
 | Lệnh | Việc |
 | --- | --- |
@@ -300,7 +304,7 @@ cd backend && ./gradlew :etl:bootRun --args='--spring.profiles.active=stream,loc
 ## 9. Quy ước làm việc với repo
 
 - Monorepo: `backend/` (Gradle), `frontend/` (pnpm), `deploy/` (compose, k3d, Helm, Connect, Chaos Mesh, bản đồ nền), `experiments/` (Python), `docs/`. Cây thư mục đầy đủ ở ADR-0030.
-- Nhánh `main` luôn build được; làm việc trên `feat/…`, `fix/…`, `docs/…`; PR squash merge (master plan §7.3). Chi tiết trong `CONTRIBUTING.md` (tạo ở P1-01).
+- Nhánh tích hợp là `dev` và luôn build được. Người duy trì commit thẳng lên `dev`; người khác làm trên `feat/…`, `fix/…`, `docs/…` và mở PR vào `dev`, squash merge (master plan §7.3). Chi tiết trong `CONTRIBUTING.md`.
 - Commit và tiêu đề PR theo Conventional Commits, tiếng Anh. Tài liệu trong `docs/` viết tiếng Việt (DR-61).
 - `.env`, `deploy/compose/.generated/` và `backups/` (DOC-43) nằm trong `.gitignore`. CI chạy gitleaks (NFR-06).
 - Trước khi mở PR: `make fmt lint test`.

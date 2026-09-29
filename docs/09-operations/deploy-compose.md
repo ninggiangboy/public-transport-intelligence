@@ -1,6 +1,6 @@
 # Triển khai bằng Docker Compose
 
-> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-39
+> Trạng thái: **Approved** · Cập nhật: 2026-09-29 · DOC-39
 > Phụ thuộc: [DOC-07](../03-architecture/system-context-and-containers.md), [DOC-09](../03-architecture/messaging-contracts.md), [DOC-10](../03-architecture/quality-attributes.md) §3.3 và §5, [DOC-11](../03-architecture/tech-stack-and-versions.md), [DOC-17](../05-data/db-roles-and-grants.md), [DOC-29](../06-design/configuration-reference.md), [ADR-0012](../04-adr/0012-raw-zone-s3-sink.md), [ADR-0014](../04-adr/0014-deployment-units.md), [ADR-0024](../04-adr/0024-flyway-migration-job.md), [DR](../00-decision-register.md) (DR-05, 26, 27, 49, 50, 51, 64, 66, 67)
 > Người dùng chính: P1-04, P1-06, P1-12…14, P2-20, P4-16, P5-15, P6-09; môi trường dev, demo và thực nghiệm P3
 
@@ -27,6 +27,7 @@ deploy/
     toxiproxy/toxiproxy.json        # proxy cho profile experiment
     scripts/secrets.sh              # make secrets (§5)
     scripts/wait-stack.sh           # make up: chờ service healthy và job một lần thoát 0 (§4)
+    scripts/clock-offset.sh         # make clock-offset: ghi PTI_CLOCK_OFFSET vào .env (DR-67, DOC-38 §3.1)
     scripts/backup.sh, restore-warehouse.sh, ensure-partitions.sh, replay.sh   # DOC-43, DOC-38 §4
     .generated/                     # (gitignored) s3.json, webhook-token
   connect/
@@ -39,7 +40,7 @@ Makefile                            # DOC-38 §4
 .env                                # (gitignored) sinh bởi make secrets
 ```
 
-`compose.yaml` đặt `name: pti` để tên container, network và volume có tiền tố `pti-` bất kể thư mục clone. Makefile luôn gọi `docker compose -f deploy/compose/compose.yaml --env-file deploy/versions.env --env-file .env` (compose chỉ nội suy biến từ `--env-file`, nên `versions.env` được nạp theo cách này) và đặt `BUILDX_NO_DEFAULT_ATTESTATIONS=1`: attestation mặc định chứa thời điểm build, làm image id đổi sau mỗi lần build và compose tạo lại container dù code không đổi (C-03).
+`compose.yaml` đặt `name: pti` để tên container, network và volume có tiền tố `pti-` bất kể thư mục clone. Biến môi trường `COMPOSE_PROJECT_NAME` vẫn ghi đè được tên này. Cách đó đã dùng để nghiệm thu M1 trên một bản clone mới với volume trống mà không xóa volume `pti_*` đang có: `make down` stack chính, rồi chạy `COMPOSE_PROJECT_NAME=pti-m1 make secrets up sim-start` trong bản clone. Hai stack dùng chung cổng host nên không chạy cùng lúc được. Makefile luôn gọi `docker compose -f deploy/compose/compose.yaml --env-file deploy/versions.env --env-file .env` (compose chỉ nội suy biến từ `--env-file`, nên `versions.env` được nạp theo cách này) và đặt `BUILDX_NO_DEFAULT_ATTESTATIONS=1`: attestation mặc định chứa thời điểm build, làm image id đổi sau mỗi lần build và compose tạo lại container dù code không đổi (C-03).
 
 ## 2. Profile
 

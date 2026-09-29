@@ -109,6 +109,10 @@ SIM_PUT_RATE = set -o pipefail; curl -sS -X PUT -H 'Content-Type: application/js
 	| python3 -c 'import json, sys; d = json.load(sys.stdin); r = d.get("rate"); \
 	print("gtfsRt={gtfsRt} ticketing={ticketing}".format(**r)) if r else sys.exit(json.dumps(d, indent=2))'
 
+.PHONY: clock-offset
+clock-offset: .env ## Shift the business clock so that Chicago time is now AT=<HH:MM>, or AT=now for no shift; then make up
+	@deploy/compose/scripts/clock-offset.sh "$(AT)"
+
 .PHONY: sim-status
 sim-status: .env ## GET /sim/status
 	@set -o pipefail; curl -sS --fail-with-body $(SIM_URL)/status | python3 -m json.tool

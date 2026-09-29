@@ -1,6 +1,6 @@
 # CI/CD
 
-> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-41
+> Trạng thái: **Approved** · Cập nhật: 2026-09-29 · DOC-41
 > Phụ thuộc: [DOC-11](../03-architecture/tech-stack-and-versions.md), [DOC-38](local-dev.md), [DOC-39](deploy-compose.md), [DOC-40](deploy-k8s.md), [DOC-44](../10-testing/test-strategy.md), [ADR-0028](../04-adr/0028-kubernetes-tooling.md), [DR](../00-decision-register.md) (DR-44, 53, 56, 61)
 > Người dùng chính: P1-03, P2-19, P4-15, P5-01, P7-01, P8-01, P8-02, P8-07
 
@@ -13,10 +13,21 @@ Các mục §1–§9 có từ gate P1 (cấu trúc workflow, điều kiện ch�
 | File | Trigger | Job | Thời gian mục tiêu | Có từ |
 | --- | --- | --- | --- | --- |
 | `.github/workflows/pr.yml` | `pull_request` vào `dev` hoặc `main`; `push` lên `dev` (nhánh tích hợp, người duy trì commit thẳng) | `changes`, `lint`, `backend`, `frontend`, `experiments`, `compose-config`, `secrets-scan` | ≤ 12 phút | P1-03 (frontend từ P5-01) |
-| `.github/workflows/main.yml` | `push` lên `main` | Mọi job của PR (chạy lại toàn bộ, không lọc theo path) + `contract`, `security`, `images` | ≤ 25 phút | P1 (images), P2 (contract), P3 (security) |
+| `.github/workflows/main.yml` | `push` lên `main` | Mọi job của PR (chạy lại toàn bộ, không lọc theo path) + `contract`, `security`, `images` | ≤ 25 phút | Trước lần promote `dev` → `main` đầu tiên (images), P2 (contract), P3 (security). Dự kiến ban đầu là P1, xem §1.1 |
 | `.github/workflows/nightly.yml` | `schedule: '0 19 * * *'` (02:00 giờ Việt Nam) và `workflow_dispatch` | `slow-tests`, `dependency-report`, `ghcr-cleanup` | ≤ 35 phút | P2 |
 | `.github/workflows/full-stack.yml` | `schedule: '0 20 * * *'` (03:00 giờ Việt Nam), `workflow_dispatch` (input `sha`, `run_k3d`) | `e2e-compose`, `k3d-lite` chạy song song, mỗi job một runner (§10.3) | ≤ 60 phút | P5 (e2e), P7 (k3d) |
 | `.github/workflows/release.yml` | Tag `v*.*.*` | Gắn tag phiên bản cho image đã build ở `main` (không build lại), tạo GitHub Release với changelog | ≤ 5 phút | P8 |
+
+### 1.1 Tình trạng khi hết P1 (2026-09-29)
+
+Phần đã có khác thiết kế ở trên như sau; các mục chưa làm sẽ được thêm khi phase tương ứng cần tới:
+
+- **Repo đang private**, trái với DR-56 (chốt public từ 2026-09-27). Runner chuẩn của repo private nhỏ hơn và số phút giới hạn theo gói tài khoản, nên các giả định về runner 4 vCPU/16 GB ở đầu tài liệu và ở §7 chỉ đúng sau khi chuyển repo sang public. Phải chuyển trước khi dựng `full-stack.yml` (P5) và `k3d-lite` (P7), nếu không thì xem lại DR-56.
+- **Chỉ có `pr.yml`.** Remote mới có nhánh `dev` (nhánh mặc định), chưa có `main`, nên `main.yml`, job `images` (§3, §5), check `main-healthy` và branch protection (§4) chưa có. Chúng được tạo trước lần promote `dev` → `main` đầu tiên.
+- Job trong `pr.yml`: `changes`, `lint`, `backend`, `compose-config`, `secrets-scan`, và `pr-title` (`amannn/action-semantic-pull-request`, chỉ chạy với `pull_request`; §4 mô tả kiểm tra này như một điều kiện merge). Chưa có: `frontend` (P5-01), `experiments` (khi `experiments/` có code Python), `k8s-render` (P7), `markdown-links`. Filter `backend` gồm thêm `.github/workflows/pr.yml`, để sửa workflow thì build backend chạy lại.
+- `compose-config` hiện chỉ gồm `docker compose config -q` cho mọi profile, `shellcheck` và kiểm tra `.env.example` không có giá trị. Kiểm tra `deploy/topics.yaml` theo schema, `promtool` và `amtool` sẽ được thêm cùng observability (P3).
+- `secrets-scan` chạy `gitleaks git` trên toàn bộ lịch sử (checkout `fetch-depth: 0`), không chỉ diff của PR.
+- Cache Gradle dùng mặc định của `gradle/actions/setup-gradle`: chỉ **nhánh mặc định** (`dev`) ghi cache, PR chỉ đọc (§6).
 
 `concurrency`: `group: ${{ github.workflow }}-${{ github.ref }}`, `cancel-in-progress: true` cho PR (commit mới hủy lần chạy cũ); `false` cho `main` và nightly.
 
@@ -57,7 +68,7 @@ Chạy lại mọi job ở §2 trên toàn repo, rồi thêm:
 | --- | --- | --- |
 | `contract` | `./gradlew contractTest`: JSON Schema ↔ producer (simulator) và consumer (etl); Debezium thật trong Testcontainers (DR-44); `openapi-diff` giữa `backend/api/openapi.json` của commit này và của tag phát hành gần nhất. Có breaking change mà PR không có nhãn `breaking-api` thì job fail | P2-19, P4-15 |
 | `security` | SpotBugs (`./gradlew spotbugsMain`); OWASP Dependency-Check (`./gradlew dependencyCheckAggregate`, cache NVD, fail khi CVSS ≥ 9); `pnpm audit --prod --audit-level=critical`; Trivy quét image vừa build (fail khi có CVE CRITICAL đã có bản sửa) | P3 |
-| `images` | Build và đẩy image (§5) | P1-14 |
+| `images` | Build và đẩy image (§5) | Trước lần promote `dev` → `main` đầu tiên (dự kiến ban đầu là P1-14; P1-14 chỉ build image cục bộ bằng Jib, §1.1) |
 
 Nếu `contract` hoặc `security` fail trên `main`, PR tiếp theo bị chặn (§4) cho tới khi có PR sửa. Cách này đẩy các job đắt ra khỏi PR mà vẫn không để lỗi tồn tại lâu.
 
@@ -99,7 +110,7 @@ Tag, registry `ghcr.io/<owner>/`:
 
 | Thứ | Cách |
 | --- | --- |
-| Gradle | `gradle/actions/setup-gradle` (cache dependency, wrapper, build cache cục bộ). Chỉ `main` ghi cache (`cache-read-only: ${{ github.ref != 'refs/heads/main' }}`), PR chỉ đọc |
+| Gradle | `gradle/actions/setup-gradle` (cache dependency, wrapper, build cache cục bộ). Dùng mặc định của action: chỉ nhánh mặc định của repo (`dev`) ghi cache, PR và nhánh khác chỉ đọc. Thiết kế ban đầu là chỉ `main` ghi (`cache-read-only: ${{ github.ref != 'refs/heads/main' }}`), nhưng `dev` mới là nhánh nhận commit hằng ngày |
 | Configuration cache | Bật (`org.gradle.configuration-cache=true`), cache cùng Gradle |
 | pnpm | `actions/setup-node` với `cache: pnpm` |
 | uv | `astral-sh/setup-uv` với `enable-cache: true` |

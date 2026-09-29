@@ -1,6 +1,6 @@
 # Sổ quyết định mở (Decision Register)
 
-> Trạng thái tài liệu: **Approved**, toàn bộ DR đã chốt ngày 2026-09-26 · Cập nhật: 2026-09-28 · Nguồn: phân tích `public-transport-intelligence.md` (gọi tắt là **SDD gốc**)
+> Trạng thái tài liệu: **Approved**, toàn bộ DR đã chốt ngày 2026-09-26 · Cập nhật: 2026-09-29 · Nguồn: phân tích `public-transport-intelligence.md` (gọi tắt là **SDD gốc**)
 
 Tài liệu gốc mô tả tốt *cái gì* và *vì sao*, nhưng còn nhiều chỗ chưa trả lời *chính xác như thế nào*. Nếu không chốt trước, người triển khai sẽ phải dừng lại hỏi hoặc tự đoán, và đoán sai ở tầng dữ liệu thì rất tốn công sửa. Sổ này liệt kê từng khoảng trống, mỗi mục kèm **một phương án đề xuất** để có thể duyệt nhanh.
 
@@ -591,6 +591,7 @@ Tài liệu gốc mô tả tốt *cái gì* và *vì sao*, nhưng còn nhiều c
   - Code, tài liệu, log Actions và artifact đều công khai: không dùng `pull_request_target`, secret deploy nằm trong environment giới hạn `main`, bật secret scanning và push protection (DOC-41 §9.1). Cần kiểm tra quy định của trường về việc công khai mã nguồn đồ án trước khi bảo vệ.
   - Secret `TYPESAFE_API_KEY` lưu trong GitHub Secrets; CI dùng `provider=fake` nên không cần key.
 - **Ghi vào:** DOC-41, DOC-40 §3.2, DOC-01 §8.
+- **Tình trạng thực tế (2026-09-29, hết P1):** repo trên GitHub **vẫn đang private**, chưa được chuyển sang public. P1 chỉ dùng `pr.yml` (vài phút mỗi lần chạy) nên chưa bị ảnh hưởng. Phải chuyển sang public trước khi dựng các workflow cần runner lớn (`full-stack.yml` từ P5, `k3d-lite` từ P7), nếu không thì phải xem lại quyết định này (DOC-41 §1.1).
 
 ### DR-57 · Cách đo NFR-03 (độ trễ đầu-cuối)
 - **Quyết định:** `end_to_end_latency_seconds` là histogram đo **tại API ngay lúc phát SSE**, bằng `now − Kafka record timestamp (CreateTime)` của event gốc. Timestamp gốc được mang theo trong sự kiện UI. Thêm hai metric chặng để biết chậm ở đâu: `kafka_to_commit_seconds` (tại ETL) và `commit_to_emit_seconds` (tại API). Trên compose/k3d, mọi thành phần chạy chung một máy nên chung đồng hồ. Playwright đo thêm độ trễ hiển thị cho phần demo.

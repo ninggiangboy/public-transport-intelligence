@@ -1,6 +1,6 @@
 # Hợp đồng message
 
-> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-09
+> Trạng thái: **Approved** · Cập nhật: 2026-09-29 · DOC-09
 > Phụ thuộc: [DR](../00-decision-register.md) (DR-03, 04, 05, 07, 41, 57, 59, 63, 64), [ADR-0007](../04-adr/0007-json-envelope-for-gtfs-rt.md), [ADR-0008](../04-adr/0008-partition-key-route-id.md), [ADR-0012](../04-adr/0012-raw-zone-s3-sink.md), [DOC-07](system-context-and-containers.md)
 
 Tài liệu này là **hợp đồng** giữa producer và consumer. Thay đổi bất kỳ mục nào ở đây là thay đổi hợp đồng và phải theo quy tắc ở §8.
@@ -291,7 +291,7 @@ Mọi topic nguồn (`gtfs.*`, `ticketing.sales.cdc`, `ticketing.sale_points.cdc
 - **Đường dẫn:** `raw/<topic>/dt=<YYYY-MM-DD>/hh=<HH>/<topic>-<partition>-<start_offset>.json.gz`. `start_offset` đệm 20 chữ số và bằng offset của dòng đầu tiên trong file. Giờ tính theo **timestamp của record** (CreateTime), theo UTC; mọi dòng của một file thuộc cùng một giờ.
 - **Mỗi dòng** là một object JSON (thứ tự trường do connector quyết định):
   ```json
-  {"headers":[{"key":"traceparent","value":"00-…"}],"offset":918273,"value":"eyJzY2hlbWFfdmVyc2lvbiI6MSwi…","key":"18","timestamp":"2026-09-29T21:19:05.412Z"}
+  {"headers":[{"key":"schema_version","value":"2"},{"key":"entity_type","value":"VEHICLE_POSITION"}],"offset":918273,"value":"eyJzY2hlbWFfdmVyc2lvbiI6Miwi…","key":"18","timestamp":"2026-09-29T21:19:05.412Z"}
   ```
 
 | Trường | Kiểu | Ghi chú |
@@ -336,7 +336,7 @@ Replay theo khoảng `[from, to)` chọn các object trong các thư mục `hh` 
 
 | Header | Producer | Giá trị | Consumer dùng để |
 | --- | --- | --- | --- |
-| `traceparent` | mọi producer (observation của Spring Kafka) | W3C trace context | Nối trace simulator → etl → api (DR-50) |
+| `traceparent` | mọi producer (observation của Spring Kafka), **chỉ khi bật tracing** (`PTI_TRACING_ENABLED=true`; compose mặc định tắt, `make up-obs` bật, DOC-39 §3.2). Khi tắt, record không có header này, như ví dụ ở §7 | W3C trace context | Nối trace simulator → etl → api (DR-50). Consumer không được giả định header này luôn có |
 | `schema_version` | simulator | `"1"` \| `"2"` | Chỉ để quan sát và lọc trong công cụ; **ETL đọc version từ envelope**, không tin header |
 | `entity_type` | simulator | `VEHICLE_POSITION` \| `TRIP_UPDATE` | Như trên |
 
