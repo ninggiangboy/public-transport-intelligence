@@ -295,6 +295,8 @@ services:
     environment:
       <<: *spring-env
       SPRING_PROFILES_ACTIVE: stream${PTI_ETL_EXTRA_PROFILES:-}
+      # Fault injection of EXP-01 `halt` (profile experiment only, DOC-19 §8); empty is ignored.
+      SPRING_APPLICATION_JSON: ${PTI_ETL_APPLICATION_JSON:-}
       SPRING_DATASOURCE_URL: jdbc:postgresql://${PTI_WAREHOUSE_HOST:-pg-warehouse}:5432/pti_warehouse
       ETL_WRITER_PASSWORD: ${ETL_WRITER_PASSWORD:?run make secrets}
       PTI_DQ_MAX_CLOCK_SKEW: ${PTI_DQ_MAX_CLOCK_SKEW:-1h}
