@@ -164,6 +164,18 @@ s3-shell: .env ## Shell with the AWS CLI on the raw zone as admin (versions, res
 		-e AWS_DEFAULT_REGION=us-east-1 -e S3='--endpoint-url http://seaweedfs:8333' s3-init -c \
 		'export AWS_ACCESS_KEY_ID="$$S3_ADMIN_ACCESS_KEY" AWS_SECRET_ACCESS_KEY="$$S3_ADMIN_SECRET_KEY"; exec bash'
 
+# ---------------------------------------------------------------- Keycloak (DOC-27 §3.1)
+
+.PHONY: token
+token: .env ## Print an access token of a demo user (password grant, client pti-smoke): ROLE=viewer|operator
+	@deploy/compose/scripts/kc-token.sh "$(ROLE)"
+
+# `make restart S=keycloak` keeps the container and its H2 database, so the realm is not imported again; a new
+# container is what imports realm-pti.json.
+.PHONY: keycloak-reimport
+keycloak-reimport: .env ## Recreate the Keycloak container so that it imports realm-pti.json and the .env values again
+	$(COMPOSE) --profile core up -d --force-recreate --no-deps keycloak
+
 # ---------------------------------------------------------------- simulator (DOC-25 §8)
 
 SIM_URL = http://localhost:$$(v=$$(sed -n 's/^HOST_PORT_SIM=//p' .env); echo "$${v:-8084}")/sim

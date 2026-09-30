@@ -258,6 +258,41 @@ services:
     cpus: 0.25
     logging: *default-logging
 
+  # start-dev with the embedded H2 and no volume: every new container imports realm-pti.json again, so the realm always
+  # matches the committed file (DOC-39 §3.1). ${...} placeholders in the JSON are resolved by Keycloak from these
+  # variables. KC_HOSTNAME is the URL the browser sees and becomes the token issuer; the backchannel (JWKS) stays on
+  # keycloak:8080 (DOC-27 §3.2).
+  keycloak:
+    profiles: [core]
+    image: ${KEYCLOAK_IMAGE:?deploy/versions.env is not loaded}
+    restart: unless-stopped
+    command: ["start-dev", "--import-realm", "--http-port=8080"]
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?run make secrets}
+      KC_HOSTNAME: http://localhost:${HOST_PORT_KEYCLOAK:-8180}
+      KC_HOSTNAME_BACKCHANNEL_DYNAMIC: "true"
+      KC_HEALTH_ENABLED: "true"
+      # Read by realm-pti.json. The demo passwords are public by design (DOC-27 AR-01); an empty value in .env
+      # falls back to the user name.
+      KEYCLOAK_EXPERIMENTS_CLIENT_SECRET: ${KEYCLOAK_EXPERIMENTS_CLIENT_SECRET:?run make secrets}
+      KEYCLOAK_DEMO_VIEWER_PASSWORD: ${KEYCLOAK_DEMO_VIEWER_PASSWORD:-viewer}
+      KEYCLOAK_DEMO_OPERATOR_PASSWORD: ${KEYCLOAK_DEMO_OPERATOR_PASSWORD:-operator}
+    volumes:
+      - ./keycloak/realm-pti.json:/opt/keycloak/data/import/realm-pti.json:ro
+    ports: ["127.0.0.1:${HOST_PORT_KEYCLOAK:-8180}:8080"]
+    healthcheck:
+      # The image has no curl; Keycloak 26 serves /health/ready on the management port 9000.
+      test: ["CMD", "bash", "-c",
+        "exec 3<>/dev/tcp/127.0.0.1/9000 && printf 'GET /health/ready HTTP/1.0\\r\\n\\r\\n' >&3 && grep -q '\"status\": \"UP\"' <&3"]
+      interval: 10s
+      timeout: 3s
+      retries: 18
+      start_period: 30s
+    mem_limit: 768m
+    cpus: 1.0
+    logging: *default-logging
+
   # ---------------------------------------------------------------- apps (core)
 
   source-simulator:

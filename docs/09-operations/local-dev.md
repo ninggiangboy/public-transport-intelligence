@@ -105,7 +105,7 @@ Offset được làm tròn tới phút và là độ dời ngắn nhất để t
 
 `Makefile` ở gốc repo gọi `docker compose -f deploy/compose/compose.yaml --env-file deploy/versions.env --env-file .env`. Biến `S=<service>` chọn service cho các lệnh có service. `make help` liệt kê các target đã có.
 
-**Target được thêm dần theo phase.** Khi hết P1 (2026-09-29) Makefile có: `help`, `doctor`, `secrets`, `images`, `up`, `down`, `reset`, `restart`, `ps`, `logs`, `psql-wh`, `psql-src`, `psql-sim`, `topics`, `tail-<topic>`, `connectors`, `s3-ls`, `clock-offset`, `sim-status`, `sim-start`, `sim-stop`, `sim-rate`, `fmt`, `lint`, `test`, `it`. P3-01 thêm `scenarios`, `scenario`, `scenario-stop`; P3-02 thêm `up-obs`; P3-04 thêm `check-dashboards`; P3-05 thêm `up-exp`, `reset-warehouse`, `replay`, `job-run`; P3-09 thêm `stop-apps`, `start-apps`, `backup`, `backup-verify`, `restore-warehouse`, `ensure-partitions`, `s3-shell`. Các target khác trong các bảng dưới đây được thêm cùng việc cần tới chúng. Tham số `PRETTY=1` của `make logs` cũng chưa có.
+**Target được thêm dần theo phase.** Khi hết P1 (2026-09-29) Makefile có: `help`, `doctor`, `secrets`, `images`, `up`, `down`, `reset`, `restart`, `ps`, `logs`, `psql-wh`, `psql-src`, `psql-sim`, `topics`, `tail-<topic>`, `connectors`, `s3-ls`, `clock-offset`, `sim-status`, `sim-start`, `sim-stop`, `sim-rate`, `fmt`, `lint`, `test`, `it`. P3-01 thêm `scenarios`, `scenario`, `scenario-stop`; P3-02 thêm `up-obs`; P3-04 thêm `check-dashboards`; P3-05 thêm `up-exp`, `reset-warehouse`, `replay`, `job-run`; P3-09 thêm `stop-apps`, `start-apps`, `backup`, `backup-verify`, `restore-warehouse`, `ensure-partitions`, `s3-shell`; P4-08 thêm `token`, `keycloak-reimport`. Các target khác trong các bảng dưới đây được thêm cùng việc cần tới chúng. Tham số `PRETTY=1` của `make logs` cũng chưa có.
 
 ### 4.1 Vòng đời
 
@@ -125,6 +125,8 @@ Offset được làm tròn tới phút và là độ dời ngắn nhất để t
 | `make reset` | `down -v`: xóa mọi volume (warehouse, source, Kafka, raw zone). Giữ `.env` |
 | `make reset-warehouse` | Chỉ xóa và tạo lại database `pti_warehouse` rồi chạy `db-migrate`. Giữ Kafka, raw zone, `pg-source` (ledger còn nguyên). Dùng cho UC-18, EXP-04 |
 | `make restart S=<svc>` | Khởi động lại một service |
+| `make keycloak-reimport` | Tạo lại container Keycloak để import lại `realm-pti.json` và giá trị `KEYCLOAK_*` trong `.env` (`make restart S=keycloak` không import lại, DOC-39 §3.1) |
+| `make token ROLE=viewer\|operator` | In access token của user demo (password grant, client `pti-smoke`). Ví dụ `curl -H "Authorization: Bearer $(make -s token ROLE=operator)" http://localhost:8081/api/v1/me` |
 
 ### 4.2 Quan sát
 
@@ -261,7 +263,7 @@ Nếu một cổng đã bị chiếm (ví dụ có Postgres cài sẵn ở 5432 
 | PostgreSQL | các role ở DOC-17 §2 | biến tương ứng trong `.env` | `make psql-*` tự lấy mật khẩu |
 | SeaweedFS | `admin`, `connect`, `etl` | `S3_*` trong `.env` | DOC-39 §3.5 |
 
-Mật khẩu `viewer`/`operator` cố định trong file realm (`deploy/compose/keycloak/realm-pti.json`) vì chỉ dùng cho dev và demo. Hành khách không cần đăng nhập (DR-40).
+Mật khẩu `viewer`/`operator` chỉ dùng cho dev và demo nên mặc định trùng tên user, không sinh ngẫu nhiên. File realm (`deploy/compose/keycloak/realm-pti.json`) không chứa mật khẩu mà dùng placeholder, Keycloak lấy giá trị từ `KEYCLOAK_DEMO_VIEWER_PASSWORD` và `KEYCLOAK_DEMO_OPERATOR_PASSWORD` trong `.env` (để trống thì bằng tên user; đổi giá trị rồi `make keycloak-reimport`). Hành khách không cần đăng nhập (DR-40).
 
 ### 6.2 Dữ liệu có sẵn sau `make up`
 

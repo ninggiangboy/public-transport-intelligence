@@ -74,9 +74,13 @@ Image hạ tầng lấy tag và digest từ `deploy/versions.env` (DOC-11). Imag
 | `db-migrate` | `ghcr.io/<owner>/pti-db-migrate` | Chạy ba bộ Flyway rồi thoát (DOC-17 §5). Env: ba mật khẩu owner; URL mặc định trỏ `pg-warehouse`, `pg-source` | — | 384 MB / 1,0 |
 | `kafka-connect` | `ghcr.io/<owner>/pti-connect` (build từ `deploy/connect/Dockerfile`) | §3.4 | — (state nằm trong topic `connect-*`) | 1.280 MB / 1,0; `-Xmx512m`. S-04 đo đỉnh 1.009 MiB khi S3 sink chạy bù 1 triệu record (DR-81) |
 | `kafka-connect-init` | `curlimages/curl` (pin digest) | `register.sh` | `../connect/connectors:/connectors:ro` | 64 MB |
-| `keycloak` | `quay.io/keycloak/keycloak:26.7.4` | `start-dev --import-realm --http-port=8080`. Env `KC_BOOTSTRAP_ADMIN_USERNAME=admin`, `KC_BOOTSTRAP_ADMIN_PASSWORD=${KEYCLOAK_ADMIN_PASSWORD}`, `KC_HOSTNAME=http://localhost:${HOST_PORT_KEYCLOAK:-8180}`, `KC_HOSTNAME_BACKCHANNEL_DYNAMIC=true`, `KC_HEALTH_ENABLED=true` | `./keycloak/realm-pti.json:/opt/keycloak/data/import/realm-pti.json:ro` | 768 MB / 1,0 |
+| `keycloak` | `quay.io/keycloak/keycloak:26.7.4` | `start-dev --import-realm --http-port=8080`. Env `KC_BOOTSTRAP_ADMIN_USERNAME=admin`, `KC_BOOTSTRAP_ADMIN_PASSWORD=${KEYCLOAK_ADMIN_PASSWORD}`, `KC_HOSTNAME=http://localhost:${HOST_PORT_KEYCLOAK:-8180}`, `KC_HOSTNAME_BACKCHANNEL_DYNAMIC=true`, `KC_HEALTH_ENABLED=true`. Env đọc bởi `realm-pti.json` lúc import: `KEYCLOAK_EXPERIMENTS_CLIENT_SECRET`, `KEYCLOAK_DEMO_VIEWER_PASSWORD`, `KEYCLOAK_DEMO_OPERATOR_PASSWORD` | `./keycloak/realm-pti.json:/opt/keycloak/data/import/realm-pti.json:ro` | 768 MB / 1,0 |
 
-Keycloak chạy `start-dev` với H2 trong container và không có volume: mỗi lần tạo lại container, realm được import lại từ file. Như vậy cấu hình realm luôn khớp với file đã commit; đổi realm thì sửa file, không sửa qua console.
+Keycloak chạy `start-dev` với H2 trong container và không có volume: mỗi lần **tạo lại** container, realm được import lại từ file. Như vậy cấu hình realm luôn khớp với file đã commit; đổi realm thì sửa file, không sửa qua console. `docker compose restart` (tức `make restart S=keycloak`) giữ nguyên container cùng database H2 của nó, nên Keycloak báo `Realm 'pti' already exists. Import skipped` và không áp dụng thay đổi; dùng `make keycloak-reimport` (`up -d --force-recreate --no-deps keycloak`). Sửa file realm hay giá trị trong `.env` mà không tạo lại container thì Keycloak vẫn giữ realm cũ.
+
+File realm không chứa secret hay mật khẩu: secret của `pti-experiments` và mật khẩu hai user demo là placeholder `${…}` mà Keycloak thay bằng biến môi trường lúc import. Mật khẩu demo không sinh ngẫu nhiên: để trống trong `.env` thì bằng tên user (`viewer`/`viewer`, `operator`/`operator`, DOC-27 AR-01). Lấy token thử bằng `make token ROLE=viewer|operator` (password grant, client `pti-smoke`).
+
+Realm khai báo đủ client scope chuẩn (`basic`, `profile`, `email`, `roles`, `web-origins`), vì import một realm có `clientScopes` thì Keycloak không tự tạo các scope mặc định: thiếu `basic` thì token không có `sub`, thiếu `roles` thì không có `realm_access.roles`. Mỗi user demo có `email`, `firstName` và `lastName` (`Demo` + `Viewer`/`Operator`, nên claim `name` là `Demo Viewer`/`Demo Operator`), vì user profile mặc định của Keycloak yêu cầu ba trường này và thiếu thì password grant trả `Account is not fully set up`.
 
 ### 3.2 App (profile `core`, `triage`, `experiment`)
 
@@ -309,6 +313,7 @@ Thời gian từ `make up` (image có sẵn) tới lúc mọi service healthy: m
 | Kafka | `KAFKA_CLUSTER_ID` | Có (`docker run --rm apache/kafka kafka-storage.sh random-uuid`) | Đổi giá trị sau khi đã có volume làm Kafka không khởi động được; `make reset` khi cần |
 | S3 | `S3_ADMIN_ACCESS_KEY`/`SECRET_KEY`, `S3_CONNECT_*`, `S3_ETL_*` | Có | Access key 20 ký tự chữ hoa và số, secret 40 ký tự |
 | Keycloak | `KEYCLOAK_ADMIN_PASSWORD`, `KEYCLOAK_EXPERIMENTS_CLIENT_SECRET` | Có | Secret của client `pti-experiments` (DOC-45 §1, từ P4) được đưa vào `realm-pti.json` bằng placeholder `${KEYCLOAK_EXPERIMENTS_CLIENT_SECRET}` lúc import |
+| Keycloak (demo) | `KEYCLOAK_DEMO_VIEWER_PASSWORD`, `KEYCLOAK_DEMO_OPERATOR_PASSWORD` | Không | Để trống thì compose dùng tên user làm mật khẩu (DOC-27 AR-01); đặt giá trị để đổi. Cũng là placeholder trong `realm-pti.json` |
 | Alert | `ALERTMANAGER_WEBHOOK_TOKEN` | Có | `make secrets` ghi thêm ra `.generated/webhook-token` (Alertmanager đọc bằng `credentials_file`); `api` nhận qua env (DOC-28 §6.4, DOC-27) |
 | Grafana | `GRAFANA_ADMIN_PASSWORD` | Có | |
 | Jev | `TYPESAFE_API_KEY`, `PTI_TRIAGE_PROVIDER` (`fake` \| `jev` \| `disabled`) | Không | Người dùng tự điền; để trống thì dùng `fake` |
@@ -345,7 +350,7 @@ Quy tắc:
 | Đổi topic (thêm partition, đổi config) | Sửa `deploy/topics.yaml` rồi `make up` (`kafka-init` áp lại config). Giảm partition không được hỗ trợ; phải `make reset` |
 | Đổi connector | Sửa file trong `deploy/connect/connectors/` rồi `make up`; `kafka-connect-init` PUT lại config. Đổi `slot.name` hay `topic.prefix` là thay đổi phá vỡ: xóa connector, xóa replication slot, snapshot lại |
 | Nâng phiên bản image hạ tầng | Sửa `deploy/versions.env` (tag và digest) trong một PR riêng, chạy smoke test (§8). Postgres major version: `pg_dump` → `make reset` → restore (DOC-43); không hỗ trợ `pg_upgrade` trên compose |
-| Đổi realm Keycloak | Sửa `realm-pti.json`, `make restart S=keycloak` (import lại vì không có volume) |
+| Đổi realm Keycloak | Sửa `realm-pti.json` (hoặc giá trị `KEYCLOAK_*` trong `.env`), `make keycloak-reimport` (tạo lại container nên import lại vì không có volume; `make restart` không đủ, §3.1) |
 
 Không có rolling update trên compose: mỗi app một container, nên cập nhật app sẽ có vài giây gián đoạn. Dữ liệu không mất vì offset chỉ commit sau khi transaction commit (ADR-0004).
 
