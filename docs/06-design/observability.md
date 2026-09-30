@@ -272,6 +272,7 @@ Span JDBC dùng `net.ttddyy.observation:datasource-micrometer-spring-boot` (DOC-
 - Label: `severity` ∈ {`critical`, `warning`, `info`} (tương ứng "Khẩn", "Cảnh báo" của SDD 12.2), `area` ∈ {`pipeline`, `data`, `source`, `platform`, `api`}, cộng các label nhóm (`source`, `topic`, `listener`, `job`…).
 - Annotation: `summary` (một dòng tiếng Anh, có giá trị hiện tại), `description`, `runbook_url` (`https://github.com/<owner>/<repo>/blob/main/docs/09-operations/runbooks/RB-xx.md`), `dashboard_url`.
 - **Đếm sự kiện rời rạc.** Counter có label phụ thuộc dữ liệu chỉ xuất hiện ở sự kiện đầu tiên, đã mang giá trị 1 (DR-98); `increase()` cần hai mẫu nên đọc sự kiện đầu tiên là 0 và alert không bắn. Bảng §6.3 viết `events(X, w)` thay cho `(X unless X offset w) or increase(X[w])`: series mới xuất hiện trong cửa sổ được tính bằng chính giá trị của nó, series đã có từ trước tính bằng `increase` (DR-99).
+- **Không tính baseline.** `etl-stream-baseline` của thực nghiệm (DR-27, job `pti-etl-stream-baseline`) cùng `application="etl-stream"` nhưng chỉ chạy listener GTFS-rt và có consumer group riêng. Recording rule và alert trạng thái listener loại job này (`job!="pti-etl-stream-baseline"`), nếu không `ConsumerStopped` bắn cho listener vé vốn không chạy ở baseline, còn lag và tốc độ bị cộng gấp đôi (DR-99).
 - **Gauge không được chặn scrape.** Gauge đọc trạng thái phụ thuộc (DB, Connect REST) chỉ đọc giá trị đã cache; việc kiểm tra thật chạy nền có timeout. Nếu không, `/actuator/prometheus` treo khi phụ thuộc chết và alert thành `TargetDown` thay vì alert đúng nguyên nhân (DR-99).
 - Mỗi rule có unit test `promtool test rules` trong `deploy/compose/observability/prometheus/tests/` (mỗi alert tối thiểu một ca bắn và một ca không bắn). Job `compose-config` của CI chạy `promtool check rules` và `promtool test rules` (DOC-41 §2).
 
@@ -283,21 +284,21 @@ groups:
     interval: 30s
     rules:
       - record: pti:etl_input:rate5m
-        expr: sum by (source) (rate(pti_etl_records_total{mode="stream"}[5m]))
+        expr: sum by (source) (rate(pti_etl_records_total{mode="stream", job!="pti-etl-stream-baseline"}[5m]))
       - record: pti:etl_skipped:rate5m
-        expr: sum by (source) (rate(pti_etl_records_total{mode="stream", outcome="skipped"}[5m]))
+        expr: sum by (source) (rate(pti_etl_records_total{mode="stream", outcome="skipped", job!="pti-etl-stream-baseline"}[5m]))
       - record: pti:kafka_lag:sum
-        expr: sum by (topic) (kafka_consumer_fetch_manager_records_lag{application="etl-stream"})
+        expr: sum by (topic) (kafka_consumer_fetch_manager_records_lag{application="etl-stream", job!="pti-etl-stream-baseline"})
       - record: pti:e2e_latency:p95_5m
         expr: histogram_quantile(0.95, sum by (le, channel) (rate(pti_end_to_end_latency_seconds_bucket[5m])))
       - record: pti:kafka_to_commit:p95_5m
-        expr: histogram_quantile(0.95, sum by (le, source) (rate(pti_etl_kafka_to_commit_seconds_bucket[5m])))
+        expr: histogram_quantile(0.95, sum by (le, source) (rate(pti_etl_kafka_to_commit_seconds_bucket{job!="pti-etl-stream-baseline"}[5m])))
       - record: pti:commit_to_publish:p95_5m
         expr: histogram_quantile(0.95, sum by (le) (rate(pti_ui_commit_to_publish_seconds_bucket[5m])))
       - record: pti:publish_to_emit:p95_5m
         expr: histogram_quantile(0.95, sum by (le) (rate(pti_api_publish_to_emit_seconds_bucket[5m])))
       - record: pti:chunk_duration:p95_5m
-        expr: histogram_quantile(0.95, sum by (le) (rate(pti_etl_chunk_duration_seconds_bucket{mode="stream"}[5m])))
+        expr: histogram_quantile(0.95, sum by (le) (rate(pti_etl_chunk_duration_seconds_bucket{mode="stream", job!="pti-etl-stream-baseline"}[5m])))
 ```
 
 ### 6.3 Danh mục alert
@@ -316,8 +317,8 @@ Chín alert đầu là SDD 12.2; phần còn lại được thêm ở các tài 
 | 8 | `CircuitBreakerOpen` | warning | `max by (application, name) (resilience4j_circuitbreaker_state{state=~"open\|half_open"}) == 1` | 1m | RB-08 |
 | 9 | `DebeziumWalRetained` | warning / critical | warning: `max by (slot) (pti_source_replication_slot_retained_bytes) > 2e9`; critical: `> 3.2e9` (80% của `max_slot_wal_keep_size=4GB`) | 5m | RB-09 |
 | 10 | `ConnectorDown` | critical | `min by (connector) (pti_connect_connector_running) == 0` | 2m | RB-09 |
-| 11 | `ConsumerStopped` | critical | `min by (listener) (pti_etl_listener_running) == 0` | 1m | RB-03 |
-| 12 | `ConsumerPaused` | warning | `max by (listener, reason) (pti_etl_listener_paused{reason=~"backoff\|circuit"}) == 1` | 5m | RB-03 |
+| 11 | `ConsumerStopped` | critical | `min by (listener) (pti_etl_listener_running{job!="pti-etl-stream-baseline"}) == 0` | 1m | RB-03 |
+| 12 | `ConsumerPaused` | warning | `max by (listener, reason) (pti_etl_listener_paused{reason=~"backoff\|circuit", job!="pti-etl-stream-baseline"}) == 1` | 5m | RB-03 |
 | 13 | `FatalErrors` | critical | `sum by (application, type) (events(pti_errors_total{kind="fatal"}, 5m)) > 0` | 0m | RB-03 |
 | 14 | `DlqBacklogHigh` | warning | `sum by (source) (max by (source, status) (pti_dlq_open_records{status=~"NEW\|MANUAL\|PENDING_CONFIRM"})) > 500` | 30m | RB-04 |
 | 15 | `ReplayFailed` | warning | `sum by (kind) (events(pti_replay_requests_total{outcome="failed"}, 10m)) > 0` | 0m | RB-01 |

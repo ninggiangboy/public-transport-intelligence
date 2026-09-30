@@ -11,6 +11,7 @@ import hashlib
 import os
 import subprocess
 import time
+from collections import Counter
 from datetime import datetime, timedelta
 
 from pti_exp import truth, warehouse
@@ -23,6 +24,11 @@ from pti_exp.sim import Simulator
 GTFS_TABLES = ("dim_agency", "dim_route", "dim_stop", "gtfs_calendar", "gtfs_calendar_date", "gtfs_shape",
                "gtfs_stop_time", "gtfs_trip", "route_headway")
 SOURCES = ("TICKETING_SALES", "GTFS_RT_VEHICLE_POSITION", "GTFS_RT_TRIP_UPDATE")
+# Replay skips these rules (DR-16, RuleContext): their dead letters are written as facts again, by design.
+REPLAY_SKIPPED_RULES = {"DQ-07", "DQ-12"}
+# A trip-update row keeps what earlier messages observed (DR-13): only keys whose whole history is replayed match.
+TRIP_HISTORY = timedelta(hours=4)
+EDGE = timedelta(seconds=5)
 # A sale's row changes for at most 5 minutes after it is created (void ≤ 5 s, delete ≤ 5 min, DOC-25 §9.3).
 TICKET_SETTLE = timedelta(minutes=6)
 
@@ -37,8 +43,9 @@ def snapshot(stack: Stack, w0: datetime, w1: datetime, until: datetime) -> dict:
     exp = truth.expected(stack, w0, w1)
     later = truth.expected(stack, w1, until)
     vp_keys = sorted(exp.keys["VEHICLE_POSITION"])
-    # A trip-update key touched again after the window ends differs after a replay of the window alone.
-    tu_keys = sorted(set(exp.keys["TRIP_UPDATE"]) - set(later.keys["TRIP_UPDATE"]))
+    # A trip-update key touched after the window, or before the replay starts, differs after a replay of the window.
+    tu_keys = sorted(set(exp.keys["TRIP_UPDATE"]) - set(later.keys["TRIP_UPDATE"])
+                     - trip_keys(stack, w0 - timedelta(minutes=1) - TRIP_HISTORY, w0 - timedelta(minutes=1) + EDGE))
     offset = stack.clock_offset
     b0, b1 = w0 + offset, w1 + offset - TICKET_SETTLE
     with connect(stack, "ticketing_source") as c:
@@ -50,8 +57,16 @@ def snapshot(stack: Stack, w0: datetime, w1: datetime, until: datetime) -> dict:
         "fact_trip_update": warehouse.fingerprints(stack, "fact_trip_update", tu_keys),
         "fact_ticket_sales": warehouse.fingerprints(stack, "fact_ticket_sales", sales),
     }
-    dlq = {f"{t}|{p}|{o}": f"{stage}|{rule}" for t, p, o, stage, rule in truth.dead_letters(stack, w0, w1)}
+    dlq = {f"{t}|{p}|{o}": f"{stage}|{rule}" for t, p, o, stage, rule in truth.dead_letters(stack, w0, w1)
+           if rule not in REPLAY_SKIPPED_RULES}
     return {"tables": state, "dlq": dlq, "keys": {"vp": len(vp_keys), "tu": len(tu_keys), "sales": len(sales)}}
+
+
+def trip_keys(stack: Stack, start: datetime, end: datetime) -> set[str]:
+    with connect(stack, "pti_sim") as c:
+        return {r[0] for r in c.execute(
+            "SELECT DISTINCT unnest(business_keys) FROM sim.sim_ledger WHERE entity_type = 'TRIP_UPDATE' "
+            "AND produced_at >= %s AND produced_at < %s", (start, end))}
 
 
 def gtfs_counts(stack: Stack) -> dict[str, int]:
@@ -70,7 +85,9 @@ def compare(before: dict, after: dict) -> dict:
                          "table_match": not missing and not different, "missing": len(missing),
                          "different": len(different), "sample": (missing + different)[:20]}
     dlq_before, dlq_after = set(before["dlq"].items()), set(after["dlq"].items())
-    return {"tables": tables, "dlq_symdiff": len(dlq_before ^ dlq_after), "dlq_before": len(dlq_before)}
+    return {"tables": tables, "dlq_symdiff": len(dlq_before ^ dlq_after), "dlq_before": len(dlq_before),
+            "dlq_missing": dict(Counter(v for _, v in dlq_before - dlq_after)),
+            "dlq_extra": dict(Counter(v for _, v in dlq_after - dlq_before))}
 
 
 def make(target: str, **variables: str) -> str:

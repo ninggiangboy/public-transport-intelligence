@@ -57,7 +57,7 @@ groups:
           runbook_url: https://github.com/ninggiangboy/public-transport-intelligence/blob/main/docs/09-operations/runbooks/RB-08-database-bottleneck.md
           dashboard_url: http://localhost:3000/d/pti-overview
       - alert: ConsumerStopped
-        expr: "min by (listener) (pti_etl_listener_running) == 0"
+        expr: "min by (listener) (pti_etl_listener_running{job!=\"pti-etl-stream-baseline\"}) == 0"
         for: 1m
         labels:
           severity: critical
@@ -68,7 +68,7 @@ groups:
           runbook_url: https://github.com/ninggiangboy/public-transport-intelligence/blob/main/docs/09-operations/runbooks/RB-03-consumer-stopped.md
           dashboard_url: http://localhost:3000/d/pti-overview
       - alert: ConsumerPaused
-        expr: "max by (listener, reason) (pti_etl_listener_paused{reason=~\"backoff|circuit\"}) == 1"
+        expr: "max by (listener, reason) (pti_etl_listener_paused{reason=~\"backoff|circuit\", job!=\"pti-etl-stream-baseline\"}) == 1"
         for: 5m
         labels:
           severity: warning

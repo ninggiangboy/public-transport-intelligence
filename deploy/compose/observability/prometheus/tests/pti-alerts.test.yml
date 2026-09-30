@@ -260,6 +260,8 @@ tests:
     input_series:
       - series: "pti_etl_listener_running{listener=\"gtfs-rt-trip-update\",topic=\"gtfs.trip_updates\"}"
         values: "1x5"
+      - series: "pti_etl_listener_running{job=\"pti-etl-stream-baseline\",listener=\"ticketing-sales\",topic=\"ticketing.sales.cdc\"}"
+        values: "0x5"
     alert_rule_test:
       - eval_time: 2m
         alertname: ConsumerStopped
