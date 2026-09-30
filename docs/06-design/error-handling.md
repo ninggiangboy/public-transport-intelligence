@@ -11,11 +11,10 @@ Tài liệu gồm bốn phần: (1) hệ exception của dự án; (2) bảng ph
 Package `dev.pti.common.error` (module `common`):
 
 ```java
-public abstract sealed class PtiException extends RuntimeException
-    permits DataException, TransientInfraException, FatalException, ApiException { … }
+public abstract class PtiException extends RuntimeException { … }
 
 /** A problem with one record. Skipped and dead-lettered; never retried. */
-public non-sealed class DataException extends PtiException {
+public class DataException extends PtiException {
   public DataException(DlqStage stage, @Nullable String ruleId, String message, @Nullable Throwable cause) { … }
   public DlqStage stage();
   public @Nullable String ruleId();
@@ -27,17 +26,22 @@ public non-sealed class DataException extends PtiException {
 //   GtfsRowException           GTFS static row error, collected into validation_report (DOC-21)
 
 /** The record is fine, the infrastructure is not. Retried; never dead-lettered. */
-public non-sealed class TransientInfraException extends PtiException { … }
+public class TransientInfraException extends PtiException { … }
 
 /** A bug or misconfiguration. Stops the step or the listener container. */
-public non-sealed class FatalException extends PtiException { … }
+public class FatalException extends PtiException { … }
 //   ConfigurationException, InvariantViolationException
 
-/** API-only: carries the Problem type (section 3). */
-public abstract non-sealed class ApiException extends PtiException {
+/** API-only (module api, package dev.pti.api.platform.domain): carries the Problem type (section 3). */
+public abstract class ApiException extends PtiException {
   public abstract ProblemType type();
+  public List<FieldError> errors();          // default empty
+  public Map<String, Object> extensions();   // default empty
+  public @Nullable Integer retryAfterSeconds();
 }
 ```
+
+`PtiException` không còn `sealed` (quyết định ở P4-09): `ApiException` và `ProblemType` nằm trong module `api`, vì lớp con của một lớp `sealed` ngoài module bắt buộc nằm cùng package, mà package `dev.pti.common.error` bị đóng băng ở store ArchUnit của `common` (DOC-49 §9.2). Test `ProblemTypeTest` đối chiếu enum `ProblemType` với bảng §3.2.
 
 Quy tắc:
 

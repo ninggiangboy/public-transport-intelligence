@@ -1,0 +1,4 @@
+# Profile dev: the OpenAPI document is served at /v3/api-docs (DOC-31 §12).
+springdoc:
+  api-docs:
+    enabled: true

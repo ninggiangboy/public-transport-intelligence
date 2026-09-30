@@ -170,6 +170,7 @@ Hiện thực `SpringTransactionRunner` nằm ở `dev.pti.common.spring` (adapt
 
 - Feature A được gọi use case của feature B (`B.application`) và dùng kiểu của `B.domain`.
 - Feature A **không** được dùng `B.adapter..` hay `B.config..` (A-14).
+- **Ngoại lệ cho `platform`** (chỉ trong `api`): adapter vào của feature dùng được `platform.adapter.in..` (Problem Details, cursor phân trang, `X-Data-As-Of`, mã hóa khóa rate limit), adapter ra dùng được `platform.adapter.out..` (cache, nạp SQL, đo truy vấn). Hai chiều không lẫn: `transit.adapter.in.web` → `platform.adapter.out.jdbc` vẫn đỏ (A-14 và A-15). `platform.domain` và `platform.application` dùng được từ mọi tầng như feature khác; `platform.config` vẫn đóng, nên `config` của feature không tham chiếu được lớp adapter của `platform` (adapter ra cần `ApiCaches` hay `QueryMetrics` khi đó là `@Component` tự nối, không phải `@Bean` trong `config`). `platform` không được phụ thuộc feature nào khác.
 - Không có vòng phụ thuộc giữa các feature (A-14, `slices().should().beFreeOfCycles()`).
 - Kiểu dùng chung nhiều nơi thì chuyển vào `core`.
 
@@ -270,7 +271,7 @@ Thêm vào `PtiArchitectureRules` (`backend/common/src/testFixtures`) ở P4-18.
 | A-11 | Phân tầng (`layeredArchitecture()`, theo từng feature): `domain` không phụ thuộc `application`, `adapter`, `config`; `application` không phụ thuộc `adapter`, `config`; `adapter` không phụ thuộc `config`, trừ lớp `@ConfigurationProperties` (adapter được đọc cấu hình của nó) |
 | A-12 | Lớp trong `..domain..` và `..application..` không phụ thuộc framework và hạ tầng (danh sách ở §4.1), trừ ngoại lệ ở §10 |
 | A-13 | Lớp trong `..domain..` và `..application..` chỉ phụ thuộc `dev.pti.common..` qua shared kernel (§4.2) |
-| A-14 | Lớp của feature A không phụ thuộc `..adapter..` hay `..config..` của feature B; các feature không tạo vòng phụ thuộc |
+| A-14 | Lớp của feature A không phụ thuộc `..adapter..` hay `..config..` của feature B; các feature không tạo vòng phụ thuộc. Ngoại lệ: `<feature>.adapter.in..` → `platform.adapter.in..` và `<feature>.adapter.out..` → `platform.adapter.out..` (§4.3); `platform` không phụ thuộc feature khác |
 | A-15 | Lớp trong `..adapter.in..` không phụ thuộc `..adapter.out..` (kể cả cùng feature) |
 | A-16 | Lớp có `@Configuration`, `@Bean`, `@ConfigurationProperties` chỉ nằm trong `..config..` |
 | A-17 | Lớp hiện thực interface thuộc `..application.port..` chỉ nằm trong `..adapter..` (production) hoặc test source |

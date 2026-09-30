@@ -101,7 +101,7 @@ Lớp `PtiArchitectureRules` trong `backend/common/src/testFixtures`, mỗi app 
 | A-11 | Clean Architecture, phân tầng theo feature (DOC-49 §2): `domain` không phụ thuộc `application`, `adapter`, `config`; `application` không phụ thuộc `adapter`, `config`; `adapter` không phụ thuộc `config`, trừ lớp `@ConfigurationProperties` (adapter được đọc cấu hình của nó) |
 | A-12 | `..domain..` và `..application..` không phụ thuộc framework và hạ tầng (`org.springframework..`, `jakarta..`, Jackson, Micrometer, OpenTelemetry, Kafka client, JDBC, AWS SDK, Resilience4j, Caffeine, ShedLock, SDK Jev, Bucket4j; danh sách đủ ở DOC-49 §4.1), trừ ngoại lệ DOC-49 §10 |
 | A-13 | `..domain..` và `..application..` chỉ phụ thuộc `dev.pti.common..` qua shared kernel (DOC-49 §4.2) |
-| A-14 | Feature không phụ thuộc `..adapter..` hay `..config..` của feature khác; các feature trong một app không tạo vòng phụ thuộc |
+| A-14 | Feature không phụ thuộc `..adapter..` hay `..config..` của feature khác; các feature trong một app không tạo vòng phụ thuộc. Ngoại lệ hẹp cho `platform` của `api` (DOC-49 §4.3), có test thăm dò bằng lớp giả trong `PtiArchitectureRulesProbeTest` |
 | A-15 | `..adapter.in..` không phụ thuộc `..adapter.out..` |
 | A-16 | Lớp có `@Configuration`, `@Bean`, `@ConfigurationProperties` chỉ nằm trong `..config..` |
 | A-17 | Hiện thực production của interface trong `..application.port..` chỉ nằm trong `..adapter..` |

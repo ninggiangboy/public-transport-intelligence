@@ -78,6 +78,9 @@ public final class PtiArchitectureRules {
         "javax.sql.."
     };
 
+    /** The cross-cutting feature of an app (DOC-49 §3). */
+    private static final String PLATFORM = "platform";
+
     private static final String COMMON_PACKAGE = "dev.pti.common";
     private static final String PII_PACKAGE = "dev.pti.common.pii..";
 
@@ -594,6 +597,12 @@ public final class PtiArchitectureRules {
      * A-14: a feature does not use the {@code adapter} or {@code config} of another feature, and features form no
      * cycle. A dependency on an annotation type of {@code platform} is allowed, which is how {@code
      * @OperatorRepository} is shared.
+     *
+     * <p>{@code platform} is cross-cutting infrastructure (DOC-49 §3), so two more dependencies on it are allowed: a
+     * class in {@code <feature>.adapter.in..} may use {@code platform.adapter.in..} (Problem Details, paging cursors,
+     * {@code X-Data-As-Of}) and a class in {@code <feature>.adapter.out..} may use {@code platform.adapter.out..}
+     * (caches, SQL loading). Nothing else about {@code platform.adapter} or {@code platform.config} opens up, and
+     * {@code platform} itself must not depend on any other feature.
      */
     public static ArchRule a14FeaturesAreIsolated(String app) {
         ArchRule noForeignInternals = dependencyRule(
@@ -607,9 +616,14 @@ public final class PtiArchitectureRules {
                             || from.feature().equals(to.feature())) {
                         return false;
                     }
+                    if (from.feature().equals(PLATFORM)) {
+                        return true;
+                    }
                     boolean sharedAnnotation =
-                            target.isAnnotation() && to.feature().equals("platform");
-                    return (to.layer() == Layer.ADAPTER || to.layer() == Layer.CONFIG) && !sharedAnnotation;
+                            target.isAnnotation() && to.feature().equals(PLATFORM);
+                    return (to.layer() == Layer.ADAPTER || to.layer() == Layer.CONFIG)
+                            && !sharedAnnotation
+                            && !isPlatformAdapterOfSameDirection(origin, from, target, to, app);
                 });
         SliceAssignment features = new SliceAssignment() {
             @Override
@@ -812,6 +826,31 @@ public final class PtiArchitectureRules {
         }
         Layer layer = layerOf(segments[1]);
         return layer == null ? null : new Place(segments[0], layer);
+    }
+
+    /**
+     * A-14's opening for {@code platform}: an inbound adapter of a feature uses an inbound adapter of the platform, an
+     * outbound adapter uses an outbound one. The target must be an adapter class, so {@code platform.config} stays
+     * closed, and the two directions never mix.
+     */
+    private static boolean isPlatformAdapterOfSameDirection(
+            JavaClass origin, Place from, JavaClass target, Place to, String app) {
+        if (!to.feature().equals(PLATFORM) || from.layer() != Layer.ADAPTER || to.layer() != Layer.ADAPTER) {
+            return false;
+        }
+        String originDirection = adapterDirection(origin, app);
+        return originDirection != null && originDirection.equals(adapterDirection(target, app));
+    }
+
+    /** {@code in} or {@code out}: the third segment of {@code <feature>.adapter.<direction>}, if the class has one. */
+    private static @Nullable String adapterDirection(JavaClass javaClass, String app) {
+        String prefix = appPackage(app) + ".";
+        String packageName = javaClass.getPackageName();
+        if (!packageName.startsWith(prefix)) {
+            return null;
+        }
+        String[] segments = packageName.substring(prefix.length()).split("\\.");
+        return segments.length >= 3 && segments[1].equals("adapter") ? segments[2] : null;
     }
 
     private static @Nullable String featureOf(JavaClass javaClass, String app) {

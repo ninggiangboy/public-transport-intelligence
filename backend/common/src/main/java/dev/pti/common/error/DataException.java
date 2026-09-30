@@ -7,7 +7,7 @@ import org.jspecify.annotations.Nullable;
  * A problem with one record (DOC-30 §1): skipped and dead-lettered, never retried. Carries no stack trace, because
  * the {@code bad-data} scenario raises thousands per second.
  */
-public non-sealed class DataException extends PtiException {
+public class DataException extends PtiException {
 
     private static final long serialVersionUID = 1L;
 

@@ -3,11 +3,11 @@ package dev.pti.common.error;
 import org.jspecify.annotations.Nullable;
 
 /**
- * Root of the project's exceptions (DOC-30 §1). {@code ApiException} joins the permitted subclasses with the API
- * in P4.
+ * Root of the project's exceptions (DOC-30 §1). Not sealed: {@code ApiException} lives in the {@code api} module, and
+ * a sealed class would force it into this package, which the frozen architecture store of {@code common} does not
+ * let grow (DOC-49 §9.2).
  */
-public abstract sealed class PtiException extends RuntimeException
-        permits DataException, TransientInfraException, FatalException {
+public abstract class PtiException extends RuntimeException {
 
     private static final long serialVersionUID = 1L;
 

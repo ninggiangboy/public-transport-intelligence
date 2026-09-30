@@ -1465,7 +1465,7 @@ VALUES (:id, 'REPLAY_REQUESTED', :actor, jsonb_build_object('replay_request_id',
   - `stale` ở gốc = một trong hai nguồn GTFS-rt stale. Frontend hiện stale banner theo trường này (DOC-35); ticketing stale chỉ hiện trên màn hình ticketing.
   - Probe lỗi (DB không đọc được): giữ kết quả cũ, thêm `probeError: true`; kết quả cũ hơn 60 giây thì endpoint trả 503.
   - Chưa có feed ACTIVE thì không có `activeFeed`, và endpoint vẫn trả 200.
-- **SQL** (`system/freshness.sql`, một round-trip):
+- **SQL** (`system/freshness.sql`; khi làm P4-09, truy vấn `insight_eta_prediction` được tách sang `system/freshness-eta.sql` để probe 15 giây không quét bảng 3,3 triệu dòng, xem ý cuối của mục này; phần còn lại một round-trip):
 
 ```sql
 SELECT

@@ -3,7 +3,7 @@ package dev.pti.common.error;
 import org.jspecify.annotations.Nullable;
 
 /** A bug or a misconfiguration (DOC-30 §1): stops the step, the listener container or the application start. */
-public non-sealed class FatalException extends PtiException {
+public class FatalException extends PtiException {
 
     private static final long serialVersionUID = 1L;
 

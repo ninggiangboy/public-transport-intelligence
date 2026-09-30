@@ -1,0 +1,196 @@
+# api (DOC-26, DOC-27, DOC-29, DOC-31). Profiles: `dev` (OpenAPI document), `demo` (simulator proxy), `static-jwt` (lite mode).
+# Secrets and hosts come from the environment (DOC-39).
+spring:
+  application:
+    name: api
+  main:
+    banner-mode: off
+  threads:
+    virtual:
+      enabled: true
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
+  web:
+    resources:
+      add-mappings: false
+  mvc:
+    problemdetails:
+      enabled: true
+  jackson:
+    # null members are left out; a member the request does not know is a 400 (DOC-31 §3).
+    default-property-inclusion: non_null
+    deserialization:
+      fail-on-unknown-properties: true
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          # Keys are fetched over the internal network; the issuer is checked against pti.api.security.issuer.
+          jwk-set-uri: ${SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI:http://keycloak:8080/realms/pti/protocol/openid-connect/certs}
+
+server:
+  port: 8080
+  shutdown: graceful
+  # Client IP for rate limiting comes from X-Forwarded-For, but only from a trusted proxy (DOC-31 §11).
+  forward-headers-strategy: native
+  tomcat:
+    remoteip:
+      internal-proxies: 10\.\d+\.\d+\.\d+|172\.(1[6-9]|2\d|3[01])\.\d+\.\d+|192\.168\.\d+\.\d+|127\.0\.0\.1
+  error:
+    include-message: never
+    include-binding-errors: never
+    include-stacktrace: never
+    include-exception: never
+    whitelabel:
+      enabled: false
+
+management:
+  server:
+    port: 9080
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: never
+  # Metrics are scraped from /actuator/prometheus; only traces go to the collector (DOC-28 §2, §5).
+  otlp:
+    metrics:
+      export:
+        enabled: false
+  metrics:
+    tags:
+      application: ${spring.application.name}
+    # Fixed buckets instead of client-side percentiles (DOC-28 §2).
+    distribution:
+      slo:
+        http.server.requests: 25ms,50ms,100ms,200ms,300ms,500ms,1s,2s,5s
+  observations:
+    annotations:
+      enabled: true
+  # Traces go to the OTel Collector (DOC-28 §5, DR-50); logs stay on stdout for Alloy, never OTLP.
+  tracing:
+    enabled: ${PTI_TRACING_ENABLED:false}
+    sampling:
+      probability: 1.0
+  opentelemetry:
+    tracing:
+      export:
+        otlp:
+          endpoint: http://localhost:4318/v1/traces
+  logging:
+    export:
+      otlp:
+        enabled: false
+
+logging:
+  structured:
+    format:
+      console: ecs
+
+# JDBC spans (DOC-28 §5.3): statements only, never parameter values.
+jdbc:
+  includes: QUERY
+  datasource-proxy:
+    include-parameter-values: false
+
+# The OpenAPI document is only served in profile dev (DOC-31 §12). The export and its diff are built in P4-15.
+springdoc:
+  api-docs:
+    enabled: false
+    path: /v3/api-docs
+  swagger-ui:
+    enabled: false
+  paths-to-match: /api/v1/**
+
+pti:
+  clock:
+    offset: 0s
+  observability:
+    freshness-probe:
+      interval: 15s
+      enabled: true
+  datasource:
+    # api_reader: every GET (replica on k3d, primary on compose). Pool size from DOC-10 §4.
+    reader:
+      url: jdbc:postgresql://localhost:5432/pti_warehouse
+      username: api_reader
+      password: ${API_READER_PASSWORD:}
+      hikari:
+        pool-name: reader
+        maximum-pool-size: 10
+        minimum-idle: 2
+        connection-timeout: 2000
+        # No server-side prepared statements across transactions, for a transaction-mode PgBouncer (DR-24).
+        data-source-properties:
+          prepareThreshold: 0
+          ApplicationName: ${spring.application.name}
+    # replay_operator: every write and the read-back of it, on the primary (DR-20).
+    operator:
+      url: jdbc:postgresql://localhost:5432/pti_warehouse
+      username: replay_operator
+      password: ${REPLAY_OPERATOR_PASSWORD:}
+      hikari:
+        pool-name: operator
+        maximum-pool-size: 4
+        minimum-idle: 2
+        connection-timeout: 2000
+        data-source-properties:
+          prepareThreshold: 0
+          ApplicationName: ${spring.application.name}
+  api:
+    paging:
+      default-limit: 50
+      max-limit: 500
+    time:
+      max-range: 31d
+      ops-max-range: 24h
+    # Name, lifetime and size of each cache (DOC-31 §10.3). No ttl: entries live until evicted or cleared.
+    cache:
+      active-feed: {ttl: 30s, max-size: 1}
+      routes: {ttl: 10m, max-size: 4}
+      route-detail: {ttl: 10m, max-size: 300}
+      stop-detail: {ttl: 10m, max-size: 10000}
+      stops-search: {ttl: 60s, max-size: 2000}
+      stop-routes: {max-size: 2}
+      vehicles-live: {ttl: 2s, max-size: 256}
+      arrivals: {ttl: 5s, max-size: 5000}
+      route-delays: {ttl: 60s, max-size: 1000}
+      delay-profile: {ttl: 10m, max-size: 300}
+      otp: {ttl: 5m, max-size: 200}
+      public-disruptions: {ttl: 5s, max-size: 1000}
+      freshness: {max-size: 1}
+    rate-limit:
+      enabled: true
+      public-per-minute: 60
+      authenticated-per-minute: 600
+      write-per-minute: 30
+      sse-per-ip: 5
+      sse-per-user: 10
+    vehicles:
+      max-items: 1500
+      max-age: 5m
+    max-body-size: 1MB
+    freshness:
+      stale-after:
+        gtfs-rt: 120s
+        ticketing: 900s
+      insight-interval: 5m
+      max-probe-age: 60s
+    security:
+      issuer: http://localhost:${HOST_PORT_KEYCLOAK:8180}/realms/pti
+      audience: pti-api
+      clock-skew: 30s
+    alert-webhook:
+      token-file: /run/secrets/alertmanager-webhook-token
+    dispatch:
+      low-confidence: 0.6
+    replay-estimate:
+      throughput: 3000
+    links:
+      grafana-url: http://localhost:3000
+    sim:
+      base-url: http://source-simulator:8080

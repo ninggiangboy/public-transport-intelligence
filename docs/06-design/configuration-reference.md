@@ -37,6 +37,7 @@ Cột **Trạng thái** của từng key:
 | `logging.structured.format.console` | `ecs` | DOC-28 §4 | Chốt |
 | `spring.kafka.template.observation-enabled`, `spring.kafka.listener.observation-enabled` | `true` | DR-50 | Chốt |
 | `pti.observability.freshness-probe.interval` (api), `.slot-probe.interval` (simulator), `.connector-probe.interval` (etl-stream) | `15s` / `30s` / `15s` | Gauge thay exporter (DR-71) | Chốt |
+| `pti.observability.freshness-probe.enabled` (api) | `true` | Tắt lịch của probe; chỉ dùng trong test cần tự nạp kết quả probe | Chốt (P4-09) |
 
 ## 3. Cấu hình theo app
 
@@ -253,6 +254,7 @@ Các nhóm còn lại:
 | `pti.api.security.*`, `pti.api.alert-webhook.token-file`, `spring.security.oauth2.resourceserver.jwt.jwk-set-uri` | [DOC-27 §13](security.md) | Chốt |
 | `pti.api.freshness.stale-after.gtfs-rt` / `.ticketing` | DOC-32 E-60 | `120s` / `900s` (DR-38) |
 | `pti.api.freshness.insight-interval` | DOC-32 E-60 | `5m` |
+| `pti.api.freshness.max-probe-age` | DOC-32 E-60 | `60s`; kết quả probe cũ hơn thì `/system/freshness` trả 503 (P4-09) |
 | `pti.api.dispatch.low-confidence` | DOC-32 E-17 | `0.6` (FR-09.6) |
 | `pti.api.replay-estimate.throughput` | DOC-32 E-53 | `3000` message/giây, hiệu chỉnh theo EXP-04 |
 | `pti.api.links.grafana-url` | DOC-32 E-32 | `http://localhost:3000` |
