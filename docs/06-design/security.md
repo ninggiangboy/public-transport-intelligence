@@ -34,7 +34,7 @@ Keycloak 26.7.4 chạy `start-dev`, import `deploy/compose/keycloak/realm-pti.js
 | --- | --- |
 | Realm | `pti`; `sslRequired: "none"` ở compose (HTTP localhost), `"external"` ở profile `tls`; `bruteForceProtected: true` (khóa 1 phút sau 5 lần sai); `registrationAllowed: false`; `loginWithEmailAllowed: false` |
 | Realm role | `viewer`, `operator` (composite: `operator` chứa `viewer`) |
-| User demo | `viewer` / `viewer` (role `viewer`), `operator` / `operator` (role `operator`); `firstName` là `Demo Viewer`/`Demo Operator`; không bắt đổi mật khẩu |
+| User demo | `viewer` / `viewer` (role `viewer`), `operator` / `operator` (role `operator`); `firstName` `Demo`, `lastName` `Viewer`/`Operator` (claim `name` là `Demo Viewer`/`Demo Operator`; user profile mặc định của Keycloak 26 bắt buộc `email`, `firstName`, `lastName`); không bắt đổi mật khẩu |
 | Client scope `pti-api-audience` | Audience mapper thêm `pti-api` vào `aud` của access token; gán mặc định cho mọi client dưới đây |
 | Token | Access token 5 phút; SSO session idle 30 phút, max 10 giờ; refresh token xoay vòng (`revokeRefreshToken: true`); thuật toán `RS256` |
 
@@ -201,7 +201,7 @@ DOC-31 §11 (rate limit), DOC-26 §7 (kết nối SSE), DOC-31 §3 (body ≤ 1 M
 | --- | --- | --- | --- |
 | Mật khẩu role DB (10 biến, DOC-17 §6) | `make secrets` (`openssl rand -base64 24`) | `.env` (trong `.gitignore`); Sealed Secret trên k3d | RB-12 |
 | `KEYCLOAK_ADMIN_PASSWORD` | `make secrets` | `.env` | Tạo lại container Keycloak |
-| `KEYCLOAK_EXPERIMENTS_CLIENT_SECRET` | `make secrets` | `.env`, thay vào realm lúc import | Sửa `.env`, `make restart S=keycloak`, restart runner |
+| `KEYCLOAK_EXPERIMENTS_CLIENT_SECRET` | `make secrets` | `.env`, thay vào realm lúc import | Sửa `.env`, `make keycloak-reimport` (restart không import lại realm, DOC-39 §3.1), restart runner |
 | `ALERTMANAGER_WEBHOOK_TOKEN` | `make secrets` (32 byte ngẫu nhiên, hex) | File mount cho Alertmanager và api | Ghi file mới; api đọc lại tự động (§6); Alertmanager reload |
 | `TYPESAFE_API_KEY` | Người dùng nhập (P6) | `.env`; Sealed Secret `pti-jev` (DOC-40) | Theo nhà cung cấp |
 | Credential S3 (connector, etl-batch) | `make secrets` | `s3.json` của SeaweedFS sinh từ `.env` | RB-12 |
@@ -261,7 +261,7 @@ Theo DOC-41: `gitleaks`; SpotBugs (+ FindSecBugs); OWASP Dependency-Check (chặ
 | # | Rủi ro | Vì sao chấp nhận | Giảm thiểu |
 | --- | --- | --- | --- |
 | AR-01 | User demo có mật khẩu yếu công khai (`viewer/viewer`, `operator/operator`) | Mục đích demo; chỉ bind `localhost` | Keycloak brute-force protection; không dùng ngoài máy cá nhân |
-| AR-02 | Keycloak `start-dev`, H2, HTTP | Tiết kiệm tài nguyên; realm import lại mỗi lần | Profile `tls` khi cần demo qua mạng |
+| AR-02 | Keycloak `start-dev`, H2, HTTP | Tiết kiệm tài nguyên; realm import lại mỗi khi tạo lại container (`make keycloak-reimport`) | Profile `tls` khi cần demo qua mạng |
 | AR-03 | Client `pti-experiments` có role `operator` và secret dài hạn | Runner cần tạo replay và mở SSE không tương tác | Secret sinh ngẫu nhiên, chỉ trong `.env`; xoay bằng RB-12 |
 | AR-04 | `pti-smoke` cho password grant | Chỉ realm dev; smoke test cần token không qua trình duyệt | Không có trong realm của profile `tls` |
 | AR-05 | Rate limit theo từng pod (giới hạn thực gấp N lần) | DR-45 | Đủ để chặn lạm dụng thô |
