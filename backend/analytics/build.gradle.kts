@@ -14,6 +14,7 @@ dependencies {
     implementation(libs.micrometer.core)
     implementation(libs.caffeine)
     implementation(libs.uuid.creator)
+    implementation(libs.slf4j.api)
 
     testFixturesApi(project(":common"))
     testFixturesImplementation(libs.spring.boot)

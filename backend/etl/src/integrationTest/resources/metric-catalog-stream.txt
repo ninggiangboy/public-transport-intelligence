@@ -23,6 +23,7 @@ pti_analytics_late_batches_total counter detector lazy
 pti_analytics_skipped_ticks_total counter detector lazy
 pti_analytics_open_episodes gauge detector lazy
 pti_analytics_dropped_total counter - lazy
+pti_analytics_episodes_total counter detector,event,reason lazy
 pti_ui_events_published_total counter type lazy
 pti_ui_events_publish_errors_total counter type lazy
 pti_ui_commit_to_publish_seconds histogram type lazy
