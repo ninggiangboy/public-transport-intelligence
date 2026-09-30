@@ -17,6 +17,7 @@ import java.time.Duration;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalManagementPort;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 
@@ -25,6 +26,9 @@ import org.springframework.test.context.DynamicPropertySource;
  * the catalog, only its labels) and O-07 (the replication slot gauge, read as {@code source_simulator}).
  */
 @SpringBootTest(classes = SourceSimulatorApplication.class, webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+// The running app sells tickets at real time into the shared ticketing_source; close it so it cannot write into the
+// business-time window of the ticketing ITs that run after this class.
+@DirtiesContext
 class SimulatorMetricsIT {
 
     private static final MetricCatalog CATALOG = MetricCatalog.load("metric-catalog.txt");

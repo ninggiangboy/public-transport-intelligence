@@ -14,6 +14,7 @@ import java.time.Duration;
 import java.time.Instant;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.jdbc.core.JdbcTemplate;
 
@@ -39,6 +40,16 @@ class TicketingSeederIT {
     @AfterAll
     static void close() {
         dataSource.close();
+    }
+
+    /**
+     * The whole-table checks below need an empty table: other ITs of this JVM share {@code ticketing_source}, and
+     * {@code SimulatorMetricsIT} sells tickets at real time, so its rows fall outside this test's business window.
+     */
+    @BeforeEach
+    void emptyTransactions() {
+        jdbc.update("DELETE FROM public.ticket_transaction WHERE refund_of IS NOT NULL");
+        jdbc.update("DELETE FROM public.ticket_transaction");
     }
 
     @Test
