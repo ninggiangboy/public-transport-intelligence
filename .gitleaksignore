@@ -1,0 +1,5 @@
+# Reviewed gitleaks false positives, one fingerprint per line (<commit>:<file>:<rule>:<line>).
+# Only add a line after checking the value is not a credential; fix the source as well so the finding does not recur.
+
+# W3C Trace Context sample trace id put into MDC under TRACE_ID_KEY in a unit test (fixed in the next commit).
+cecb4c7ec29addf8a7bb86ccfb9d71bfaa133b83:backend/api/src/test/java/dev/pti/api/platform/adapter/in/web/RequestFiltersTest.java:generic-api-key:53
