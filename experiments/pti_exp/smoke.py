@@ -14,7 +14,7 @@ from pti_exp.clock import business_now, in_window, next_offset
 from pti_exp.compose import Compose, wait_ready
 from pti_exp.config import EXP_ENV, RESULTS, Stack, format_offset
 from pti_exp.experiments import exp01, exp02, exp03, exp04, exp05
-from pti_exp.runner import InvalidRun, Run, iso, now
+from pti_exp.runner import InvalidRun, Run, drain, groups, iso, now
 from pti_exp.sim import Simulator
 
 # Business time when the chain starts: EXP-05 then begins around 15:30 with ≥ 500 vehicles (DOC-45 §1.3).
@@ -33,15 +33,26 @@ def ensure_window(stack: Stack, log: Callable[[str], None]) -> dict:
     offset = next_offset(now(), before, WINDOW[0])
     log(f"business time {business_now(now(), before):%a %H:%M} is outside {WINDOW[0]}–{WINDOW[1]}: "
         f"offset {format_offset(before)} → {format_offset(offset)}")
-    stack.write_offset(offset)
-    compose = Compose()
-    running = [a for a in APPS if compose.running(a)]
-    compose.up(*running, env=EXP_ENV)
-    for app in running:
-        if app in stack.ACTUATOR:
-            wait_ready(stack.actuator(app))
+    running = move_clock(stack, offset)
     return {"moved": True, "from": format_offset(before), "offset": format_offset(offset),
             "restarted": running}
+
+
+def move_clock(stack: Stack, offset: timedelta) -> list[str]:
+    """Drains the pipeline, writes the offset and recreates the apps with it (DOC-45 §1.1). Messages still in Kafka
+    would otherwise be read on the new clock, hours away from their event time, and go to DLQ as DQ-07. Returns after
+    one more minute, so that the replay margin of EXP-04 (1 minute) never reaches back before the move."""
+    compose = Compose()
+    running = [a for a in APPS if compose.running(a)]
+    Simulator(stack.sim_url).rate(gtfs_rt=0, ticketing=0)
+    clock.sleep(3)
+    drain(groups("etl-stream-baseline" in running))
+    stack.write_offset(offset)
+    compose.up(*running, env=EXP_ENV)
+    for app in running:
+        wait_ready(stack.actuator(app))
+    clock.sleep(60)
+    return running
 
 
 def restore_rate(stack: Stack) -> None:

@@ -16,8 +16,8 @@ from pti_exp import profiles
 from pti_exp import smoke as smoke_chain
 from pti_exp.alerts import Alerts
 from pti_exp.clock import business_now, in_window, next_offset
-from pti_exp.compose import Compose, wait_ready
-from pti_exp.config import EXP_ENV, RESULTS, Stack, format_offset
+from pti_exp.compose import Compose
+from pti_exp.config import RESULTS, Stack, format_offset
 from pti_exp.experiments import exp01, exp02, exp03, exp04, exp05
 from pti_exp.runner import InvalidRun, Run, git_state, now
 
@@ -171,12 +171,7 @@ def _ensure_window(stack: Stack, exp: str, needed: timedelta) -> None:
         return
     offset = next_offset(now(), stack.clock_offset, start)
     typer.echo(f"moving business time forward: offset {format_offset(stack.clock_offset)} → {format_offset(offset)}")
-    stack.write_offset(offset)
-    compose = Compose()
-    running = [a for a in APPS if compose.running(a)]
-    compose.up(*running, env=EXP_ENV)
-    for app_name in running:
-        wait_ready(stack.actuator(app_name))
+    smoke_chain.move_clock(stack, offset)
 
 
 def _require_clean(allow_dirty: bool) -> None:

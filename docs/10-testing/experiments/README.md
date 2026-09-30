@@ -1,6 +1,6 @@
 # Thực nghiệm: protocol chung
 
-> Trạng thái: **Approved** · Cập nhật: 2026-09-29 (DR-94: máy thực nghiệm, lưu kết quả; DR-95: chuỗi smoke, đợt chạy đầy đủ dời sang P3-10) · DOC-45 (phần chung, EXP-01…08)
+> Trạng thái: **Approved** · Cập nhật: 2026-09-30 (DR-100: runner, kết quả chuỗi smoke P3-08) · DOC-45 (phần chung, EXP-01…08)
 >
 > Phụ thuộc: DOC-03 (NFR-01…04), DOC-10, DOC-13 §6 (ledger, business key), DOC-14, DOC-20 §9 (baseline), DOC-22, DOC-25 §7–8, DOC-28, DR-27, DR-28, DR-52, DR-57, DR-58, DR-67, DR-68, DR-94, DR-95, ADR-0025
 >
@@ -81,7 +81,7 @@ Chạy dài ngày không cần người trông:
   4. Replay bốn nguồn trên cửa sổ, theo thứ tự ở bước 7 của EXP-04.
   5. So sánh với trạng thái đã chụp.
 
-  Chỉ so sánh bảng fact và dead letter giới hạn trong cửa sổ. `vehicle_position_latest` và các dimension không được so sánh, vì trước khi xóa chúng đã chứa dữ liệu của EXP-01 và EXP-05.
+  Chỉ so sánh bảng fact và dead letter giới hạn trong cửa sổ. `vehicle_position_latest` và các dimension không được so sánh, vì trước khi xóa chúng đã chứa dữ liệu của EXP-01 và EXP-05. Với `fact_trip_update` chỉ so các key có **toàn bộ** message nằm trong cửa sổ replay: key đã có message trước cửa sổ giữ trạng thái đã quan sát (DR-13) mà replay một cửa sổ không tái tạo được, còn key có message sau cửa sổ thì đã đổi tiếp (DR-100). Giao dịch vé chỉ so những giao dịch tạo trước cuối cửa sổ ít nhất 6 phút (đã hết thời gian void và delete, DOC-25 §9.3). Dead letter của DQ-12 không so, vì replay bỏ rule này (DR-16).
 - **Tiêu chí đạt của chuỗi** (mọi tiêu chí đều bắt buộc):
 
   | EXP | Tiêu chí |
@@ -183,7 +183,7 @@ sequenceDiagram
 ```
 
 - **Cửa sổ của lần chạy** `[t0, t1]` là khoảng `produced_at` của ledger từ lúc bắt đầu kịch bản tới lúc dừng. Mọi phép so sánh chỉ xét message trong cửa sổ.
-- **Drain:** sau `t1`, runner dừng phát (`DELETE /sim/scenarios/...` và, với thực nghiệm cần cửa sổ kín, `docker pause` simulator) rồi chờ lag bằng 0. Không drain được trong 10 phút thì lần chạy bị đánh dấu `invalid` với lý do.
+- **Drain:** sau `t1`, runner dừng phát (`DELETE /sim/scenarios/...` và `PUT /sim/rate` về 0, chờ 3 giây cho tick đang gửi, DR-100) rồi chờ lag bằng 0. Simulator giữ hệ số 0 tới khi runner đo xong ground truth; lệnh `run`/`smoke` đưa về hệ số 1 trước lần chạy sau. Không drain được trong 10 phút thì lần chạy bị đánh dấu `invalid` với lý do.
 - Mỗi lần chạy độc lập: không có dữ liệu nào của lần trước ảnh hưởng tới phép đo lần sau, vì business key gắn với thời gian nghiệp vụ tăng đơn điệu (§1.1).
 
 ## 3. Ground truth (DR-28)
