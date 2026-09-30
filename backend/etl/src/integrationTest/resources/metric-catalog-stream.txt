@@ -15,3 +15,14 @@ pti_dq_violations_total counter source,stage,rule lazy
 pti_dlq_records_total counter source,stage,mode,result lazy
 pti_errors_total counter kind,type lazy
 resilience4j_circuitbreaker_state gauge name,state
+# Analytics after a micro-batch (DOC-23 §14.1) and the UI event sink (DOC-28 §3.3), phase P4: created with first use
+pti_analytics_runs_total counter detector,trigger,outcome lazy
+pti_analytics_run_seconds histogram detector lazy
+pti_analytics_dispatch_delay_seconds histogram - lazy
+pti_analytics_late_batches_total counter detector lazy
+pti_analytics_skipped_ticks_total counter detector lazy
+pti_analytics_open_episodes gauge detector lazy
+pti_analytics_dropped_total counter - lazy
+pti_ui_events_published_total counter type lazy
+pti_ui_events_publish_errors_total counter type lazy
+pti_ui_commit_to_publish_seconds histogram type lazy

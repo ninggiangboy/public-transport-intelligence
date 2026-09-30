@@ -172,7 +172,10 @@ class StreamChunkTemplateIT {
                 .containsEntry("records_read", 500)
                 .containsEntry("records_written", 499)
                 .containsEntry("records_skipped", 1);
-        assertThat(EVENTS).singleElement().isEqualTo(new MicroBatchCommitted(result));
+        assertThat(EVENTS).singleElement().isInstanceOfSatisfying(MicroBatchCommitted.class, event -> {
+            assertThat(event.result()).isEqualTo(result);
+            assertThat(event.committedAt()).isNotNull();
+        });
     }
 
     @Test

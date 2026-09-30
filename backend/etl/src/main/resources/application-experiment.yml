@@ -1,0 +1,5 @@
+# The baseline container (DOC-20 §9, DOC-23 §2.6): it writes exp.exp_fact_*, which are not an input of analytics, so
+# no analytics runs in it.
+pti:
+  analytics:
+    enabled: false

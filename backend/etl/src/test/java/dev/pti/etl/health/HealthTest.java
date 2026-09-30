@@ -97,8 +97,20 @@ class HealthTest {
 
     private static SourceActivity activity(EtlSource source, Instant at) {
         SourceActivity activity = new SourceActivity(Clock.fixed(at, ZoneOffset.UTC));
-        activity.onCommitted(new MicroBatchCommitted(new StreamChunkResult(
-                UUID.randomUUID(), source, WriteMode.BATCH, 1, 1, 0, 0, null, null, at.minusSeconds(1), Set.of())));
+        activity.onCommitted(new MicroBatchCommitted(
+                new StreamChunkResult(
+                        UUID.randomUUID(),
+                        source,
+                        WriteMode.BATCH,
+                        1,
+                        1,
+                        0,
+                        0,
+                        null,
+                        null,
+                        at.minusSeconds(1),
+                        Set.of()),
+                at));
         return activity;
     }
 

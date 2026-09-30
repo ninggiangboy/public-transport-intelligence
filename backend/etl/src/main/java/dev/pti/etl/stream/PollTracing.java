@@ -78,6 +78,15 @@ public final class PollTracing {
         });
     }
 
+    /** The context of the span in scope, for work that continues on another thread; {@code null} without one. */
+    public @Nullable TraceContext currentContext() {
+        Span span = tracer.currentSpan();
+        if (span == null || span.context() == TraceContext.NOOP) {
+            return null;
+        }
+        return span.context();
+    }
+
     /** Starts a child span that the caller ends, e.g. around a commit that happens outside a callback. */
     public Span startChild(String name) {
         return tracer.nextSpan().name(name).start();

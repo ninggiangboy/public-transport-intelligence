@@ -74,6 +74,9 @@ management:
         pti.etl.kafka.to.commit: 250ms,500ms,1s,2s,3s,4s,5s,7500ms,10s,15s,20s,30s,60s
         pti.etl.chunk.duration: 10ms,25ms,50ms,100ms,250ms,500ms,1s,2s,5s,10s
         pti.replay.duration: 1s,5s,15s,30s,1m,2m,5m,10m,30m,1h
+        pti.analytics.run: 10ms,25ms,50ms,100ms,250ms,500ms,1s,2s,5s,10s
+        pti.analytics.dispatch.delay: 250ms,500ms,1s,2s,3s,4s,5s,7500ms,10s,15s,20s,30s,60s
+        pti.ui.commit.to.publish: 250ms,500ms,1s,2s,3s,4s,5s,7500ms,10s,15s,20s,30s,60s
         http.server.requests: 25ms,50ms,100ms,200ms,300ms,500ms,1s,2s,5s
   observations:
     annotations:
@@ -133,6 +136,10 @@ pti:
       connect-url: http://kafka-connect:8083
     known-key-cache:
       max-size: 20000
+    analytics:
+      executor:
+        threads: 2
+        queue-capacity: 1000
     batch:
       chunk-size: 500
       max-skip-ratio: 0.2
@@ -195,6 +202,68 @@ pti:
     post-write:
       enabled: true
       statement-timeout: 30s
+  analytics:
+    enabled: true
+    dispatcher:
+      tick-interval: 30s
+    bunching:
+      enabled: true
+      route-types: [3]
+      evaluation-interval: 15s
+      allowed-lateness: 5s
+      idle-timeout: 60s
+      position-max-age: 120s
+      open-ratio: 0.5
+      close-ratio: 0.7
+      open-consecutive: 2
+      exclude-first-stops: 2
+      exclude-last-stops: 2
+      max-headway: 30m
+      leader-lookback: 30m
+      max-catch-up: 15m
+    disruption:
+      enabled: true
+      route-types: [0, 3]
+      bucket: 1m
+      window: 10m
+      min-samples: 5
+      alpha: 0.1
+      sigma-floor: 30s
+      open-z: 2.5
+      open-consecutive: 2
+      close-z: 1.5
+      close-consecutive: 3
+      warm-up-buckets: 60
+      max-episode-duration: 3h
+      severity-high-z: 4.0
+      allowed-lateness: 10s
+      idle-timeout: 60s
+      max-catch-up: 60m
+    eta:
+      window: 28d
+      confidence:
+        medium-min: 10
+        high-min: 30
+      realtime-enabled: false
+      realtime-max-age: 2m
+      arrivals:
+        default-limit: 10
+        horizon: 90m
+    otp:
+      early-tolerance: 300s
+      late-tolerance: 300s
+      recompute-days: 2
+    ticketing:
+      window: 15m
+      allowed-lateness: 2m
+      baseline-weeks: 4
+      min-baseline-windows: 8
+      cold-start-windows: 8
+      volume-z: 3.0
+      volume-min-txn: 20
+      refund-ratio: 0.3
+      refund-min-count: 5
+      max-catch-up: 24h
   retention:
     vehicle-position: 14d
     trip-update: 90d

@@ -132,9 +132,9 @@ class StreamRuntimeTest {
         SourceActivity activity = new SourceActivity(Clock.fixed(now, ZoneOffset.UTC));
         assertThat(activity.lastCommit(EtlSource.TICKETING_SALES)).isEmpty();
 
-        activity.onCommitted(new MicroBatchCommitted(result(EtlSource.TICKETING_SALES, now.minusSeconds(5))));
-        activity.onCommitted(new MicroBatchCommitted(result(EtlSource.TICKETING_SALES, now.minusSeconds(9))));
-        activity.onCommitted(new MicroBatchCommitted(result(EtlSource.TICKETING_SALES, null)));
+        activity.onCommitted(new MicroBatchCommitted(result(EtlSource.TICKETING_SALES, now.minusSeconds(5)), now));
+        activity.onCommitted(new MicroBatchCommitted(result(EtlSource.TICKETING_SALES, now.minusSeconds(9)), now));
+        activity.onCommitted(new MicroBatchCommitted(result(EtlSource.TICKETING_SALES, null), now));
 
         assertThat(activity.lastCommit(EtlSource.TICKETING_SALES)).contains(now);
         assertThat(activity.lastRecordTimestamp(EtlSource.TICKETING_SALES)).contains(now.minusSeconds(5));

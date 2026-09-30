@@ -197,7 +197,7 @@ public class StreamChunkTemplate {
                 .increment();
 
         faults.hit(FaultPoint.AFTER_COMMIT_BEFORE_ACK);
-        events.publishEvent(new MicroBatchCommitted(result));
+        events.publishEvent(new MicroBatchCommitted(result, clock.realNow(), tracing.currentContext()));
         if (result.skipped() > 0 || mode == WriteMode.SCAN) {
             log.info(
                     "Chunk committed: read={} written={} skipped={} duplicate={} mode={}",

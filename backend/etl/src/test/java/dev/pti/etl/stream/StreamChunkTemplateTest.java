@@ -196,7 +196,7 @@ class StreamChunkTemplateTest {
         assertThat(result.writeMode()).isEqualTo(WriteMode.BATCH);
         assertThat(txManager.commits).isEqualTo(1);
         assertThat(logged).containsExactly(result);
-        assertThat(events).containsExactly(new MicroBatchCommitted(result));
+        assertThat(events).containsExactly(new MicroBatchCommitted(result, NOW));
         assertThat(meters.find("pti.etl.kafka.to.commit").timer().count()).isEqualTo(2);
         assertThat(meters.find("pti.etl.stream.batches")
                         .tag("status", "COMPLETED")

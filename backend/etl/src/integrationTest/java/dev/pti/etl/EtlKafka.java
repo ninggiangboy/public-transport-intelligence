@@ -12,6 +12,7 @@ import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.errors.TopicExistsException;
 import org.apache.kafka.common.serialization.ByteArraySerializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.testcontainers.kafka.KafkaContainer;
@@ -56,6 +57,25 @@ public final class EtlKafka {
             throw new IllegalStateException(e);
         } catch (ExecutionException e) {
             throw new IllegalStateException("Cannot create topics", e);
+        }
+    }
+
+    /** One more topic under the prefix, for example {@code pti.events.ui} (DOC-09 §1). */
+    public static void createTopic(String prefix, String name, int partitions) {
+        Properties props = new Properties();
+        props.put(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers());
+        try (Admin admin = Admin.create(props)) {
+            admin.createTopics(List.of(new NewTopic(prefix + name, partitions, (short) 1)))
+                    .all()
+                    .get();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException(e);
+        } catch (ExecutionException e) {
+            // Spring may run a class's @DynamicPropertySource more than once; the topic is the same each time.
+            if (!(e.getCause() instanceof TopicExistsException)) {
+                throw new IllegalStateException("Cannot create topic " + prefix + name, e);
+            }
         }
     }
 

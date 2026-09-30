@@ -35,6 +35,7 @@ dependencies {
     runtimeOnly(libs.postgresql)
 
     testImplementation(libs.spring.batch.test)
+    testImplementation(testFixtures(project(":analytics")))
     testImplementation(libs.hibernate.validator)
     testImplementation(libs.micrometer.tracing.bridge.otel)
 
