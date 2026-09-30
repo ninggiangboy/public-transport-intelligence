@@ -186,11 +186,11 @@ class InsightGrantsIT {
                         ETL,
                         "update dispatch suggestion",
                         "UPDATE insight.insight_dispatch_suggestion SET action = 'no_action' WHERE id = " + SUGGESTION),
-                denied(
+                allowed(
                         75,
                         DB,
                         ETL,
-                        "delete dispatch suggestion",
+                        "delete dispatch suggestion (retention)",
                         "DELETE FROM insight.insight_dispatch_suggestion WHERE id = " + SUGGESTION),
                 denied(76, DB, ETL, "truncate bunching", "TRUNCATE insight.insight_bus_bunching"),
                 allowed(77, DB, ETL, "insert alert_event", """

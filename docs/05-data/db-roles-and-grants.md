@@ -146,13 +146,14 @@ Ký hiệu: S = SELECT, I = INSERT, U = UPDATE, D = DELETE, T = TRUNCATE, X = EX
 | `ops.alert_event` | S I D, U(title, body, severity, resolved_at) | S, U(audience, title, body, severity) | S | S I, U(acknowledged_by, acknowledged_at, resolved_at) | S |
 | `ops.ops_job_run_v`, `ops.ops_job_step_v`, `ops.ops_job_execution_param_v` | | | S | | S |
 | `insight.insight_*` (trừ dispatch) | SIUD | S, U(các cột enrichment, xem file) | S | | S |
-| `insight.insight_dispatch_suggestion` | S | S I, U(action, action_confidence, state_snapshot, model_version) | S | S, U(operator_feedback, feedback_by, feedback_at) | S |
+| `insight.insight_dispatch_suggestion` | S D | S I, U(action, action_confidence, state_snapshot, model_version) | S | S, U(operator_feedback, feedback_by, feedback_at) | S |
 | `insight.analytics_*` | SIUD | S | | | S |
 | `exp.*` | S I T | | | | S T |
 
 Ghi chú:
 
 - `etl_writer` có `DELETE` trên các bảng `ops` để các job retention chạy được (DOC-18). Role này không có `TRUNCATE` trên bảng thật.
+- `etl_writer` có `DELETE` (và `SELECT`) trên `insight.insight_dispatch_suggestion`, nhưng không có `INSERT` hay `UPDATE`: chỉ `OpsRetentionJob` xóa gợi ý quá `pti.retention.insight` (DOC-23 §12.3). Gợi ý vẫn do `triage_writer` ghi (DOC-24), nên không ai ngoài nó tạo hay sửa được nội dung.
 - `api_reader` **không** đọc được `batch.*`, `ops.dedup_registry` và `insight.analytics_*`. API đọc metadata job qua các view `ops_job_run_v`, `ops_job_step_v` và `ops_job_execution_param_v` (DR-62, DOC-15 §5). `experiment_runner` có sẵn quyền đọc các view này qua `GRANT SELECT ON ALL TABLES IN SCHEMA ops`, vì view được tạo trong V5_2, trước khi `R__grants.sql` chạy.
 - `replay_operator` **không** đọc được `dw.*`. Khi cần trả về bản ghi vừa ghi, API đọc bằng chính kết nối `operator` trên các bảng `ops`/`insight` mà role này có quyền `SELECT` (DR-20).
 - Bảng có cột identity (`dlq_action_log`, `dq_check_result`) **không cần** quyền trên sequence: PostgreSQL không kiểm tra quyền sequence khi sinh giá trị identity. Đã kiểm tra với `etl_writer` và `replay_operator` (§7).
@@ -277,7 +278,8 @@ REVOKE SELECT ON ops.dedup_registry FROM experiment_runner;
 
 -- ---------------------------------------------------------------- [P4] insight
 GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA insight TO etl_writer;
-REVOKE INSERT, UPDATE, DELETE ON insight.insight_dispatch_suggestion FROM etl_writer;
+-- DELETE stays: OpsRetentionJob removes suggestions older than pti.retention.insight (DOC-23 §12.3, DOC-17 §4.1).
+REVOKE INSERT, UPDATE ON insight.insight_dispatch_suggestion FROM etl_writer;
 
 GRANT SELECT ON ALL TABLES IN SCHEMA insight TO triage_writer;
 GRANT UPDATE (enrichment_status, enrichment_attempts, enrichment_lease_until)
@@ -365,6 +367,8 @@ Mỗi thao tác chạy trong một subtransaction luôn bị rollback, nên bộ
 | 44 | `experiment_runner` | select `ops_job_step_v` | được phép |
 | 45 | `triage_writer` | insert `alert_event` | **bị từ chối** |
 | 46 | `triage_writer` | update `alert_event.severity`, `audience`, `body` | được phép |
+
+Trường hợp 18 (INSERT) vẫn **bị từ chối** sau khi `etl_writer` được cấp `DELETE` trên `insight_dispatch_suggestion`. `InsightGrantsIT` kiểm tra phần còn lại của bảng này với cùng số thứ tự: #74 (UPDATE) bị từ chối, #75 (DELETE, dành cho retention) **được phép**.
 
 ### 7.2 `pg-source` (19 trường hợp, đã pass cả 19)
 

@@ -166,6 +166,8 @@ pti:
       batch-metadata-cleanup: "0 30 2 * * *"
       dedup-registry-cleanup: "0 */15 * * * *"
       data-quality: "0 */5 * * * *"
+      eta-aggregation: "0 5 * * * *"
+      otp-scorecard: "0 0 3 * * *"
   gtfs:
     bootstrap-location: ""
     static:
@@ -275,6 +277,8 @@ pti:
     dq-check-result: 30d
     alert-event: 90d
     batch-metadata: 30d
+    insight: 365d
+    baseline-snapshot: 30d
   partition:
     precreate-days: 7
 

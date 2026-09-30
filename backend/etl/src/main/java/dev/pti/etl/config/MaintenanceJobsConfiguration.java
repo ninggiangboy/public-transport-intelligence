@@ -12,6 +12,8 @@ import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Clock;
 import java.util.List;
 import org.springframework.batch.core.job.Job;
+import org.springframework.batch.core.step.Step;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
@@ -53,9 +55,21 @@ public class MaintenanceJobsConfiguration {
                 .build();
     }
 
-    /** DOC-18 §1.1; the {@code insight} tables join in P4. Unfinished rows never match their condition. */
+    /**
+     * DOC-18 §1.1. {@code purgeOps} deletes the {@code ops} rows, then {@code purgeInsight} (DOC-23 §12.3) the expired
+     * rows of {@code insight}. Unfinished rows never match their condition.
+     *
+     * @param realClock the audit columns of {@code ops} expire against real time: the business clock minus its offset
+     */
     @Bean(name = "OpsRetentionJob")
-    Job opsRetentionJob(BatchSteps steps, JdbcTemplate jdbc, RetentionProperties retention, MeterRegistry meters) {
+    Job opsRetentionJob(
+            BatchSteps steps,
+            JdbcTemplate jdbc,
+            RetentionProperties retention,
+            MeterRegistry meters,
+            BusinessClock businessClock,
+            @Qualifier("purgeInsightStep") Step purgeInsight) {
+        Clock realClock = Clock.offset(businessClock, businessClock.offset().negated());
         List<PurgeTarget> targets = List.of(
                 new PurgeTarget("ops.etl_stream_batch", "started_at < ?", retention.etlStreamBatch()),
                 new PurgeTarget(
@@ -68,7 +82,8 @@ public class MaintenanceJobsConfiguration {
                 new PurgeTarget("ops.alert_event", "created_at < ?", retention.alertEvent()));
         return steps.job(PtiJob.OPS_RETENTION)
                 .start(steps.tasklet(
-                        "purgeOps", new BatchedPurgeTasklet(jdbc, Clock.systemUTC(), targets, PURGE_BATCH, meters)))
+                        "purgeOps", new BatchedPurgeTasklet(jdbc, realClock, targets, PURGE_BATCH, meters)))
+                .next(purgeInsight)
                 .build();
     }
 

@@ -1,12 +1,15 @@
 package dev.pti.etl.analytics.config;
 
 import dev.pti.analytics.reference.application.port.ActiveFeedVersion;
+import dev.pti.analytics.retention.domain.RetentionPolicy;
 import dev.pti.common.spring.SpringTransactionRunner;
 import dev.pti.common.time.BusinessClock;
 import dev.pti.common.tx.TransactionRunner;
 import dev.pti.etl.analytics.adapter.out.feed.ReferenceDataActiveFeed;
 import dev.pti.etl.analytics.adapter.out.kafka.KafkaAnalyticsEventSink;
+import dev.pti.etl.config.GtfsProperties;
 import dev.pti.etl.config.PlatformProperties;
+import dev.pti.etl.config.RetentionProperties;
 import dev.pti.etl.reference.ReferenceDataHolder;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.util.Map;
@@ -40,6 +43,15 @@ class EtlAnalyticsConfiguration {
     @Bean
     TransactionRunner analyticsTransactionRunner(PlatformTransactionManager transactionManager) {
         return new SpringTransactionRunner(transactionManager).isolation(Isolation.READ_COMMITTED);
+    }
+
+    /** {@code pti.retention.insight} and {@code .baseline-snapshot} for the library's retention (DOC-23 §12.3). */
+    @Bean
+    RetentionPolicy insightRetentionPolicy(RetentionProperties retention, GtfsProperties gtfs) {
+        return new RetentionPolicy(
+                retention.insight(),
+                retention.baselineSnapshot(),
+                gtfs.staticFeed().zone());
     }
 
     @Bean

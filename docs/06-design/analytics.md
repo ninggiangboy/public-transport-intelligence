@@ -33,7 +33,7 @@ Không thuộc tài liệu này:
   - Profile `batch`: định nghĩa `EtaAggregationJob`, `OtpScorecardJob`, `TicketingAnomalyJob`, `AnalyticsRecomputeJob` và step `recomputeAnalytics` của `RawZoneReplayJob`. Tasklet của các job này chỉ gọi service của `analytics`.
 - Package gốc: `dev.pti.analytics`. Feature: `core`, `reference`, `bunching`, `disruption`, `eta`, `otp`, `ticketing`, `alert`, `event`, `recompute`. Mỗi feature chia tầng `domain`, `application` (`application.port`), `adapter.out.jdbc`, `config` theo Clean Architecture (DOC-49, ADR-0032); thư viện không có `adapter.in`. Vị trí từng thành phần của tài liệu này ở DOC-49 §11.1. Tên package trong các khối code dưới đây là feature; tầng cụ thể theo bảng đó (ví dụ `dev.pti.analytics.core` → `dev.pti.analytics.core.domain.RunResult`, `dev.pti.analytics.core.application.RouteDetector`).
 - Phần nối trong `etl` là code mới nên cũng tuân thủ DOC-49 dù module `etl` còn bị freeze tới Phase R: package `dev.pti.etl.analytics` với `adapter.in.event` (`AnalyticsDispatcher`), `adapter.in.scheduling` (tick), `adapter.in.batch` (tasklet), `adapter.out.kafka` (`KafkaAnalyticsEventSink`), `config`.
-- Mọi truy vấn chạy bằng DataSource chính của `etl` (user `etl_writer`, DOC-17). `etl_writer` có `SELECT, INSERT, UPDATE, DELETE` trên `insight.*` (trừ `insight_dispatch_suggestion`) và `U(title, body, severity, resolved_at)` trên `ops.alert_event`.
+- Mọi truy vấn chạy bằng DataSource chính của `etl` (user `etl_writer`, DOC-17). `etl_writer` có `SELECT, INSERT, UPDATE, DELETE` trên `insight.*` (riêng `insight_dispatch_suggestion` chỉ có `SELECT, DELETE`, để retention xóa được; DOC-17 §4.1) và `U(title, body, severity, resolved_at)` trên `ops.alert_event`.
 - `api` **không** phụ thuộc `analytics`. `api` chỉ đọc bảng `insight.*` và tự hiện thực câu SQL arrivals ở §7.4.
 
 ## 2. Quy ước chung
@@ -318,6 +318,8 @@ Mọi pod `etl-stream` đều chạy tick. Khóa ở §2.5 bảo đảm mỗi tu
 | `OtpScorecardJob` | `runKey` (`scheduled:<runDate>` \| `manual:<requestId>`) | `serviceDates` (danh sách, mặc định `runDate − 1 … runDate − 3`) | `0 0 3 * * *` zone `America/Chicago` | `otpScorecard` (30 phút) | `computeOtp` (tasklet CONTINUABLE, một ngày mỗi lần gọi) |
 | `TicketingAnomalyJob` | `slot` (mốc 5 phút theo giờ nghiệp vụ) | — | `0 */5 * * * *` | `ticketingAnomaly` (4 phút) | `detectTicketingAnomalies` (tasklet CONTINUABLE, một cửa sổ mỗi lần gọi) |
 | `AnalyticsRecomputeJob` | `runKey` (`manual:<requestId>`) | `detectors`, `fromTs`, `toTs` | Chỉ qua `job_request` | Không | `recompute` (tasklet CONTINUABLE, §11.5) |
+
+Tham số `hour` của ETA là instant ISO-8601 tròn giờ, không sau giờ hiện tại; `force` là `true` hoặc `false`; `serviceDates` của OTP là danh sách ngày ISO nối bằng `+` (hoặc dấu phẩy), mỗi ngày nhỏ hơn hôm nay và còn trong thời hạn lưu `fact_trip_update`. Job kết thúc với exit code `NOOP` khi chưa có feed ACTIVE (§15) hoặc, với ETA, khi watermark không đổi.
 
 ETA và OTP chuyển từ tham số định danh `hour`/`serviceDate` sang `runKey`, theo mẫu của `GtfsStaticLoadJob`. Lý do: operator cần chạy lại cùng một giờ hoặc cùng một ngày (sau replay, sau khi đổi ngưỡng FR-08.2), mà `JobRequestPoller` từ chối instance đã `COMPLETE`. Lịch tự động vẫn dùng `scheduled:<…>`, nên cron bắn hai lần vẫn chỉ chạy một lần. DOC-19 §2 được cập nhật theo bảng này.
 
@@ -783,6 +785,8 @@ step aggregateEta (tasklet, RepeatStatus.CONTINUABLE):
 
 - `force = true` khi job được gọi từ tính lại (§11) hoặc khi `job_request` có tham số `force=true`.
 - Mỗi lần gọi xử lý một tuyến (dưới 1 giây với 28 ngày dữ liệu của một tuyến), nên an toàn với `stale-after` 2 phút (DOC-19 §7.2). Restart tiếp tục từ `pti.eta.index`.
+- Chuỗi watermark lấy thời điểm lớn nhất theo UTC (`AT TIME ZONE 'UTC'`), để không phụ thuộc múi giờ của session.
+- Câu SQL của một tuyến trả về số dòng đã upsert và đã xóa (CTE `deleted ... RETURNING 1`), dùng cho log và thống kê tính lại (§11.7).
 - Watermark chỉ để bỏ qua lần chạy khi **không có dữ liệu mới**. Trong trường hợp đó, cửa sổ chỉ trượt mất một giờ dữ liệu cũ nhất, và sai khác này được bù ở lần chạy có dữ liệu kế tiếp.
 
 ### 7.3 Mức tin cậy
@@ -1345,7 +1349,7 @@ Khóa `analytics_recomputed` hiện có trong `stats` (DOC-22 §4.6) vẫn là b
 
 ### 12.3 Thời hạn lưu
 
-`OpsRetentionJob` (DOC-18) xóa theo lô 10.000 dòng. Mốc "bây giờ" là `businessNow` cho cột event time.
+`OpsRetentionJob` (DOC-18) xóa theo lô 5.000 dòng (như mọi bước retention, DOC-18 §5), mỗi lô một transaction, ở bước `purgeInsight` chạy sau `purgeOps`. Mốc "bây giờ" là `businessNow` cho cột event time và `created_at` của `insight_dispatch_suggestion` (giờ thật do DB ghi) dùng giờ thật. `etl_writer` chỉ có `DELETE` (không `INSERT`, `UPDATE`) trên `insight_dispatch_suggestion` (DOC-17 §4.1).
 
 | Bảng | Điều kiện xóa | Khóa cấu hình |
 | --- | --- | --- |

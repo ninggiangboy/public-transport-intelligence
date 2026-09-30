@@ -18,4 +18,6 @@ public record RetentionProperties(
         @NotNull Duration jobRequest,
         @NotNull Duration dqCheckResult,
         @NotNull Duration alertEvent,
-        @NotNull Duration batchMetadata) {}
+        @NotNull Duration batchMetadata,
+        @NotNull Duration insight,
+        @NotNull Duration baselineSnapshot) {}

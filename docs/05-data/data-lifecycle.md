@@ -169,7 +169,7 @@ Chi tiết cài đặt của từng job (step, `@SchedulerLock`, job parameters)
 | Job | Chạy ở | Lịch (giờ thật, UTC) | Việc |
 | --- | --- | --- | --- |
 | `PartitionMaintenanceJob` | etl-batch | Lúc khởi động và 01:15 hằng ngày | `dw.ensure_partitions(table, businessToday − 1, businessToday + 7)` (vé: `+ 40`); `dw.drop_partitions_before(table, businessToday − retention)` |
-| `OpsRetentionJob` | etl-batch | 02:00 hằng ngày | Xóa theo lô các bảng `ops` (và `insight` từ P4) quá hạn ở §1.1 |
+| `OpsRetentionJob` | etl-batch | 02:00 hằng ngày | Xóa theo lô các bảng `ops` (bước `purgeOps`) rồi các bảng `insight` (bước `purgeInsight`, từ P4) quá hạn ở §1.1 |
 | `BatchMetadataCleanupJob` | etl-batch | 02:30 hằng ngày | Xóa metadata Spring Batch cũ hơn 30 ngày (DR-62) |
 | `DedupRegistryCleanupJob` | etl-batch | Mỗi 15 phút | `DELETE FROM ops.dedup_registry WHERE first_seen_at < :now − ttl` theo lô |
 | Ledger maintenance | source-simulator | Lúc khởi động và mỗi giờ | `sim.ensure_ledger_partitions`, `sim.drop_ledger_partitions_before` (DOC-13 §6) |

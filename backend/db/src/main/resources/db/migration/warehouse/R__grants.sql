@@ -80,7 +80,8 @@ REVOKE SELECT ON ops.dedup_registry FROM experiment_runner;
 
 -- ---------------------------------------------------------------- insight (V7, DOC-17 §4.1)
 GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA insight TO etl_writer;   -- DELETE: retention job
-REVOKE INSERT, UPDATE, DELETE ON insight.insight_dispatch_suggestion FROM etl_writer;
+-- DELETE stays: OpsRetentionJob removes suggestions older than pti.retention.insight (DOC-23 §12.3, DOC-17 §4.1).
+REVOKE INSERT, UPDATE ON insight.insight_dispatch_suggestion FROM etl_writer;
 
 GRANT SELECT ON ALL TABLES IN SCHEMA insight TO triage_writer;
 GRANT UPDATE (enrichment_status, enrichment_attempts, enrichment_lease_until)

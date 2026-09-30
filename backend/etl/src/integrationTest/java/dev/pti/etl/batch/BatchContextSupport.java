@@ -36,6 +36,8 @@ import org.springframework.test.context.DynamicPropertySource;
             "pti.batch.schedule.batch-metadata-cleanup=-",
             "pti.batch.schedule.dedup-registry-cleanup=-",
             "pti.batch.schedule.data-quality=-",
+            "pti.batch.schedule.eta-aggregation=-",
+            "pti.batch.schedule.otp-scorecard=-",
             "pti.batch.poller.interval=1s",
             "pti.retention.vehicle-position=3650d",
             "pti.retention.trip-update=3650d",

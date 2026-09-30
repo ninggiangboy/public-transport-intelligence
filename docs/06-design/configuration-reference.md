@@ -140,7 +140,7 @@ Mỗi datasource `pti.datasource.<name>` gồm `url`, `username`, `password` (bi
 | `pti.batch.stale-after` | Duration | `2m` | Ngưỡng coi một execution `STARTED` là kẹt | DR-24 | Chốt |
 | `pti.batch.executor.core-size` / `.max-size` / `.queue-capacity` | int | `2` / `3` / `20` | Executor khởi chạy job | DOC-19 §3.3 | Chốt |
 | `pti.batch.poller.interval` | Duration | `5s` | `JobRequestPoller` | DOC-19 §7 | Chốt |
-| `pti.batch.schedule.<job>` | cron | bảng DOC-19 §2 | `-` để tắt lịch của một job | DOC-19 §2 | Chốt |
+| `pti.batch.schedule.<job>` | cron | bảng DOC-19 §2 | `-` để tắt lịch của một job. Các khóa analytics: `eta-aggregation` (`0 5 * * * *`, UTC) và `otp-scorecard` (`0 0 3 * * *`, múi giờ `pti.gtfs.static.zone`) | DOC-19 §2, DOC-23 §4.3 | Chốt |
 
 **GTFS static (DOC-21)**
 
