@@ -40,6 +40,7 @@ public class MessageProcessorRouter implements ItemProcessor<InboundMessage, Wri
     public WriteSet process(InboundMessage item) {
         RuleContext context = new RuleContext(
                 clock.instant(),
+                clock.offset(),
                 StepValues.replay(step.get()),
                 reference.current().orElse(null));
         return processors.forSource(item.source()).process(item, context);

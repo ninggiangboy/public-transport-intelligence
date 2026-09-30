@@ -269,7 +269,7 @@ class DebeziumTicketingContractTest {
         Map<String, DataException> rejected = new HashMap<>();
         List<WriteSet> sets = new ArrayList<>();
         UUID batchId = UUID.randomUUID();
-        RuleContext context = new RuleContext(Instant.now(), false, null);
+        RuleContext context = new RuleContext(Instant.now(), Duration.ZERO, false, null);
         tx.executeWithoutResult(status -> {
             for (ConsumerRecord<String, byte[]> r : records) {
                 if (r.value() == null) {

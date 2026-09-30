@@ -1,6 +1,6 @@
 # Rule chất lượng dữ liệu
 
-> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-16
+> Trạng thái: **Approved** · Cập nhật: 2026-09-30 (DQ-07 khi replay, DR-100) · DOC-16
 > Phụ thuộc: [DOC-03](../01-product/requirements.md) (FR-02, FR-03, FR-04.4), [DOC-09](../03-architecture/messaging-contracts.md), [DOC-14](warehouse-model.md), [DOC-15](ops-and-insight-model.md), [DOC-19](../06-design/batch-and-chunk-processing.md), [DOC-20](../06-design/etl-streaming.md), [DOC-25](../06-design/source-simulator.md) §7.3, [DR](../00-decision-register.md) (DR-13, 23, 25, 63, 67, 69)
 > Người dùng chính: `etl` (P2-04, P2-15), `analytics`, DOC-28 (alert), DOC-45 (EXP-03)
 
@@ -38,7 +38,7 @@ Ký hiệu nguồn: **VP** = VehiclePosition, **TU** = TripUpdate (mỗi phần 
 | DQ-04 | VP, TU | QUALITY | Trạm tồn tại | `stop_id` không có trong `dw.dim_stop` của feed ACTIVE | Không |
 | DQ-05 | VP, TU | QUALITY | Chuyến tồn tại và khớp tuyến | `trip_id` không có trong `dw.gtfs_trip` của feed ACTIVE, **hoặc** `route_id`/`direction_id` của record khác với của chuyến trong lịch | Không |
 | DQ-06 | VP | QUALITY | Tọa độ trong vùng phục vụ | `lat`/`lon` nằm ngoài bbox của feed ACTIVE nới thêm `pti.dq.bbox-margin` (mặc định 0,1°, khoảng 8–11 km) ở mỗi phía | Không |
-| DQ-07 | VP, TU | QUALITY | Event time hợp lý | `|event_timestamp − businessNow| > pti.dq.max-clock-skew` (mặc định 1 giờ). `businessNow` là đồng hồ nghiệp vụ (DR-67), **không** phải giờ thật | **Có** |
+| DQ-07 | VP, TU | QUALITY | Event time hợp lý | `|event_timestamp − businessNow| > pti.dq.max-clock-skew` (mặc định 1 giờ). `businessNow` là đồng hồ nghiệp vụ (DR-67), **không** phải giờ thật. Khi replay: `event_timestamp − (produced_at + offset hiện tại) > pti.dq.max-clock-skew`, chỉ chiều tương lai (DR-100) | **Đổi mốc**: so với lúc publish thay vì `businessNow` |
 | DQ-08 | TU | QUALITY | Độ trễ hợp lý | Có `arrival.delay` hoặc `departure.delay` ngoài `±pti.dq.max-delay` (mặc định 7.200 giây). Vi phạm ở một phần tử thì **cả TripUpdate** vào DLQ (một dòng DLQ), vì các phần tử được sinh cùng một mô hình | Không |
 | DQ-09 | VP, TU | QUALITY | Ngày phục vụ khớp event time | `start_date` không thuộc `{D − 1, D}` với `D` = ngày của `event_timestamp` theo giờ agency. Chuyến sau nửa đêm vẫn thuộc ngày hôm trước, nên `D − 1` hợp lệ. Rule này cũng ngăn dòng rơi vào partition DEFAULT | Không |
 | DQ-10 | TX | QUALITY | Số tiền hợp lý | `amount < 0`, hoặc `amount > pti.dq.max-ticket-amount` (mặc định 500.00), hoặc `currency ≠ 'USD'` | Không |
@@ -123,7 +123,7 @@ Chạy bởi `DataQualityJob` (etl-batch, tasklet, `@Scheduled` + ShedLock, DOC-
 | DQ-24 | `dw.fact_trip_update` | TABLE, như trên | Mỗi giờ | Vi phạm bất biến của DR-13: `is_observed = true` nhưng `coalesce(arrival_time, departure_time) > event_timestamp` | > 0 |
 | DQ-25 | `dw.vehicle_position_latest` | TABLE | Mỗi 5 phút | Dòng có `event_timestamp` mới hơn dòng mới nhất trong `fact_vehicle_position` của cùng xe (bảng latest và fact lệch nhau) | > 0 |
 | DQ-26 | `dw.dim_vehicle` | TABLE | Mỗi ngày | Số xe `source = 'REALTIME'` (xe không có trong `vehicles.txt`) | > 5% số xe (chỉ ghi nhận, severity 0) |
-| DQ-27 | fact do job batch ghi | BATCH (theo `batch_id` của step) | `afterStep` của mọi step ghi fact (replay, DOC-22) | `write_count` của step bằng số dòng có `batch_id` đó trong bảng đích, trừ số dòng bị guard chặn. **Hoãn sang P3 (DR-92)** | ≠ 0 |
+| DQ-27 | fact do job batch ghi | BATCH (theo `batch_id` của step) | `afterStep` của mọi step ghi fact (replay, DOC-22) | `write_count` của step bằng số dòng có `batch_id` đó trong bảng đích, trừ số dòng bị guard chặn. **Bỏ (DR-100):** EXP-04 kiểm cùng tính chất chặt hơn bằng fingerprint từng key; ID giữ lại, không dùng | ≠ 0 |
 
 Ví dụ `DQ-22.sql`:
 
@@ -250,7 +250,9 @@ Mỗi rule có unit test với bảng dữ liệu bên dưới (fixture là tuy�
 | 12 | DQ-06 | VP cách mép bbox 0,05° | Hợp lệ |
 | 13 | DQ-07 | VP event 23:20:00 (+2 giờ) | DLQ `DQ-07` |
 | 14 | DQ-07 | VP event 20:25:00 (−55 phút) | Hợp lệ |
-| 15 | DQ-07 | Như ca 13 nhưng `replay = true` | Hợp lệ |
+| 15 | DQ-07 | Như ca 13 nhưng `replay = true` (event 2 giờ sau `produced_at`) | DLQ `DQ-07` (DR-100) |
+| 15b | DQ-07 | Ví dụ gốc, `replay = true`, `businessNow` 3 ngày sau | Hợp lệ (dữ liệu cũ publish đúng giờ) |
+| 15c | DQ-07 | Như ca 15 nhưng offset hiện tại +2 giờ (đồng hồ đã nhảy tới sau khi publish) | Hợp lệ (đọc `produced_at` bằng offset hiện tại chỉ làm lúc publish muộn hơn) |
 | 16 | DQ-07 | `PTI_CLOCK_OFFSET = -12h`, event = giờ thật − 12 giờ | Hợp lệ (so với đồng hồ nghiệp vụ) |
 | 17 | DQ-08 | TU có `delay = 9000` | DLQ `DQ-08` |
 | 18 | DQ-09 | VP `start_date = 20260929`, event `2026-09-30T06:30:00Z` (01:30 CDT ngày 30) | Hợp lệ (chuyến sau nửa đêm) |

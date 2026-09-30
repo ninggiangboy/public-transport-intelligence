@@ -70,6 +70,7 @@ public final class TripUpdateProcessor implements MessageProcessor {
                         stops,
                         serviceDate,
                         event,
+                        read.envelope().producedAt(),
                         null,
                         null,
                         delays),

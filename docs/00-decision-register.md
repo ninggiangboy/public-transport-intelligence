@@ -53,6 +53,7 @@ Tài liệu gốc mô tả tốt *cái gì* và *vì sao*, nhưng còn nhiều c
 | 2026-09-28 | Claude (Owner ủy quyền) | **S3 sink OOM khi chạy live (P1-14):** Aiven 3.4.3 cắt file mỗi 10 giây trên mỗi partition và giữ buffer của writer tới lần commit, nên với commit 5 phút task chết sau vài phút có traffic. Giữ 3.4.3; `aws.s3.part.size.bytes` = 1 MiB, worker commit mỗi 30 giây. Số object raw zone tăng khoảng 15 lần; replay (P3) phải xem lại `pti.replay.max-objects` | DR-89 (mới), sửa DR-81, ADR-0012, DOC-09 §7, DOC-39 §3.4, DOC-40, DOC-22 §4.3 |
 | 2026-09-29 | Claude (Owner ủy quyền) | **Phase 2 xong:** claim yêu cầu job/replay commit trước khi gọi `JobOperator`; replay raw zone liệt kê object theo giờ thay vì lưu danh sách (đóng mục mở của DR-89); hoãn DQ-27 sang P3; các chi tiết nhỏ khác | DR-90, DR-91, DR-92, DR-93 (mới) |
 | 2026-09-29 | Owner | **Máy thực nghiệm và lưu kết quả:** thực nghiệm chính thức chạy trên một máy riêng cố định 16 GB (không gắn với máy cụ thể), không chạy trên máy dev hay GitHub Actions; file kết quả nhỏ commit vào git, file lớn gói theo chuỗi lên GitHub Release `exp-results` | DR-94 (mới) |
+| 2026-09-30 | Claude (Owner ủy quyền) | **DQ-07 khi replay và runner thực nghiệm (P3-06…08):** replay kiểm DQ-07 theo lúc publish thay vì bỏ qua; EXP-04 smoke chỉ so key TripUpdate có đủ lịch sử trong cửa sổ; đóng cửa sổ bằng hệ số 0; bỏ DQ-27 | DR-100 (mới), DR-16, DR-92, DOC-16 §2, EXP-04, DOC-45 §1.3 |
 | 2026-09-30 | Claude (Owner ủy quyền) | **Alert (P3-05):** alert đếm sự kiện rời rạc tính cả giá trị đầu tiên của series mới (`events()`); `CircuitBreakerOpen` tính cả `half_open`; gauge phụ thuộc DB/Connect không được chặn scrape; kết quả O-08 ghi ở DOC-42 §4 | DR-99 (mới), DOC-28 §6.1, §6.3, §9, DOC-42 §4 |
 | 2026-09-29 | Claude (Owner ủy quyền) | **Instrumentation (P3-03):** `pti.etl.poll` là span gốc có link tới span producer; không làm span `pti.etl.dedup` riêng; metric có label phụ thuộc dữ liệu chỉ xuất hiện sau sự kiện đầu tiên; catalog metric nằm trong test resources của từng module; key OTLP mới của Spring Boot 4.1 | DR-98 (mới), DOC-28 §5.2, §8, §9 |
 | 2026-09-29 | Claude (Owner ủy quyền) | **Profile observability (P3-02):** Grafana 13 và Tempo 3 thay 12.x và 2.x theo nguyên tắc dùng bản mới nhất; Loki, Tempo, OTel Collector không có healthcheck vì image distroless, Prometheus scrape chúng thay thế; app của profile tùy chọn được Prometheus tìm qua DNS | DR-97 (mới), DOC-11 §2, DOC-39 §3.7, §4 |
@@ -207,6 +208,7 @@ Tài liệu gốc mô tả tốt *cái gì* và *vì sao*, nhưng còn nhiều c
   - PK `(source, payload_hash)`, có `first_seen_at` và `batch_id`. ~~TTL 24 giờ~~ **TTL 1 giờ** (cấu hình được, `pti.etl.dedup.ttl`), dọn bằng job xóa theo lô mỗi 5 phút.
   - *Điều chỉnh 2026-09-26 (DOC-10 §3):* với TTL 24 giờ, registry giữ khoảng 12 triệu hash (khoảng 1,7 GB gồm index), index không còn nằm trong `shared_buffers` và mỗi lần chèn phải đọc ngẫu nhiên từ đĩa. Các tình huống gửi lại mà registry cần bắt (producer retry, kịch bản `duplicates` gửi lại trong vòng 60 giây) đều nằm trong vài phút. TTL 1 giờ giữ khoảng 520 nghìn dòng (khoảng 70 MB). Tính đúng đắn không đổi vì nó dựa vào upsert.
   - **Mọi luồng replay (DLQ và raw zone) đều bỏ qua registry** (job parameter `replay=true` của Spring Batch, processor đọc qua `@StepScope`).
+  - *Điều chỉnh 2026-09-30 (DR-100):* replay không còn bỏ DQ-07 mà kiểm theo lúc publish (`produced_at`), chỉ chiều tương lai.
 - **Ghi vào:** ADR-0003, DOC-19, DOC-22.
 
 ### DR-17 · Bảng cảnh báo hợp nhất
@@ -385,7 +387,7 @@ Tài liệu gốc mô tả tốt *cái gì* và *vì sao*, nhưng còn nhiều c
 - **Đã kiểm:** IT R-08 và kiểm tra M2 trên compose: `docker kill etl-batch` sau 1.500 dòng của một giờ 27.301 dòng, recoverer đánh dấu `STALE`, restart qua `job_request` đọc tiếp 25.801 dòng; 27.301 dòng fact, không trùng, không mất.
 - **Ghi vào:** DOC-22 §4.3, §4.4, §8, DOC-19 §3.2, DOC-29.
 
-### DR-92 · Hoãn DQ-27 sang P3 — **Tạm** (P2)
+### DR-92 · Hoãn DQ-27 sang P3 — **Chốt: bỏ DQ-27** (P2, đóng ở DR-100)
 - **Vấn đề:** DQ-27 so `write_count` của step với số dòng mang `batch_id` của step, trừ dòng bị guard chặn. Writer chỉ đếm theo message; một TripUpdate ghi nhiều dòng và replay ghi lại cùng dòng nhiều lần (`:replay`), nên phép so sánh báo vi phạm giả với mọi replay TripUpdate. Muốn đúng thì `FactChunkWriter` phải trả số dòng khác nhau thực sự đổi.
 - **Quyết định:** P2 làm DQ-20…26; DQ-27 làm ở P3 cùng EXP-04, khi checksum của replay kiểm được cùng tính chất một cách chặt hơn.
 - **Ghi vào:** DOC-16 §3 (chú thích), master plan P2-15.
@@ -751,6 +753,18 @@ Tài liệu gốc mô tả tốt *cái gì* và *vì sao*, nhưng còn nhiều c
 - **Baseline không phải pipeline.** `etl-stream-baseline` (DR-27) cùng `application="etl-stream"` nhưng chỉ có listener GTFS-rt và group riêng: trong chuỗi smoke `ConsumerStopped` bắn cho `ticketing-sales` và `ticketing-sale-points` của baseline, còn `pti:kafka_lag:sum` cộng cả lag của group baseline. Recording rule dựa trên metric của `etl-stream` và alert `ConsumerStopped`, `ConsumerPaused` loại `job="pti-etl-stream-baseline"`.
 - **Kết quả O-08 trên compose:** `TargetDown`, `ConnectorDown`, `DlqRateHigh`, `CircuitBreakerOpen`, `BatchJobFailed`, `GtfsFeedRejected`, `DataQualityCheckStale` tới Mailpit và tự hết. Các alert khác chỉ dựa vào `promtool test rules` (60 ca) ở P3; bảng chi tiết ở DOC-42 §4.
 - **Ghi vào:** DOC-28 §6.1, §6.3, §9; DOC-42 §4; `deploy/compose/observability/prometheus/rules/`, `tests/`; CI `pr.yml` chạy `promtool check config`, `check rules`, `test rules`.
+
+### DR-100 · DQ-07 khi replay, và chi tiết của runner thực nghiệm (P3-06…08) — **Chốt** (P3; sửa DR-16)
+- **Vấn đề:** DR-16 cho replay bỏ hẳn DQ-07, vì dữ liệu cũ luôn lệch xa `businessNow`. Chuỗi smoke đầu tiên (P3-08) cho thấy hệ quả: EXP-04 replay cửa sổ của EXP-03 và ghi 154 message `future_timestamp` (event time +2 giờ) thành fact. Guard event-time sau đó chặn mọi cập nhật hợp lệ của cùng key trong 2 giờ, nên chuỗi kế tiếp trên cùng stack có `wrong_value` ở `fact_trip_update`. EXP-04 bản đầy đủ đã né bằng cách bỏ `future_timestamp` khỏi nhiễu, nhưng lỗi vẫn có trong vận hành thật (RB-11, replay theo khoảng).
+- **Quyết định:**
+  - DQ-07 chạy cả khi replay, nhưng so event time với **lúc message được publish** (`produced_at` của envelope cộng offset hiện tại) thay vì `businessNow`, và chỉ chiều tương lai: `event_timestamp − (produced_at + offset) > pti.dq.max-clock-skew`. Offset không bao giờ lùi (DOC-45 §1.1), nên đọc `produced_at` bằng offset hiện tại chỉ làm lúc publish muộn hơn thật: record hợp lệ không bao giờ bị loại nhầm, record ở tương lai bị loại trừ khi đồng hồ đã nhảy tới ≥ 1 giờ sau lúc publish (chỉ xảy ra ở dev). Chiều quá khứ vẫn bỏ khi replay. Record `late-delivery` (DQ-07 vì đến muộn) vẫn được auto-replay, vì event time của nó trước lúc publish. `RuleContext` có thêm `clockOffset`, `RealtimeFacts` có thêm `producedAt`.
+  - EXP-04 đầy đủ giữ `future_timestamp` trong nhiễu; runner chỉ bỏ dead letter DQ-12 (replay bỏ DQ-12 theo DR-16) khỏi phép so sánh.
+  - **EXP-04 trong chuỗi smoke** chỉ so key TripUpdate có toàn bộ lịch sử nằm trong cửa sổ replay: dòng TripUpdate giữ những gì message trước đã quan sát (`is_observed` không quay về false, `scheduled_arrival` dùng coalesce, DR-13), nên replay một cửa sổ không thể tái tạo key đã có message từ trước cửa sổ. Key có message sau cửa sổ cũng bị loại như trước. EXP-04 đầy đủ bắt đầu từ `make reset` nên không bị ảnh hưởng.
+  - **Đóng cửa sổ bằng hệ số 0.** Runner dừng phát bằng `PUT /sim/rate` về 0 rồi chờ 3 giây cho tick đang gửi, thay cho `docker pause` simulator (DOC-45 §2.1): pause giữ producer giữa chừng và làm lag Kafka của simulator khó đoán. Runner để simulator ở hệ số 0 cho tới khi đo xong ground truth; lệnh gọi (`smoke`, `run`) đưa về hệ số 1 sau đó. Trước đây runner bật lại tải trong `finally`, trước khi đo, và TripUpdate mới ghi đè đúng dòng mà cửa sổ cần.
+  - **DQ-27 bỏ** (đóng DR-92): tính chất "mỗi dòng replay ghi đúng một lần và đúng nội dung" được EXP-04 kiểm chặt hơn bằng fingerprint từng key (C1) và tập dead letter (C2). Muốn DQ-27 đúng thì writer phải đếm số dòng khác nhau thực sự đổi qua mọi chunk của step, tốn bộ nhớ theo số key của replay. ID DQ-27 giữ lại, không dùng.
+  - Lag đã commit đọc bằng `docker exec pti-kafka-1 kafka-consumer-groups.sh` (DOC-45 §4.2). Runner ghi `PTI_CLOCK_OFFSET` vào `.env` và tạo lại `source-simulator`, `etl-*` với cùng biến của `make up-exp` khi phải nhảy đồng hồ.
+  - `sql/rows/<bảng>.sql` bên cạnh `sql/checksum/<bảng>.sql`: cùng danh sách cột, nhưng trả md5 theo từng business key để EXP-04 chỉ ra key nào khác.
+- **Ghi vào:** DR-16, DR-92, DOC-16 §2 (DQ-07, ca test 15–15c), EXP-04 §2 và §9, DOC-45 §1.3, §2.1, master plan P3-06…08.
 
 ---
 

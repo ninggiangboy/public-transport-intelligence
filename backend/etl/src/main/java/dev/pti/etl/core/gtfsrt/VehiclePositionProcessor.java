@@ -54,6 +54,7 @@ public final class VehiclePositionProcessor implements MessageProcessor {
                         List.of(vp.stopId()),
                         serviceDate,
                         event,
+                        read.envelope().producedAt(),
                         vp.lat(),
                         vp.lon(),
                         List.of()),

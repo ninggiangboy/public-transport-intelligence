@@ -76,11 +76,11 @@ public final class EtlFixtures {
     }
 
     public static RuleContext context() {
-        return new RuleContext(NOW, false, referenceData());
+        return new RuleContext(NOW, Duration.ZERO, false, referenceData());
     }
 
     public static RuleContext replayContext() {
-        return new RuleContext(NOW, true, referenceData());
+        return new RuleContext(NOW, Duration.ZERO, true, referenceData());
     }
 
     /** DOC-09 §3 vehicle position, schema version 2, event 21:19:05Z. */

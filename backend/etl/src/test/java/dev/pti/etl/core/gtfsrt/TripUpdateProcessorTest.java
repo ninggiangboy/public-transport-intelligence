@@ -13,6 +13,7 @@ import dev.pti.etl.core.TripUpdateRow;
 import dev.pti.etl.core.WriteSet;
 import dev.pti.etl.rules.RuleContext;
 import dev.pti.etl.testing.EtlFixtures;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import org.junit.jupiter.api.Test;
@@ -115,7 +116,7 @@ class TripUpdateProcessorTest {
     @Test
     void withoutReferenceDataInReplayTheScheduleComesFromTheMessage() {
         ObjectNode json = tripUpdate();
-        RuleContext lenient = new RuleContext(EtlFixtures.NOW, true, EtlFixtures.referenceData());
+        RuleContext lenient = new RuleContext(EtlFixtures.NOW, Duration.ZERO, true, EtlFixtures.referenceData());
         assertThat(process(json, lenient).tripUpdates()).hasSize(2);
     }
 

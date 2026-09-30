@@ -5,6 +5,7 @@ import dev.pti.etl.config.DqProperties;
 import dev.pti.etl.reference.ReferenceData;
 import dev.pti.etl.reference.TripRef;
 import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -124,7 +125,12 @@ public final class RealtimeRules {
         }
     }
 
-    /** DQ-07: event time within {@code pti.dq.max-clock-skew} of the business clock; skipped on replay. */
+    /**
+     * DQ-07: event time within {@code pti.dq.max-clock-skew} of the business clock. A replay reads old data, so "now"
+     * says nothing about it; it checks instead that the event is not more than the skew after the message was
+     * published (DR-100). Only that direction: the clock offset never goes back (DOC-45 §1.1), so reading
+     * {@code produced_at} with today's offset can only place the publication later, never flag a valid record.
+     */
     static final class PlausibleEventTime extends Quality {
 
         private final Duration maxSkew;
@@ -139,12 +145,15 @@ public final class RealtimeRules {
         }
 
         @Override
-        public boolean appliesDuringReplay() {
-            return false;
-        }
-
-        @Override
         public Optional<String> check(RealtimeFacts r, RuleContext context) {
+            if (context.replay()) {
+                Instant published = r.producedAt().plus(context.clockOffset());
+                Duration ahead = Duration.between(published, r.eventTimestamp());
+                return ahead.compareTo(maxSkew) > 0
+                        ? Optional.of("Event time %s is %ds after its publication at %s"
+                                .formatted(r.eventTimestamp(), ahead.toSeconds(), published))
+                        : Optional.empty();
+            }
             Duration skew = Duration.between(context.businessNow(), r.eventTimestamp());
             return skew.abs().compareTo(maxSkew) > 0
                     ? Optional.of("Event time %s is %ds from business time %s"

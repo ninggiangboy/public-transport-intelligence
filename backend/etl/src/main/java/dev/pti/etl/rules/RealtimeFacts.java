@@ -16,6 +16,7 @@ public record RealtimeFacts(
         List<String> stopIds,
         LocalDate serviceDate,
         Instant eventTimestamp,
+        Instant producedAt,
         @Nullable Double lat,
         @Nullable Double lon,
         List<Integer> delays) {

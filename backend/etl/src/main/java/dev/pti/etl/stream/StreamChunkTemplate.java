@@ -142,7 +142,10 @@ public class StreamChunkTemplate {
         Instant startedAt = clock.realNow();
         faults.hit(FaultPoint.BEFORE_PROCESS);
         RuleContext rules = new RuleContext(
-                clock.instant(), request.replay(), reference.current().orElse(null));
+                clock.instant(),
+                clock.offset(),
+                request.replay(),
+                reference.current().orElse(null));
         List<WriteSet> valid = new ArrayList<>(request.messages().size());
         List<DeadLetter> skipped = new ArrayList<>();
         String source = request.source().name();

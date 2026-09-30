@@ -1,6 +1,6 @@
 # EXP-04: Dựng lại toàn bộ warehouse từ raw zone
 
-> Trạng thái: **Approved** · Cập nhật: 2026-09-29 (DR-95) · DOC-45 / EXP-04
+> Trạng thái: **Approved** · Cập nhật: 2026-09-30 (DR-100) · DOC-45 / EXP-04
 >
 > Phụ thuộc: [protocol chung](README.md), DOC-18 §1–2, DOC-21 §1, DOC-22 §4, DOC-39 §6 (`make reset-warehouse`), DOC-43, RB-11, DR-16, DR-58, DR-64, DR-70
 >
@@ -20,10 +20,10 @@
 | Phụ thuộc | Tính đồng nhất | `row_count`, `checksum` từng bảng (README §4.5); tập dead letter |
 | Phụ thuộc | Thời gian | `reset_seconds`, `gtfs_load_seconds`, `replay_seconds` theo nguồn, `rebuild_total_seconds`; thông lượng `lines_read / duration` |
 | Kiểm soát | Dữ liệu | 30 phút tải ×2 bắt đầu lúc 15:00 CDT, ngày thứ Ba 2026-09-29 (cùng ngày cho mọi lần chạy, vì mỗi lần chạy bắt đầu từ trạng thái trống) |
-| Kiểm soát | Nhiễu có chủ đích | `bad-data` 1% (mọi loại **trừ** `future_timestamp`) và `duplicates` 5% (`[PT0S, PT60S]`) chạy suốt 30 phút |
+| Kiểm soát | Nhiễu có chủ đích | `bad-data` 1% (mọi loại, kể cả `future_timestamp`) và `duplicates` 5% (`[PT0S, PT60S]`) chạy suốt 30 phút |
 | Kiểm soát | Feed | Như README §1; feed nạp lại từ `s3://raw/gtfs-static/<sha256>.zip` |
 
-**Vì sao bỏ `future_timestamp`:** replay bỏ qua DQ-07 (DOC-16 §2) vì dữ liệu cũ luôn lệch xa `businessNow`. Một message lệch 2 giờ bị luồng trực tiếp đưa vào DLQ nhưng lại được replay nạp vào fact. Đây là khác biệt **theo thiết kế**, không phải lỗi, nên loại khỏi phép so sánh đồng nhất. Hành vi này được test riêng (DOC-16 §8, DOC-22 §11).
+**`future_timestamp` và DQ-07 khi replay:** replay không so event time với `businessNow` (dữ liệu cũ luôn lệch xa), mà với lúc message được publish: `produced_at` cộng offset hiện tại, chỉ chiều tương lai (DOC-16 §2, DR-100). Message lệch 2 giờ vì vậy vào DLQ cả ở luồng trực tiếp lẫn khi replay, nên được giữ trong nhiễu và trong phép so sánh dead letter. Trước DR-100 replay bỏ hẳn DQ-07 và ghi các message này thành fact có event time ở tương lai; guard event-time sau đó chặn mọi cập nhật hợp lệ của cùng key (đo ở chuỗi smoke P3-08).
 
 ## 3. Baseline
 
@@ -131,7 +131,7 @@ H3 được báo cáo (không là tiêu chí đạt): trung vị và p95 của `
 | Khối lượng nhỏ (30 phút) so với tình huống thật (nhiều ngày) | Ngoại suy tuyến tính ở §8; chạy thêm một lần 2 giờ ở tải ×5 nếu thời gian cho phép và báo cáo riêng |
 | Checksum dạng text phụ thuộc cách Postgres in số thực và timestamp | Cùng phiên bản Postgres, cùng `TimeZone = UTC` và `extra_float_digits` mặc định cho cả hai lần tính; hai lần tính chạy trên cùng instance |
 | Luồng trực tiếp không bị lỗi hạ tầng trong lần chạy, nên không kiểm được "replay sửa được warehouse hỏng" | Ngoài phạm vi; EXP-01 đo đúng đắn của luồng trực tiếp khi có lỗi |
-| DQ-07 bị bỏ khi replay tạo khác biệt theo thiết kế | Loại `future_timestamp` khỏi nhiễu (§2) và nêu trong báo cáo |
+| Đồng hồ nghiệp vụ nhảy ≥ 1 giờ giữa lúc publish và lúc replay làm DQ-07 khi replay dễ dãi hơn (DR-100) | Offset giữ nguyên trong một lần chạy (§5 bước 1); `config.json` ghi offset |
 | Replay dùng feed ACTIVE hiện tại; nếu feed đổi giữa live và replay thì kết quả khác | Cùng một feed trong mọi lần chạy; RB-11 nêu bước kích hoạt lại feed cũ |
 | `make reset` mỗi lần chạy làm cache hệ điều hành và JIT lạnh | Thời gian (H3) báo cáo cả trung vị và p95; không so với EXP khác |
 

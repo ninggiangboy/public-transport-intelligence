@@ -24,8 +24,8 @@ from pti_exp.sim import Simulator
 GTFS_TABLES = ("dim_agency", "dim_route", "dim_stop", "gtfs_calendar", "gtfs_calendar_date", "gtfs_shape",
                "gtfs_stop_time", "gtfs_trip", "route_headway")
 SOURCES = ("TICKETING_SALES", "GTFS_RT_VEHICLE_POSITION", "GTFS_RT_TRIP_UPDATE")
-# Replay skips these rules (DR-16, RuleContext): their dead letters are written as facts again, by design.
-REPLAY_SKIPPED_RULES = {"DQ-07", "DQ-12"}
+# Replay skips DQ-12 (DR-16, RuleContext): its dead letters are written as facts again, by design.
+REPLAY_SKIPPED_RULES = {"DQ-12"}
 # A trip-update row keeps what earlier messages observed (DR-13): only keys whose whole history is replayed match.
 TRIP_HISTORY = timedelta(hours=4)
 EDGE = timedelta(seconds=5)
@@ -168,7 +168,7 @@ def run_full(r: Run) -> dict:
     sim.rate(gtfs_rt=p["rate"], ticketing=1.0)
     t_stack = now()
     kinds = ["malformed_json", "schema_violation", "unknown_schema_version", "out_of_bbox", "unknown_route",
-             "unknown_stop", "delay_out_of_range"]
+             "unknown_stop", "future_timestamp", "delay_out_of_range"]
     load = f"PT{int(p['load'].total_seconds())}S"
     sim.start("bad-data", {"ratio": p["bad_ratio"], "kinds": kinds, "duration": load})
     sim.start("duplicates", {"ratio": p["dup_ratio"], "duration": load})

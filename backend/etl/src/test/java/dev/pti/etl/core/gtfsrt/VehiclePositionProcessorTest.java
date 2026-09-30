@@ -192,11 +192,25 @@ class VehiclePositionProcessorTest {
     }
 
     @Test
-    void case15ReplaySkipsTheClockSkewRule() {
+    void case15ReplayRejectsAnEventTwoHoursAfterItsPublication() {
         ObjectNode json = vehiclePosition();
         json.put("event_timestamp", "2026-09-29T23:20:00.000Z");
-        assertThat(process(json, EtlFixtures.replayContext()).vehiclePositions())
-                .hasSize(1);
+        assertThat(rejected(json, EtlFixtures.replayContext()).ruleId()).isEqualTo("DQ-07");
+    }
+
+    @Test
+    void case15bReplayAcceptsOldDataPublishedOnTime() {
+        ObjectNode json = vehiclePosition();
+        RuleContext muchLater = new RuleContext(NOW.plus(Duration.ofDays(3)), Duration.ZERO, true, referenceData());
+        assertThat(process(json, muchLater).vehiclePositions()).hasSize(1);
+    }
+
+    @Test
+    void case15cReplayReadsThePublicationWithTodaysOffset() {
+        ObjectNode json = vehiclePosition();
+        json.put("event_timestamp", "2026-09-29T23:20:00.000Z");
+        RuleContext movedOn = new RuleContext(NOW, Duration.ofHours(2), true, referenceData());
+        assertThat(process(json, movedOn).vehiclePositions()).hasSize(1);
     }
 
     @Test
@@ -204,7 +218,7 @@ class VehiclePositionProcessorTest {
         Instant businessNow = NOW.minus(Duration.ofHours(12));
         ObjectNode json = vehiclePosition();
         json.put("event_timestamp", Timestamps.format(businessNow));
-        RuleContext shifted = new RuleContext(businessNow, false, referenceData());
+        RuleContext shifted = new RuleContext(businessNow, Duration.ZERO, false, referenceData());
         assertThat(process(json, shifted).vehiclePositions()).hasSize(1);
     }
 
@@ -213,7 +227,7 @@ class VehiclePositionProcessorTest {
         Instant event = Instant.parse("2026-09-30T06:30:00Z");
         ObjectNode json = vehiclePosition();
         json.put("event_timestamp", Timestamps.format(event));
-        RuleContext context = new RuleContext(event, false, referenceData());
+        RuleContext context = new RuleContext(event, Duration.ZERO, false, referenceData());
         assertThat(process(json, context).vehiclePositions().getFirst().serviceDate())
                 .isEqualTo(LocalDate.parse("2026-09-29"));
     }
@@ -248,7 +262,7 @@ class VehiclePositionProcessorTest {
 
     @Test
     void withoutAnActiveFeedTheRulesCannotRun() {
-        assertThatThrownBy(() -> process(vehiclePosition(), new RuleContext(NOW, false, null)))
+        assertThatThrownBy(() -> process(vehiclePosition(), new RuleContext(NOW, Duration.ZERO, false, null)))
                 .isInstanceOf(FatalException.class);
     }
 
