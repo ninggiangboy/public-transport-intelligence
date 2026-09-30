@@ -1,6 +1,6 @@
 # Công nghệ và phiên bản
 
-> Trạng thái: **Approved** · Cập nhật: 2026-09-29 (P3-02: image observability, DR-97) · DOC-11
+> Trạng thái: **Approved** · Cập nhật: 2026-09-30 (không dùng Redis, DR-103) · DOC-11
 > Phụ thuộc: [DR-53](../00-decision-register.md), DR-36, DR-46, DR-50, DR-52, DR-54, DR-56, [ADR-0029](../04-adr/0029-spring-boot-4-java-25.md)
 
 ## 0. Chính sách phiên bản
@@ -180,3 +180,4 @@ Người triển khai **không làm theo tài liệu hay ví dụ của Boot 3**
 | Protobuf cho GTFS-rt | JSON dễ debug và dễ tiêm dữ liệu lỗi | DR-03 |
 | OTel Java agent | Trùng span với Micrometer Tracing | DR-50 |
 | Outbox cho sự kiện UI | Sự kiện UI là best-effort; nguồn sự thật nằm ở DB | DR-42 |
+| Redis | Fan-out SSE đã đi qua Kafka; cache và rate limit theo pod là đủ; khóa, idempotency và trạng thái analytics phải commit cùng dữ liệu trong PostgreSQL. Cần quota hay cache dùng chung thì thử `bucket4j-postgresql`, `proxy_cache` của nginx trước | DR-103, ADR-0031 |

@@ -1,8 +1,8 @@
 # Quy ước API
 
-> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-31
+> Trạng thái: **Approved** · Cập nhật: 2026-09-30 (DR-103: nạp cache single-flight, bucket `public` trên compose) · DOC-31
 >
-> Phụ thuộc: DR-20, DR-39, DR-43, DR-45, DR-48, DR-61, DR-67, ADR-0013, ADR-0017, [DOC-10](../03-architecture/quality-attributes.md) §4, [DOC-17](../05-data/db-roles-and-grants.md), [DOC-27](../06-design/security.md), [DOC-30](../06-design/error-handling.md) §3
+> Phụ thuộc: DR-20, DR-39, DR-43, DR-45, DR-48, DR-61, DR-67, DR-103, ADR-0013, ADR-0017, ADR-0031, [DOC-10](../03-architecture/quality-attributes.md) §4, [DOC-17](../05-data/db-roles-and-grants.md), [DOC-27](../06-design/security.md), [DOC-30](../06-design/error-handling.md) §3
 >
 > Người dùng chính: người viết app `api` (P4-09…P4-16), frontend (P5-02), DOC-32 (mỗi endpoint tuân theo tài liệu này)
 
@@ -216,7 +216,7 @@ Chưa có feed ACTIVE (hệ thống mới khởi động) → endpoint nhóm v�
 
 ### 10.3 Cache
 
-Caffeine trong bộ nhớ của từng pod (không dùng cache phân tán; mỗi pod tự hết hạn). Tên cache là tên metric `cache` (DOC-28).
+Caffeine trong bộ nhớ của từng pod (không dùng cache phân tán, DR-103; mỗi pod tự hết hạn). Tên cache là tên metric `cache` (DOC-28).
 
 | Cache | Khóa | TTL | Kích thước tối đa | `Cache-Control` của response |
 | --- | --- | --- | --- | --- |
@@ -237,6 +237,7 @@ Caffeine trong bộ nhớ của từng pod (không dùng cache phân tán; mỗi
 - Endpoint có phần dữ liệu phụ thuộc role (overlay bunching của `/vehicles/live`, trường enrichment của disruption) chỉ cache **phần chung**; phần theo role được thêm sau khi lấy từ cache.
 - Endpoint vận hành ETL, insight nội bộ và mọi response khi có `Authorization` mà không nằm trong bảng: `Cache-Control: no-store`.
 - Cache GTFS bị xóa toàn bộ khi `active-feed` đổi `feedVersionId` (so sánh ở lần làm mới 30 giây).
+- **Nạp single-flight:** mọi cache nạp qua `Cache.get(key, loader)` của Caffeine (hoặc `@Cacheable(sync = true)`), để nhiều request cùng miss một key trong một pod chỉ sinh một truy vấn. Quan trọng nhất với cache TTL ngắn bị gọi dồn: `vehicles-live`, `arrivals`, `public-disruptions`. Giữa các pod không gộp: với N pod, mỗi key bị truy vấn tối đa N lần mỗi TTL (ADR-0031).
 - `Cache-Control: public` chỉ đặt cho response giống nhau với mọi người gọi; nginx của frontend **không** bật `proxy_cache` (DOC-39), header chỉ phục vụ cache của trình duyệt.
 
 ## 11. Rate limit (DR-45)
@@ -255,6 +256,8 @@ Bucket4j (`bucket4j_jdk17-core`) trong bộ nhớ, token bucket nạp đều (`r
 - Vượt → 429 `rate-limited`, `Retry-After` = số giây tới khi có token, thành phần `retryAfterSeconds`. Metric `pti_api_rate_limited_total{bucket}`.
 - **IP client:** nginx của frontend proxy `/api/` và đặt `X-Forwarded-For`. `api` bật `server.forward-headers-strategy=native` và `server.tomcat.remoteip.internal-proxies` = dải mạng riêng (`10\.\d+\.\d+\.\d+|172\.(1[6-9]|2\d|3[01])\.\d+\.\d+|192\.168\.\d+\.\d+|127\.0\.0\.1`). Chỉ header do proxy tin cậy đặt mới được dùng; client gửi thẳng tới cổng 8081 không giả được IP.
 - **Hạn chế đã biết:** giới hạn tính theo từng pod. Với N pod sau load balancer, giới hạn thực tế tối đa gấp N lần (k3d chạy 2 pod). Chấp nhận được vì mục đích là chặn lạm dụng thô, không phải hạn ngạch chính xác (DR-45). Trên compose mọi trình duyệt cùng máy có chung IP `127.0.0.1`/gateway: đủ cho demo một người; runner thực nghiệm dùng token (bucket `authenticated`) cho các kết nối cần nhiều hơn (DOC-45).
+- **Kiểm ở P5 (DR-103):** trên compose, mọi tab anonymous trên cùng máy chia chung bucket `public` (60 request/phút) và `sse-anonymous` (5 kết nối). Ngoài lượt tải trang, `refetchInterval` 60 giây và `refetchOnWindowFocus`, khi SSE hỏng màn Live map còn poll xe mỗi 5 giây (12 request/phút, DOC-36 `live-map.md`, DOC-34 §9.2). Đo số request mỗi phút của SPA anonymous ở các màn công khai, cả khi SSE chạy và khi đang polling, với 1 và 3 tab. Nếu vượt thì nâng `pti.api.rate-limit.public-per-minute` và `.sse-per-ip` ở cấu hình compose, không đổi mặc định cho k3d.
+- Rate limit chung cho cả cụm không nằm trong phạm vi; ADR-0031 ghi khi nào xem lại và phương án thử trước (`bucket4j-postgresql`).
 
 ## 12. Phiên bản và OpenAPI
 

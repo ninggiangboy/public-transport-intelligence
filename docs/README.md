@@ -24,7 +24,7 @@ Mọi tài liệu DOC-01…48 trong mục 3 của master plan đã được vi�
 | DOC-09 | [Hợp đồng message](03-architecture/messaging-contracts.md) | Approved |
 | DOC-10 | [Thuộc tính chất lượng](03-architecture/quality-attributes.md) | Approved |
 | DOC-11 | [Công nghệ và phiên bản](03-architecture/tech-stack-and-versions.md) | Approved |
-| DOC-12 | [ADR](04-adr/) (0001–0030) | Accepted |
+| DOC-12 | [ADR](04-adr/) (0001–0031) | Accepted |
 | DOC-13 | [Dữ liệu nguồn](05-data/source-data.md) | Approved |
 | DOC-14 | [Mô hình dữ liệu warehouse](05-data/warehouse-model.md) | Approved |
 | DOC-15 | [Mô hình dữ liệu vận hành và insight](05-data/ops-and-insight-model.md) | Approved |

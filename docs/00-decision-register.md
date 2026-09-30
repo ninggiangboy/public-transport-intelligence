@@ -1,6 +1,6 @@
 # Sổ quyết định mở (Decision Register)
 
-> Trạng thái tài liệu: **Approved**, toàn bộ DR đã chốt ngày 2026-09-26 · Cập nhật: 2026-09-29 · Nguồn: phân tích `public-transport-intelligence.md` (gọi tắt là **SDD gốc**)
+> Trạng thái tài liệu: **Approved**, toàn bộ DR đã chốt ngày 2026-09-26 · Cập nhật: 2026-09-30 · Nguồn: phân tích `public-transport-intelligence.md` (gọi tắt là **SDD gốc**)
 
 Tài liệu gốc mô tả tốt *cái gì* và *vì sao*, nhưng còn nhiều chỗ chưa trả lời *chính xác như thế nào*. Nếu không chốt trước, người triển khai sẽ phải dừng lại hỏi hoặc tự đoán, và đoán sai ở tầng dữ liệu thì rất tốn công sửa. Sổ này liệt kê từng khoảng trống, mỗi mục kèm **một phương án đề xuất** để có thể duyệt nhanh.
 
@@ -61,6 +61,7 @@ Tài liệu gốc mô tả tốt *cái gì* và *vì sao*, nhưng còn nhiều c
 | 2026-09-29 | Claude (Owner ủy quyền) | **Profile observability (P3-02):** Grafana 13 và Tempo 3 thay 12.x và 2.x theo nguyên tắc dùng bản mới nhất; Loki, Tempo, OTel Collector không có healthcheck vì image distroless, Prometheus scrape chúng thay thế; app của profile tùy chọn được Prometheus tìm qua DNS | DR-97 (mới), DOC-11 §2, DOC-39 §3.7, §4 |
 | 2026-09-29 | Claude (Owner ủy quyền) | **Kịch bản simulator (P3-01):** bunching ghép xe theo trạm chung đầu tiên phía trước thay vì `dist`, và giữ follower ở đúng khoảng cách mục tiêu; kiểu gây hỏng chỉ chọn trong các loại áp dụng được cho entity type; hàng đợi gửi lại và hoàn vé còn chờ vẫn chạy tiếp sau khi lần chạy kết thúc; lỗi của hook kết thúc lần chạy ở tick kế tiếp | DR-96 (mới), DOC-25 §7 |
 | 2026-09-29 | Owner | **Thực nghiệm hai bước:** P3 viết đủ runner và chạy một chuỗi smoke ≤ 30 phút (mỗi EXP-01…05 một lần chạy rút gọn) trên máy dev; đợt chạy đầy đủ trên máy thực nghiệm dời thành P3-10, làm sau M6 và trước P7. Chuỗi smoke chạy lại khi chốt M4 và M6 | DR-95 (mới), master plan P3, DOC-45 |
+| 2026-09-30 | Owner | **Không dùng Redis:** SSE fan-out qua Kafka, cache và rate limit theo pod, khóa và idempotency trên PostgreSQL. Ghi rõ dấu hiệu cần xem lại và phương án không cần Redis cần thử trước | DR-103 (mới), ADR-0031 (mới) |
 
 ---
 
@@ -556,6 +557,20 @@ Tài liệu gốc mô tả tốt *cái gì* và *vì sao*, nhưng còn nhiều c
 - **Quyết định:** Dùng Bucket4j in-memory, giới hạn theo IP cho endpoint public (60 request/phút, tối đa 5 kết nối SSE đồng thời mỗi IP). Giới hạn tính theo từng pod; ghi rõ hạn chế này trong tài liệu.
 - **Ghi vào:** DOC-31.
 
+### DR-103 · Không dùng Redis — **Chốt** (P4)
+- **Vấn đề:** App `api` chạy nhiều pod trên k3d (HPA 2→4 ở `lite`, 2→6 ở `full`), có SSE, cache và rate limit. Có nên thêm Redis làm backplane cho SSE, cache dùng chung hoặc rate limit chung không?
+- **Quyết định:** Không dùng Redis. Mọi vai trò Redis hay đảm nhận đã có giải pháp trên Kafka và PostgreSQL: fan-out SSE qua `pti.events.ui` với consumer group riêng mỗi pod (ADR-0016), cache Caffeine theo pod (DOC-31 §10.3), rate limit Bucket4j theo pod (DR-45), `api` stateless với JWT (ADR-0017), khóa job bằng ShedLock và `VERSION` (ADR-0015), idempotency key bằng cột UNIQUE (DOC-31 §8), lease triage trên dòng (DR-37). Lý do:
+  1. Không có việc nào cần tới Redis ở quy mô đồ án (một agency, khoảng 1.000 xe, 2–6 pod `api`).
+  2. ADR-0016 đã đặt ràng buộc không thêm hạ tầng ngoài Kafka và PostgreSQL.
+  3. Idempotency, khóa job, con trỏ và baseline analytics phải commit cùng dữ liệu nghiệp vụ; đặt ở Redis sinh trạng thái lệch giữa hai hệ thống, trái NFR-01.
+  4. Mọi trạng thái hiện dựng lại được từ raw zone (EXP-04); Redis là một nơi giữ trạng thái nữa phải backup và giải thích.
+  5. Thêm bề mặt chịu lỗi cho NFR-09 và EXP-08 (chaos, alert, runbook, fail-open hay fail-closed, Sentinel trên k3d).
+  6. Ngân sách RAM compose đã khoảng 8 GB ở profile core, 10,4 GB khi bật đủ (DOC-10 §5).
+  7. NFR-10 dựa vào dữ liệu tính sẵn và replica, không dựa vào cache dùng chung.
+- **Hệ quả:** Rate limit và cache tính theo pod: hạn mức thực gấp N lần; một key bị nạp tối đa N lần mỗi TTL; hai pod có thể lệch nhau trong một TTL. Hai việc phát sinh: cache nóng TTL ngắn nạp single-flight trong pod (DOC-31 §10.3); đo số request của SPA anonymous trên compose ở P5 so với bucket `public` (DOC-31 §11).
+- **Xem lại khi:** cần quota chính xác cho cả cụm, truy vấn nặng mà cache theo pod không đỡ được (p95 vượt NFR-10 dù đã tính sẵn), cần xóa cache ngay trên mọi pod, SSE cần định tuyến theo người dùng hoặc số pod lớn tới mức đọc toàn topic tốn kém, chuyển sang session phía server, bộ đếm ghi rất dày, hoặc nhiều tenant. Mỗi trường hợp thử phương án không cần Redis trước (ví dụ `bucket4j-postgresql`, `proxy_cache` của nginx, Spring Session JDBC); bảng đầy đủ và nguyên tắc khi thêm Redis ở ADR-0031.
+- **Ghi vào:** ADR-0031, DOC-11 §7, DOC-31 §10.3 và §11.
+
 ---
 
 ## G. Frontend và UX
@@ -935,7 +950,7 @@ Tài liệu gốc mô tả tốt *cái gì* và *vì sao*, nhưng còn nhiều c
 | Chặn P1 | DR-01, 02, 03, 04, 05, 06, 09, 10, 11, 26, 53, 64, 66, 67, 68, 81, 85, 86, 89 | Quyết định schema, contract và cấu trúc repo |
 | Chặn P2 | DR-07, 13, 14, 15, 16, 18, 21, 22, 23, 24, 25, 62, 63, 65, 69, 70, 80, 83, 84 | Quyết định ngữ nghĩa đúng đắn của pipeline |
 | Chặn P3 | DR-27, 28, 50, 57, 58, 71 | Thiếu thì không đo được thực nghiệm |
-| Chặn P4 | DR-12, 17, 19, 20, 29–35, 39–45 | Analytics và API |
+| Chặn P4 | DR-12, 17, 19, 20, 29–35, 39–45, 103 | Analytics và API |
 | Chặn P5 | DR-46–49, 82, 88 | Frontend |
 | Chặn P6 | DR-36, 37, 38, 60, 72, 73, 74 | AI triage |
 | Chặn P7 | DR-54, 55, 56, 75, 76 | Kubernetes |
