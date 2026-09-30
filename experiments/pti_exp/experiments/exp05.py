@@ -11,7 +11,7 @@ from pti_exp import truth
 from pti_exp.alerts import Alerts
 from pti_exp.compose import Compose
 from pti_exp.metrics import Scrape, delta_buckets, quantile
-from pti_exp.runner import InvalidRun, Run, Sampler, drain, groups, iso, now
+from pti_exp.runner import InvalidRun, Run, Sampler, drain, groups, iso, now, quiesce
 from pti_exp.sim import Simulator
 
 EXPECTED_ALERTS = ["ConsumerLagHigh", "EndToEndLatencyHigh", "LatencyStageSlow", "ThroughputDrop",
@@ -86,15 +86,13 @@ def run(r: Run, series: str) -> dict:
         _sleep_until(t0 + len(p["steps"]) * p["step"] + timedelta(seconds=2))
         t1 = now()
         drain_seconds = _drain_to(sampler, lag_start, p["drain_timeout"])
-        sim.rate(gtfs_rt=0, ticketing=0)
-        t_end = now()
+        t_end = quiesce(sim)
         drain(groups(False))
     finally:
         sampler.stop()
         stats.stop()
         alerts.unsilence(silences)
         sim.stop("load-ramp")
-        sim.rate(gtfs_rt=1.0, ticketing=1.0)
         if baseline_was_running:
             compose.start("etl-stream-baseline")
     r.write_timeseries(sampler.rows)

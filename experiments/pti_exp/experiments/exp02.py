@@ -10,7 +10,7 @@ from pti_exp import truth
 from pti_exp.alerts import Alerts
 from pti_exp.db import truncate_baseline
 from pti_exp.metrics import Scrape
-from pti_exp.runner import InvalidRun, Run, Sampler, drain, groups, iso, now
+from pti_exp.runner import InvalidRun, Run, Sampler, drain, groups, iso, now, quiesce
 from pti_exp.sim import Simulator
 
 GTFS = "~GTFS_RT_.*"
@@ -38,14 +38,12 @@ def run(r: Run, variant: str) -> dict:
             if time.monotonic() > deadline:
                 raise InvalidRun("the resend queue did not empty")
             time.sleep(2)
-        sim.rate(gtfs_rt=0, ticketing=0)
-        t1 = now()
+        t1 = quiesce(sim)
         drain(groups(True), sampler=sampler)
         after = Scrape.of(r.stack.actuator("etl-stream"))
         sim_after = Scrape.of(r.stack.actuator("source-simulator"))
     finally:
         sampler.stop()
-        sim.rate(gtfs_rt=1.0, ticketing=1.0)
     r.write_timeseries(sampler.rows)
     if sim_after.sum("pti_sim_emissions_skipped_total", reason="resend_queue_full") > sim_before.sum(
             "pti_sim_emissions_skipped_total", reason="resend_queue_full"):

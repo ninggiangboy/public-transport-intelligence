@@ -124,6 +124,8 @@ def run(
         except InvalidRun as e:
             r.write_summary(valid=False, reason=str(e))
             typer.echo(f"{r.run_id}: invalid ({e})")
+        finally:
+            smoke_chain.restore_rate(stack)
 
 
 @app.command()

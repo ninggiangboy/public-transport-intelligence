@@ -171,6 +171,14 @@ class Run:
             writer.writerows(rows)
 
 
+def quiesce(sim: Simulator) -> datetime:
+    """Stops the simulator and returns the end of the window once the tick in flight has been sent: a message produced
+    after the window would overwrite a trip-update row that the window expects (DOC-45 §2.1)."""
+    sim.rate(gtfs_rt=0, ticketing=0)
+    time.sleep(3)
+    return now()
+
+
 def drain(groups: list[str], hold: timedelta = timedelta(seconds=30), timeout: timedelta = timedelta(minutes=10),
           sampler: Sampler | None = None) -> float:
     """Waits until the committed lag of every group is 0 for `hold`; returns the seconds it took (README §2.1)."""

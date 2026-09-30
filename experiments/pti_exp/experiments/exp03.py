@@ -10,7 +10,7 @@ from pti_exp import truth
 from pti_exp.alerts import Alerts
 from pti_exp.db import truncate_baseline
 from pti_exp.metrics import Scrape, delta_buckets, quantile
-from pti_exp.runner import Run, Sampler, drain, groups, iso, now
+from pti_exp.runner import Run, Sampler, drain, groups, iso, now, quiesce
 from pti_exp.sim import Simulator
 
 EXPECTED_ALERTS = ["DlqRateHigh", "DlqBacklogHigh", "DataQualityCheckFailed"]
@@ -38,14 +38,12 @@ def run(r: Run) -> dict:
             sim.start("bad-data", {"ratio": p["ratio"], "duration": f"PT{int(p['duration'].total_seconds())}S"})
         time.sleep(p["duration"].total_seconds())
         stall_samples = _stall_state(r)
-        sim.rate(gtfs_rt=0, ticketing=0)
-        t1 = now()
+        t1 = quiesce(sim)
         drain(groups(True), sampler=sampler)
         after = Scrape.of(r.stack.actuator("etl-stream"))
     finally:
         sampler.stop()
         alerts.unsilence(silences)
-        sim.rate(gtfs_rt=1.0, ticketing=1.0)
     r.write_timeseries(sampler.rows)
 
     result = truth.correctness(r.stack, t0, t1, baseline=True)

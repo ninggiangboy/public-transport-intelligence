@@ -16,7 +16,7 @@ from pti_exp.compose import Compose, wait_ready
 from pti_exp.config import EXP_ENV
 from pti_exp.db import truncate_baseline
 from pti_exp.metrics import Scrape
-from pti_exp.runner import InvalidRun, Run, Sampler, drain, groups, iso, now
+from pti_exp.runner import InvalidRun, Run, Sampler, drain, groups, iso, now, quiesce
 from pti_exp.sim import Simulator
 
 EXPECTED_ALERTS = ["TargetDown", "ConsumerStopped", "ConsumerLagHigh", "EndToEndLatencyHigh", "ThroughputDrop",
@@ -54,14 +54,12 @@ def run(r: Run, variant: str, rng: random.Random) -> dict:
         remaining = p["window"].total_seconds() - (now() - t0).total_seconds()
         if remaining > 0:
             time.sleep(remaining)
-        sim.rate(gtfs_rt=0, ticketing=0)
-        t1 = now()
+        t1 = quiesce(sim)
         drain(groups(True), sampler=sampler)
         after = Scrape.of(r.stack.actuator("etl-stream"))
     finally:
         sampler.stop()
         alerts.unsilence(silences)
-        sim.rate(gtfs_rt=1.0, ticketing=1.0)
     r.write_timeseries(sampler.rows)
 
     result = truth.correctness(r.stack, t0, t1, baseline)

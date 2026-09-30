@@ -15,6 +15,7 @@ from pti_exp.compose import Compose, wait_ready
 from pti_exp.config import EXP_ENV, RESULTS, Stack, format_offset
 from pti_exp.experiments import exp01, exp02, exp03, exp04, exp05
 from pti_exp.runner import InvalidRun, Run, iso, now
+from pti_exp.sim import Simulator
 
 # Business time when the chain starts: EXP-05 then begins around 15:30 with ≥ 500 vehicles (DOC-45 §1.3).
 WINDOW = (time(15, 15), time(17, 0))
@@ -41,6 +42,12 @@ def ensure_window(stack: Stack, log: Callable[[str], None]) -> dict:
             wait_ready(stack.actuator(app))
     return {"moved": True, "from": format_offset(before), "offset": format_offset(offset),
             "restarted": running}
+
+
+def restore_rate(stack: Stack) -> None:
+    """Runners leave the simulator at rate 0 so that nothing overwrites the window before it is measured; the next run
+    starts from the base load (DOC-45 §2.1)."""
+    Simulator(stack.sim_url).rate(gtfs_rt=1.0, ticketing=1.0)
 
 
 def run_one(exp: str, variant: str | None, series: str, seed: int, stack: Stack, windows: dict[str, dict]) -> dict:
@@ -76,6 +83,8 @@ def run_one(exp: str, variant: str | None, series: str, seed: int, stack: Stack,
         r.summary["criteria_problems"] = problems
         r.write_summary(valid=False, reason=str(e))
         valid = False
+    finally:
+        restore_rate(stack)
     return {"exp": exp, "variant": variant, "run_id": r.run_id, "valid": valid, "passed": valid and not problems,
             "problems": problems, "seconds": round((now() - started).total_seconds(), 1),
             "window": r.summary.get("window")}
