@@ -1,0 +1,81 @@
+package dev.pti.api.transit.adapter.in.web;
+
+import dev.pti.api.platform.domain.ApiTime;
+import dev.pti.api.transit.domain.BunchingOverlay;
+import dev.pti.api.transit.domain.LiveVehicle;
+import dev.pti.api.transit.domain.LiveVehicles;
+import dev.pti.api.transit.domain.VehicleView;
+import java.util.List;
+import org.jspecify.annotations.Nullable;
+
+/** Response of {@code GET /vehicles/live} (DOC-32 E-05). */
+public record LiveVehiclesResponse(String businessNow, int count, List<LiveVehicleResponse> items) {
+
+    /** One vehicle. {@code bunching} is only present for a viewer, on vehicles of an open episode. */
+    public record LiveVehicleResponse(
+            String vehicleId,
+            @Nullable String label,
+            String routeId,
+            String tripId,
+            int directionId,
+            @Nullable String headsign,
+            double lat,
+            double lon,
+            @Nullable Float bearing,
+            @Nullable Float speedMps,
+            String currentStatus,
+            String stopId,
+            int currentStopSequence,
+            @Nullable String occupancyStatus,
+            String eventTimestamp,
+            @Nullable Integer delaySeconds,
+            @Nullable String stopArrivalAt,
+            @Nullable BunchingOverlayResponse bunching) {
+
+        static LiveVehicleResponse from(VehicleView view) {
+            LiveVehicle vehicle = view.vehicle();
+            return new LiveVehicleResponse(
+                    vehicle.vehicleId(),
+                    vehicle.label(),
+                    vehicle.routeId(),
+                    vehicle.tripId(),
+                    vehicle.directionId(),
+                    vehicle.headsign(),
+                    vehicle.lat(),
+                    vehicle.lon(),
+                    vehicle.bearing(),
+                    vehicle.speedMps(),
+                    vehicle.currentStatus(),
+                    vehicle.stopId(),
+                    vehicle.currentStopSequence(),
+                    vehicle.occupancyStatus(),
+                    ApiTime.format(vehicle.eventTimestamp()),
+                    vehicle.delaySeconds(),
+                    TransitParams.instant(vehicle.stopArrivalAt()),
+                    BunchingOverlayResponse.from(view.bunching()));
+        }
+    }
+
+    /** The open bunching episode a vehicle belongs to. */
+    public record BunchingOverlayResponse(
+            String episodeId, String role, String partnerVehicleId, int gapSeconds, int headwaySeconds) {
+
+        static @Nullable BunchingOverlayResponse from(@Nullable BunchingOverlay overlay) {
+            if (overlay == null) {
+                return null;
+            }
+            return new BunchingOverlayResponse(
+                    overlay.episodeId().toString(),
+                    overlay.role().name(),
+                    overlay.partnerVehicleId(),
+                    overlay.gapSeconds(),
+                    overlay.headwaySeconds());
+        }
+    }
+
+    static LiveVehiclesResponse from(LiveVehicles live) {
+        List<LiveVehicleResponse> items =
+                live.vehicles().stream().map(LiveVehicleResponse::from).toList();
+        return new LiveVehiclesResponse(ApiTime.format(live.businessNow()), items.size(), items);
+    }
+}

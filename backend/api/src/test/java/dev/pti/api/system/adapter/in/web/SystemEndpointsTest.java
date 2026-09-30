@@ -21,9 +21,11 @@ import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.ResourceLock;
 import org.springframework.beans.factory.annotation.Autowired;
 
 /** E-60 {@code GET /system/freshness} and E-61 {@code GET /me} (DOC-32 §10, EP-33, EP-34). */
+@ResourceLock("freshness-probe-result")
 class SystemEndpointsTest extends ApiWebTestSupport {
 
     @Autowired

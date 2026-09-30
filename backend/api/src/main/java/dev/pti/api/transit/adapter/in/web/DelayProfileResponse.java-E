@@ -1,0 +1,61 @@
+package dev.pti.api.transit.adapter.in.web;
+
+import dev.pti.api.platform.domain.ApiTime;
+import dev.pti.api.transit.domain.DelayProfile;
+import dev.pti.api.transit.domain.DelayProfileStop;
+import dev.pti.api.transit.domain.EtaRow;
+import java.math.BigDecimal;
+import java.util.List;
+import org.jspecify.annotations.Nullable;
+
+/**
+ * Response of {@code GET /routes/{routeId}/delay-profile} (DOC-32 E-04). The window and {@code computedAt} are absent
+ * when no stop has history; a stop without history has no delay members.
+ */
+public record DelayProfileResponse(
+        String routeId,
+        int directionId,
+        int dayOfWeek,
+        int hourOfDay,
+        @Nullable String windowStart,
+        @Nullable String windowEnd,
+        @Nullable String computedAt,
+        List<Item> items) {
+
+    /** One stop of the direction, in pattern order. */
+    public record Item(
+            String stopId,
+            String name,
+            int stopSequence,
+            @Nullable BigDecimal avgDelaySeconds,
+            @Nullable Integer medianDelaySeconds,
+            @Nullable Integer p90DelaySeconds,
+            int sampleCount,
+            String confidence) {
+
+        static Item from(DelayProfileStop stop) {
+            EtaRow eta = stop.eta();
+            return new Item(
+                    stop.stopId(),
+                    stop.name(),
+                    stop.stopSequence(),
+                    eta != null ? eta.avgDelaySeconds() : null,
+                    eta != null ? eta.medianDelaySeconds() : null,
+                    eta != null ? eta.p90DelaySeconds() : null,
+                    stop.sampleCount(),
+                    stop.confidence().name());
+        }
+    }
+
+    static DelayProfileResponse from(DelayProfile profile) {
+        return new DelayProfileResponse(
+                profile.routeId(),
+                profile.directionId(),
+                profile.dayOfWeek(),
+                profile.hourOfDay(),
+                profile.windowStart() != null ? profile.windowStart().toString() : null,
+                profile.windowEnd() != null ? profile.windowEnd().toString() : null,
+                profile.computedAt() != null ? ApiTime.format(profile.computedAt()) : null,
+                profile.stops().stream().map(Item::from).toList());
+    }
+}

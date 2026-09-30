@@ -194,3 +194,17 @@ pti:
       grafana-url: http://localhost:3000
     sim:
       base-url: http://source-simulator:8080
+  # The analytics keys that api reads (DOC-23 §13): the on-time window of E-03 and the ETA settings of E-04 and E-08.
+  analytics:
+    otp:
+      early-tolerance: 300s
+      late-tolerance: 300s
+    eta:
+      confidence:
+        medium-min: 10
+        high-min: 30
+      realtime-enabled: false
+      realtime-max-age: 2m
+      arrivals:
+        default-limit: 10
+        horizon: 90m

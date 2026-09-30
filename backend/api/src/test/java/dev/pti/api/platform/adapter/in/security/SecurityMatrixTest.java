@@ -14,6 +14,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestFactory;
+import org.junit.jupiter.api.parallel.ResourceAccessMode;
+import org.junit.jupiter.api.parallel.ResourceLock;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
@@ -25,6 +27,7 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
  * one who is allowed gets anything else. Where no controller exists yet that is a plain 404. A later slice that adds
  * its controller changes nothing here.
  */
+@ResourceLock(value = "in-memory-transit", mode = ResourceAccessMode.READ)
 class SecurityMatrixTest extends ApiWebTestSupport {
 
     private enum Caller {

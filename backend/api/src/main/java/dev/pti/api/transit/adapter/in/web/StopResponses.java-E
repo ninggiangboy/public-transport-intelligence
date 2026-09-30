@@ -1,0 +1,104 @@
+package dev.pti.api.transit.adapter.in.web;
+
+import dev.pti.api.platform.domain.ApiTime;
+import dev.pti.api.transit.domain.Stop;
+import dev.pti.api.transit.domain.StopDetail;
+import dev.pti.api.transit.domain.StopDisruption;
+import dev.pti.api.transit.domain.StopMatch;
+import dev.pti.api.transit.domain.StopRoute;
+import java.util.List;
+import org.jspecify.annotations.Nullable;
+
+/** The response bodies of {@code GET /stops} and {@code GET /stops/{stopId}} (DOC-32 E-06, E-07). */
+final class StopResponses {
+
+    private StopResponses() {}
+
+    /** One stop of the search, with the routes that call at it. */
+    public record Item(
+            String stopId,
+            @Nullable String code,
+            String name,
+            double lat,
+            double lon,
+            int locationType,
+            int wheelchairBoarding,
+            List<String> routeIds) {
+
+        static Item from(StopMatch match) {
+            Stop stop = match.stop();
+            return new Item(
+                    stop.stopId(),
+                    stop.code(),
+                    stop.name(),
+                    stop.lat(),
+                    stop.lon(),
+                    stop.locationType(),
+                    stop.wheelchairBoarding(),
+                    match.routeIds());
+        }
+    }
+
+    /** A stop with its routes and the disruptions open on them. */
+    public record Detail(
+            String stopId,
+            @Nullable String code,
+            String name,
+            double lat,
+            double lon,
+            int locationType,
+            int wheelchairBoarding,
+            List<Route> routes,
+            List<Disruption> activeDisruptions) {
+
+        static Detail from(StopDetail detail) {
+            Stop stop = detail.stop();
+            return new Detail(
+                    stop.stopId(),
+                    stop.code(),
+                    stop.name(),
+                    stop.lat(),
+                    stop.lon(),
+                    stop.locationType(),
+                    stop.wheelchairBoarding(),
+                    detail.routes().stream().map(Route::from).toList(),
+                    detail.activeDisruptions().stream().map(Disruption::from).toList());
+        }
+    }
+
+    /** A route that calls at the stop. */
+    public record Route(
+            String routeId,
+            String displayName,
+            @Nullable String color,
+            @Nullable String textColor,
+            List<String> headsigns) {
+
+        static Route from(StopRoute route) {
+            return new Route(
+                    route.routeId(), route.displayName(), route.color(), route.textColor(), route.headsigns());
+        }
+    }
+
+    /** An open disruption alert on one of those routes. */
+    public record Disruption(
+            String alertId,
+            @Nullable String disruptionId,
+            String routeId,
+            @Nullable Integer directionId,
+            int severity,
+            String title,
+            @Nullable String startedAt) {
+
+        static Disruption from(StopDisruption disruption) {
+            return new Disruption(
+                    disruption.alertId(),
+                    disruption.disruptionId(),
+                    disruption.routeId(),
+                    disruption.directionId(),
+                    disruption.severity(),
+                    disruption.title(),
+                    disruption.startedAt() != null ? ApiTime.format(disruption.startedAt()) : null);
+        }
+    }
+}

@@ -1,0 +1,42 @@
+package dev.pti.api.transit.adapter.in.web;
+
+import dev.pti.api.transit.domain.RouteCatalog;
+import dev.pti.api.transit.domain.RouteSummary;
+import java.util.List;
+import org.jspecify.annotations.Nullable;
+
+/** Response of {@code GET /routes} (DOC-32 E-01). */
+public record RoutesResponse(long feedVersionId, List<Item> items) {
+
+    /** One route; the members the feed does not give are left out. */
+    public record Item(
+            String routeId,
+            @Nullable String shortName,
+            @Nullable String longName,
+            String displayName,
+            int routeType,
+            @Nullable String color,
+            @Nullable String textColor,
+            @Nullable Integer sortOrder,
+            @Nullable Integer typicalHeadwaySeconds) {
+
+        static Item from(RouteSummary route) {
+            return new Item(
+                    route.routeId(),
+                    route.shortName(),
+                    route.longName(),
+                    route.displayName(),
+                    route.routeType(),
+                    route.color(),
+                    route.textColor(),
+                    route.sortOrder(),
+                    route.typicalHeadwaySeconds());
+        }
+    }
+
+    static RoutesResponse from(RouteCatalog catalog) {
+        return new RoutesResponse(
+                catalog.feedVersionId(),
+                catalog.routes().stream().map(Item::from).toList());
+    }
+}
