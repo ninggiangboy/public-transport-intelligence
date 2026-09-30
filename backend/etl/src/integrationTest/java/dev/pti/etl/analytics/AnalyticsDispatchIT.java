@@ -3,6 +3,7 @@ package dev.pti.etl.analytics;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
+import dev.pti.analytics.bunching.application.BunchingDetector;
 import dev.pti.analytics.core.domain.Trigger;
 import dev.pti.analytics.event.domain.InsightEvent;
 import dev.pti.common.events.Audience;
@@ -31,6 +32,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
@@ -64,6 +66,9 @@ class AnalyticsDispatchIT {
 
     @Autowired
     RecordingDetector detector;
+
+    @Autowired
+    ApplicationContext context;
 
     @Autowired
     ApplicationEventPublisher events;
@@ -137,6 +142,12 @@ class AnalyticsDispatchIT {
     private double count(String name, String... tags) {
         var counter = meters.find(name).tags(tags).counter();
         return counter == null ? 0 : counter.count();
+    }
+
+    @Test
+    void theBunchingDetectorIsAnAnalyticsBeanNextToTheStandIn() {
+        // No etl change is needed for a detector: the dispatcher takes every RouteDetector bean (DOC-23 §4.1).
+        assertThat(context.getBeansOfType(BunchingDetector.class)).hasSize(1);
     }
 
     @Test

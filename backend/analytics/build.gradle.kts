@@ -10,11 +10,12 @@ description = "Detectors and scheduled analytics shared by etl (ADR-0014)."
 dependencies {
     api(project(":common"))
     implementation(libs.spring.jdbc)
+    implementation(libs.slf4j.api)
     implementation(libs.spring.boot)
+    implementation(libs.spring.boot.autoconfigure)
     implementation(libs.micrometer.core)
     implementation(libs.caffeine)
     implementation(libs.uuid.creator)
-    implementation(libs.slf4j.api)
 
     testFixturesApi(project(":common"))
     testFixturesImplementation(libs.spring.boot)
