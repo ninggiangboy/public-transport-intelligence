@@ -61,12 +61,13 @@ public final class WebhookToken implements AutoCloseable {
 
     /** Reads the token file now. */
     public void reload() {
+        byte[] previous = token;
         try {
             String content = Files.readString(file, StandardCharsets.UTF_8).strip();
             token = content.getBytes(StandardCharsets.UTF_8);
             if (content.isEmpty()) {
                 log.warn("Webhook token file is empty, so /internal/** refuses every request");
-            } else {
+            } else if (!MessageDigest.isEqual(previous, token)) {
                 log.info("Webhook token loaded");
             }
         } catch (IOException e) {
@@ -88,6 +89,8 @@ public final class WebhookToken implements AutoCloseable {
         try {
             while (!Thread.currentThread().isInterrupted()) {
                 WatchKey key = service.take();
+                // Any event in the directory re-reads the file: Kubernetes secret volumes swap a ..data symlink, so the
+                // token file itself never gets an event. reload() logs only when the token actually changes.
                 key.pollEvents();
                 reload();
                 if (!key.reset()) {
