@@ -1,0 +1,90 @@
+{
+  "exp": "EXP-02",
+  "run_id": "p3-08-d-r01",
+  "profile": "smoke",
+  "valid": true,
+  "invalid_reason": null,
+  "window": {
+    "t0": "2026-09-30T02:28:36.062200Z",
+    "t1": "2026-09-30T02:32:35.635088Z"
+  },
+  "variant": "short",
+  "ratio": 0.1,
+  "normal": {
+    "GTFS_RT_VEHICLE_POSITION": {
+      "expected": 27171,
+      "lost": 0,
+      "duplicates": 0,
+      "wrong_value": 0,
+      "loss_rate": 0.0,
+      "dup_rate": 0.0,
+      "lost_keys": [],
+      "wrong_keys": []
+    },
+    "GTFS_RT_TRIP_UPDATE": {
+      "expected": 6277,
+      "lost": 0,
+      "duplicates": 0,
+      "wrong_value": 0,
+      "loss_rate": 0.0,
+      "dup_rate": 0.0,
+      "lost_keys": [],
+      "wrong_keys": []
+    },
+    "TICKETING_SALES": {
+      "expected": 340,
+      "lost": 0,
+      "duplicates": 0,
+      "wrong_value": 0,
+      "lost_keys": []
+    },
+    "unexpected_dlq": 0,
+    "latest_regressions": 0
+  },
+  "baseline": {
+    "GTFS_RT_VEHICLE_POSITION": {
+      "expected": 27171,
+      "lost": 0,
+      "duplicates": 2030,
+      "wrong_value": 0,
+      "loss_rate": 0.0,
+      "dup_rate": 0.07471200912737845
+    },
+    "GTFS_RT_TRIP_UPDATE": {
+      "expected": 6277,
+      "lost": 0,
+      "duplicates": 53601,
+      "wrong_value": 0,
+      "loss_rate": 0.0,
+      "dup_rate": 8.539270352079019
+    }
+  },
+  "resend": {
+    "GTFS_RT_VEHICLE_POSITION": {
+      "resends": 2030,
+      "resend_keys": 2030,
+      "lost_resend": 0,
+      "wrong_resend": 0,
+      "baseline_extra_rows": 2030
+    },
+    "GTFS_RT_TRIP_UPDATE": {
+      "resends": 434,
+      "resend_keys": 2806,
+      "lost_resend": 0,
+      "wrong_resend": 0,
+      "baseline_extra_rows": 29486
+    }
+  },
+  "registry_hits": 2443.0,
+  "guard_blocks": 1.0,
+  "in_chunk_collapses": 44.0,
+  "total_duplicate": 2488.0,
+  "resends": 2464,
+  "baseline_extra_ratio": 12.790584415584416,
+  "alerts": {
+    "unexpected_fired": [
+      "DlqRateHigh"
+    ]
+  },
+  "criteria_problems": []
+}

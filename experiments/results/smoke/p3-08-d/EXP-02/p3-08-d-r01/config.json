@@ -1,0 +1,32 @@
+{
+  "exp": "EXP-02",
+  "run_id": "p3-08-d-r01",
+  "series": "p3-08-d",
+  "profile": "smoke",
+  "git_sha": "8a87f24cb740e9d5d35b6856d5416236ae6fa896",
+  "dirty": false,
+  "image_digests": {
+    "etl-stream": "sha256:d9d300c6114c36c6f8205d616ff5432d3184f245efc3381f30f59d76026a1d9a",
+    "etl-stream-baseline": "sha256:d9d300c6114c36c6f8205d616ff5432d3184f245efc3381f30f59d76026a1d9a",
+    "source-simulator": "sha256:d656f7986c8dd9e5c42f7eab678e6ef5b5d164e6bef7d1ffd9ba568c8006c302"
+  },
+  "params": {
+    "ratio": 0.1,
+    "duration": 180.0,
+    "min_delay": 0.0,
+    "max_delay": 60.0,
+    "settle": 30.0,
+    "window_needed": 360.0,
+    "variant": "short"
+  },
+  "seed": 1000,
+  "clock_offset": "1099m",
+  "machine": {
+    "platform": "macOS-27.0-arm64-arm-64bit",
+    "docker_cpus": 8,
+    "docker_memory_bytes": 8393605120,
+    "docker_version": "29.4.0",
+    "architecture": "aarch64"
+  },
+  "created_at": "2026-09-30T02:28:06.031487Z"
+}

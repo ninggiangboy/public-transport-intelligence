@@ -523,7 +523,7 @@ Những chỗ lệch tài liệu khi hết P2 được ghi ở DR-90 (claim trư
 
 **Tiêu chí thoát (M3):** chuỗi smoke (P3-08) đạt: EXP-01…04 không mất, không trùng, 100% record hợp lệ được nạp, replay khớp checksum; EXP-05 chạy hết các bậc và không mất dữ liệu. Dashboard và alert hoạt động. P3-10 không thuộc M3 (DR-95).
 
-**M3 đạt 2026-09-30.** Chuỗi smoke `p3-08-d` trên máy dev (Apple Silicon, OrbStack cấp cho Docker 8 CPU và 7,8 GiB; profile `core` + `experiment` + `observability`), commit `8a87f24` (cây sạch), bắt đầu 2026-09-30 02:23 UTC, giờ nghiệp vụ thứ Tư 2026-09-30 15:42 CDT, **25,9 phút** cho cả chuỗi. Mỗi EXP một lần chạy, nên các số đo ngoài tiêu chí chỉ để tham khảo (DOC-45 §1.3).
+**M3 đạt 2026-09-30.** Chuỗi smoke `p3-08-d` trên máy dev (Apple Silicon, OrbStack cấp cho Docker 8 CPU và 7,8 GiB; profile `core` + `experiment` + `observability`), commit `8a87f24` (cây sạch), bắt đầu 2026-09-30 02:23 UTC, giờ nghiệp vụ thứ Tư 2026-09-30 15:42 CDT, **25,9 phút** cho cả chuỗi. Mỗi EXP một lần chạy, nên các số đo ngoài tiêu chí chỉ để tham khảo (DOC-45 §1.3). Cấu hình và kết quả gốc: `experiments/results/smoke/p3-08-d/` (DR-102).
 
 | EXP | Tiêu chí (DOC-45 §1.3) | Kết quả | Số đo tham khảo |
 | --- | --- | --- | --- |

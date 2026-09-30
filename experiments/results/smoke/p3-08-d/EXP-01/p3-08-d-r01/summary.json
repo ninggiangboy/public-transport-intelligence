@@ -1,0 +1,82 @@
+{
+  "exp": "EXP-01",
+  "run_id": "p3-08-d-r01",
+  "profile": "smoke",
+  "valid": true,
+  "invalid_reason": null,
+  "window": {
+    "t0": "2026-09-30T02:33:43.446753Z",
+    "t1": "2026-09-30T02:37:46.461118Z"
+  },
+  "fault": {
+    "kind": "kill-external",
+    "at_offset_s": 153.3,
+    "target": "etl-stream,etl-stream-baseline"
+  },
+  "normal": {
+    "GTFS_RT_VEHICLE_POSITION": {
+      "expected": 55180,
+      "lost": 0,
+      "duplicates": 0,
+      "wrong_value": 0,
+      "loss_rate": 0.0,
+      "dup_rate": 0.0,
+      "lost_keys": [],
+      "wrong_keys": []
+    },
+    "GTFS_RT_TRIP_UPDATE": {
+      "expected": 6215,
+      "lost": 0,
+      "duplicates": 0,
+      "wrong_value": 0,
+      "loss_rate": 0.0,
+      "dup_rate": 0.0,
+      "lost_keys": [],
+      "wrong_keys": []
+    },
+    "TICKETING_SALES": {
+      "expected": 343,
+      "lost": 0,
+      "duplicates": 0,
+      "wrong_value": 0,
+      "lost_keys": []
+    },
+    "unexpected_dlq": 0,
+    "latest_regressions": 0
+  },
+  "baseline": {
+    "GTFS_RT_VEHICLE_POSITION": {
+      "expected": 55180,
+      "lost": 0,
+      "duplicates": 225,
+      "wrong_value": 0,
+      "loss_rate": 0.0,
+      "dup_rate": 0.004077564334903951
+    },
+    "GTFS_RT_TRIP_UPDATE": {
+      "expected": 6215,
+      "lost": 0,
+      "duplicates": 91217,
+      "wrong_value": 0,
+      "loss_rate": 0.0,
+      "dup_rate": 14.67691069991955
+    }
+  },
+  "recovery": {
+    "lag_ref": 156.6,
+    "t_kill": "2026-09-30T02:36:16.846429Z",
+    "t_start": "2026-09-30T02:36:22.232232Z",
+    "t_ready": "2026-09-30T02:36:30.183816Z",
+    "t_caught_up": "2026-09-30T02:37:05.086005Z",
+    "recovery_seconds": 42.853773,
+    "kill_to_caught_up": 48.239576,
+    "start_to_ready": 7.951584
+  },
+  "redelivered": 1086.0,
+  "no_inflight": false,
+  "alerts": {
+    "fired": [],
+    "unexpected_fired": []
+  },
+  "criteria_problems": []
+}

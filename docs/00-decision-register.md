@@ -53,6 +53,7 @@ Tài liệu gốc mô tả tốt *cái gì* và *vì sao*, nhưng còn nhiều c
 | 2026-09-28 | Claude (Owner ủy quyền) | **S3 sink OOM khi chạy live (P1-14):** Aiven 3.4.3 cắt file mỗi 10 giây trên mỗi partition và giữ buffer của writer tới lần commit, nên với commit 5 phút task chết sau vài phút có traffic. Giữ 3.4.3; `aws.s3.part.size.bytes` = 1 MiB, worker commit mỗi 30 giây. Số object raw zone tăng khoảng 15 lần; replay (P3) phải xem lại `pti.replay.max-objects` | DR-89 (mới), sửa DR-81, ADR-0012, DOC-09 §7, DOC-39 §3.4, DOC-40, DOC-22 §4.3 |
 | 2026-09-29 | Claude (Owner ủy quyền) | **Phase 2 xong:** claim yêu cầu job/replay commit trước khi gọi `JobOperator`; replay raw zone liệt kê object theo giờ thay vì lưu danh sách (đóng mục mở của DR-89); hoãn DQ-27 sang P3; các chi tiết nhỏ khác | DR-90, DR-91, DR-92, DR-93 (mới) |
 | 2026-09-29 | Owner | **Máy thực nghiệm và lưu kết quả:** thực nghiệm chính thức chạy trên một máy riêng cố định 16 GB (không gắn với máy cụ thể), không chạy trên máy dev hay GitHub Actions; file kết quả nhỏ commit vào git, file lớn gói theo chuỗi lên GitHub Release `exp-results` | DR-94 (mới) |
+| 2026-09-30 | Owner | **Lưu kết quả smoke chốt milestone:** commit nguyên chuỗi `p3-08-d` (cấu hình và kết quả); `.gitignore` gốc thôi bỏ qua `experiments/results/` | DR-102 (mới), DOC-45 §1.3 |
 | 2026-09-30 | Claude (Owner ủy quyền) | **Backup và khôi phục (P3-09):** `pg_dump` qua `docker compose exec`; manifest đếm trước khi dump; khôi phục áp lại `R__grants.sql`; thêm `make s3-shell` | DR-101 (mới), DOC-43 |
 | 2026-09-30 | Claude (Owner ủy quyền) | **DQ-07 khi replay và runner thực nghiệm (P3-06…08):** replay kiểm DQ-07 theo lúc publish thay vì bỏ qua; EXP-04 smoke chỉ so key TripUpdate có đủ lịch sử trong cửa sổ; đóng cửa sổ bằng hệ số 0; bỏ DQ-27 | DR-100 (mới), DR-16, DR-92, DOC-16 §2, EXP-04, DOC-45 §1.3 |
 | 2026-09-30 | Claude (Owner ủy quyền) | **Alert (P3-05):** alert đếm sự kiện rời rạc tính cả giá trị đầu tiên của series mới (`events()`); `CircuitBreakerOpen` tính cả `half_open`; gauge phụ thuộc DB/Connect không được chặn scrape; kết quả O-08 ghi ở DOC-42 §4 | DR-99 (mới), DOC-28 §6.1, §6.3, §9, DOC-42 §4 |
@@ -774,6 +775,11 @@ Tài liệu gốc mô tả tốt *cái gì* và *vì sao*, nhưng còn nhiều c
 - Thêm `make s3-shell` (AWS CLI với credential admin, biến `$S3` là endpoint) mà DOC-43 §4.5 đã nhắc. `make stop-apps` / `start-apps` chỉ tác động lên app đã có container (`api`, `triage-worker` vào compose ở P4, P6).
 - Số đo và kết quả BR-01…06 ở DOC-43 §6, §7.
 - **Ghi vào:** DOC-43 §3.1, §3.3, §4.2, §4.5, §6, §7; `deploy/compose/scripts/{backup,backup-verify,restore-warehouse,ensure-partitions}.sh`; `Makefile`.
+
+### DR-102 · Lưu kết quả của chuỗi smoke chốt milestone — **Chốt** (P3; sửa DOC-45 §1.3)
+- **Vấn đề:** DOC-45 §1.3 để kết quả chuỗi smoke chỉ nằm trên máy (git-ignore), nên chỉ còn bảng tóm tắt trong master plan; cấu hình và số đo gốc của lần chốt M3 mất khi dọn máy. Thêm nữa, `.gitignore` gốc bỏ qua cả `experiments/results/`, trái với DOC-45 §7 (file nhẹ của đợt chạy đầy đủ phải được commit).
+- **Quyết định:** Chuỗi smoke dùng để chốt milestone được commit nguyên vẹn, kể cả `timeseries.csv.gz` (cả chuỗi `p3-08-d` khoảng 30 KB), bằng dòng ngoại lệ `!results/smoke/<series>/` trong `experiments/.gitignore`. Các chuỗi smoke khác vẫn chỉ nằm trên máy. `.gitignore` gốc không còn bỏ qua `experiments/results/`; quy tắc file nặng của §7.1 nằm trong `experiments/.gitignore`.
+- **Ghi vào:** DOC-45 §1.3, `.gitignore`, `experiments/.gitignore`, `experiments/results/smoke/p3-08-d/`.
 
 ---
 
