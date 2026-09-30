@@ -4,13 +4,19 @@ import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.jspecify.annotations.Nullable;
 import org.springframework.boot.health.contributor.Health;
 import org.springframework.boot.health.contributor.HealthIndicator;
-import org.springframework.boot.health.contributor.Status;
 import org.springframework.jdbc.core.JdbcTemplate;
 
-/** {@code warehouse-db} (DR-38): the circuit is closed and {@code SELECT 1} answers within a second. */
+/**
+ * {@code warehouse-db} (DR-38): the circuit is closed and {@code SELECT 1} answers within a second.
+ *
+ * <p>Only the health endpoint pings the database, at most every 5 seconds and one ping at a time: while one runs,
+ * other callers get the last result. {@link #isUp()} never touches the database, because it backs a gauge, and a
+ * scrape that waits for a connection makes the whole app look down while the warehouse is (DOC-28 §2).
+ */
 public class WarehouseHealthIndicator implements HealthIndicator {
 
     private static final Duration CACHE = Duration.ofSeconds(5);
@@ -18,9 +24,10 @@ public class WarehouseHealthIndicator implements HealthIndicator {
     private final JdbcTemplate jdbc;
     private final CircuitBreaker breaker;
     private final Clock clock;
-    private @Nullable Instant checkedAt;
-    private boolean lastPing;
-    private @Nullable Instant lastErrorAt;
+    private final AtomicBoolean pinging = new AtomicBoolean();
+    private volatile @Nullable Instant checkedAt;
+    private volatile boolean lastPing;
+    private volatile @Nullable Instant lastErrorAt;
 
     public WarehouseHealthIndicator(JdbcTemplate jdbc, CircuitBreaker breaker, Clock clock) {
         JdbcTemplate ping = new JdbcTemplate(jdbc.getDataSource());
@@ -32,27 +39,29 @@ public class WarehouseHealthIndicator implements HealthIndicator {
 
     @Override
     public Health health() {
-        return current();
-    }
-
-    private Health current() {
-        CircuitBreaker.State state = breaker.getState();
         boolean pingOk = ping();
+        CircuitBreaker.State state = breaker.getState();
         Health.Builder builder = state == CircuitBreaker.State.CLOSED && pingOk ? Health.up() : Health.down();
         builder.withDetail("circuitState", state.name());
-        if (lastErrorAt != null) {
-            builder.withDetail("lastErrorAt", lastErrorAt.toString());
+        Instant error = lastErrorAt;
+        if (error != null) {
+            builder.withDetail("lastErrorAt", error.toString());
         }
         return builder.build();
     }
 
+    /** From the circuit and the last ping, without any I/O; before the first ping, as if the ping succeeded. */
     public boolean isUp() {
-        return current().getStatus().equals(Status.UP);
+        return breaker.getState() == CircuitBreaker.State.CLOSED && (checkedAt == null || lastPing);
     }
 
-    private synchronized boolean ping() {
+    private boolean ping() {
         Instant now = clock.instant();
-        if (checkedAt != null && Duration.between(checkedAt, now).compareTo(CACHE) < 0) {
+        Instant checked = checkedAt;
+        if (checked != null && Duration.between(checked, now).compareTo(CACHE) < 0) {
+            return lastPing;
+        }
+        if (!pinging.compareAndSet(false, true)) {
             return lastPing;
         }
         try {
@@ -61,8 +70,10 @@ public class WarehouseHealthIndicator implements HealthIndicator {
         } catch (RuntimeException e) {
             lastPing = false;
             lastErrorAt = now;
+        } finally {
+            checkedAt = now;
+            pinging.set(false);
         }
-        checkedAt = now;
         return lastPing;
     }
 }

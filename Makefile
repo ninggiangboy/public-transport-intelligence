@@ -45,6 +45,25 @@ up-obs: images ## Like up, plus the observability profile (Prometheus, Grafana, 
 	@JOBS="$(JOBS)" deploy/compose/scripts/wait-stack.sh $(COMPOSE) --profile '*'
 	@echo "Grafana http://localhost:$$(v=$$(sed -n 's/^HOST_PORT_GRAFANA=//p' .env); echo "$${v:-3000}") (admin, GRAFANA_ADMIN_PASSWORD in .env)"
 
+.PHONY: up-exp
+up-exp: images ## Core, experiment and observability for EXP-01…04: ETL through Toxiproxy, simulator emitting (DOC-45)
+	PTI_TRACING_ENABLED=true PTI_WAREHOUSE_HOST=toxiproxy PTI_SIM_START_RATE=1 \
+		$(COMPOSE) --profile core --profile experiment --profile observability up -d
+	@JOBS="$(JOBS)" deploy/compose/scripts/wait-stack.sh $(COMPOSE) --profile '*'
+
+.PHONY: reset-warehouse
+reset-warehouse: .env ## Drop and recreate pti_warehouse, migrate, restart the apps; keeps Kafka and the raw zone [OFFSETS=earliest]
+	@OFFSETS="$(OFFSETS)" deploy/compose/scripts/reset-warehouse.sh $(COMPOSE)
+
+.PHONY: replay
+replay: .env ## Queue a raw-zone replay: SOURCE=<etl_source> FROM=<ISO> TO=<ISO> [RECOMPUTE=true] [WAIT=1]
+	@SOURCE="$(SOURCE)" FROM="$(FROM)" TO="$(TO)" RECOMPUTE="$(RECOMPUTE)" WAIT="$(WAIT)" \
+		deploy/compose/scripts/replay.sh $(COMPOSE)
+
+.PHONY: job-run
+job-run: .env ## Queue a batch job: NAME=<Job> [PARAMS='k=v,…'] [WAIT=1]
+	@NAME="$(NAME)" PARAMS="$(PARAMS)" WAIT="$(WAIT)" deploy/compose/scripts/job-run.sh $(COMPOSE)
+
 .PHONY: check-dashboards
 check-dashboards: .env ## Run every query of the Grafana dashboards and report errors or empty panels (DOC-28 O-09)
 	@GRAFANA_URL=http://localhost:$$(v=$$(sed -n 's/^HOST_PORT_GRAFANA=//p' .env); echo "$${v:-3000}") \

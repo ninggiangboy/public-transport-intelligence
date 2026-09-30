@@ -1,0 +1,1 @@
+[{ "name": "pg-warehouse", "listen": "0.0.0.0:5432", "upstream": "pg-warehouse:5432", "enabled": true }]

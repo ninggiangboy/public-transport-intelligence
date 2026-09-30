@@ -328,7 +328,8 @@ services:
       PTI_S3_SECRET_KEY: ${S3_ETL_SECRET_KEY:?run make secrets}
       SPRING_CLOUD_AWS_S3_PATH_STYLE_ACCESS_ENABLED: "true"
       SPRING_CLOUD_AWS_REGION_STATIC: us-east-1
-      PTI_GTFS_BOOTSTRAP_LOCATION: file:/feed/metrotransit-mn-20260926.zip
+      # EXP-04 rebuilds from the raw zone copy instead: s3://raw/gtfs-static/<sha256>.zip (DOC-45 EXP-04 step 6).
+      PTI_GTFS_BOOTSTRAP_LOCATION: ${PTI_GTFS_BOOTSTRAP_LOCATION:-file:/feed/metrotransit-mn-20260926.zip}
     volumes:
       - ../../sample-data/gtfs:/feed:ro
     ports: ["127.0.0.1:9083:9080"]
@@ -336,6 +337,20 @@ services:
     cpus: 1.0
 
   # ---------------------------------------------------------------- experiment (DOC-45, DR-27)
+
+  # Network faults between the ETL and the warehouse (DOC-39 §3.6): make up-exp points etl-stream and the baseline at
+  # toxiproxy:5432. The image is distroless, so there is no healthcheck; the runner checks the API on 8474.
+  toxiproxy:
+    profiles: [experiment]
+    image: ${TOXIPROXY_IMAGE:?deploy/versions.env is not loaded}
+    restart: unless-stopped
+    command: ["-host=0.0.0.0", "-config=/config/toxiproxy.json"]
+    volumes:
+      - ./toxiproxy/toxiproxy.json:/config/toxiproxy.json:ro
+    ports: ["127.0.0.1:${HOST_PORT_TOXIPROXY:-8474}:8474"]
+    mem_limit: 64m
+    cpus: 0.25
+    logging: *default-logging
 
   etl-stream-baseline:
     <<: *spring-app

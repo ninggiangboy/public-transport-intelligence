@@ -1,6 +1,6 @@
 # Master Plan: xây dựng Public Transport Intelligence từ đầu đến cuối
 
-> Trạng thái: **Approved v1.0** · Cập nhật: 2026-09-29 · Đi kèm: [00-decision-register.md](00-decision-register.md) · Nguồn: `public-transport-intelligence.md` (**SDD gốc**)
+> Trạng thái: **Approved v1.0** · Cập nhật: 2026-09-30 · Đi kèm: [00-decision-register.md](00-decision-register.md) · Nguồn: `public-transport-intelligence.md` (**SDD gốc**)
 
 Tài liệu này là bản hướng dẫn tổng. Nó gồm:
 
@@ -514,7 +514,7 @@ Những chỗ lệch tài liệu khi hết P2 được ghi ở DR-90 (claim trư
 | P3-02 | Compose profile `observability`: Prometheus, Alertmanager, Grafana (provision datasource và dashboard), OTel Collector, Tempo, Loki, Alloy, Mailpit — **Xong 2026-09-29** (DR-97) | `make up-obs` chạy được; Grafana có datasource | P2-20 | DOC-28, 39 |
 | P3-03 | Instrumentation: metrics theo DOC-28, consumer lag, gauge độ tươi feed, histogram theo chặng (DR-57), Micrometer Tracing xuất OTLP (DR-50), trace lan truyền qua Kafka header nhờ observation của Spring Kafka — **Xong 2026-09-29** (DR-98; gauge độ tươi `pti_source_last_event_age_seconds` thuộc `api`, làm ở P4) | Một trace nối được simulator → etl → DB; log có `trace_id` và `batch_id` | P3-02 | DOC-28 |
 | P3-04 | Grafana dashboards: Pipeline overview, Kafka, Postgres, JVM, Experiments — **Xong 2026-09-29** (thêm Simulator, Batch và chất lượng dữ liệu theo DOC-28 §7) | Dashboard lưu dạng JSON trong `observability/` | P3-03 | DOC-28 |
-| P3-05 | Alert rules (9 cảnh báo ở SDD 12.2) viết bằng PromQL, định tuyến tới Mailpit, runbook RB-01…09, RB-13, RB-14 (thủ tục RB-10…12) | Mỗi alert được kích hoạt thử bằng kịch bản và gửi tới đúng kênh | P3-04 | DOC-28, 42 |
+| P3-05 | Alert rules (9 cảnh báo ở SDD 12.2) viết bằng PromQL, định tuyến tới Mailpit, runbook RB-01…09, RB-13, RB-14 (thủ tục RB-10…12) — **Xong 2026-09-30** (DR-99; kết quả thử ở DOC-42 §4) | Mỗi alert được kích hoạt thử bằng kịch bản và gửi tới đúng kênh | P3-04 | DOC-28, 42 |
 | P3-06 | `experiments/`: dự án Python (uv), thư viện chung (điều khiển simulator, docker, truy vấn ledger và warehouse, checksum theo DR-58), CLI `pti-exp run EXP-01 --runs 30` có `--resume` và `--profile smoke\|full`; `archive` và `fetch` dời sang P3-10 (DR-95) | Chạy thử được; `pytest` và `ruff` xanh trong CI | P3-01 | DOC-45 |
 | P3-07 | Runner EXP-01 (kill ngẫu nhiên), EXP-02 (gửi lại), EXP-03 (1/5/20% lỗi), EXP-04 (xóa warehouse, replay), EXP-05 (tăng tải); EXP-01…03 chạy song song chế độ bình thường và baseline, EXP-04 và EXP-05 không có baseline (DOC-45 §5). Mỗi runner có tham số `full` và `smoke`; lệnh `pti-exp smoke` chạy cả chuỗi (DOC-45 §1.3) | Mỗi runner in ra `summary.json` ở cả hai profile | P3-06, P2-18 | DOC-45 |
 | P3-08 | Chạy chuỗi smoke (`pti-exp smoke`, DR-95) trên máy dev | Chuỗi xong trong ≤ 30 phút; mọi tiêu chí đúng đắn của DOC-45 §1.3 đạt; kết quả ghi thành bảng ở mục M3 dưới đây | P3-07 | DOC-45 |

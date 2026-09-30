@@ -1,6 +1,6 @@
 # Observability: metric, log, trace, dashboard, alert
 
-> Trạng thái: **Approved** · Cập nhật: 2026-09-29 (P3-03: instrumentation, DR-98) · DOC-28
+> Trạng thái: **Approved** · Cập nhật: 2026-09-30 (P3-05: alert đếm sự kiện, `CircuitBreakerOpen`, DR-99) · DOC-28
 >
 > Phụ thuộc: DR-50, DR-51, DR-57, DR-71, ADR-0022, DOC-10 §2, DOC-16 §4, DOC-19 §10, DOC-20 §12, DOC-21 §8, DOC-22 §9, DOC-23 §14, DOC-25 §12, DOC-30 §4–5, DOC-39 §3.7
 >
@@ -271,6 +271,8 @@ Span JDBC dùng `net.ttddyy.observation:datasource-micrometer-spring-boot` (DOC-
 - Rule nằm trong `deploy/compose/observability/prometheus/rules/pti-*.yml` (k3d: `PrometheusRule` sinh từ cùng file bằng Helm, DOC-40).
 - Label: `severity` ∈ {`critical`, `warning`, `info`} (tương ứng "Khẩn", "Cảnh báo" của SDD 12.2), `area` ∈ {`pipeline`, `data`, `source`, `platform`, `api`}, cộng các label nhóm (`source`, `topic`, `listener`, `job`…).
 - Annotation: `summary` (một dòng tiếng Anh, có giá trị hiện tại), `description`, `runbook_url` (`https://github.com/<owner>/<repo>/blob/main/docs/09-operations/runbooks/RB-xx.md`), `dashboard_url`.
+- **Đếm sự kiện rời rạc.** Counter có label phụ thuộc dữ liệu chỉ xuất hiện ở sự kiện đầu tiên, đã mang giá trị 1 (DR-98); `increase()` cần hai mẫu nên đọc sự kiện đầu tiên là 0 và alert không bắn. Bảng §6.3 viết `events(X, w)` thay cho `(X unless X offset w) or increase(X[w])`: series mới xuất hiện trong cửa sổ được tính bằng chính giá trị của nó, series đã có từ trước tính bằng `increase` (DR-99).
+- **Gauge không được chặn scrape.** Gauge đọc trạng thái phụ thuộc (DB, Connect REST) chỉ đọc giá trị đã cache; việc kiểm tra thật chạy nền có timeout. Nếu không, `/actuator/prometheus` treo khi phụ thuộc chết và alert thành `TargetDown` thay vì alert đúng nguyên nhân (DR-99).
 - Mỗi rule có unit test `promtool test rules` trong `deploy/compose/observability/prometheus/tests/` (mỗi alert tối thiểu một ca bắn và một ca không bắn). Job `compose-config` của CI chạy `promtool check rules` và `promtool test rules` (DOC-41 §2).
 
 ### 6.2 Recording rule
@@ -304,23 +306,23 @@ Chín alert đầu là SDD 12.2; phần còn lại được thêm ở các tài 
 
 | # | Alert | Mức | Điều kiện (PromQL) | `for` | Runbook |
 | --- | --- | --- | --- | --- | --- |
-| 1 | `BatchJobFailed` | critical | `sum by (spring_batch_job_name) (increase(spring_batch_job_seconds_count{spring_batch_job_status="FAILED", spring_batch_job_name!~"DlqReplayJob\|RawZoneReplayJob"}[10m])) > 0` | 0m | RB-01 |
+| 1 | `BatchJobFailed` | critical | `sum by (spring_batch_job_name) (events(spring_batch_job_seconds_count{spring_batch_job_status="FAILED", spring_batch_job_name!~"DlqReplayJob\|RawZoneReplayJob"}, 10m)) > 0` | 0m | RB-01 |
 | 2 | `ConsumerLagHigh` | warning | `(pti:kafka_lag:sum{topic="gtfs.vehicle_positions"} > 3000 or pti:kafka_lag:sum{topic="gtfs.trip_updates"} > 1000 or pti:kafka_lag:sum{topic=~"ticketing\\..*"} > 300) unless on (topic) (max by (topic) (pti_etl_listener_paused{reason="flag"}) == 1)` | 5m | RB-02 |
 | 3 | `DlqRateHigh` | critical | `(pti:etl_skipped:rate5m / pti:etl_input:rate5m > 0.01) and on (source) (pti:etl_input:rate5m > 0.2)` | 5m | RB-04 |
 | 4 | `EndToEndLatencyHigh` | warning | `pti:e2e_latency:p95_5m > 10` | 5m | RB-07 |
 | 5 | `ThroughputDrop` | warning | `((pti:etl_input:rate5m{source=~"GTFS_RT_.*"} < 0.5 * avg_over_time(pti:etl_input:rate5m{source=~"GTFS_RT_.*"}[1h] offset 10m)) and on (source) (avg_over_time(pti:etl_input:rate5m[1h] offset 10m) > 5)) unless on () (max(pti_sim_rate_multiplier{stream="gtfs-rt"}) == 0)` | 10m | RB-07 |
 | 6 | `GtfsRtFeedStale` | critical | `(min by (source) (pti_source_last_event_age_seconds{source=~"GTFS_RT_.*"}) > 120) unless on () (max(pti_sim_rate_multiplier{stream="gtfs-rt"}) == 0)` | 0m | RB-06 |
 | 7 | `DatabaseBottleneck` | warning | `pti:chunk_duration:p95_5m > 2 and on () (sum(deriv(pti:kafka_lag:sum[5m])) > 0)` | 5m | RB-08 |
-| 8 | `CircuitBreakerOpen` | warning | `max by (application, name) (resilience4j_circuitbreaker_state{state="open"}) == 1` | 1m | RB-08 |
+| 8 | `CircuitBreakerOpen` | warning | `max by (application, name) (resilience4j_circuitbreaker_state{state=~"open\|half_open"}) == 1` | 1m | RB-08 |
 | 9 | `DebeziumWalRetained` | warning / critical | warning: `max by (slot) (pti_source_replication_slot_retained_bytes) > 2e9`; critical: `> 3.2e9` (80% của `max_slot_wal_keep_size=4GB`) | 5m | RB-09 |
 | 10 | `ConnectorDown` | critical | `min by (connector) (pti_connect_connector_running) == 0` | 2m | RB-09 |
 | 11 | `ConsumerStopped` | critical | `min by (listener) (pti_etl_listener_running) == 0` | 1m | RB-03 |
 | 12 | `ConsumerPaused` | warning | `max by (listener, reason) (pti_etl_listener_paused{reason=~"backoff\|circuit"}) == 1` | 5m | RB-03 |
-| 13 | `FatalErrors` | critical | `sum by (application, type) (increase(pti_errors_total{kind="fatal"}[5m])) > 0` | 0m | RB-03 |
+| 13 | `FatalErrors` | critical | `sum by (application, type) (events(pti_errors_total{kind="fatal"}, 5m)) > 0` | 0m | RB-03 |
 | 14 | `DlqBacklogHigh` | warning | `sum by (source) (max by (source, status) (pti_dlq_open_records{status=~"NEW\|MANUAL\|PENDING_CONFIRM"})) > 500` | 30m | RB-04 |
-| 15 | `ReplayFailed` | warning | `sum by (kind) (increase(pti_replay_requests_total{outcome="failed"}[10m])) > 0` | 0m | RB-01 |
-| 16 | `BatchExecutionRecovered` | info | `sum by (job) (increase(pti_batch_stale_recovered_total[15m])) > 0` | 0m | RB-01 |
-| 17 | `GtfsFeedRejected` | warning | `increase(pti_gtfs_load_total{outcome="rejected"}[1h]) > 0` | 0m | RB-05 |
+| 15 | `ReplayFailed` | warning | `sum by (kind) (events(pti_replay_requests_total{outcome="failed"}, 10m)) > 0` | 0m | RB-01 |
+| 16 | `BatchExecutionRecovered` | info | `sum by (job) (events(pti_batch_stale_recovered_total, 15m)) > 0` | 0m | RB-01 |
+| 17 | `GtfsFeedRejected` | warning | `sum(events(pti_gtfs_load_total{outcome="rejected"}, 1h)) > 0` | 0m | RB-05 |
 | 18 | `GtfsFeedExpiring` | warning | `min(pti_gtfs_active_feed_days_to_expiry) < 7` | 1h | RB-05 |
 | 19 | `DataQualityCheckFailed` | warning | `max by (rule) (pti_dq_check_breached) == 1` | 0m | RB-13 |
 | 20 | `DataQualityCheckStale` | warning | `time() - max by (rule) (pti_dq_check_last_run_timestamp_seconds) > 3 * max by (rule) (pti_dq_check_interval_seconds)` | 5m | RB-13 |
@@ -330,9 +332,9 @@ Chín alert đầu là SDD 12.2; phần còn lại được thêm ở các tài 
 | 24 | `SimulatorLagging` | warning | `max(pti_sim_tick_lag_seconds) > 2` | 2m | RB-07 |
 | 25 | `AnalyticsRunErrors` | warning | `sum by (detector) (rate(pti_analytics_runs_total{outcome="error"}[10m])) > 0` | 10m | RB-01 |
 | 26 | `AnalyticsDispatchSlow` | info | `histogram_quantile(0.95, sum by (le) (rate(pti_analytics_dispatch_delay_seconds_bucket[5m]))) > 2` | 10m | RB-07 |
-| 27 | `DlqSevereRecords` | critical | `sum by (source) (increase(pti_triage_decisions_total{use_case="dlq", severity="2"}[10m])) > 0` | 0m | RB-04 |
-| 28 | `DlqNeedsAttention` | warning | `sum by (source) (increase(pti_triage_decisions_total{use_case="dlq", severity="1"}[30m])) >= 10` | 0m | RB-04 |
-| 29 | `DlqUpstreamErrorBurst` | critical | `sum by (source) (increase(pti_dlq_rule_category_total{category="upstream_api_error"}[1h])) > 50` | 0m | RB-04 |
+| 27 | `DlqSevereRecords` | critical | `sum by (source) (events(pti_triage_decisions_total{use_case="dlq", severity="2"}, 10m)) > 0` | 0m | RB-04 |
+| 28 | `DlqNeedsAttention` | warning | `sum by (source) (events(pti_triage_decisions_total{use_case="dlq", severity="1"}, 30m)) >= 10` | 0m | RB-04 |
+| 29 | `DlqUpstreamErrorBurst` | critical | `sum by (source) (events(pti_dlq_rule_category_total{category="upstream_api_error"}, 1h)) > 50` | 0m | RB-04 |
 | 30 | `TriageBacklogHigh` | warning | `max by (use_case) (pti_triage_backlog) > 500` | 15m | RB-04 |
 
 Ghi chú:
@@ -344,6 +346,7 @@ Ghi chú:
 - **5 (`ThroughputDrop`):** so với trung bình 1 giờ trước đó. Lúc hết giờ phục vụ ban đêm, lượng xe giảm dần trong khoảng 2 giờ nên hiếm khi giảm quá 50% so với trung bình giờ trước; nếu vẫn báo nhầm thì runbook RB-07 hướng dẫn silence theo khung giờ.
 - **6 (`GtfsRtFeedStale`):** dựa trên DB qua `api` (DR-71), nên báo được cả khi mọi pod `etl-stream` đã chết. Tuổi được tính theo đồng hồ nghiệp vụ (DR-67).
 - **5, 6 và simulator tạm dừng:** trên compose simulator mặc định ở hệ số 0 (DR-86), nên cả hai rule bỏ qua lúc `pti_sim_rate_multiplier{stream="gtfs-rt"}` bằng 0: dừng có chủ đích không phải sự cố. Simulator chết thì gauge vắng mặt và vế `unless` không có tác dụng, nên alert vẫn bắn.
+- **8 (`CircuitBreakerOpen`):** khi warehouse chết, breaker đi vòng `open` → `half_open` (thử lại) → `open`, mỗi lần `open` chỉ kéo dài `wait-duration-in-open-state`; rule tính cả `half_open` để `for: 1m` không bị reset (đo ở P3-05, DR-99).
 - **7 (`DatabaseBottleneck`):** "độ trễ ghi vượt ngưỡng trong khi lag tăng" của SDD, với độ trễ ghi là p95 thời gian chunk.
 - **25 (`AnalyticsRunErrors`):** một lần chạy analytics lỗi không làm hỏng micro-batch (đã commit, DR-22), nên cần alert riêng. Lỗi lặp lại được sửa rồi chạy `AnalyticsRecomputeJob` cho khoảng bị ảnh hưởng (DOC-23 §15).
 - **22 (`TargetDown`):** trong EXP-01 và EXP-08, runner tạo silence trước khi kill (§6.5), vì alert này là kết quả mong đợi.
@@ -454,7 +457,7 @@ Datasource Postgres dùng user `api_reader` (DOC-39 §3.7): đọc được bộ
 | O-05 | Log trong chunk có `batch_id`, `trace.id`, `span.id` | Integration test đọc output log JSON (`OutputCaptureExtension`) |
 | O-06 | `pti_source_last_event_age_seconds` tăng khi dừng publish và về < 10 s khi publish lại | Integration test `api` |
 | O-07 | `pti_source_replication_slot_retained_bytes` đọc được bằng role `source_simulator` (không cần superuser) và tăng khi Connect dừng | Integration test simulator (Postgres `wal_level=logical`, tạo slot bằng owner) |
-| O-08 | Mỗi alert được kích hoạt thật bằng kịch bản và tới Mailpit và `alert_event` | Thủ công ở P3-05, ghi kết quả vào DOC-42 |
+| O-08 | Mỗi alert được kích hoạt thật bằng kịch bản và tới Mailpit và `alert_event` | Thủ công ở P3-05, ghi kết quả vào DOC-42 §4; alert chưa gây ra được trên compose ở P3 chỉ dựa vào O-03 và được thử lại ở phase có nguồn metric |
 | O-09 | Dashboard JSON hợp lệ và mọi truy vấn trả về dữ liệu trên compose đang chạy | Script `deploy/compose/observability/check-dashboards.py` (`make check-dashboards`) chạy mọi truy vấn qua Grafana API, in `OK`/`EMPTY`/`ERROR`; thoát 1 khi có `ERROR`, và khi có `EMPTY` nếu thêm `--strict`. Chạy trong job `e2e-compose` của `full-stack.yml` (DOC-41 §10.3) với `--strict` từ P8, khi mọi panel đều có nguồn dữ liệu |
 
 ## 10. Câu hỏi còn mở

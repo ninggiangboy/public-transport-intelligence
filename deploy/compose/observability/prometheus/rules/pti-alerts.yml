@@ -1,0 +1,343 @@
+# Alert rules (DOC-28 §6.3). Every alert has a runbook (DOC-42) and promtool tests in ../tests/.
+groups:
+  - name: pti-pipeline
+    rules:
+      - alert: BatchJobFailed
+        expr: "sum by (spring_batch_job_name) ((spring_batch_job_seconds_count{spring_batch_job_status=\"FAILED\", spring_batch_job_name!~\"DlqReplayJob|RawZoneReplayJob\"} unless spring_batch_job_seconds_count{spring_batch_job_status=\"FAILED\", spring_batch_job_name!~\"DlqReplayJob|RawZoneReplayJob\"} offset 10m) or increase(spring_batch_job_seconds_count{spring_batch_job_status=\"FAILED\", spring_batch_job_name!~\"DlqReplayJob|RawZoneReplayJob\"}[10m])) > 0"
+        labels:
+          severity: critical
+          area: pipeline
+        annotations:
+          summary: "Batch job {{ $labels.spring_batch_job_name }} failed"
+          description: "A Spring Batch job ended FAILED in the last 10 minutes."
+          runbook_url: https://github.com/ninggiangboy/public-transport-intelligence/blob/main/docs/09-operations/runbooks/RB-01-batch-job-failed.md
+          dashboard_url: http://localhost:3000/d/pti-batch
+      - alert: ConsumerLagHigh
+        expr: "(pti:kafka_lag:sum{topic=\"gtfs.vehicle_positions\"} > 3000 or pti:kafka_lag:sum{topic=\"gtfs.trip_updates\"} > 1000 or pti:kafka_lag:sum{topic=~\"ticketing\\\\..*\"} > 300) unless on (topic) (max by (topic) (pti_etl_listener_paused{reason=\"flag\"}) == 1)"
+        for: 5m
+        labels:
+          severity: warning
+          area: pipeline
+        annotations:
+          summary: "Consumer lag on {{ $labels.topic }} is {{ $value | humanize }}"
+          description: "etl-stream is more than about 25 seconds of data behind on this topic."
+          runbook_url: https://github.com/ninggiangboy/public-transport-intelligence/blob/main/docs/09-operations/runbooks/RB-02-consumer-lag-high.md
+          dashboard_url: http://localhost:3000/d/pti-kafka
+      - alert: EndToEndLatencyHigh
+        expr: "pti:e2e_latency:p95_5m > 10"
+        for: 5m
+        labels:
+          severity: warning
+          area: pipeline
+        annotations:
+          summary: "End-to-end p95 on {{ $labels.channel }} is {{ $value | humanizeDuration }}"
+          description: "NFR-03: 95% of events should reach the UI within 10 seconds."
+          runbook_url: https://github.com/ninggiangboy/public-transport-intelligence/blob/main/docs/09-operations/runbooks/RB-07-latency-throughput.md
+          dashboard_url: http://localhost:3000/d/pti-overview
+      - alert: ThroughputDrop
+        expr: "((pti:etl_input:rate5m{source=~\"GTFS_RT_.*\"} < 0.5 * avg_over_time(pti:etl_input:rate5m{source=~\"GTFS_RT_.*\"}[1h] offset 10m)) and on (source) (avg_over_time(pti:etl_input:rate5m[1h] offset 10m) > 5)) unless on () (max(pti_sim_rate_multiplier{stream=\"gtfs-rt\"}) == 0)"
+        for: 10m
+        labels:
+          severity: warning
+          area: pipeline
+        annotations:
+          summary: "{{ $labels.source }} throughput is {{ $value | humanize }}/s, less than half of the last hour"
+          description: "The input rate of a GTFS-realtime source fell by more than 50%."
+          runbook_url: https://github.com/ninggiangboy/public-transport-intelligence/blob/main/docs/09-operations/runbooks/RB-07-latency-throughput.md
+          dashboard_url: http://localhost:3000/d/pti-overview
+      - alert: CircuitBreakerOpen
+        expr: "max by (application, name) (resilience4j_circuitbreaker_state{state=~\"open|half_open\"}) == 1"
+        for: 1m
+        labels:
+          severity: warning
+          area: pipeline
+        annotations:
+          summary: "Circuit breaker {{ $labels.name }} of {{ $labels.application }} is not closed"
+          description: "Calls to the warehouse are refused or only probed; the listeners are paused until it closes. During a long outage the breaker alternates between open and half-open, so both count."
+          runbook_url: https://github.com/ninggiangboy/public-transport-intelligence/blob/main/docs/09-operations/runbooks/RB-08-database-bottleneck.md
+          dashboard_url: http://localhost:3000/d/pti-overview
+      - alert: ConsumerStopped
+        expr: "min by (listener) (pti_etl_listener_running) == 0"
+        for: 1m
+        labels:
+          severity: critical
+          area: pipeline
+        annotations:
+          summary: "Listener {{ $labels.listener }} has stopped"
+          description: "The listener container is not running: nothing is read from its topic."
+          runbook_url: https://github.com/ninggiangboy/public-transport-intelligence/blob/main/docs/09-operations/runbooks/RB-03-consumer-stopped.md
+          dashboard_url: http://localhost:3000/d/pti-overview
+      - alert: ConsumerPaused
+        expr: "max by (listener, reason) (pti_etl_listener_paused{reason=~\"backoff|circuit\"}) == 1"
+        for: 5m
+        labels:
+          severity: warning
+          area: pipeline
+        annotations:
+          summary: "Listener {{ $labels.listener }} is paused ({{ $labels.reason }})"
+          description: "The listener is paused by back-off or by the circuit breaker, not by a flag."
+          runbook_url: https://github.com/ninggiangboy/public-transport-intelligence/blob/main/docs/09-operations/runbooks/RB-03-consumer-stopped.md
+          dashboard_url: http://localhost:3000/d/pti-overview
+      - alert: FatalErrors
+        expr: "sum by (application, type) ((pti_errors_total{kind=\"fatal\"} unless pti_errors_total{kind=\"fatal\"} offset 5m) or increase(pti_errors_total{kind=\"fatal\"}[5m])) > 0"
+        labels:
+          severity: critical
+          area: pipeline
+        annotations:
+          summary: "{{ $labels.application }} hit a fatal {{ $labels.type }}"
+          description: "A fatal error stops a listener or a job and needs a person."
+          runbook_url: https://github.com/ninggiangboy/public-transport-intelligence/blob/main/docs/09-operations/runbooks/RB-03-consumer-stopped.md
+          dashboard_url: http://localhost:3000/d/pti-overview
+      - alert: ReplayFailed
+        expr: "sum by (kind) ((pti_replay_requests_total{outcome=\"failed\"} unless pti_replay_requests_total{outcome=\"failed\"} offset 10m) or increase(pti_replay_requests_total{outcome=\"failed\"}[10m])) > 0"
+        labels:
+          severity: warning
+          area: pipeline
+        annotations:
+          summary: "A {{ $labels.kind }} replay failed"
+          description: "A replay request ended FAILED in the last 10 minutes."
+          runbook_url: https://github.com/ninggiangboy/public-transport-intelligence/blob/main/docs/09-operations/runbooks/RB-01-batch-job-failed.md
+          dashboard_url: http://localhost:3000/d/pti-batch
+      - alert: BatchExecutionRecovered
+        expr: "sum by (job) ((pti_batch_stale_recovered_total unless pti_batch_stale_recovered_total offset 15m) or increase(pti_batch_stale_recovered_total[15m])) > 0"
+        labels:
+          severity: info
+          area: pipeline
+        annotations:
+          summary: "A stale {{ $labels.job }} execution was recovered"
+          description: "An execution left running by a dead instance was marked FAILED and restarted."
+          runbook_url: https://github.com/ninggiangboy/public-transport-intelligence/blob/main/docs/09-operations/runbooks/RB-01-batch-job-failed.md
+          dashboard_url: http://localhost:3000/d/pti-batch
+      - alert: LatencyStageSlow
+        expr: "pti:kafka_to_commit:p95_5m > 3 or pti:commit_to_publish:p95_5m > 2.5 or pti:publish_to_emit:p95_5m > 1.5"
+        for: 5m
+        labels:
+          severity: info
+          area: pipeline
+        annotations:
+          summary: "A latency stage is over its budget ({{ $value | humanizeDuration }})"
+          description: "One stage of NFR-03 is slower than its share of the 10-second budget (DOC-10 \u00a72)."
+          runbook_url: https://github.com/ninggiangboy/public-transport-intelligence/blob/main/docs/09-operations/runbooks/RB-07-latency-throughput.md
+          dashboard_url: http://localhost:3000/d/pti-overview
+      - alert: AnalyticsRunErrors
+        expr: "sum by (detector) (rate(pti_analytics_runs_total{outcome=\"error\"}[10m])) > 0"
+        for: 10m
+        labels:
+          severity: warning
+          area: pipeline
+        annotations:
+          summary: "Analytics {{ $labels.detector }} keeps failing"
+          description: "Insights are missing until the runs succeed (P4)."
+          runbook_url: https://github.com/ninggiangboy/public-transport-intelligence/blob/main/docs/09-operations/runbooks/RB-01-batch-job-failed.md
+          dashboard_url: http://localhost:3000/d/pti-overview
+      - alert: AnalyticsDispatchSlow
+        expr: "histogram_quantile(0.95, sum by (le) (rate(pti_analytics_dispatch_delay_seconds_bucket[5m]))) > 2"
+        for: 10m
+        labels:
+          severity: info
+          area: pipeline
+        annotations:
+          summary: "Analytics start {{ $value | humanizeDuration }} after the commit (p95)"
+          description: "The analytics executor is behind the micro-batches (P4)."
+          runbook_url: https://github.com/ninggiangboy/public-transport-intelligence/blob/main/docs/09-operations/runbooks/RB-07-latency-throughput.md
+          dashboard_url: http://localhost:3000/d/pti-overview
+  - name: pti-data
+    rules:
+      - alert: DlqRateHigh
+        expr: "(pti:etl_skipped:rate5m / pti:etl_input:rate5m > 0.01) and on (source) (pti:etl_input:rate5m > 0.2)"
+        for: 5m
+        labels:
+          severity: critical
+          area: data
+        annotations:
+          summary: "{{ $value | humanizePercentage }} of {{ $labels.source }} records go to the dead letter queue"
+          description: "More than 1% of the records of a source failed validation over 5 minutes."
+          runbook_url: https://github.com/ninggiangboy/public-transport-intelligence/blob/main/docs/09-operations/runbooks/RB-04-dlq-rate-high.md
+          dashboard_url: http://localhost:3000/d/pti-overview
+      - alert: DlqBacklogHigh
+        expr: "sum by (source) (max by (source, status) (pti_dlq_open_records{status=~\"NEW|MANUAL|PENDING_CONFIRM\"})) > 500"
+        for: 30m
+        labels:
+          severity: warning
+          area: data
+        annotations:
+          summary: "{{ $value | humanize }} dead letters of {{ $labels.source }} wait for action"
+          description: "Open dead letters keep piling up."
+          runbook_url: https://github.com/ninggiangboy/public-transport-intelligence/blob/main/docs/09-operations/runbooks/RB-04-dlq-rate-high.md
+          dashboard_url: http://localhost:3000/d/pti-batch
+      - alert: GtfsFeedRejected
+        expr: "sum((pti_gtfs_load_total{outcome=\"rejected\"} unless pti_gtfs_load_total{outcome=\"rejected\"} offset 1h) or increase(pti_gtfs_load_total{outcome=\"rejected\"}[1h])) > 0"
+        labels:
+          severity: warning
+          area: data
+        annotations:
+          summary: "A GTFS feed was rejected"
+          description: "The last GTFS load failed validation; the ACTIVE feed is unchanged."
+          runbook_url: https://github.com/ninggiangboy/public-transport-intelligence/blob/main/docs/09-operations/runbooks/RB-05-gtfs-feed.md
+          dashboard_url: http://localhost:3000/d/pti-batch
+      - alert: GtfsFeedExpiring
+        expr: "min(pti_gtfs_active_feed_days_to_expiry) < 7"
+        for: 1h
+        labels:
+          severity: warning
+          area: data
+        annotations:
+          summary: "The ACTIVE GTFS feed expires in {{ $value }} days"
+          description: "Load a newer feed before the service dates run out."
+          runbook_url: https://github.com/ninggiangboy/public-transport-intelligence/blob/main/docs/09-operations/runbooks/RB-05-gtfs-feed.md
+          dashboard_url: http://localhost:3000/d/pti-batch
+      - alert: DataQualityCheckFailed
+        expr: "max by (rule) (pti_dq_check_breached) == 1"
+        labels:
+          severity: warning
+          area: data
+        annotations:
+          summary: "Data quality check {{ $labels.rule }} is over its threshold"
+          description: "The last run of a post-write check found too many violations (DOC-16 \u00a73)."
+          runbook_url: https://github.com/ninggiangboy/public-transport-intelligence/blob/main/docs/09-operations/runbooks/RB-13-data-quality-check.md
+          dashboard_url: http://localhost:3000/d/pti-batch
+      - alert: DataQualityCheckStale
+        expr: "time() - max by (rule) (pti_dq_check_last_run_timestamp_seconds) > 3 * max by (rule) (pti_dq_check_interval_seconds)"
+        for: 5m
+        labels:
+          severity: warning
+          area: data
+        annotations:
+          summary: "Data quality check {{ $labels.rule }} has not run for {{ $value | humanizeDuration }}"
+          description: "The post-write check missed three runs in a row."
+          runbook_url: https://github.com/ninggiangboy/public-transport-intelligence/blob/main/docs/09-operations/runbooks/RB-13-data-quality-check.md
+          dashboard_url: http://localhost:3000/d/pti-batch
+      - alert: DlqSevereRecords
+        expr: "sum by (source) ((pti_triage_decisions_total{use_case=\"dlq\", severity=\"2\"} unless pti_triage_decisions_total{use_case=\"dlq\", severity=\"2\"} offset 10m) or increase(pti_triage_decisions_total{use_case=\"dlq\", severity=\"2\"}[10m])) > 0"
+        labels:
+          severity: critical
+          area: data
+        annotations:
+          summary: "Triage marked {{ $labels.source }} dead letters as urgent"
+          description: "Severity 2 dead letters need a person (P6)."
+          runbook_url: https://github.com/ninggiangboy/public-transport-intelligence/blob/main/docs/09-operations/runbooks/RB-04-dlq-rate-high.md
+          dashboard_url: http://localhost:3000/d/pti-batch
+      - alert: DlqNeedsAttention
+        expr: "sum by (source) ((pti_triage_decisions_total{use_case=\"dlq\", severity=\"1\"} unless pti_triage_decisions_total{use_case=\"dlq\", severity=\"1\"} offset 30m) or increase(pti_triage_decisions_total{use_case=\"dlq\", severity=\"1\"}[30m])) >= 10"
+        labels:
+          severity: warning
+          area: data
+        annotations:
+          summary: "{{ $value | humanize }} {{ $labels.source }} dead letters need attention"
+          description: "At least 10 severity 1 dead letters in 30 minutes (P6)."
+          runbook_url: https://github.com/ninggiangboy/public-transport-intelligence/blob/main/docs/09-operations/runbooks/RB-04-dlq-rate-high.md
+          dashboard_url: http://localhost:3000/d/pti-batch
+      - alert: DlqUpstreamErrorBurst
+        expr: "sum by (source) ((pti_dlq_rule_category_total{category=\"upstream_api_error\"} unless pti_dlq_rule_category_total{category=\"upstream_api_error\"} offset 1h) or increase(pti_dlq_rule_category_total{category=\"upstream_api_error\"}[1h])) > 50"
+        labels:
+          severity: critical
+          area: data
+        annotations:
+          summary: "{{ $value | humanize }} upstream errors from {{ $labels.source }} in an hour"
+          description: "The last-resort rule of FR-09.8, independent of the AI triage."
+          runbook_url: https://github.com/ninggiangboy/public-transport-intelligence/blob/main/docs/09-operations/runbooks/RB-04-dlq-rate-high.md
+          dashboard_url: http://localhost:3000/d/pti-batch
+      - alert: TriageBacklogHigh
+        expr: "max by (use_case) (pti_triage_backlog) > 500"
+        for: 15m
+        labels:
+          severity: warning
+          area: data
+        annotations:
+          summary: "{{ $value | humanize }} {{ $labels.use_case }} items wait for triage"
+          description: "The triage worker is behind (P6)."
+          runbook_url: https://github.com/ninggiangboy/public-transport-intelligence/blob/main/docs/09-operations/runbooks/RB-04-dlq-rate-high.md
+          dashboard_url: http://localhost:3000/d/pti-batch
+  - name: pti-source
+    rules:
+      - alert: GtfsRtFeedStale
+        expr: "(min by (source) (pti_source_last_event_age_seconds{source=~\"GTFS_RT_.*\"}) > 120) unless on () (max(pti_sim_rate_multiplier{stream=\"gtfs-rt\"}) == 0)"
+        labels:
+          severity: critical
+          area: source
+        annotations:
+          summary: "{{ $labels.source }} data is {{ $value | humanizeDuration }} old"
+          description: "No new GTFS-realtime data for more than 2 minutes of business time (from the api, P4)."
+          runbook_url: https://github.com/ninggiangboy/public-transport-intelligence/blob/main/docs/09-operations/runbooks/RB-06-gtfs-rt-feed-stale.md
+          dashboard_url: http://localhost:3000/d/pti-overview
+      - alert: DebeziumWalRetained
+        expr: "max by (slot) (pti_source_replication_slot_retained_bytes) > 2e9"
+        for: 5m
+        labels:
+          severity: warning
+          area: source
+        annotations:
+          summary: "Replication slot {{ $labels.slot }} keeps {{ $value | humanize1024 }}B of WAL"
+          description: "Debezium is not reading the slot; pg-source keeps WAL for it."
+          runbook_url: https://github.com/ninggiangboy/public-transport-intelligence/blob/main/docs/09-operations/runbooks/RB-09-debezium.md
+          dashboard_url: http://localhost:3000/d/pti-kafka
+      - alert: DebeziumWalRetained
+        expr: "max by (slot) (pti_source_replication_slot_retained_bytes) > 3.2e9"
+        for: 5m
+        labels:
+          severity: critical
+          area: source
+        annotations:
+          summary: "Replication slot {{ $labels.slot }} keeps {{ $value | humanize1024 }}B of WAL, close to the 4 GB limit"
+          description: "At max_slot_wal_keep_size the slot is invalidated and CDC needs a new snapshot."
+          runbook_url: https://github.com/ninggiangboy/public-transport-intelligence/blob/main/docs/09-operations/runbooks/RB-09-debezium.md
+          dashboard_url: http://localhost:3000/d/pti-kafka
+      - alert: ConnectorDown
+        expr: "min by (connector) (pti_connect_connector_running) == 0"
+        for: 2m
+        labels:
+          severity: critical
+          area: source
+        annotations:
+          summary: "Kafka Connect connector {{ $labels.connector }} is not running"
+          description: "The connector or one of its tasks is not RUNNING, or Kafka Connect does not answer."
+          runbook_url: https://github.com/ninggiangboy/public-transport-intelligence/blob/main/docs/09-operations/runbooks/RB-09-debezium.md
+          dashboard_url: http://localhost:3000/d/pti-kafka
+      - alert: SimulatorLagging
+        expr: "max(pti_sim_tick_lag_seconds) > 2"
+        for: 2m
+        labels:
+          severity: warning
+          area: source
+        annotations:
+          summary: "The simulator is {{ $value | humanizeDuration }} behind"
+          description: "The simulator does not keep up: measured loads are lower than requested."
+          runbook_url: https://github.com/ninggiangboy/public-transport-intelligence/blob/main/docs/09-operations/runbooks/RB-07-latency-throughput.md
+          dashboard_url: http://localhost:3000/d/pti-simulator
+  - name: pti-platform
+    rules:
+      - alert: DatabaseBottleneck
+        expr: "pti:chunk_duration:p95_5m > 2 and on () (sum(deriv(pti:kafka_lag:sum[5m])) > 0)"
+        for: 5m
+        labels:
+          severity: warning
+          area: platform
+        annotations:
+          summary: "Chunk p95 is {{ $value | humanizeDuration }} while the lag grows"
+          description: "Writes to the warehouse are slow and the pipeline is falling behind."
+          runbook_url: https://github.com/ninggiangboy/public-transport-intelligence/blob/main/docs/09-operations/runbooks/RB-08-database-bottleneck.md
+          dashboard_url: http://localhost:3000/d/pti-postgres
+      - alert: TargetDown
+        expr: "up{job=~\"pti-.*\"} == 0"
+        for: 2m
+        labels:
+          severity: critical
+          area: platform
+        annotations:
+          summary: "{{ $labels.job }} does not answer scrapes"
+          description: "Prometheus cannot scrape the app: it is down or unreachable."
+          runbook_url: https://github.com/ninggiangboy/public-transport-intelligence/blob/main/docs/09-operations/runbooks/RB-14-api-and-targets.md
+          dashboard_url: http://localhost:3000/d/pti-overview
+  - name: pti-api
+    rules:
+      - alert: ApiErrorRateHigh
+        expr: "(sum(rate(http_server_requests_seconds_count{application=\"api\", status=~\"5..\"}[5m])) / sum(rate(http_server_requests_seconds_count{application=\"api\"}[5m])) > 0.01) and on () (sum(rate(http_server_requests_seconds_count{application=\"api\"}[5m])) > 0.2)"
+        for: 5m
+        labels:
+          severity: warning
+          area: api
+        annotations:
+          summary: "{{ $value | humanizePercentage }} of API requests fail"
+          description: "More than 1% of API requests answer 5xx."
+          runbook_url: https://github.com/ninggiangboy/public-transport-intelligence/blob/main/docs/09-operations/runbooks/RB-14-api-and-targets.md
+          dashboard_url: http://localhost:3000/d/pti-overview

@@ -1,6 +1,6 @@
 # Runbook
 
-> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-42
+> Trạng thái: **Approved** · Cập nhật: 2026-09-30 (kết quả P3-05) · DOC-42
 >
 > Phụ thuộc: DOC-28 §6 (alert), DOC-38 §4 (lệnh `make`), DOC-40 (k3d), DOC-43 (backup và khôi phục), DOC-22 (DLQ, replay), DOC-24 (triage)
 >
@@ -126,7 +126,14 @@ Chỉ thử lại các alert có đường đi khác compose (scrape qua Service
 
 | Alert | Ngày thử | Phase | Tới Mailpit | Tới `alert_event` | Runbook làm được tới "Xác nhận" | Ghi chú |
 | --- | --- | --- | --- | --- | --- | --- |
-| _(chưa chạy)_ | | | | | | |
+| `TargetDown` | 2026-09-30 | P3-05 | Có (`pti-etl-batch`, `pti-etl-stream`) | Chưa có (P4-16) | Có | `docker stop pti-etl-batch-1` 3 phút. Lần thử đầu với `pg-warehouse` dừng lại bắn `TargetDown` cho `etl-stream` thay vì `CircuitBreakerOpen`: gauge `pti_source_health` gọi DB đồng bộ làm scrape treo; đã sửa (DR-99) |
+| `ConnectorDown` | 2026-09-30 | P3-05 | Có | Chưa có | Có | `PUT /connectors/debezium-ticketing/pause` 3 phút; rule chỉ xét connector Debezium (RB-09) |
+| `DlqRateHigh` | 2026-09-30 | P3-05 | Có (cả hai nguồn GTFS-RT) | Chưa có | Có | `make scenario NAME=bad-data ARGS='{"ratio":0.05,"duration":"PT10M"}'` |
+| `CircuitBreakerOpen` | 2026-09-30 | P3-05 | Có | Chưa có | Có | `docker stop pti-pg-warehouse-1` 5 phút. Rule cũ (`state="open"`) không bắn vì breaker đi vòng `open`/`half_open`; sửa thành `state=~"open\|half_open"` (DR-99) |
+| `BatchJobFailed` | 2026-09-30 | P3-05 | Có | Chưa có | Có | `make job-run NAME=GtfsStaticLoadJob PARAMS='sourceUri=s3://raw/gtfs-static/missing.zip'`. Rule cũ dùng `increase()` không thấy lỗi đầu tiên của một series mới; sửa bằng `events()` (DOC-28 §6.1, DR-99) |
+| `GtfsFeedRejected` | 2026-09-30 | P3-05 | Có | Chưa có | Có | Zip thiếu `stop_times.txt` như §3 |
+| `DataQualityCheckStale` | 2026-09-30 | P3-05 | Có | Chưa có | Có | Bắn kèm khi `pg-warehouse` dừng (check không chạy được), tự hết khi warehouse về |
+| Các alert còn lại | — | P3-05 | — | — | — | Chỉ kiểm bằng `promtool test rules` (O-03, 60 ca). Chưa gây ra thật ở P3: phụ thuộc `api` (`EndToEndLatencyHigh`, `GtfsRtFeedStale`, `ApiErrorRateHigh`), triage và analytics (P4, P6), ngưỡng cần nhiều giờ (`DebeziumWalRetained`, `DlqBacklogHigh`, `ThroughputDrop`, `GtfsFeedExpiring`); `ConsumerLagHigh`, `ConsumerStopped`, `FatalErrors`, `ConsumerPaused`, `LatencyStageSlow`, `SimulatorLagging` được gây ra trong EXP-01 và EXP-05 (chuỗi smoke P3-08, runner silence theo §6.5 của DOC-28 nên chỉ ghi nhận trên Prometheus). Thử lại qua Mailpit ở P4-16 và P8-03 |
 
 ## 5. Câu hỏi còn mở
 

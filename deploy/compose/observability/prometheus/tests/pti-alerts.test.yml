@@ -1,0 +1,670 @@
+# Generated with the rules: one firing and one quiet case per alert (DOC-28 §6.1, O-03).
+rule_files: [../rules/pti-recording.yml, ../rules/pti-alerts.yml]
+evaluation_interval: 1m
+tests:
+  # BatchJobFailed: fires
+  - interval: 1m
+    input_series:
+      - series: "spring_batch_job_seconds_count{spring_batch_job_name=\"GtfsStaticLoadJob\",spring_batch_job_status=\"FAILED\"}"
+        values: "_ _ 1 1 1"
+    alert_rule_test:
+      - eval_time: 4m
+        alertname: BatchJobFailed
+        exp_alerts:
+          - exp_labels: {"severity": "critical", "area": "pipeline", "spring_batch_job_name": "GtfsStaticLoadJob"}
+            exp_annotations: {"dashboard_url": "http://localhost:3000/d/pti-batch", "description": "A Spring Batch job ended FAILED in the last 10 minutes.", "runbook_url": "https://github.com/ninggiangboy/public-transport-intelligence/blob/main/docs/09-operations/runbooks/RB-01-batch-job-failed.md", "summary": "Batch job GtfsStaticLoadJob failed"}
+  # BatchJobFailed: quiet
+  - interval: 1m
+    input_series:
+      - series: "spring_batch_job_seconds_count{spring_batch_job_name=\"DlqReplayJob\",spring_batch_job_status=\"FAILED\"}"
+        values: "0 0 1 1 1"
+    alert_rule_test:
+      - eval_time: 4m
+        alertname: BatchJobFailed
+        exp_alerts: []
+  # ConsumerLagHigh: fires
+  - interval: 1m
+    input_series:
+      - series: "kafka_consumer_fetch_manager_records_lag{application=\"etl-stream\",topic=\"gtfs.vehicle_positions\",partition=\"0\"}"
+        values: "5000x15"
+    alert_rule_test:
+      - eval_time: 10m
+        alertname: ConsumerLagHigh
+        exp_alerts:
+          - exp_labels: {"severity": "warning", "area": "pipeline", "topic": "gtfs.vehicle_positions"}
+            exp_annotations: {"dashboard_url": "http://localhost:3000/d/pti-kafka", "description": "etl-stream is more than about 25 seconds of data behind on this topic.", "runbook_url": "https://github.com/ninggiangboy/public-transport-intelligence/blob/main/docs/09-operations/runbooks/RB-02-consumer-lag-high.md", "summary": "Consumer lag on gtfs.vehicle_positions is 5k"}
+  # ConsumerLagHigh: quiet
+  - interval: 1m
+    input_series:
+      - series: "kafka_consumer_fetch_manager_records_lag{application=\"etl-stream\",topic=\"gtfs.vehicle_positions\",partition=\"0\"}"
+        values: "5000x15"
+      - series: "pti_etl_listener_paused{listener=\"gtfs-rt-vehicle-position\",topic=\"gtfs.vehicle_positions\",reason=\"flag\"}"
+        values: "1x15"
+    alert_rule_test:
+      - eval_time: 10m
+        alertname: ConsumerLagHigh
+        exp_alerts: []
+  # DlqRateHigh: fires
+  - interval: 1m
+    input_series:
+      - series: "pti_etl_records_total{mode=\"stream\",source=\"GTFS_RT_VEHICLE_POSITION\",outcome=\"written\"}"
+        values: "0+600x20"
+      - series: "pti_etl_records_total{mode=\"stream\",source=\"GTFS_RT_VEHICLE_POSITION\",outcome=\"skipped\"}"
+        values: "0+30x20"
+    alert_rule_test:
+      - eval_time: 15m
+        alertname: DlqRateHigh
+        exp_alerts:
+          - exp_labels: {"severity": "critical", "area": "data", "source": "GTFS_RT_VEHICLE_POSITION"}
+            exp_annotations: {"dashboard_url": "http://localhost:3000/d/pti-overview", "description": "More than 1% of the records of a source failed validation over 5 minutes.", "runbook_url": "https://github.com/ninggiangboy/public-transport-intelligence/blob/main/docs/09-operations/runbooks/RB-04-dlq-rate-high.md", "summary": "4.762% of GTFS_RT_VEHICLE_POSITION records go to the dead letter queue"}
+  # DlqRateHigh: quiet
+  - interval: 1m
+    input_series:
+      - series: "pti_etl_records_total{mode=\"stream\",source=\"GTFS_RT_VEHICLE_POSITION\",outcome=\"written\"}"
+        values: "0+6x20"
+      - series: "pti_etl_records_total{mode=\"stream\",source=\"GTFS_RT_VEHICLE_POSITION\",outcome=\"skipped\"}"
+        values: "0+3x20"
+    alert_rule_test:
+      - eval_time: 15m
+        alertname: DlqRateHigh
+        exp_alerts: []
+  # EndToEndLatencyHigh: fires
+  - interval: 1m
+    input_series:
+      - series: "pti_end_to_end_latency_seconds_bucket{channel=\"vehicles\",le=\"5\"}"
+        values: "0x20"
+      - series: "pti_end_to_end_latency_seconds_bucket{channel=\"vehicles\",le=\"15\"}"
+        values: "0+100x20"
+      - series: "pti_end_to_end_latency_seconds_bucket{channel=\"vehicles\",le=\"+Inf\"}"
+        values: "0+100x20"
+    alert_rule_test:
+      - eval_time: 12m
+        alertname: EndToEndLatencyHigh
+        exp_alerts:
+          - exp_labels: {"severity": "warning", "area": "pipeline", "channel": "vehicles"}
+            exp_annotations: {"dashboard_url": "http://localhost:3000/d/pti-overview", "description": "NFR-03: 95% of events should reach the UI within 10 seconds.", "runbook_url": "https://github.com/ninggiangboy/public-transport-intelligence/blob/main/docs/09-operations/runbooks/RB-07-latency-throughput.md", "summary": "End-to-end p95 on vehicles is 14.5s"}
+  # EndToEndLatencyHigh: quiet
+  - interval: 1m
+    input_series:
+      - series: "pti_end_to_end_latency_seconds_bucket{channel=\"vehicles\",le=\"1\"}"
+        values: "0+100x20"
+      - series: "pti_end_to_end_latency_seconds_bucket{channel=\"vehicles\",le=\"5\"}"
+        values: "0+100x20"
+      - series: "pti_end_to_end_latency_seconds_bucket{channel=\"vehicles\",le=\"+Inf\"}"
+        values: "0+100x20"
+    alert_rule_test:
+      - eval_time: 12m
+        alertname: EndToEndLatencyHigh
+        exp_alerts: []
+  # ThroughputDrop: fires
+  - interval: 1m
+    input_series:
+      - series: "pti_etl_records_total{mode=\"stream\",source=\"GTFS_RT_VEHICLE_POSITION\",outcome=\"written\"}"
+        values: "0+600x70 42000x20"
+      - series: "pti_sim_rate_multiplier{stream=\"gtfs-rt\"}"
+        values: "1x90"
+    alert_rule_test:
+      - eval_time: 90m
+        alertname: ThroughputDrop
+        exp_alerts:
+          - exp_labels: {"severity": "warning", "area": "pipeline", "source": "GTFS_RT_VEHICLE_POSITION"}
+            exp_annotations: {"dashboard_url": "http://localhost:3000/d/pti-overview", "description": "The input rate of a GTFS-realtime source fell by more than 50%.", "runbook_url": "https://github.com/ninggiangboy/public-transport-intelligence/blob/main/docs/09-operations/runbooks/RB-07-latency-throughput.md", "summary": "GTFS_RT_VEHICLE_POSITION throughput is 0/s, less than half of the last hour"}
+  # ThroughputDrop: quiet
+  - interval: 1m
+    input_series:
+      - series: "pti_etl_records_total{mode=\"stream\",source=\"GTFS_RT_VEHICLE_POSITION\",outcome=\"written\"}"
+        values: "0+600x70 42000x20"
+      - series: "pti_sim_rate_multiplier{stream=\"gtfs-rt\"}"
+        values: "1x69 0x21"
+    alert_rule_test:
+      - eval_time: 90m
+        alertname: ThroughputDrop
+        exp_alerts: []
+  # GtfsRtFeedStale: fires
+  - interval: 1m
+    input_series:
+      - series: "pti_source_last_event_age_seconds{source=\"GTFS_RT_VEHICLE_POSITION\"}"
+        values: "200x5"
+      - series: "pti_sim_rate_multiplier{stream=\"gtfs-rt\"}"
+        values: "1x5"
+    alert_rule_test:
+      - eval_time: 2m
+        alertname: GtfsRtFeedStale
+        exp_alerts:
+          - exp_labels: {"severity": "critical", "area": "source", "source": "GTFS_RT_VEHICLE_POSITION"}
+            exp_annotations: {"dashboard_url": "http://localhost:3000/d/pti-overview", "description": "No new GTFS-realtime data for more than 2 minutes of business time (from the api, P4).", "runbook_url": "https://github.com/ninggiangboy/public-transport-intelligence/blob/main/docs/09-operations/runbooks/RB-06-gtfs-rt-feed-stale.md", "summary": "GTFS_RT_VEHICLE_POSITION data is 3m 20s old"}
+  # GtfsRtFeedStale: quiet
+  - interval: 1m
+    input_series:
+      - series: "pti_source_last_event_age_seconds{source=\"GTFS_RT_VEHICLE_POSITION\"}"
+        values: "200x5"
+      - series: "pti_sim_rate_multiplier{stream=\"gtfs-rt\"}"
+        values: "0x5"
+    alert_rule_test:
+      - eval_time: 2m
+        alertname: GtfsRtFeedStale
+        exp_alerts: []
+  # DatabaseBottleneck: fires
+  - interval: 1m
+    input_series:
+      - series: "pti_etl_chunk_duration_seconds_bucket{mode=\"stream\",le=\"1\"}"
+        values: "0+0x20"
+      - series: "pti_etl_chunk_duration_seconds_bucket{mode=\"stream\",le=\"5\"}"
+        values: "0+10x20"
+      - series: "pti_etl_chunk_duration_seconds_bucket{mode=\"stream\",le=\"+Inf\"}"
+        values: "0+10x20"
+      - series: "kafka_consumer_fetch_manager_records_lag{application=\"etl-stream\",topic=\"gtfs.trip_updates\",partition=\"0\"}"
+        values: "0+100x20"
+    alert_rule_test:
+      - eval_time: 12m
+        alertname: DatabaseBottleneck
+        exp_alerts:
+          - exp_labels: {"severity": "warning", "area": "platform"}
+            exp_annotations: {"dashboard_url": "http://localhost:3000/d/pti-postgres", "description": "Writes to the warehouse are slow and the pipeline is falling behind.", "runbook_url": "https://github.com/ninggiangboy/public-transport-intelligence/blob/main/docs/09-operations/runbooks/RB-08-database-bottleneck.md", "summary": "Chunk p95 is 4.8s while the lag grows"}
+  # DatabaseBottleneck: quiet
+  - interval: 1m
+    input_series:
+      - series: "pti_etl_chunk_duration_seconds_bucket{mode=\"stream\",le=\"1\"}"
+        values: "0+0x20"
+      - series: "pti_etl_chunk_duration_seconds_bucket{mode=\"stream\",le=\"5\"}"
+        values: "0+10x20"
+      - series: "pti_etl_chunk_duration_seconds_bucket{mode=\"stream\",le=\"+Inf\"}"
+        values: "0+10x20"
+      - series: "kafka_consumer_fetch_manager_records_lag{application=\"etl-stream\",topic=\"gtfs.trip_updates\",partition=\"0\"}"
+        values: "2000-100x20"
+    alert_rule_test:
+      - eval_time: 12m
+        alertname: DatabaseBottleneck
+        exp_alerts: []
+  # CircuitBreakerOpen: fires
+  - interval: 1m
+    input_series:
+      - series: "resilience4j_circuitbreaker_state{application=\"etl-stream\",name=\"warehouse\",state=\"open\"}"
+        values: "1 0 1 0 1 0"
+      - series: "resilience4j_circuitbreaker_state{application=\"etl-stream\",name=\"warehouse\",state=\"half_open\"}"
+        values: "0 1 0 1 0 1"
+    alert_rule_test:
+      - eval_time: 3m
+        alertname: CircuitBreakerOpen
+        exp_alerts:
+          - exp_labels: {"severity": "warning", "area": "pipeline", "application": "etl-stream", "name": "warehouse"}
+            exp_annotations: {"dashboard_url": "http://localhost:3000/d/pti-overview", "description": "Calls to the warehouse are refused or only probed; the listeners are paused until it closes. During a long outage the breaker alternates between open and half-open, so both count.", "runbook_url": "https://github.com/ninggiangboy/public-transport-intelligence/blob/main/docs/09-operations/runbooks/RB-08-database-bottleneck.md", "summary": "Circuit breaker warehouse of etl-stream is not closed"}
+  # CircuitBreakerOpen: quiet
+  - interval: 1m
+    input_series:
+      - series: "resilience4j_circuitbreaker_state{application=\"etl-stream\",name=\"warehouse\",state=\"open\"}"
+        values: "0x5"
+      - series: "resilience4j_circuitbreaker_state{application=\"etl-stream\",name=\"warehouse\",state=\"half_open\"}"
+        values: "0x5"
+      - series: "resilience4j_circuitbreaker_state{application=\"etl-stream\",name=\"warehouse\",state=\"closed\"}"
+        values: "1x5"
+    alert_rule_test:
+      - eval_time: 3m
+        alertname: CircuitBreakerOpen
+        exp_alerts: []
+  # DebeziumWalRetained: fires
+  - interval: 1m
+    input_series:
+      - series: "pti_source_replication_slot_retained_bytes{slot=\"pti_ticketing\"}"
+        values: "3.5e9x10"
+    alert_rule_test:
+      - eval_time: 7m
+        alertname: DebeziumWalRetained
+        exp_alerts:
+          - exp_labels: {"severity": "warning", "area": "source", "slot": "pti_ticketing"}
+            exp_annotations: {"dashboard_url": "http://localhost:3000/d/pti-kafka", "description": "Debezium is not reading the slot; pg-source keeps WAL for it.", "runbook_url": "https://github.com/ninggiangboy/public-transport-intelligence/blob/main/docs/09-operations/runbooks/RB-09-debezium.md", "summary": "Replication slot pti_ticketing keeps 3.26GiB of WAL"}
+          - exp_labels: {"severity": "critical", "area": "source", "slot": "pti_ticketing"}
+            exp_annotations: {"dashboard_url": "http://localhost:3000/d/pti-kafka", "description": "At max_slot_wal_keep_size the slot is invalidated and CDC needs a new snapshot.", "runbook_url": "https://github.com/ninggiangboy/public-transport-intelligence/blob/main/docs/09-operations/runbooks/RB-09-debezium.md", "summary": "Replication slot pti_ticketing keeps 3.26GiB of WAL, close to the 4 GB limit"}
+  # DebeziumWalRetained: quiet
+  - interval: 1m
+    input_series:
+      - series: "pti_source_replication_slot_retained_bytes{slot=\"pti_ticketing\"}"
+        values: "1e9x10"
+    alert_rule_test:
+      - eval_time: 7m
+        alertname: DebeziumWalRetained
+        exp_alerts: []
+  # ConnectorDown: fires
+  - interval: 1m
+    input_series:
+      - series: "pti_connect_connector_running{connector=\"pti-raw-sink\"}"
+        values: "0x5"
+    alert_rule_test:
+      - eval_time: 3m
+        alertname: ConnectorDown
+        exp_alerts:
+          - exp_labels: {"severity": "critical", "area": "source", "connector": "pti-raw-sink"}
+            exp_annotations: {"dashboard_url": "http://localhost:3000/d/pti-kafka", "description": "The connector or one of its tasks is not RUNNING, or Kafka Connect does not answer.", "runbook_url": "https://github.com/ninggiangboy/public-transport-intelligence/blob/main/docs/09-operations/runbooks/RB-09-debezium.md", "summary": "Kafka Connect connector pti-raw-sink is not running"}
+  # ConnectorDown: quiet
+  - interval: 1m
+    input_series:
+      - series: "pti_connect_connector_running{connector=\"pti-raw-sink\"}"
+        values: "1x5"
+    alert_rule_test:
+      - eval_time: 3m
+        alertname: ConnectorDown
+        exp_alerts: []
+  # ConsumerStopped: fires
+  - interval: 1m
+    input_series:
+      - series: "pti_etl_listener_running{listener=\"gtfs-rt-trip-update\",topic=\"gtfs.trip_updates\"}"
+        values: "0x5"
+    alert_rule_test:
+      - eval_time: 2m
+        alertname: ConsumerStopped
+        exp_alerts:
+          - exp_labels: {"severity": "critical", "area": "pipeline", "listener": "gtfs-rt-trip-update"}
+            exp_annotations: {"dashboard_url": "http://localhost:3000/d/pti-overview", "description": "The listener container is not running: nothing is read from its topic.", "runbook_url": "https://github.com/ninggiangboy/public-transport-intelligence/blob/main/docs/09-operations/runbooks/RB-03-consumer-stopped.md", "summary": "Listener gtfs-rt-trip-update has stopped"}
+  # ConsumerStopped: quiet
+  - interval: 1m
+    input_series:
+      - series: "pti_etl_listener_running{listener=\"gtfs-rt-trip-update\",topic=\"gtfs.trip_updates\"}"
+        values: "1x5"
+    alert_rule_test:
+      - eval_time: 2m
+        alertname: ConsumerStopped
+        exp_alerts: []
+  # ConsumerPaused: fires
+  - interval: 1m
+    input_series:
+      - series: "pti_etl_listener_paused{listener=\"ticketing-sales\",topic=\"ticketing.sales.cdc\",reason=\"circuit\"}"
+        values: "1x10"
+    alert_rule_test:
+      - eval_time: 6m
+        alertname: ConsumerPaused
+        exp_alerts:
+          - exp_labels: {"severity": "warning", "area": "pipeline", "listener": "ticketing-sales", "reason": "circuit"}
+            exp_annotations: {"dashboard_url": "http://localhost:3000/d/pti-overview", "description": "The listener is paused by back-off or by the circuit breaker, not by a flag.", "runbook_url": "https://github.com/ninggiangboy/public-transport-intelligence/blob/main/docs/09-operations/runbooks/RB-03-consumer-stopped.md", "summary": "Listener ticketing-sales is paused (circuit)"}
+  # ConsumerPaused: quiet
+  - interval: 1m
+    input_series:
+      - series: "pti_etl_listener_paused{listener=\"ticketing-sales\",topic=\"ticketing.sales.cdc\",reason=\"flag\"}"
+        values: "1x10"
+    alert_rule_test:
+      - eval_time: 6m
+        alertname: ConsumerPaused
+        exp_alerts: []
+  # FatalErrors: fires
+  - interval: 1m
+    input_series:
+      - series: "pti_errors_total{application=\"etl-stream\",kind=\"fatal\",type=\"FatalException\"}"
+        values: "_ _ 1 1"
+    alert_rule_test:
+      - eval_time: 3m
+        alertname: FatalErrors
+        exp_alerts:
+          - exp_labels: {"severity": "critical", "area": "pipeline", "application": "etl-stream", "type": "FatalException"}
+            exp_annotations: {"dashboard_url": "http://localhost:3000/d/pti-overview", "description": "A fatal error stops a listener or a job and needs a person.", "runbook_url": "https://github.com/ninggiangboy/public-transport-intelligence/blob/main/docs/09-operations/runbooks/RB-03-consumer-stopped.md", "summary": "etl-stream hit a fatal FatalException"}
+  # FatalErrors: quiet
+  - interval: 1m
+    input_series:
+      - series: "pti_errors_total{application=\"etl-stream\",kind=\"data\",type=\"RuleViolationException\"}"
+        values: "0 0 1 1"
+    alert_rule_test:
+      - eval_time: 3m
+        alertname: FatalErrors
+        exp_alerts: []
+  # DlqBacklogHigh: fires
+  - interval: 1m
+    input_series:
+      - series: "pti_dlq_open_records{source=\"GTFS_RT_VEHICLE_POSITION\",status=\"NEW\"}"
+        values: "600x40"
+    alert_rule_test:
+      - eval_time: 35m
+        alertname: DlqBacklogHigh
+        exp_alerts:
+          - exp_labels: {"severity": "warning", "area": "data", "source": "GTFS_RT_VEHICLE_POSITION"}
+            exp_annotations: {"dashboard_url": "http://localhost:3000/d/pti-batch", "description": "Open dead letters keep piling up.", "runbook_url": "https://github.com/ninggiangboy/public-transport-intelligence/blob/main/docs/09-operations/runbooks/RB-04-dlq-rate-high.md", "summary": "600 dead letters of GTFS_RT_VEHICLE_POSITION wait for action"}
+  # DlqBacklogHigh: quiet
+  - interval: 1m
+    input_series:
+      - series: "pti_dlq_open_records{source=\"GTFS_RT_VEHICLE_POSITION\",status=\"REPLAY_REQUESTED\"}"
+        values: "600x40"
+    alert_rule_test:
+      - eval_time: 35m
+        alertname: DlqBacklogHigh
+        exp_alerts: []
+  # ReplayFailed: fires
+  - interval: 1m
+    input_series:
+      - series: "pti_replay_requests_total{kind=\"RAW_RANGE\",outcome=\"failed\"}"
+        values: "0 0 1 1"
+    alert_rule_test:
+      - eval_time: 3m
+        alertname: ReplayFailed
+        exp_alerts:
+          - exp_labels: {"severity": "warning", "area": "pipeline", "kind": "RAW_RANGE"}
+            exp_annotations: {"dashboard_url": "http://localhost:3000/d/pti-batch", "description": "A replay request ended FAILED in the last 10 minutes.", "runbook_url": "https://github.com/ninggiangboy/public-transport-intelligence/blob/main/docs/09-operations/runbooks/RB-01-batch-job-failed.md", "summary": "A RAW_RANGE replay failed"}
+  # ReplayFailed: quiet
+  - interval: 1m
+    input_series:
+      - series: "pti_replay_requests_total{kind=\"RAW_RANGE\",outcome=\"done\"}"
+        values: "0 0 1 1"
+    alert_rule_test:
+      - eval_time: 3m
+        alertname: ReplayFailed
+        exp_alerts: []
+  # BatchExecutionRecovered: fires
+  - interval: 1m
+    input_series:
+      - series: "pti_batch_stale_recovered_total{job=\"RawZoneReplayJob\"}"
+        values: "0 0 1 1"
+    alert_rule_test:
+      - eval_time: 3m
+        alertname: BatchExecutionRecovered
+        exp_alerts:
+          - exp_labels: {"severity": "info", "area": "pipeline", "job": "RawZoneReplayJob"}
+            exp_annotations: {"dashboard_url": "http://localhost:3000/d/pti-batch", "description": "An execution left running by a dead instance was marked FAILED and restarted.", "runbook_url": "https://github.com/ninggiangboy/public-transport-intelligence/blob/main/docs/09-operations/runbooks/RB-01-batch-job-failed.md", "summary": "A stale RawZoneReplayJob execution was recovered"}
+  # BatchExecutionRecovered: quiet
+  - interval: 1m
+    input_series:
+      - series: "pti_batch_stale_recovered_total{job=\"RawZoneReplayJob\"}"
+        values: "0x4"
+    alert_rule_test:
+      - eval_time: 3m
+        alertname: BatchExecutionRecovered
+        exp_alerts: []
+  # GtfsFeedRejected: fires
+  - interval: 1m
+    input_series:
+      - series: "pti_gtfs_load_total{outcome=\"rejected\"}"
+        values: "_ _ 1 1"
+    alert_rule_test:
+      - eval_time: 3m
+        alertname: GtfsFeedRejected
+        exp_alerts:
+          - exp_labels: {"severity": "warning", "area": "data"}
+            exp_annotations: {"dashboard_url": "http://localhost:3000/d/pti-batch", "description": "The last GTFS load failed validation; the ACTIVE feed is unchanged.", "runbook_url": "https://github.com/ninggiangboy/public-transport-intelligence/blob/main/docs/09-operations/runbooks/RB-05-gtfs-feed.md", "summary": "A GTFS feed was rejected"}
+  # GtfsFeedRejected: quiet
+  - interval: 1m
+    input_series:
+      - series: "pti_gtfs_load_total{outcome=\"activated\"}"
+        values: "0 0 1 1"
+    alert_rule_test:
+      - eval_time: 3m
+        alertname: GtfsFeedRejected
+        exp_alerts: []
+  # GtfsFeedExpiring: fires
+  - interval: 1m
+    input_series:
+      - series: "pti_gtfs_active_feed_days_to_expiry"
+        values: "5x70"
+    alert_rule_test:
+      - eval_time: 65m
+        alertname: GtfsFeedExpiring
+        exp_alerts:
+          - exp_labels: {"severity": "warning", "area": "data"}
+            exp_annotations: {"dashboard_url": "http://localhost:3000/d/pti-batch", "description": "Load a newer feed before the service dates run out.", "runbook_url": "https://github.com/ninggiangboy/public-transport-intelligence/blob/main/docs/09-operations/runbooks/RB-05-gtfs-feed.md", "summary": "The ACTIVE GTFS feed expires in 5 days"}
+  # GtfsFeedExpiring: quiet
+  - interval: 1m
+    input_series:
+      - series: "pti_gtfs_active_feed_days_to_expiry"
+        values: "30x70"
+    alert_rule_test:
+      - eval_time: 65m
+        alertname: GtfsFeedExpiring
+        exp_alerts: []
+  # DataQualityCheckFailed: fires
+  - interval: 1m
+    input_series:
+      - series: "pti_dq_check_breached{rule=\"DQ-21\"}"
+        values: "1x3"
+    alert_rule_test:
+      - eval_time: 1m
+        alertname: DataQualityCheckFailed
+        exp_alerts:
+          - exp_labels: {"severity": "warning", "area": "data", "rule": "DQ-21"}
+            exp_annotations: {"dashboard_url": "http://localhost:3000/d/pti-batch", "description": "The last run of a post-write check found too many violations (DOC-16 \u00a73).", "runbook_url": "https://github.com/ninggiangboy/public-transport-intelligence/blob/main/docs/09-operations/runbooks/RB-13-data-quality-check.md", "summary": "Data quality check DQ-21 is over its threshold"}
+  # DataQualityCheckFailed: quiet
+  - interval: 1m
+    input_series:
+      - series: "pti_dq_check_breached{rule=\"DQ-21\"}"
+        values: "0x3"
+    alert_rule_test:
+      - eval_time: 1m
+        alertname: DataQualityCheckFailed
+        exp_alerts: []
+  # DataQualityCheckStale: fires
+  - interval: 1m
+    input_series:
+      - series: "pti_dq_check_last_run_timestamp_seconds{rule=\"DQ-21\"}"
+        values: "0x20"
+      - series: "pti_dq_check_interval_seconds{rule=\"DQ-21\"}"
+        values: "60x20"
+    alert_rule_test:
+      - eval_time: 10m
+        alertname: DataQualityCheckStale
+        exp_alerts:
+          - exp_labels: {"severity": "warning", "area": "data", "rule": "DQ-21"}
+            exp_annotations: {"dashboard_url": "http://localhost:3000/d/pti-batch", "description": "The post-write check missed three runs in a row.", "runbook_url": "https://github.com/ninggiangboy/public-transport-intelligence/blob/main/docs/09-operations/runbooks/RB-13-data-quality-check.md", "summary": "Data quality check DQ-21 has not run for 10m 0s"}
+  # DataQualityCheckStale: quiet
+  - interval: 1m
+    input_series:
+      - series: "pti_dq_check_last_run_timestamp_seconds{rule=\"DQ-21\"}"
+        values: "0+60x20"
+      - series: "pti_dq_check_interval_seconds{rule=\"DQ-21\"}"
+        values: "60x20"
+    alert_rule_test:
+      - eval_time: 10m
+        alertname: DataQualityCheckStale
+        exp_alerts: []
+  # ApiErrorRateHigh: fires
+  - interval: 1m
+    input_series:
+      - series: "http_server_requests_seconds_count{application=\"api\",status=\"500\",uri=\"/api/v1/routes\"}"
+        values: "0+60x20"
+      - series: "http_server_requests_seconds_count{application=\"api\",status=\"200\",uri=\"/api/v1/routes\"}"
+        values: "0+600x20"
+    alert_rule_test:
+      - eval_time: 12m
+        alertname: ApiErrorRateHigh
+        exp_alerts:
+          - exp_labels: {"severity": "warning", "area": "api"}
+            exp_annotations: {"dashboard_url": "http://localhost:3000/d/pti-overview", "description": "More than 1% of API requests answer 5xx.", "runbook_url": "https://github.com/ninggiangboy/public-transport-intelligence/blob/main/docs/09-operations/runbooks/RB-14-api-and-targets.md", "summary": "9.091% of API requests fail"}
+  # ApiErrorRateHigh: quiet
+  - interval: 1m
+    input_series:
+      - series: "http_server_requests_seconds_count{application=\"api\",status=\"500\",uri=\"/api/v1/routes\"}"
+        values: "0x20"
+      - series: "http_server_requests_seconds_count{application=\"api\",status=\"200\",uri=\"/api/v1/routes\"}"
+        values: "0+600x20"
+    alert_rule_test:
+      - eval_time: 12m
+        alertname: ApiErrorRateHigh
+        exp_alerts: []
+  # TargetDown: fires
+  - interval: 1m
+    input_series:
+      - series: "up{job=\"pti-etl-stream\",instance=\"etl-stream:9080\"}"
+        values: "1 1 0x5"
+    alert_rule_test:
+      - eval_time: 6m
+        alertname: TargetDown
+        exp_alerts:
+          - exp_labels: {"severity": "critical", "area": "platform", "job": "pti-etl-stream", "instance": "etl-stream:9080"}
+            exp_annotations: {"dashboard_url": "http://localhost:3000/d/pti-overview", "description": "Prometheus cannot scrape the app: it is down or unreachable.", "runbook_url": "https://github.com/ninggiangboy/public-transport-intelligence/blob/main/docs/09-operations/runbooks/RB-14-api-and-targets.md", "summary": "pti-etl-stream does not answer scrapes"}
+  # TargetDown: quiet
+  - interval: 1m
+    input_series:
+      - series: "up{job=\"pti-etl-stream\",instance=\"etl-stream:9080\"}"
+        values: "1 1 0 1x4"
+    alert_rule_test:
+      - eval_time: 6m
+        alertname: TargetDown
+        exp_alerts: []
+  # LatencyStageSlow: fires
+  - interval: 1m
+    input_series:
+      - series: "pti_etl_kafka_to_commit_seconds_bucket{source=\"GTFS_RT_VEHICLE_POSITION\",le=\"1\"}"
+        values: "0+0x20"
+      - series: "pti_etl_kafka_to_commit_seconds_bucket{source=\"GTFS_RT_VEHICLE_POSITION\",le=\"5\"}"
+        values: "0+10x20"
+      - series: "pti_etl_kafka_to_commit_seconds_bucket{source=\"GTFS_RT_VEHICLE_POSITION\",le=\"+Inf\"}"
+        values: "0+10x20"
+    alert_rule_test:
+      - eval_time: 12m
+        alertname: LatencyStageSlow
+        exp_alerts:
+          - exp_labels: {"severity": "info", "area": "pipeline", "source": "GTFS_RT_VEHICLE_POSITION"}
+            exp_annotations: {"dashboard_url": "http://localhost:3000/d/pti-overview", "description": "One stage of NFR-03 is slower than its share of the 10-second budget (DOC-10 \u00a72).", "runbook_url": "https://github.com/ninggiangboy/public-transport-intelligence/blob/main/docs/09-operations/runbooks/RB-07-latency-throughput.md", "summary": "A latency stage is over its budget (4.8s)"}
+  # LatencyStageSlow: quiet
+  - interval: 1m
+    input_series:
+      - series: "pti_etl_kafka_to_commit_seconds_bucket{source=\"GTFS_RT_VEHICLE_POSITION\",le=\"1\"}"
+        values: "0+10x20"
+      - series: "pti_etl_kafka_to_commit_seconds_bucket{source=\"GTFS_RT_VEHICLE_POSITION\",le=\"5\"}"
+        values: "0+10x20"
+      - series: "pti_etl_kafka_to_commit_seconds_bucket{source=\"GTFS_RT_VEHICLE_POSITION\",le=\"+Inf\"}"
+        values: "0+10x20"
+    alert_rule_test:
+      - eval_time: 12m
+        alertname: LatencyStageSlow
+        exp_alerts: []
+  # SimulatorLagging: fires
+  - interval: 1m
+    input_series:
+      - series: "pti_sim_tick_lag_seconds"
+        values: "5x5"
+    alert_rule_test:
+      - eval_time: 3m
+        alertname: SimulatorLagging
+        exp_alerts:
+          - exp_labels: {"severity": "warning", "area": "source"}
+            exp_annotations: {"dashboard_url": "http://localhost:3000/d/pti-simulator", "description": "The simulator does not keep up: measured loads are lower than requested.", "runbook_url": "https://github.com/ninggiangboy/public-transport-intelligence/blob/main/docs/09-operations/runbooks/RB-07-latency-throughput.md", "summary": "The simulator is 5s behind"}
+  # SimulatorLagging: quiet
+  - interval: 1m
+    input_series:
+      - series: "pti_sim_tick_lag_seconds"
+        values: "0.5x5"
+    alert_rule_test:
+      - eval_time: 3m
+        alertname: SimulatorLagging
+        exp_alerts: []
+  # AnalyticsRunErrors: fires
+  - interval: 1m
+    input_series:
+      - series: "pti_analytics_runs_total{detector=\"bunching\",trigger=\"batch\",outcome=\"error\"}"
+        values: "0+1x20"
+    alert_rule_test:
+      - eval_time: 15m
+        alertname: AnalyticsRunErrors
+        exp_alerts:
+          - exp_labels: {"severity": "warning", "area": "pipeline", "detector": "bunching"}
+            exp_annotations: {"dashboard_url": "http://localhost:3000/d/pti-overview", "description": "Insights are missing until the runs succeed (P4).", "runbook_url": "https://github.com/ninggiangboy/public-transport-intelligence/blob/main/docs/09-operations/runbooks/RB-01-batch-job-failed.md", "summary": "Analytics bunching keeps failing"}
+  # AnalyticsRunErrors: quiet
+  - interval: 1m
+    input_series:
+      - series: "pti_analytics_runs_total{detector=\"bunching\",trigger=\"batch\",outcome=\"ok\"}"
+        values: "0+1x20"
+    alert_rule_test:
+      - eval_time: 15m
+        alertname: AnalyticsRunErrors
+        exp_alerts: []
+  # AnalyticsDispatchSlow: fires
+  - interval: 1m
+    input_series:
+      - series: "pti_analytics_dispatch_delay_seconds_bucket{le=\"1\"}"
+        values: "0+0x30"
+      - series: "pti_analytics_dispatch_delay_seconds_bucket{le=\"5\"}"
+        values: "0+10x30"
+      - series: "pti_analytics_dispatch_delay_seconds_bucket{le=\"+Inf\"}"
+        values: "0+10x30"
+    alert_rule_test:
+      - eval_time: 16m
+        alertname: AnalyticsDispatchSlow
+        exp_alerts:
+          - exp_labels: {"severity": "info", "area": "pipeline"}
+            exp_annotations: {"dashboard_url": "http://localhost:3000/d/pti-overview", "description": "The analytics executor is behind the micro-batches (P4).", "runbook_url": "https://github.com/ninggiangboy/public-transport-intelligence/blob/main/docs/09-operations/runbooks/RB-07-latency-throughput.md", "summary": "Analytics start 4.8s after the commit (p95)"}
+  # AnalyticsDispatchSlow: quiet
+  - interval: 1m
+    input_series:
+      - series: "pti_analytics_dispatch_delay_seconds_bucket{le=\"1\"}"
+        values: "0+10x30"
+      - series: "pti_analytics_dispatch_delay_seconds_bucket{le=\"5\"}"
+        values: "0+10x30"
+      - series: "pti_analytics_dispatch_delay_seconds_bucket{le=\"+Inf\"}"
+        values: "0+10x30"
+    alert_rule_test:
+      - eval_time: 16m
+        alertname: AnalyticsDispatchSlow
+        exp_alerts: []
+  # DlqSevereRecords: fires
+  - interval: 1m
+    input_series:
+      - series: "pti_triage_decisions_total{use_case=\"dlq\",source=\"GTFS_RT_VEHICLE_POSITION\",category=\"schema_violation\",severity=\"2\"}"
+        values: "0 0 1 1"
+    alert_rule_test:
+      - eval_time: 3m
+        alertname: DlqSevereRecords
+        exp_alerts:
+          - exp_labels: {"severity": "critical", "area": "data", "source": "GTFS_RT_VEHICLE_POSITION"}
+            exp_annotations: {"dashboard_url": "http://localhost:3000/d/pti-batch", "description": "Severity 2 dead letters need a person (P6).", "runbook_url": "https://github.com/ninggiangboy/public-transport-intelligence/blob/main/docs/09-operations/runbooks/RB-04-dlq-rate-high.md", "summary": "Triage marked GTFS_RT_VEHICLE_POSITION dead letters as urgent"}
+  # DlqSevereRecords: quiet
+  - interval: 1m
+    input_series:
+      - series: "pti_triage_decisions_total{use_case=\"dlq\",source=\"GTFS_RT_VEHICLE_POSITION\",category=\"schema_violation\",severity=\"1\"}"
+        values: "0 0 1 1"
+    alert_rule_test:
+      - eval_time: 3m
+        alertname: DlqSevereRecords
+        exp_alerts: []
+  # DlqNeedsAttention: fires
+  - interval: 1m
+    input_series:
+      - series: "pti_triage_decisions_total{use_case=\"dlq\",source=\"GTFS_RT_VEHICLE_POSITION\",category=\"schema_violation\",severity=\"1\"}"
+        values: "0+1x40"
+    alert_rule_test:
+      - eval_time: 35m
+        alertname: DlqNeedsAttention
+        exp_alerts:
+          - exp_labels: {"severity": "warning", "area": "data", "source": "GTFS_RT_VEHICLE_POSITION"}
+            exp_annotations: {"dashboard_url": "http://localhost:3000/d/pti-batch", "description": "At least 10 severity 1 dead letters in 30 minutes (P6).", "runbook_url": "https://github.com/ninggiangboy/public-transport-intelligence/blob/main/docs/09-operations/runbooks/RB-04-dlq-rate-high.md", "summary": "30 GTFS_RT_VEHICLE_POSITION dead letters need attention"}
+  # DlqNeedsAttention: quiet
+  - interval: 1m
+    input_series:
+      - series: "pti_triage_decisions_total{use_case=\"dlq\",source=\"GTFS_RT_VEHICLE_POSITION\",category=\"schema_violation\",severity=\"1\"}"
+        values: "0x40"
+    alert_rule_test:
+      - eval_time: 35m
+        alertname: DlqNeedsAttention
+        exp_alerts: []
+  # DlqUpstreamErrorBurst: fires
+  - interval: 1m
+    input_series:
+      - series: "pti_dlq_rule_category_total{source=\"GTFS_RT_VEHICLE_POSITION\",category=\"upstream_api_error\"}"
+        values: "0+2x70"
+    alert_rule_test:
+      - eval_time: 65m
+        alertname: DlqUpstreamErrorBurst
+        exp_alerts:
+          - exp_labels: {"severity": "critical", "area": "data", "source": "GTFS_RT_VEHICLE_POSITION"}
+            exp_annotations: {"dashboard_url": "http://localhost:3000/d/pti-batch", "description": "The last-resort rule of FR-09.8, independent of the AI triage.", "runbook_url": "https://github.com/ninggiangboy/public-transport-intelligence/blob/main/docs/09-operations/runbooks/RB-04-dlq-rate-high.md", "summary": "120 upstream errors from GTFS_RT_VEHICLE_POSITION in an hour"}
+  # DlqUpstreamErrorBurst: quiet
+  - interval: 1m
+    input_series:
+      - series: "pti_dlq_rule_category_total{source=\"GTFS_RT_VEHICLE_POSITION\",category=\"upstream_api_error\"}"
+        values: "0x70"
+    alert_rule_test:
+      - eval_time: 65m
+        alertname: DlqUpstreamErrorBurst
+        exp_alerts: []
+  # TriageBacklogHigh: fires
+  - interval: 1m
+    input_series:
+      - series: "pti_triage_backlog{use_case=\"dlq\"}"
+        values: "600x20"
+    alert_rule_test:
+      - eval_time: 16m
+        alertname: TriageBacklogHigh
+        exp_alerts:
+          - exp_labels: {"severity": "warning", "area": "data", "use_case": "dlq"}
+            exp_annotations: {"dashboard_url": "http://localhost:3000/d/pti-batch", "description": "The triage worker is behind (P6).", "runbook_url": "https://github.com/ninggiangboy/public-transport-intelligence/blob/main/docs/09-operations/runbooks/RB-04-dlq-rate-high.md", "summary": "600 dlq items wait for triage"}
+  # TriageBacklogHigh: quiet
+  - interval: 1m
+    input_series:
+      - series: "pti_triage_backlog{use_case=\"dlq\"}"
+        values: "100x20"
+    alert_rule_test:
+      - eval_time: 16m
+        alertname: TriageBacklogHigh
+        exp_alerts: []

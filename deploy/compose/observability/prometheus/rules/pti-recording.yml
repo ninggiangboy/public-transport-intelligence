@@ -1,0 +1,21 @@
+# Recording rules (DOC-28 §6.2). Generated with the alerts; edit both together.
+groups:
+  - name: pti-recording
+    interval: 30s
+    rules:
+      - record: pti:etl_input:rate5m
+        expr: "sum by (source) (rate(pti_etl_records_total{mode=\"stream\"}[5m]))"
+      - record: pti:etl_skipped:rate5m
+        expr: "sum by (source) (rate(pti_etl_records_total{mode=\"stream\", outcome=\"skipped\"}[5m]))"
+      - record: pti:kafka_lag:sum
+        expr: "sum by (topic) (kafka_consumer_fetch_manager_records_lag{application=\"etl-stream\"})"
+      - record: pti:e2e_latency:p95_5m
+        expr: "histogram_quantile(0.95, sum by (le, channel) (rate(pti_end_to_end_latency_seconds_bucket[5m])))"
+      - record: pti:kafka_to_commit:p95_5m
+        expr: "histogram_quantile(0.95, sum by (le, source) (rate(pti_etl_kafka_to_commit_seconds_bucket[5m])))"
+      - record: pti:commit_to_publish:p95_5m
+        expr: "histogram_quantile(0.95, sum by (le) (rate(pti_ui_commit_to_publish_seconds_bucket[5m])))"
+      - record: pti:publish_to_emit:p95_5m
+        expr: "histogram_quantile(0.95, sum by (le) (rate(pti_api_publish_to_emit_seconds_bucket[5m])))"
+      - record: pti:chunk_duration:p95_5m
+        expr: "histogram_quantile(0.95, sum by (le) (rate(pti_etl_chunk_duration_seconds_bucket{mode=\"stream\"}[5m])))"

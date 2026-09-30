@@ -3,6 +3,9 @@ package dev.pti.etl.health;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withServerError;
@@ -74,6 +77,22 @@ class HealthTest {
         assertThat(down.health().getStatus()).isEqualTo(Status.DOWN);
         assertThat(down.health().getDetails()).containsKeys("circuitState", "lastErrorAt");
         assertThat(down.isUp()).isFalse();
+    }
+
+    /** The gauge reads isUp() on every scrape: it must answer from memory, even with the database unreachable. */
+    @Test
+    void isUpNeverTouchesTheDatabase() throws SQLException {
+        DataSource dataSource = mock(DataSource.class);
+        when(dataSource.getConnection()).thenThrow(new SQLException("refused", "08001"));
+        WarehouseHealthIndicator warehouse =
+                new WarehouseHealthIndicator(new JdbcTemplate(dataSource), CircuitBreaker.ofDefaults("w"), CLOCK);
+
+        assertThat(warehouse.isUp()).as("before any ping").isTrue();
+        verify(dataSource, never()).getConnection();
+
+        assertThat(warehouse.health().getStatus()).isEqualTo(Status.DOWN);
+        assertThat(warehouse.isUp()).as("after a failed ping").isFalse();
+        verify(dataSource, times(1)).getConnection();
     }
 
     private static SourceActivity activity(EtlSource source, Instant at) {

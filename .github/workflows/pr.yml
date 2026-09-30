@@ -117,6 +117,14 @@ jobs:
               --profile "$profile" config -q
             echo "profile $profile: ok"
           done
+      - name: Prometheus rules and their tests (DOC-28 O-03)
+        run: |
+          image=$(sed -n 's/^PROMETHEUS_IMAGE=//p' deploy/versions.env)
+          prom="docker run --rm -v $PWD/deploy/compose/observability/prometheus:/p:ro --entrypoint promtool $image"
+          $prom check config /p/prometheus.yml
+          $prom check rules /p/rules/pti-recording.yml /p/rules/pti-alerts.yml
+          docker run --rm -v "$PWD/deploy/compose/observability/prometheus:/p:ro" -w /p/tests \
+            --entrypoint promtool "$image" test rules pti-alerts.test.yml
       - name: Shell scripts
         run: git ls-files -z 'deploy/**/*.sh' | xargs -0 --no-run-if-empty shellcheck
       - name: .env.example holds names only
