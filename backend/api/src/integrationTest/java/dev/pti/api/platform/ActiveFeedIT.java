@@ -35,6 +35,14 @@ class ActiveFeedIT extends ApiIntegrationSupport {
     @AfterEach
     void clean() {
         asOwner("DELETE FROM dw.gtfs_feed_version");
+        forgetCachedLookups();
+    }
+
+    /**
+     * The cache also keeps "no feed" for its TTL, and background lookups (the freshness probe) can fill it between
+     * {@link #clean()} and the test's inserts, so each test drops it again once its feeds are in place.
+     */
+    private void forgetCachedLookups() {
         caches.cache("active-feed").invalidateAll();
     }
 
@@ -58,6 +66,7 @@ class ActiveFeedIT extends ApiIntegrationSupport {
                 """
                 INSERT INTO dw.gtfs_feed_version (feed_hash, source_uri, raw_object_key, agency_timezone, status)
                 VALUES (repeat('b', 64), 'file:///old.zip', 'raw/gtfs-static/b.zip', 'America/Chicago', 'STAGED')""");
+        forgetCachedLookups();
 
         ActiveFeed feed = feeds.find().orElseThrow();
 
@@ -75,6 +84,7 @@ class ActiveFeedIT extends ApiIntegrationSupport {
             "AG-18 when the ACTIVE feed changes, the lookup follows within the TTL and the GTFS caches are cleared")
     void feedChangeClearsTheGtfsCaches() {
         asOwner(activeFeedSql("a", "2026-08-23"));
+        forgetCachedLookups();
         long first = feeds.find().orElseThrow().feedVersionId();
         caches.<String, String>cache("routes").put(first + ":all", "routes of the old feed");
         caches.<String, String>cache("route-detail").put(first + ":18", "detail of the old feed");
