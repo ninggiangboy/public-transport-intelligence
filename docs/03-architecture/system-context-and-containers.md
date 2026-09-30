@@ -1,9 +1,9 @@
 # Bối cảnh hệ thống và container
 
-> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-07
+> Trạng thái: **Approved** · Cập nhật: 2026-09-30 (DR-104: bố cục Clean Architecture) · DOC-07
 > Phụ thuộc: SDD gốc §4, §12.4, [DR](../00-decision-register.md) (DR-05, 20, 26, 40, 41, 50, 51, 62, 64), [ADR-0002](../04-adr/0002-spring-batch-and-spring-kafka.md), [ADR-0014](../04-adr/0014-deployment-units.md)
 
-Tài liệu này mô tả **hệ thống gồm những khối nào, khối nào nói chuyện với khối nào, và dữ liệu nào thuộc về ai**. Luồng chi tiết theo thời gian nằm ở DOC-08; hợp đồng message nằm ở DOC-09.
+Tài liệu này mô tả **hệ thống gồm những khối nào, khối nào nói chuyện với khối nào, và dữ liệu nào thuộc về ai**. Luồng chi tiết theo thời gian nằm ở DOC-08; hợp đồng message nằm ở DOC-09. Cách tổ chức code bên trong mỗi module Java (Clean Architecture: `domain`, `application`, `adapter`, `config`) nằm ở [DOC-49](clean-architecture.md).
 
 ## 1. C4 mức 1: bối cảnh hệ thống
 

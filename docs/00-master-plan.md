@@ -28,6 +28,7 @@ Mục tiêu: khi một việc được bắt đầu, mọi thông tin cần đ�
   | `ADR-xxxx` | Quyết định kiến trúc | ADR-0005 |
   | `DR-xx` | Mục trong sổ quyết định mở | DR-21 |
   | `Pn-xx` | Công việc thuộc phase n | P2-07 |
+  | `RF-xx` | Công việc thuộc Phase R (refactor Clean Architecture, DR-104). Không dùng `R-xx` vì mã đó đã dành cho test replay (DOC-22) | RF-03 |
   | `S-xx` | Spike (thử nghiệm ngắn) | S-01 |
   | `DQ-xx` | Rule chất lượng dữ liệu | DQ-04 |
   | `EXP-xx` | Thực nghiệm | EXP-01 |
@@ -88,6 +89,7 @@ Chi tiết và phương án đề xuất cho từng mục nằm trong [00-decisi
 4. **Tài liệu đi cùng code.** Đổi hành vi thì sửa doc trong cùng PR. Đổi quyết định thì viết ADR mới đánh dấu thay thế ADR cũ, không sửa lịch sử.
 5. **Mọi ngưỡng nằm trong cấu hình.** Mọi cấu hình phải có mặt trong DOC-29.
 6. **Mọi insight và mọi replay phải idempotent,** và có test "chạy hai lần ra cùng kết quả".
+7. **Code Java mới theo Clean Architecture** (DOC-49, ADR-0032): `domain` và `application` là Java thuần, luật ArchUnit fail build. Code P1–P3 giữ nguyên kiến trúc tới Phase R, bị freeze để không thêm vi phạm.
 
 ---
 
@@ -113,6 +115,7 @@ docs/
     messaging-contracts.md          # DOC-09
     quality-attributes.md           # DOC-10
     tech-stack-and-versions.md      # DOC-11
+    clean-architecture.md           # DOC-49
   04-adr/                           # DOC-12
     README.md                       # chỉ mục ADR
     0001-record-architecture-decisions.md
@@ -203,6 +206,7 @@ Cột "Gate" là phase cần tài liệu ở trạng thái Approved trước khi
 | 09 | messaging-contracts | Bảng topic (DR-05), envelope (DR-04), JSON Schema v1/v2 cho từng entity (tham chiếu tới file trong `backend/common/`), hợp đồng CDC (DR-07), sự kiện UI nội bộ, Kafka headers, quy tắc thay đổi tương thích ngược, quy tắc tính payload hash | P1 |
 | 10 | quality-attributes | Với mỗi NFR: chiến thuật → cơ chế cụ thể → nơi hiện thực → cách kiểm chứng. **Ngân sách độ trễ NFR-03** chia theo chặng. **Ước lượng dung lượng:** event/s, dòng/ngày, GB/ngày cho mỗi bảng và raw zone, ở tải nền và gấp 10 lần. **Ngân sách tài nguyên compose** (RAM theo container) | P1 |
 | 11 | tech-stack-and-versions | Bảng thư viện và công cụ kèm phiên bản cố định, lý do chọn, license (DR-53, DR-46). Công cụ dev (mise, pnpm, uv). Tuân theo version catalog | P1 |
+| 49 | clean-architecture | Phạm vi áp dụng theo module và thời điểm (mới/cũ). Bốn tầng và quy tắc phụ thuộc. Bố cục package và quy ước tên. Phụ thuộc được phép từng tầng, shared kernel của `common`, `TransactionRunner`. Cơ chế Spring nằm ở tầng nào, transaction, sự kiện sau commit. DTO và mapping. Lỗi và test theo tầng. Luật ArchUnit A-11…A-18 và cách freeze module cũ. Danh sách ngoại lệ đóng. Ánh xạ thiết kế của `analytics`, `api`, `triage-worker` vào tầng. Nguyên tắc Phase R. Checklist review (DR-104) | P4 |
 
 #### ADR (DOC-12)
 
@@ -351,14 +355,15 @@ Mỗi tài liệu trong nhóm này có khung chung: **Mục đích → Phạm vi
 | P0 | Đặc tả, quyết định, spike | 2–3 tuần | M0: DR đã chốt, tài liệu nền Approved |
 | P1 | Nền tảng hạ tầng và nguồn dữ liệu | 2 tuần | M1: `make up` chạy; `make sim-start` → event lên Kafka; CDC chạy; raw zone có file. **Đạt 2026-09-29** |
 | P2 | ETL cốt lõi (Spring Batch + Spring Kafka) | 3–4 tuần | M2: dữ liệu vào warehouse; kill -9 không làm mất hay trùng dữ liệu |
-| P3 | Thực nghiệm độ tin cậy và observability | 2–3 tuần | M3: runner EXP-01…05 và chuỗi smoke đạt; Grafana; alert. Đợt chạy đầy đủ (P3-10) làm sau M6, trước P7 (DR-95) |
+| P3 | Thực nghiệm độ tin cậy và observability | 2–3 tuần | M3: runner EXP-01…05 và chuỗi smoke đạt; Grafana; alert. Đợt chạy đầy đủ (P3-10) làm sau MR, trước P7 (DR-95, DR-104) |
 | P4 | Analytics và API | 3–4 tuần | M4: insight thật qua REST và SSE |
 | P5 | Dashboard | 3–4 tuần | M5: UI đầy đủ, real-time |
 | P6 | AI triage | 2–3 tuần | M6: triage, auto-replay, gợi ý trên UI |
+| R | Refactor Clean Architecture cho code P1–P3 (DR-104) | 2–3 tuần | MR: store freeze ArchUnit rỗng; test fault-injection xanh; chuỗi smoke đạt như M3 |
 | P3-10 | Đợt chạy đầy đủ EXP-01…05 (DR-95) | 3–4 ngày máy chạy, khoảng 3 ngày công | Số liệu EXP-01…05 trong DOC-45 |
 | P7 | Kubernetes và chịu lỗi | 3 tuần | M7: tự scale, tự phục hồi; có số liệu EXP-07/08 |
 | P8 | Hoàn thiện | 2 tuần, thêm 1,5–2 tuần nếu làm demo console (P8-08) | M8: sẵn sàng bảo vệ |
-| | **Tổng** | **~22–30 tuần** | Làm bán thời gian thì nhân khoảng 1,8 |
+| | **Tổng** | **~24–33 tuần** | Làm bán thời gian thì nhân khoảng 1,8 |
 
 Con số chỉ để lập kế hoạch. Cần hiệu chỉnh lại sau mỗi milestone dựa trên tốc độ thực tế.
 
@@ -373,20 +378,21 @@ flowchart LR
   P4 --> P5[P5 Dashboard]
   P4 --> P6[P6 AI triage]
   P3 --> P310[P3-10 Thực nghiệm đầy đủ]
-  P6 --> P310
+  P6 --> R[R Refactor Clean Architecture]
+  R --> P310
   P310 --> P7[P7 K8s + Chaos]
   P5 --> P8[P8 Hoàn thiện]
   P6 --> P8
   P7 --> P8
 ```
 
-P3 và P4 có thể chạy song song nếu có hai người. Nếu chỉ một người thì làm theo thứ tự số. P3-10 là phần tách ra của P3 (DR-95): chạy sau M6, trên máy thực nghiệm, trước khi mở P7.
+P3 và P4 có thể chạy song song nếu có hai người. Nếu chỉ một người thì làm theo thứ tự số. P3-10 là phần tách ra của P3 (DR-95): chạy trên máy thực nghiệm, sau MR và trước khi mở P7. Phase R (DR-104) refactor code P1–P3 theo Clean Architecture sau M6; nó đứng trước P3-10 để số liệu thực nghiệm đầy đủ đo trên code cuối cùng.
 
 ### 4.3 Thứ tự cắt giảm khi thiếu thời gian (giữ như SDD gốc)
 
 > **Đã chốt: làm đầy đủ phạm vi.** Thứ tự dưới đây chỉ là phương án dự phòng, dùng khi một milestone trễ quá 50% so với ước lượng.
 
-Demo console (P8-08; demo quay về terminal và Grafana theo DOC-46) → gợi ý điều phối (P6-07) → EXP-06 (P6-11) → ticketing anomaly (P6-05) → OTP (P4-06) → Kubernetes (P7; khi đó EXP-08 chạy trên compose bằng `docker kill`/`docker pause` và Toxiproxy). **P1–P3 không được cắt**, kể cả đợt chạy đầy đủ P3-10.
+Demo console (P8-08; demo quay về terminal và Grafana theo DOC-46) → Phase R (code P1–P3 giữ kiến trúc cũ và store freeze; luật cho code mới vẫn giữ, DR-104) → gợi ý điều phối (P6-07) → EXP-06 (P6-11) → ticketing anomaly (P6-05) → OTP (P4-06) → Kubernetes (P7; khi đó EXP-08 chạy trên compose bằng `docker kill`/`docker pause` và Toxiproxy). **P1–P3 không được cắt**, kể cả đợt chạy đầy đủ P3-10. Luật Clean Architecture cho code mới (P4-18) cũng không được cắt.
 
 ---
 
@@ -519,7 +525,7 @@ Những chỗ lệch tài liệu khi hết P2 được ghi ở DR-90 (claim trư
 | P3-07 | Runner EXP-01 (kill ngẫu nhiên), EXP-02 (gửi lại), EXP-03 (1/5/20% lỗi), EXP-04 (xóa warehouse, replay), EXP-05 (tăng tải); EXP-01…03 chạy song song chế độ bình thường và baseline, EXP-04 và EXP-05 không có baseline (DOC-45 §5). Mỗi runner có tham số `full` và `smoke`; lệnh `pti-exp smoke` chạy cả chuỗi (DOC-45 §1.3) — **Xong 2026-09-30** (DR-100; profile `full` chạy lần đầu ở P3-10) | Mỗi runner in ra `summary.json` ở cả hai profile | P3-06, P2-18 | DOC-45 |
 | P3-08 | Chạy chuỗi smoke (`pti-exp smoke`, DR-95) trên máy dev — **Xong 2026-09-30** (chuỗi `p3-08-d`, bảng dưới; ba chuỗi trước tìm ra lỗi DQ-07 khi replay và lỗi đo, DR-99, DR-100) | Chuỗi xong trong ≤ 30 phút; mọi tiêu chí đúng đắn của DOC-45 §1.3 đạt; kết quả ghi thành bảng ở mục M3 dưới đây | P3-07 | DOC-45 |
 | P3-09 | Script backup và khôi phục (pg_dump, khôi phục từ raw zone) — **Xong 2026-09-30** (DR-101; BR-01…06 ở DOC-43 §7) | Chạy đúng theo DOC-43 | P3-07 | DOC-43 |
-| P3-10 | **Làm sau M6, trước P7-00** (DR-95). Đợt chạy đầy đủ: đủ số lần lặp (EXP-01 ≥ 30 lần mỗi biến thể, các EXP khác ≥ 10 lần mỗi mức), cả hai loạt của EXP-05, trên máy thực nghiệm (DOC-45 §1.2, DR-94); lệnh `archive` và `fetch`; phân tích và vẽ biểu đồ | Bảng kết quả cùng biểu đồ trong `experiments/results/` và ghi vào DOC-45; file nặng của mọi chuỗi có trên release `exp-results` (DOC-45 §7.1); `archive` rồi `fetch` một chuỗi khớp SHA-256. EXP-01…04 đạt kỳ vọng; EXP-05 xác định được ngưỡng tải đáp ứng NFR-03 | P3-07, M6 | DOC-45 |
+| P3-10 | **Làm sau MR (Phase R, DR-104), trước P7-00** (DR-95). Đợt chạy đầy đủ: đủ số lần lặp (EXP-01 ≥ 30 lần mỗi biến thể, các EXP khác ≥ 10 lần mỗi mức), cả hai loạt của EXP-05, trên máy thực nghiệm (DOC-45 §1.2, DR-94); lệnh `archive` và `fetch`; phân tích và vẽ biểu đồ | Bảng kết quả cùng biểu đồ trong `experiments/results/` và ghi vào DOC-45; file nặng của mọi chuỗi có trên release `exp-results` (DOC-45 §7.1); `archive` rồi `fetch` một chuỗi khớp SHA-256. EXP-01…04 đạt kỳ vọng; EXP-05 xác định được ngưỡng tải đáp ứng NFR-03 | P3-07, MR | DOC-45 |
 
 **Tiêu chí thoát (M3):** chuỗi smoke (P3-08) đạt: EXP-01…04 không mất, không trùng, 100% record hợp lệ được nạp, replay khớp checksum; EXP-05 chạy hết các bậc và không mất dữ liệu. Dashboard và alert hoạt động. P3-10 không thuộc M3 (DR-95).
 
@@ -541,16 +547,17 @@ Dashboard (P3-04, `make check-dashboards`) và alert (P3-05, DOC-42 §4) hoạt 
 
 | ID | Việc | Đầu ra và nghiệm thu | Phụ thuộc | Tài liệu |
 | --- | --- | --- | --- | --- |
-| P4-00 | Doc gate: DOC-15 (phần insight), 23, 26, 27, 31, 32, 33; ADR 0010, 0016, 0017, 0023, 0026 — **Approved 2026-09-28** | Approved | M2 | — |
+| P4-00 | Doc gate: DOC-15 (phần insight), 23, 26, 27, 31, 32, 33, 49; ADR 0010, 0016, 0017, 0023, 0026, 0031, 0032 — **Approved 2026-09-28**; DOC-49 và ADR-0032 thêm vào và **Approved 2026-09-30** (DR-104) | Approved | M2 | — |
 | P4-01 | Migration `V7__insight.sql`: các bảng insight (theo DR-29) và `analytics_*`; bật khối `[P4]` trong `R__grants.sql` (`alert_event` đã có từ V5_2) | Chạy lại được; ma trận grant ở DOC-17 §7 vẫn pass | P4-00 | DOC-15, 17 |
-| P4-02 | Module `analytics`: `AnalyticsDispatcher` (DR-35), tiện ích event-time và UUIDv5 | Unit test | P4-01 | DOC-23 |
+| P4-18 | **Làm đầu tiên trong code P4.** Luật ArchUnit A-11…A-18 trong `PtiArchitectureRules`; bật đầy đủ cho `analytics`, `api`, `triage-worker`; `FreezingArchRule` cho `etl`, `source-simulator`, `common`, `db` với store commit vào repo (`allowStoreCreation=false`); port `TransactionRunner` (`common.tx`) và `SpringTransactionRunner` (`common.spring`) | Thêm một lớp vi phạm vào module mới hoặc thêm vi phạm mới vào module cũ → `./gradlew test` đỏ; sửa một vi phạm cũ → store tự giảm; số vi phạm lúc freeze ghi vào DOC-49 §12 | P4-00 | DOC-49, DOC-44 |
+| P4-02 | Module `analytics`: `AnalyticsDispatcher` (DR-35), tiện ích event-time và UUIDv5 | Unit test | P4-01, P4-18 | DOC-23, 49 |
 | P4-03 | `BunchingDetector` (DR-30) cùng episode | Chạy bảng test trong DOC-23; kịch bản Bunching → có episode; chạy lại → không sinh thêm dòng | P4-02, P3-01 | DOC-23 |
 | P4-04 | `DisruptionDetector` (DR-31): baseline, hysteresis, snapshot | Kịch bản Disruption → mở và đóng đúng episode; không báo trong giai đoạn warm-up | P4-02 | DOC-23 |
 | P4-05 | `EtaAggregationJob` (DR-32) | Tính tay trên fixture khớp với kết quả job; chạy lại cho kết quả giống hệt | P4-02 | DOC-23 |
 | P4-06 | `OtpScorecardJob` (DR-33) | Như trên | P4-02 | DOC-23 |
 | P4-07 | Sinh `alert_event` và publish `pti.events.ui` sau commit (ULID) | Sự kiện xuất hiện trên topic | P4-03, 04 | DOC-26, 33 |
 | P4-08 | Keycloak trong compose: import realm `pti`, user demo | Lấy được token bằng password grant trong môi trường dev | P4-00 | DOC-27 |
-| P4-09 | App `api`: resource server, ma trận quyền, CORS, Problem Details, keyset pagination, Bucket4j, springdoc, Caffeine, hai datasource (reader/operator), header `X-Data-As-Of` | Test security: anonymous, viewer, operator trên mọi endpoint | P4-08 | DOC-27, 31 |
+| P4-09 | App `api`: resource server, ma trận quyền, CORS, Problem Details, keyset pagination, Bucket4j, springdoc, Caffeine, hai datasource (reader/operator), header `X-Data-As-Of` | Test security: anonymous, viewer, operator trên mọi endpoint | P4-08, P4-18 | DOC-27, 31, 49 |
 | P4-10 | Endpoint nhóm vận tải (`/routes`, `/routes/{id}`, `/routes/{id}/delays`, `/vehicles/live`, `/stops`, `/stops/{id}`, `/stops/{id}/arrivals`) | Contract khớp DOC-32; p95 < 200 ms trên dữ liệu 7 ngày | P4-09 | DOC-32 |
 | P4-11 | Endpoint nhóm insight (bunching, disruption, otp, dispatch-suggestions cùng feedback) | Như trên | P4-09 | DOC-32 |
 | P4-12 | Endpoint vận hành ETL (jobs, jobs/summary, dlq CRUD, replay, confirm, discard, replays, flags, freshness), alerts và ack, webhook Alertmanager | Như trên; replay tạo `replay_request` và ETL xử lý nó | P4-09, P2-16 | DOC-32, 22 |
@@ -560,7 +567,7 @@ Dashboard (P3-04, `make check-dashboards`) và alert (P3-05, DOC-42 §4) hoạt 
 | P4-16 | Đưa `api` và `keycloak` vào compose | `make up` → curl được các endpoint | P4-09 | DOC-39 |
 | P4-17 | Tính lại analytics: `AnalyticsRecomputeService` (`plan`/`execute`), step `recomputeAnalytics` của `RawZoneReplayJob`, `AnalyticsRecomputeJob` | Bảng test AN-R của DOC-23; EXP-04 C5 (hoặc `not_applicable` có lý do) kiểm ở P3-10, vì chuỗi smoke không so sánh bảng insight (DR-95) | P4-03, 04, P2-16 | DOC-23, 22 |
 
-**Tiêu chí thoát (M4):** mọi endpoint trả dữ liệu thật từ simulator. Dùng `curl -N /stream` thấy sự kiện. Mọi analytics chạy lại đều ra cùng kết quả. Chuỗi smoke `pti-exp smoke` vẫn đạt (DR-95).
+**Tiêu chí thoát (M4):** mọi endpoint trả dữ liệu thật từ simulator. Dùng `curl -N /stream` thấy sự kiện. Mọi analytics chạy lại đều ra cùng kết quả. Chuỗi smoke `pti-exp smoke` vẫn đạt (DR-95). Luật A-11…A-18 xanh cho `analytics`, `api` và package mới của `etl`; store freeze của module cũ không lớn hơn lúc tạo ở P4-18 (DR-104).
 
 ---
 
@@ -594,7 +601,7 @@ Dashboard (P3-04, `make check-dashboards`) và alert (P3-05, DOC-42 §4) hoạt 
 
 | ID | Việc | Đầu ra và nghiệm thu | Phụ thuộc | Tài liệu |
 | --- | --- | --- | --- | --- |
-| P6-00 | Doc gate: DOC-24, EXP-06; ADR 0018, 0019 — **Approved 2026-09-28** | Approved | M4 | — |
+| P6-00 | Doc gate: DOC-24, 49, EXP-06; ADR 0018, 0019, 0032 — **Approved 2026-09-28**; DOC-49 và ADR-0032 thêm vào ngày 2026-09-30 (DR-104) | Approved | M4 | — |
 | P6-01 | Cổng `DecisionModel`; `JevDecisionModel` bọc `TypeSafeClient` (`typesafe-java-sdk`, tắt retry của SDK; Resilience4j timeout 2 s, circuit breaker, bulkhead, rate limiter đặt bên ngoài); `FakeDecisionModel`; WireMock stub dựng từ fixture của S-01 | Unit test và contract test với stub | P6-00, P0-02 (S-01, chạy đầu P6) | DOC-24 |
 | P6-02 | App `triage-worker`: lấy việc bằng SKIP LOCKED, lease, gom batch, ghi kết quả và `model_version`, gauge `pti_triage_backlog` (DR-74) | Integration test: 100 record → đều được triage; Jev chết → vẫn `category=null`, không làm hỏng ETL | P6-01 | DOC-24 |
 | P6-03 | Bộ quyết định auto-replay (bảng ngưỡng, kiểm tra sức khỏe nguồn, tối đa 2 lần, `dlq_action_log`) | Test đủ các nhánh của bảng quyết định | P6-02, P2-16 | DOC-24 |
@@ -607,7 +614,27 @@ Dashboard (P3-04, `make check-dashboards`) và alert (P3-05, DOC-42 §4) hoạt 
 | P6-10 | Test chặn PII cho prompt builder | Test pass | P6-01 | DOC-24 |
 | P6-11 | (Tùy chọn) EXP-06: gán nhãn tay tập mẫu (CSV), script đánh giá (precision theo ngưỡng, calibration, độ trễ, chi phí), so sánh với bộ luật | Báo cáo trong DOC-45 | P6-02…07 | DOC-45 |
 
-**Tiêu chí thoát (M6):** bước 2–4 của kịch bản demo có đủ phần AI; chạy được với cả `jev` và `fake`. Chuỗi smoke `pti-exp smoke` vẫn đạt khi bật triage và auto-replay (DR-95).
+**Tiêu chí thoát (M6):** bước 2–4 của kịch bản demo có đủ phần AI; chạy được với cả `jev` và `fake`. Chuỗi smoke `pti-exp smoke` vẫn đạt khi bật triage và auto-replay (DR-95). Luật A-11…A-18 xanh cho `triage-worker` (DR-104).
+
+---
+
+### Phase R: Refactor Clean Architecture cho code P1–P3
+
+Mục tiêu: đưa `common`, `source-simulator`, `etl`, `db` về bố cục của DOC-49 mà **không đổi hành vi bên ngoài** (API, topic, schema message, bảng, metric, log key, cấu hình DOC-29). Buộc phải đổi thì cần DR. Nguyên tắc làm ở DOC-49 §12: test trước, từng feature một, mỗi commit xanh CI, store freeze giảm dần (DR-104, ADR-0032).
+
+| ID | Việc | Đầu ra và nghiệm thu | Phụ thuộc | Tài liệu |
+| --- | --- | --- | --- | --- |
+| RF-00 | Doc gate: DOC-49 (cập nhật §12 theo store thật); kế hoạch refactor theo module lập từ danh sách vi phạm trong store; rà test hồi quy của từng package sẽ đụng tới | Approved; mỗi package cũ có danh sách test phải xanh trước và sau khi chuyển | M6 | DOC-49, DOC-44 |
+| RF-01 | `common`: tách shared kernel Java thuần khỏi phần gắn Spring/Jackson (`ErrorClassifier`, `json`, annotation Jackson của `message`, `pii`); mở rộng danh sách DOC-49 §4.2 | Store của `common` rỗng; mọi module vẫn build và test xanh | RF-00 | DOC-49, DOC-09, DOC-30 |
+| RF-02 | `source-simulator`: làm trước ETL vì ít rủi ro, dùng để chốt cách làm (`scenario`, `motion`, `emit`, `feed`, `ticketing`, `ledger`, `control`) | Store rỗng; test kịch bản P3-01 xanh; ledger của một lần chạy cố định seed giống trước refactor | RF-01 | DOC-25 |
+| RF-03 | `etl` luồng stream (`stream`, `core`, `write`, `rules`, `dq`, `fault`, `metrics`): mapper, luật DQ, dedup thành `domain`/`application`; listener thành `adapter.in.kafka`; upsert thành `adapter.out.jdbc`; quyết định vị trí của `StreamChunkTemplate` và ghi DR (DOC-49 §5.1) | Store các package này rỗng; S-xx, upsert 1–24, F-xx (cả hai chế độ) và contract test xanh | RF-01 | DOC-19, 20, 30 |
+| RF-04 | `etl` luồng batch và GTFS (`batch`, `batch.maintenance`, `gtfs`, `replay`, `reference`, `raw`, `health`, `flags`, `config`) | Store của `etl` rỗng; B-xx, G-xx, R-xx và L-xx xanh | RF-03 | DOC-19, 21, 22 |
+| RF-05 | `db` và phần nối còn lại (bean dùng chung, wiring analytics trong `etl`) | Store của `db` rỗng | RF-04 | DOC-49 |
+| RF-06 | Cập nhật tài liệu thiết kế của code cũ theo package mới, làm cùng commit với RF-01…RF-05 | DOC-19, 20, 21, 22, 25, 30 không còn tên package cũ | RF-01…RF-05 | Các DOC trên |
+| RF-07 | Xóa `FreezingArchRule` và store; mọi module chạy A-11…A-18 đầy đủ; bỏ cột "Cũ" và mục miễn trừ ở DOC-49 §1 | `./gradlew test` xanh không còn freeze | RF-05 | DOC-49, DOC-44 |
+| RF-08 | Hồi quy: toàn bộ unit, integration, contract, fault-injection (DOC-44 §8); `pti-exp smoke` trên máy dev; so với chuỗi `p3-08-d` | Mọi test xanh; chuỗi smoke đạt mọi tiêu chí DOC-45 §1.3; số đo tham khảo (`commit_p95`, `recovery_seconds`, throughput bậc ×10) không kém `p3-08-d` quá 20%, nếu kém thì giải thích trong DR | RF-07 | DOC-45 |
+
+**Tiêu chí thoát (MR):** store freeze rỗng và đã xóa; mọi test xanh; chuỗi smoke đạt như M3; không có thay đổi hành vi bên ngoài nào chưa có DR.
 
 ---
 
@@ -672,6 +699,7 @@ Dashboard (P3-04, `make check-dashboards`) và alert (P3-05, DOC-42 §4) hoạt 
 | NFR-07 Một lệnh khởi động | DOC-38, 39 | P1-04, 15 | Chạy trên máy sạch |
 | NFR-08 Scale gấp 10 lần | DOC-40 | P7-06 | EXP-07 |
 | NFR-09 Chịu lỗi | DOC-20, 40 | P2-14, P7-07, 08 | EXP-08 |
+| Kiến trúc: Clean Architecture (ADR-0032, DR-104) | DOC-49, DOC-44 §3.3 | P4-18, RF-00…08 | ArchUnit A-11…A-18; store freeze rỗng ở MR; chuỗi smoke sau RF-08 |
 
 ---
 
@@ -689,6 +717,7 @@ Dashboard (P3-04, `make check-dashboards`) và alert (P3-05, DOC-42 §4) hoạt 
 - Có test cho hành vi mới; bug fix có test tái hiện lỗi.
 - Metric, log và cấu hình mới đã ghi vào DOC-28 và DOC-29.
 - Tài liệu liên quan đã cập nhật trong cùng PR; nếu đổi quyết định thì có ADR mới.
+- Code Java mới đạt luật ArchUnit A-11…A-18 (DOC-49); store freeze của module cũ không tăng.
 - Chạy được bằng `make up` (nếu việc có thành phần runtime).
 
 ### 7.3 Git và code
@@ -697,7 +726,7 @@ Dashboard (P3-04, `make check-dashboards`) và alert (P3-05, DOC-42 §4) hoạt 
 - Commit và tiêu đề PR theo Conventional Commits, viết tiếng Anh (`feat(etl): add scan-mode fallback`).
 - **Ngôn ngữ (DR-61):** `docs/` viết tiếng Việt. Mọi thứ khác dùng tiếng Anh: UI, code, comment, log, thông báo lỗi API, metric, dashboard, alert, commit, PR, tên test.
 - Có `.github/PULL_REQUEST_TEMPLATE.md` (tạo ở P1-01) gồm: mục tiêu, việc liên quan (Pn-xx), DOC đã sửa, cách test, checklist DoD.
-- Java: format bằng Spotless với palantir-java-format (chốt ở P1-02, DOC-11). Package theo feature, không theo layer. Không dùng Lombok.
+- Java: format bằng Spotless với palantir-java-format (chốt ở P1-02, DOC-11). Package theo feature ở cấp một; trong mỗi feature chia tầng `domain`, `application`, `adapter`, `config` theo DOC-49 (Clean Architecture, ADR-0032). Code P1–P3 giữ kiến trúc cũ tới Phase R. Không dùng Lombok.
 - SQL: file migration đặt tên `V<n>__<mô_tả>.sql`; không sửa migration đã merge.
 
 ---
@@ -716,6 +745,7 @@ Dashboard (P3-04, `make check-dashboards`) và alert (P3-05, DOC-42 §4) hoạt 
 | Bảng fact vehicle position quá lớn trên laptop | Disk > 70% | Giảm retention; giảm tần suất phát vị trí; chỉ lưu mẫu vị trí cho mỗi xe mỗi 15 giây |
 | Keycloak cùng stack observability làm máy quá tải | S-03 | Profile tách riêng; values `lite`; tắt observability khi chạy demo UI |
 | Kết quả thực nghiệm dao động lớn | Phương sai cao | Tăng số lần lặp, cố định seed, ghi cấu hình máy; báo cáo khoảng tin cậy |
+| Refactor Phase R làm hỏng tính đúng đắn của ETL hoặc trễ lịch | Test fault-injection đỏ; chuỗi smoke sau RF-08 lệch `p3-08-d`; store freeze giảm chậm | Test trước, từng feature một, mỗi commit xanh CI (DOC-49 §12); nếu trễ quá 50% thì cắt Phase R theo §4.3: code cũ giữ freeze, luật cho code mới vẫn giữ |
 
 ---
 

@@ -1,6 +1,6 @@
 # Chiến lược kiểm thử
 
-> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-44
+> Trạng thái: **Approved** · Cập nhật: 2026-09-30 (DR-104: bố cục Clean Architecture) · DOC-44
 >
 > Phụ thuộc: DOC-03 (NFR-01…13), DOC-11, DOC-19, DOC-20, DOC-21, DOC-22, DOC-30, DOC-41, ADR-0027, DR-44, DR-46
 >
@@ -98,6 +98,20 @@ Lớp `PtiArchitectureRules` trong `backend/common/src/testFixtures`, mỗi app 
 | A-08 | Exception do code dự án ném ra kế thừa `PtiException` (DOC-30 §1), trừ `IllegalArgumentException`/`IllegalStateException` ném từ constructor và guard |
 | A-09 | Test code không dùng `Thread.sleep` |
 | A-10 | Không lớp production nào phụ thuộc `ConfigurableFaultInjector` (chỉ bean trong profile `test`, `experiment`) |
+| A-11 | Clean Architecture, phân tầng theo feature (DOC-49 §2): `domain` không phụ thuộc `application`, `adapter`, `config`; `application` không phụ thuộc `adapter`, `config`; `adapter` không phụ thuộc `config`, trừ lớp `@ConfigurationProperties` (adapter được đọc cấu hình của nó) |
+| A-12 | `..domain..` và `..application..` không phụ thuộc framework và hạ tầng (`org.springframework..`, `jakarta..`, Jackson, Micrometer, OpenTelemetry, Kafka client, JDBC, AWS SDK, Resilience4j, Caffeine, ShedLock, SDK Jev, Bucket4j; danh sách đủ ở DOC-49 §4.1), trừ ngoại lệ DOC-49 §10 |
+| A-13 | `..domain..` và `..application..` chỉ phụ thuộc `dev.pti.common..` qua shared kernel (DOC-49 §4.2) |
+| A-14 | Feature không phụ thuộc `..adapter..` hay `..config..` của feature khác; các feature trong một app không tạo vòng phụ thuộc |
+| A-15 | `..adapter.in..` không phụ thuộc `..adapter.out..` |
+| A-16 | Lớp có `@Configuration`, `@Bean`, `@ConfigurationProperties` chỉ nằm trong `..config..` |
+| A-17 | Hiện thực production của interface trong `..application.port..` chỉ nằm trong `..adapter..` |
+| A-18 | Mọi lớp dưới `dev.pti.<app>.<feature>` thuộc một trong các tầng `domain`, `application`, `adapter`, `config`; package gốc của app chỉ có lớp `*Application` |
+
+A-11…A-18 được thêm ở P4-18 (DR-104, ADR-0032):
+
+- `analytics`, `api`, `triage-worker` gọi các luật trực tiếp: vi phạm là test đỏ. `analytics` là thư viện nên có test ArchUnit riêng trong module.
+- `etl`, `source-simulator`, `common`, `db` gọi A-11…A-18 qua `FreezingArchRule`. Store vi phạm nằm ở `backend/<module>/src/test/resources/archunit_store/` và được commit; `archunit.properties` đặt `freeze.store.default.allowStoreCreation=false`. Store chỉ được giảm. Package mới trong các module này (ví dụ `dev.pti.etl.analytics`) không được có mặt trong store.
+- Phase R (RF-07) xóa freeze; từ đó mọi module chạy A-11…A-18 trực tiếp.
 
 ## 4. Test theo module
 
@@ -334,6 +348,7 @@ Không chạy test hiệu năng trên runner PR: runner dùng chung cho kết qu
 | Tiền tố | Nội dung | Tài liệu | Tầng chính |
 | --- | --- | --- | --- |
 | A-01…A-10 | Luật ArchUnit | DOC-44 §3.3 | Unit |
+| A-11…A-18 | Luật ArchUnit Clean Architecture; `FreezingArchRule` cho module cũ tới Phase R | DOC-44 §3.3, DOC-49 §9 | Unit |
 | B-01…B-17 | Chunk, skip, retry, job control | DOC-19 §12 | Unit, integration |
 | S-01…S-17 | ETL streaming | DOC-20 §14 | Integration |
 | G-01…G-13 | GTFS static | DOC-21 §10 | Integration (G-03 slow) |

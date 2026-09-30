@@ -1,6 +1,6 @@
 # AI triage (triage-worker)
 
-> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-24
+> Trạng thái: **Approved** · Cập nhật: 2026-09-30 (DR-104: bố cục Clean Architecture) · DOC-24
 > Phụ thuộc: [DOC-03](../01-product/requirements.md) FR-09, [DOC-15](../05-data/ops-and-insight-model.md) §4.3, §4.5, §6, [DOC-16](../05-data/data-quality-rules.md), [DOC-17](../05-data/db-roles-and-grants.md), [DOC-18](../05-data/data-lifecycle.md) §4, [DOC-20](etl-streaming.md) §6.1, [DOC-22](dlq-and-replay.md), [DOC-23](analytics.md) §9–10, §12.2, [DOC-28](observability.md), [DOC-30](error-handling.md), [DOC-33](../07-api/sse-events.md), [ADR-0018](../04-adr/0018-decision-model-port.md), [ADR-0019](../04-adr/0019-code-owned-automation-thresholds.md), [DR](../00-decision-register.md) (DR-36, 37, 38, 60, 72, 73, 74)
 > Người dùng chính: P6-01…P6-12, DOC-36 (Ops console: DLQ, ticketing), DOC-42 (RB-04, RB-08), [EXP-06](../10-testing/experiments/EXP-06-ai-decision-quality.md), EXP-08
 
@@ -46,29 +46,38 @@ Kết quả S-01 được ghi thành mục "Kết quả spike S-01" trong DR-36 
 
 ### 4.1 Cấu trúc package
 
-Module Gradle `triage-worker`, package gốc `dev.pti.triage`:
+Module Gradle `triage-worker`, package gốc `dev.pti.triage`. Mỗi feature chia tầng theo Clean Architecture (DOC-49, ADR-0032); cột "Tầng" cho biết lớp nằm ở package con nào của feature.
 
-| Package | Nội dung |
-| --- | --- |
-| `model` | Cổng `DecisionModel`, `Question`, `Answer`, `Decision`, exception, `ModelVersion` |
-| `model.jev` | `JevDecisionModel`, `JevQuestionMapper`, `JevErrorMapper` |
-| `model.fake` | `FakeDecisionModel` và bảng luật (§15) |
-| `model.disabled` | `DisabledDecisionModel` |
-| `loop` | `EnrichmentLoop`, `WorkQueue` (interface claim/release/apply), `LeaseSweeper`, `LoopPauser` |
-| `dlq` | `DlqStateBuilder`, `DlqQuestions`, `DlqDecisionTable`, `AutoReplayGuard`, `DlqWorkQueue`, `AutoReplayScheduler` |
-| `ticketing`, `disruption`, `dispatch` | `*StateBuilder`, `*Questions`, `*WorkQueue`, `*ResultWriter` |
-| `health` | `SourceHealthClient` |
-| `guard` | `PiiGuard` |
-| `flags` | `RuntimeFlagRefresher` (dùng chung với `common`, DR-19) |
-| `events` | `UiEventPublisher` (Kafka `pti.events.ui`, DOC-33) |
-| `config` | `TriageProperties` (`@ConfigurationProperties("pti.triage")`), bean Resilience4j, executor |
+| Feature | Nội dung | Tầng (DOC-49) |
+| --- | --- | --- |
+| `model` | Cổng `DecisionModel` | `application.port` |
+| `model` | `Question`, `Answer`, `Decision`, exception, `ModelVersion` | `domain` |
+| `model` | `JevDecisionModel`, `JevQuestionMapper`, `JevErrorMapper` | `adapter.out.jev` |
+| `model` | `FakeDecisionModel` và bảng luật (§15) | `adapter.out.fake` |
+| `model` | `DisabledDecisionModel` | `adapter.out.disabled` |
+| `loop` | `EnrichmentLoop`, `LeaseSweeper`, `LoopPauser` | `application` |
+| `loop` | `WorkQueue` (interface claim/release/apply) | `application.port` |
+| `dlq` | `DlqDecisionTable`, `AutoReplayGuard` | `domain` |
+| `dlq` | `DlqStateBuilder`, `DlqQuestions` | `application` (ngoại lệ X-01: cây JSON Jackson) |
+| `dlq` | `DlqWorkQueue` | `adapter.out.jdbc` |
+| `dlq` | `AutoReplayScheduler` | `adapter.in.scheduling` |
+| `ticketing`, `disruption`, `dispatch` | `*StateBuilder`, `*Questions` | `application` (ngoại lệ X-01) |
+| `ticketing`, `disruption`, `dispatch` | `*WorkQueue`, `*ResultWriter` | `adapter.out.jdbc` (sau port ở `application.port`) |
+| `health` | `SourceHealthClient` | port ở `application.port`, hiện thực ở `adapter.out.jdbc` |
+| `guard` | `PiiGuard` | `application` (ngoại lệ X-01) |
+| `flags` | `RuntimeFlagRefresher` (dùng chung với `common`, DR-19) | `adapter.in.scheduling`, đọc cờ qua port |
+| `events` | `UiEventPublisher` (Kafka `pti.events.ui`, DOC-33) | port ở `application.port`, hiện thực `KafkaUiEventPublisher` ở `adapter.out.kafka` |
+| `config` (gốc `dev.pti.triage.config`) | `TriageProperties` (`@ConfigurationProperties("pti.triage")`), bean Resilience4j, executor, bean use case | `config` |
 
-ArchUnit (DOC-44 §3.3) thêm luật: chỉ `model.jev` được import `org.springaicommunity.typesafe..`; package use case chỉ phụ thuộc `model`, không phụ thuộc `model.jev`.
+Ví dụ tên đầy đủ: `dev.pti.triage.model.application.port.DecisionModel`, `dev.pti.triage.model.adapter.out.jev.JevDecisionModel`, `dev.pti.triage.dlq.domain.DlqDecisionTable`.
+
+ArchUnit: ngoài A-11…A-18 (DOC-44 §3.3), thêm luật riêng: chỉ `..model.adapter.out.jev..` được import `org.springaicommunity.typesafe..`; `application` của mọi feature chỉ phụ thuộc cổng `DecisionModel`, không phụ thuộc adapter nào của `model`.
 
 ### 4.2 Cổng `DecisionModel` (ADR-0018)
 
 ```java
-package dev.pti.triage.model;
+package dev.pti.triage.model.application.port;   // DecisionModel
+// UseCase, Question, Answer, Decision: dev.pti.triage.model.domain (DOC-49 §11.3)
 
 public interface DecisionModel {
   /** One state, several typed questions, one remote call. Never retries on its own. */
@@ -129,7 +138,7 @@ Chọn adapter bằng `pti.triage.provider` (`jev` \| `fake` \| `disabled`), qua
 ### 4.4 Exception
 
 ```java
-package dev.pti.triage.model;
+package dev.pti.triage.model.domain;
 
 /** Jev or the network is unavailable; the record is fine. */
 public final class DecisionModelUnavailableException extends TransientInfraException {

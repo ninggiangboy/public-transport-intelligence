@@ -2,7 +2,7 @@
 
 > DOC-12 · Quy ước: [ADR-0001](0001-record-architecture-decisions.md) · Nguồn: [Decision Register](../00-decision-register.md), [Master plan §3.2](../00-master-plan.md)
 
-Cột **Gate** là phase cần ADR ở trạng thái Accepted trước khi bắt đầu. Mọi ADR 0001–0031 đã có file.
+Cột **Gate** là phase cần ADR ở trạng thái Accepted trước khi bắt đầu. Mọi ADR 0001–0032 đã có file.
 
 | ADR | Tiêu đề | Trạng thái | Gate | Nguồn |
 | --- | --- | --- | --- | --- |
@@ -37,6 +37,7 @@ Cột **Gate** là phase cần ADR ở trạng thái Accepted trước khi bắt
 | [0029](0029-spring-boot-4-java-25.md) | Nền tảng Spring Boot 4.1 và Java 25 | Accepted (xác minh S-06) | P1 | DR-53 |
 | [0030](0030-monorepo-layout.md) | Monorepo, chia thư mục gốc theo stack: `backend/`, `frontend/`, `deploy/` | Accepted | P1 | DR-85, DR-26 |
 | [0031](0031-no-redis.md) | Không dùng Redis | Accepted | P4 | DR-103 |
+| [0032](0032-clean-architecture.md) | Clean Architecture cho backend Java; refactor code cũ ở Phase R | Accepted | P4 | DR-104 |
 
 Gate P1 đã đủ: 0001, 0002, 0003, 0007, 0008, 0009, 0011, 0012, 0014, 0024, 0029, 0030.
 
@@ -44,7 +45,7 @@ Gate P2 đã đủ: 0004, 0005, 0006, 0013, 0015, 0027.
 
 Gate P3 đã đủ: 0022, 0025.
 
-Gate P4 đã đủ: 0010, 0016, 0017, 0023, 0026, 0031.
+Gate P4 đã đủ: 0010, 0016, 0017, 0023, 0026, 0031, 0032.
 
 Gate P5 đã đủ: 0020, 0021.
 

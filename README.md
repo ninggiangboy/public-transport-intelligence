@@ -58,6 +58,8 @@ All reliability mechanisms (idempotency, retry, DLQ, checkpoint) live in the ETL
 | `source-simulator` | Generates GTFS-realtime events and ticketing transactions |
 | `db` | Flyway migration runner |
 
+Inside each Java module, code follows Clean Architecture: feature packages, each split into `domain`, `application`, `adapter` and `config`, with the dependency rule enforced by ArchUnit. New modules follow it from the start; the P1–P3 modules are refactored in phase R. See [docs/03-architecture/clean-architecture.md](docs/03-architecture/clean-architecture.md).
+
 ## Tech stack
 
 | Layer | Technology |
@@ -150,6 +152,7 @@ Requirements: 16 GB RAM (12 GB allocated to the Docker VM with every profile ena
 | P4 | Analytics and API | Real insights over REST and SSE | Next |
 | P5 | Dashboard | Full real-time UI | |
 | P6 | AI triage | Triage, auto-replay, suggestions in the UI | |
+| R | Clean Architecture refactor of the P1–P3 code | Frozen ArchUnit violations reach zero; fault-injection tests and the smoke run still pass | |
 | P7 | Kubernetes and fault tolerance | Full EXP-01…05 runs first (P3-10); autoscaling and self-healing; EXP-07/08 results | |
 | P8 | Polish | Ready for the final defense | |
 

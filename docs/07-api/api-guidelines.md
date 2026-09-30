@@ -1,6 +1,6 @@
 # Quy ước API
 
-> Trạng thái: **Approved** · Cập nhật: 2026-09-30 (DR-103: nạp cache single-flight, bucket `public` trên compose) · DOC-31
+> Trạng thái: **Approved** · Cập nhật: 2026-09-30 (DR-103: nạp cache single-flight, bucket `public` trên compose; DR-104: Clean Architecture) · DOC-31
 >
 > Phụ thuộc: DR-20, DR-39, DR-43, DR-45, DR-48, DR-61, DR-67, DR-103, ADR-0013, ADR-0017, ADR-0031, [DOC-10](../03-architecture/quality-attributes.md) §4, [DOC-17](../05-data/db-roles-and-grants.md), [DOC-27](../06-design/security.md), [DOC-30](../06-design/error-handling.md) §3
 >
@@ -204,7 +204,8 @@ Các thao tác còn lại tự idempotent theo ngữ nghĩa nên không cần kh
 
 - Code truy cập bằng `JdbcClient` với SQL đặt trong `src/main/resources/sql/<nhóm>/<tên>.sql`, nạp một lần lúc khởi động. Không dùng JPA.
 - Mỗi repository được gắn với đúng một datasource qua constructor (`@Qualifier("reader")`/`@Qualifier("operator")`); không có routing datasource động. Test kiến trúc (ArchUnit) chặn repository ghi dùng `reader`.
-- Transaction: `GET` chạy `readOnly = true` trên `reader`; request ghi chạy một transaction `READ COMMITTED` trên `operator`. Không có transaction nào trải trên hai datasource.
+- Theo Clean Architecture (DOC-49, ADR-0032): repository là hiện thực của port, nằm ở `<feature>.adapter.out.jdbc`; controller ở `<feature>.adapter.in.web` chỉ map DTO và gọi use case ở `<feature>.application`, kể cả với endpoint chỉ đọc. Security, Problem Details, rate limit, cache và hai datasource thuộc feature `platform`. Bảng feature của `api` ở DOC-49 §11.2.
+- Transaction: `GET` chạy `readOnly = true` trên `reader`; request ghi chạy một transaction `READ COMMITTED` trên `operator`. Không có transaction nào trải trên hai datasource. Use case mở transaction qua port `TransactionRunner`; `config` truyền bean `readerTx` hoặc `operatorTx` tương ứng (DOC-49 §5.1), nên không có `@Transactional` trong `application`.
 - `statement_timeout`: đặt ở mức role trong bootstrap (DOC-17 §3): `ALTER ROLE api_reader SET statement_timeout = '5s'`, `ALTER ROLE replay_operator SET statement_timeout = '5s'`. Cách này đúng cả khi đi qua PgBouncer transaction mode (k3d), nơi tham số khởi động của JDBC bị bỏ. Hết thời gian → SQLState `57014` → `TRANSIENT_INFRA` → 503 `service-unavailable` (DOC-30 §2.3).
 - Hikari: `connection-timeout` 2 s (hết → 503), `maximum-pool-size` như bảng, `minimum-idle` 2.
 

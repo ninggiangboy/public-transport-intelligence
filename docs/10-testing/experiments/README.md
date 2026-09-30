@@ -1,6 +1,6 @@
 # Thực nghiệm: protocol chung
 
-> Trạng thái: **Approved** · Cập nhật: 2026-09-30 (DR-100: runner, kết quả chuỗi smoke P3-08) · DOC-45 (phần chung, EXP-01…08)
+> Trạng thái: **Approved** · Cập nhật: 2026-09-30 (DR-100: runner, kết quả chuỗi smoke P3-08; DR-104: P3-10 sau Phase R) · DOC-45 (phần chung, EXP-01…08)
 >
 > Phụ thuộc: DOC-03 (NFR-01…04), DOC-10, DOC-13 §6 (ledger, business key), DOC-14, DOC-20 §9 (baseline), DOC-22, DOC-25 §7–8, DOC-28, DR-27, DR-28, DR-52, DR-57, DR-58, DR-67, DR-68, DR-94, DR-95, ADR-0025
 >
@@ -8,7 +8,7 @@
 
 Tài liệu này là phần dùng chung cho mọi thực nghiệm: môi trường, runner, cách tính chỉ số, thống kê, định dạng kết quả, các mối đe dọa chung. Mỗi thực nghiệm có một file riêng theo template phụ lục A.6 của master plan.
 
-EXP-01…05 chạy hai bước (DR-95): ở P3 là **chuỗi smoke** khoảng 30 phút trên máy dev (§1.3), để kiểm runner và tính đúng đắn của pipeline; **đợt chạy đầy đủ** (P3-10) theo mọi quy định còn lại của tài liệu này làm sau M6, trước P7. Số liệu trong báo cáo chỉ lấy từ đợt chạy đầy đủ.
+EXP-01…05 chạy hai bước (DR-95): ở P3 là **chuỗi smoke** khoảng 30 phút trên máy dev (§1.3), để kiểm runner và tính đúng đắn của pipeline; **đợt chạy đầy đủ** (P3-10) theo mọi quy định còn lại của tài liệu này làm sau Phase R (MR, DR-104), trước P7. Số liệu trong báo cáo chỉ lấy từ đợt chạy đầy đủ.
 
 | EXP | File | Câu hỏi | NFR | Phase |
 | --- | --- | --- | --- | --- |

@@ -1,6 +1,6 @@
 # Analytics
 
-> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-23
+> Trạng thái: **Approved** · Cập nhật: 2026-09-30 (DR-104: bố cục Clean Architecture) · DOC-23
 > Phụ thuộc: [DR](../00-decision-register.md) (DR-29…35, 41, 42, 57, 67, 68, 71), [DOC-09](../03-architecture/messaging-contracts.md) §6, [DOC-14](../05-data/warehouse-model.md) §5–9, [DOC-15](../05-data/ops-and-insight-model.md) §3, §6, [DOC-19](batch-and-chunk-processing.md) §2, §7, [DOC-20](etl-streaming.md) §8, [DOC-21](etl-gtfs-static.md) §6, [DOC-22](dlq-and-replay.md) §4, [DOC-25](source-simulator.md) §7
 > Người dùng chính: module `analytics` và phần nối vào `etl` (P4-02…P4-07, P6-05), DOC-24 (triage đọc episode), DOC-32 (arrivals, insight API), DOC-33 (payload SSE), DOC-36 (màn hình), EXP-04 (C5)
 
@@ -31,7 +31,8 @@ Không thuộc tài liệu này:
 - Module `etl` nối thư viện vào runtime:
   - Profile `stream`: `AnalyticsDispatcher`, `KafkaAnalyticsEventSink`, bean executor `analyticsExecutor` (DOC-20 §8).
   - Profile `batch`: định nghĩa `EtaAggregationJob`, `OtpScorecardJob`, `TicketingAnomalyJob`, `AnalyticsRecomputeJob` và step `recomputeAnalytics` của `RawZoneReplayJob`. Tasklet của các job này chỉ gọi service của `analytics`.
-- Package gốc: `dev.pti.analytics`. Package con: `core`, `reference`, `bunching`, `disruption`, `eta`, `otp`, `ticketing`, `alert`, `event`, `recompute`.
+- Package gốc: `dev.pti.analytics`. Feature: `core`, `reference`, `bunching`, `disruption`, `eta`, `otp`, `ticketing`, `alert`, `event`, `recompute`. Mỗi feature chia tầng `domain`, `application` (`application.port`), `adapter.out.jdbc`, `config` theo Clean Architecture (DOC-49, ADR-0032); thư viện không có `adapter.in`. Vị trí từng thành phần của tài liệu này ở DOC-49 §11.1. Tên package trong các khối code dưới đây là feature; tầng cụ thể theo bảng đó (ví dụ `dev.pti.analytics.core` → `dev.pti.analytics.core.domain.RunResult`, `dev.pti.analytics.core.application.RouteDetector`).
+- Phần nối trong `etl` là code mới nên cũng tuân thủ DOC-49 dù module `etl` còn bị freeze tới Phase R: package `dev.pti.etl.analytics` với `adapter.in.event` (`AnalyticsDispatcher`), `adapter.in.scheduling` (tick), `adapter.in.batch` (tasklet), `adapter.out.kafka` (`KafkaAnalyticsEventSink`), `config`.
 - Mọi truy vấn chạy bằng DataSource chính của `etl` (user `etl_writer`, DOC-17). `etl_writer` có `SELECT, INSERT, UPDATE, DELETE` trên `insight.*` (trừ `insight_dispatch_suggestion`) và `U(title, body, severity, resolved_at)` trên `ops.alert_event`.
 - `api` **không** phụ thuộc `analytics`. `api` chỉ đọc bảng `insight.*` và tự hiện thực câu SQL arrivals ở §7.4.
 
@@ -256,7 +257,7 @@ Ghi chú cho `AnalyticsReferenceCache`:
 `MicroBatchCommitted` (DOC-20 §8) có thêm trường `committedAt` (giờ thật lúc commit), dùng cho `pti_analytics_dispatch_delay_seconds` và `pti_ui_commit_to_publish_seconds`.
 
 ```java
-package dev.pti.etl.stream.analytics;
+package dev.pti.etl.analytics.adapter.in.event;   // DOC-49 §11.1
 
 @Component
 @Profile("stream")

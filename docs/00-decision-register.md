@@ -62,6 +62,7 @@ Tài liệu gốc mô tả tốt *cái gì* và *vì sao*, nhưng còn nhiều c
 | 2026-09-29 | Claude (Owner ủy quyền) | **Kịch bản simulator (P3-01):** bunching ghép xe theo trạm chung đầu tiên phía trước thay vì `dist`, và giữ follower ở đúng khoảng cách mục tiêu; kiểu gây hỏng chỉ chọn trong các loại áp dụng được cho entity type; hàng đợi gửi lại và hoàn vé còn chờ vẫn chạy tiếp sau khi lần chạy kết thúc; lỗi của hook kết thúc lần chạy ở tick kế tiếp | DR-96 (mới), DOC-25 §7 |
 | 2026-09-29 | Owner | **Thực nghiệm hai bước:** P3 viết đủ runner và chạy một chuỗi smoke ≤ 30 phút (mỗi EXP-01…05 một lần chạy rút gọn) trên máy dev; đợt chạy đầy đủ trên máy thực nghiệm dời thành P3-10, làm sau M6 và trước P7. Chuỗi smoke chạy lại khi chốt M4 và M6 | DR-95 (mới), master plan P3, DOC-45 |
 | 2026-09-30 | Owner | **Không dùng Redis:** SSE fan-out qua Kafka, cache và rate limit theo pod, khóa và idempotency trên PostgreSQL. Ghi rõ dấu hiệu cần xem lại và phương án không cần Redis cần thử trước | DR-103 (mới), ADR-0031 (mới) |
+| 2026-09-30 | Owner | **Clean Architecture cho backend Java:** code mới từ P4 (`analytics`, `api`, `triage-worker`) chia tầng `domain`/`application`/`adapter`/`config`, domain và application là Java thuần, ArchUnit fail build. Code P1–P3 giữ nguyên, bị freeze bằng ArchUnit, refactor ở Phase R sau M6 và trước P3-10 | DR-104 (mới), ADR-0032 (mới), DOC-49 (mới), master plan §4, §5 |
 
 ---
 
@@ -406,6 +407,18 @@ Tài liệu gốc mô tả tốt *cái gì* và *vì sao*, nhưng còn nhiều c
 - Container của nhóm baseline có id hậu tố `-baseline` (DOC-20 §9).
 - **Ghi vào:** DOC-17, DOC-21, DOC-44.
 
+### DR-104 · Clean Architecture cho backend Java, refactor code cũ ở Phase R — **Chốt** (P4; sửa DR-95)
+- **Vấn đề:** Code P1–P3 chia package theo feature nhưng trộn logic nghiệp vụ với cơ chế Spring (listener, writer, `JdbcClient`, Micrometer, `@Transactional`). P4–P6 thêm `analytics`, `api`, `triage-worker`, nơi có nhiều logic nghiệp vụ nhất. Owner muốn cả dự án theo Clean Architecture, nhưng không đổi kiến trúc phần đã xong và đã được đo ở M3.
+- **Các phương án:** (1) giữ nguyên; (2) refactor toàn bộ trước P4; (3) **áp cho code mới từ P4, freeze code cũ bằng ArchUnit, refactor code cũ ở Phase R sau M6 và trước P3-10**; (4) chỉ ban hành hướng dẫn, không có công cụ kiểm tra.
+- **Quyết định:** Chọn (3) (ADR-0032, quy tắc ở DOC-49).
+  - Phạm vi: chỉ backend Java. Frontend giữ cấu trúc của DOC-34/35; `experiments/` ngoài phạm vi.
+  - Trong mỗi feature chia bốn tầng `domain`, `application` (use case và `application.port`), `adapter.in`/`adapter.out`, `config`. `domain` và `application` là Java thuần, không import Spring hay thư viện hạ tầng; transaction qua port `TransactionRunner`; use case tạo bằng `@Bean` trong `config`.
+  - Luật ArchUnit A-11…A-18 fail build cho `analytics`, `api`, `triage-worker` (P4-18). `etl`, `source-simulator`, `common`, `db` chạy qua `FreezingArchRule`, store commit vào repo và chỉ được giảm. Package mới thêm vào module cũ (ví dụ `dev.pti.etl.analytics`) tuân thủ ngay.
+  - Phase R (RF-00…RF-08) đứng sau M6, trước P3-10, để thực nghiệm đầy đủ đo trên code cuối cùng. Phase R không đổi hành vi bên ngoài. Tiêu chí thoát MR: store rỗng, test fault-injection xanh, `pti-exp smoke` đạt như M3.
+  - Ngoại lệ là danh sách đóng (DOC-49 §10): cây JSON Jackson trong `triage..application` (X-01, ADR-0018), transaction chunk của Spring Batch (X-02).
+- **Hệ quả:** P4 thêm P4-18 (khoảng 2–3 ngày); Phase R khoảng 2–3 tuần, tổng lộ trình khoảng 24–33 tuần. Tài liệu thiết kế P4–P6 viết trước quyết định này được bổ sung bảng ánh xạ tầng; package nối analytics trong `etl` đổi từ `dev.pti.etl.stream.analytics` thành `dev.pti.etl.analytics`. Phase R nằm trong thứ tự cắt giảm (§4.3): nếu bị cắt, code cũ giữ freeze, luật cho code mới vẫn giữ.
+- **Ghi vào:** ADR-0032, DOC-49, DOC-44 §3.3 và §13, DOC-23 §1.1 và §4.1, DOC-24 §4.1, DOC-26 §3, DOC-31 §10.1, DOC-07, DR-95 (điểm 4: P3-10 làm sau MR), DOC-45 (`experiments/README.md`), master plan §0, §2, §3.1, §3.2, §4, §5 (P4, P6, Phase R, P3-10), §6, §7.2, §7.3, §8, `CONTRIBUTING.md`, `README.md`.
+
 ---
 
 ## D. Analytics
@@ -731,7 +744,7 @@ Tài liệu gốc mô tả tốt *cái gì* và *vì sao*, nhưng còn nhiều c
   1. P3 viết đủ runner EXP-01…05 (P3-06, P3-07), thêm profile tham số `smoke` và lệnh `pti-exp smoke` chạy **một chuỗi ≤ 30 phút** trên máy dev: mỗi EXP một lần chạy rút gọn, nối tiếp trên cùng stack, thứ tự EXP-03 → EXP-02 → EXP-01 → EXP-05 → EXP-04. Tham số ở DOC-45 §1.3.
   2. EXP-04 trong chuỗi không `make reset` và không phát tải riêng 30 phút: nó dựng lại cửa sổ dữ liệu của EXP-03 và EXP-02 vừa chạy (có sẵn dữ liệu lỗi và bản gửi lại), sau `make reset-warehouse`. Thứ tự trên để cửa sổ đó đã cũ hơn 10 phút khi replay, đúng ràng buộc `raw-settle` của DR-70 mà không cần đổi cấu hình.
   3. Chuỗi smoke kiểm các tiêu chí đúng đắn có tính nhị phân (mất, trùng, sai giá trị, DLQ nhầm, checksum khớp) và phải đạt; các tiêu chí thống kê (p95 kèm CI, tỷ lệ lần chạy, ngưỡng tải của EXP-05, H3) chỉ ghi lại, không kết luận. Kết quả smoke không vào báo cáo và không commit (`experiments/results/smoke/` bị git-ignore); kết quả lần chạy chốt M3 ghi thành bảng trong master plan như M1, M2.
-  4. Đợt chạy đầy đủ theo DOC-45 (số lần lặp §6, máy thực nghiệm DR-94, `archive`/`fetch`, `report`) thành việc P3-10, làm **sau M6 và trước P7-00**. Khi đó hệ thống được đo đã có analytics (P4) và triage (P6); `config.json` ghi commit nên báo cáo nói rõ phiên bản được đo. Loạt `etl-only` và `end-to-end` của EXP-05 chạy cùng đợt.
+  4. Đợt chạy đầy đủ theo DOC-45 (số lần lặp §6, máy thực nghiệm DR-94, `archive`/`fetch`, `report`) thành việc P3-10, làm **sau M6 và trước P7-00** (DR-104 dời điểm bắt đầu thành sau MR, tức sau Phase R). Khi đó hệ thống được đo đã có analytics (P4) và triage (P6); `config.json` ghi commit nên báo cáo nói rõ phiên bản được đo. Loạt `etl-only` và `end-to-end` của EXP-05 chạy cùng đợt.
   5. Chuỗi smoke chạy lại ở tiêu chí thoát M4 và M6 để bắt hồi quy của các thay đổi trong đường ETL (analytics sau commit, auto-replay).
   6. `archive` và `fetch` chuyển từ P3-06 sang P3-10, vì chỉ đợt chạy đầy đủ cần.
 - **Hệ quả:** M3 không còn "có số liệu EXP-01…05"; tiêu chí "EXP-05 xác định được ngưỡng tải" chuyển sang P3-10. P7-00 phụ thuộc thêm P3-10. EXP-04 C5 của P4-17 (bảng insight) chỉ kiểm ở P3-10, vì chuỗi smoke không so sánh bảng insight. DQ-27 (DR-92) vẫn làm ở P3 cùng runner EXP-04.
@@ -950,7 +963,7 @@ Tài liệu gốc mô tả tốt *cái gì* và *vì sao*, nhưng còn nhiều c
 | Chặn P1 | DR-01, 02, 03, 04, 05, 06, 09, 10, 11, 26, 53, 64, 66, 67, 68, 81, 85, 86, 89 | Quyết định schema, contract và cấu trúc repo |
 | Chặn P2 | DR-07, 13, 14, 15, 16, 18, 21, 22, 23, 24, 25, 62, 63, 65, 69, 70, 80, 83, 84 | Quyết định ngữ nghĩa đúng đắn của pipeline |
 | Chặn P3 | DR-27, 28, 50, 57, 58, 71 | Thiếu thì không đo được thực nghiệm |
-| Chặn P4 | DR-12, 17, 19, 20, 29–35, 39–45, 103 | Analytics và API |
+| Chặn P4 | DR-12, 17, 19, 20, 29–35, 39–45, 103, 104 | Analytics và API |
 | Chặn P5 | DR-46–49, 82, 88 | Frontend |
 | Chặn P6 | DR-36, 37, 38, 60, 72, 73, 74 | AI triage |
 | Chặn P7 | DR-54, 55, 56, 75, 76 | Kubernetes |

@@ -1,6 +1,6 @@
 # Bảo mật
 
-> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-27
+> Trạng thái: **Approved** · Cập nhật: 2026-09-30 (DR-104: bố cục Clean Architecture) · DOC-27
 >
 > Phụ thuộc: [DOC-07](../03-architecture/system-context-and-containers.md) §5, [DOC-17](../05-data/db-roles-and-grants.md), [DOC-18](../05-data/data-lifecycle.md) §4, [DOC-31](../07-api/api-guidelines.md), [DOC-32](../07-api/api-endpoints.md), [DOC-26](realtime-delivery.md), [DOC-39](../09-operations/deploy-compose.md), [DOC-41](../09-operations/ci-cd.md), DR-20, DR-40, DR-45, DR-60, [ADR-0017](../04-adr/0017-keycloak-oauth2-resource-server.md)
 >
@@ -51,7 +51,7 @@ Username của service account là `service-account-pti-experiments`, nên actor
 ### 3.2 API là OAuth2 resource server
 
 ```java
-package dev.pti.api.security;
+package dev.pti.api.platform.config;   // feature platform, tầng config (DOC-49 §3)
 
 @Configuration
 @EnableWebSecurity

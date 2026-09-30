@@ -9,7 +9,7 @@ Tài liệu thiết kế gốc: [`../public-transport-intelligence.md`](../publi
 
 ## Tài liệu đã có
 
-Mọi tài liệu DOC-01…48 trong mục 3 của master plan đã được viết.
+Mọi tài liệu DOC-01…49 trong mục 3 của master plan đã được viết.
 
 | DOC | Tài liệu | Trạng thái |
 | --- | --- | --- |
@@ -24,6 +24,7 @@ Mọi tài liệu DOC-01…48 trong mục 3 của master plan đã được vi�
 | DOC-09 | [Hợp đồng message](03-architecture/messaging-contracts.md) | Approved |
 | DOC-10 | [Thuộc tính chất lượng](03-architecture/quality-attributes.md) | Approved |
 | DOC-11 | [Công nghệ và phiên bản](03-architecture/tech-stack-and-versions.md) | Approved |
+| DOC-49 | [Clean Architecture cho backend Java](03-architecture/clean-architecture.md) | Approved |
 | DOC-12 | [ADR](04-adr/) (0001–0031) | Accepted |
 | DOC-13 | [Dữ liệu nguồn](05-data/source-data.md) | Approved |
 | DOC-14 | [Mô hình dữ liệu warehouse](05-data/warehouse-model.md) | Approved |
@@ -68,7 +69,7 @@ Mọi tài liệu DOC-01…48 trong mục 3 của master plan đã được vi�
 | --- | --- |
 | `01-product/` | Tầm nhìn, persona, yêu cầu, use case, danh mục tính năng |
 | `02-glossary.md` | Thuật ngữ |
-| `03-architecture/` | Context và container, luồng dữ liệu, hợp đồng message, thuộc tính chất lượng, stack |
+| `03-architecture/` | Context và container, luồng dữ liệu, hợp đồng message, thuộc tính chất lượng, stack, Clean Architecture cho backend |
 | `04-adr/` | Quyết định kiến trúc (MADR) |
 | `05-data/` | Dữ liệu nguồn, warehouse, bảng vận hành và insight, DQ rule, phân quyền DB, vòng đời dữ liệu |
 | `06-design/` | Thiết kế chi tiết từng thành phần |

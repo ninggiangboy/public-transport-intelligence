@@ -47,7 +47,15 @@ Commits and PR titles follow [Conventional Commits](https://www.conventionalcomm
 ## Code conventions
 
 - Java is formatted by Spotless with palantir-java-format. Run `make fmt` before committing.
-- Packages are organised by feature, not by layer. No Lombok.
+- Java code follows Clean Architecture ([DOC-49](docs/03-architecture/clean-architecture.md), ADR-0032). No Lombok.
+  - Packages are organised by feature first, then by layer inside each feature: `domain`, `application` (use
+    cases and `application.port`), `adapter.in.*` / `adapter.out.*`, and `config`.
+  - `domain` and `application` are plain Java: no Spring, Jackson, Micrometer, Kafka or JDBC imports. Use cases
+    open transactions through `TransactionRunner` and are declared with `@Bean` in `config`, not `@Service`.
+  - ArchUnit rules A-11…A-18 fail the build for `analytics`, `api` and `triage-worker`.
+  - `etl`, `source-simulator`, `common` and `db` predate the rule. Their existing violations are frozen until the
+    Phase R refactor, and a change must never add to the frozen store. New packages in these modules follow the
+    rule from day one.
 - Flyway migrations are named `V<n>__<description>.sql`. Never edit a migration that has been merged; add a new one.
 - Every threshold lives in configuration and is documented in DOC-29
   ([configuration-reference.md](docs/06-design/configuration-reference.md)).

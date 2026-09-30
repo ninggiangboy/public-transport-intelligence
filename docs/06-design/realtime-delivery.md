@@ -1,6 +1,6 @@
 # Phân phối sự kiện real-time (SSE)
 
-> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-26
+> Trạng thái: **Approved** · Cập nhật: 2026-09-30 (DR-104: bố cục Clean Architecture) · DOC-26
 >
 > Phụ thuộc: [DOC-33](../07-api/sse-events.md), [DOC-32](../07-api/api-endpoints.md) E-70, [DOC-31](../07-api/api-guidelines.md) §11, [DOC-27](security.md), [DOC-09](../03-architecture/messaging-contracts.md) §1, §6, [DOC-10](../03-architecture/quality-attributes.md) §2, [DOC-28](observability.md) §3.5, DR-41, DR-42, DR-45, DR-57, [ADR-0016](../04-adr/0016-sse-per-pod-consumer-ring-buffer.md), [ADR-0026](../04-adr/0026-no-outbox-for-ui-events.md)
 >
@@ -32,8 +32,10 @@ Mỗi pod `api` đọc **toàn bộ** topic bằng consumer group riêng, nên c
 
 ## 3. Thành phần
 
+Feature `stream` của `api` chia tầng theo Clean Architecture (DOC-49 §11.2): `HubEvent`, `Subscription`, `CloseReason` ở `stream.domain`; `EventHub`, `EventRingBuffer`, `VehicleThrottle` và hàng đợi kết nối ở `stream.application`; port gửi khung tới một kết nối ở `stream.application.port`; `UiEventConsumer` ở `stream.adapter.in.kafka`; `StreamController`, `SseFrameWriter` và hiện thực port bằng `SseEmitter` ở `stream.adapter.in.sse`. Khối code dưới đây gộp các tầng để dễ đọc.
+
 ```java
-package dev.pti.api.stream;
+package dev.pti.api.stream;   // tầng cụ thể: xem đoạn trên
 
 /** Parsed envelope (DOC-33 §2.1) plus pod-local arrival order. */
 public record HubEvent(long seq,                     // pod-local, monotonic, assigned by EventHub
