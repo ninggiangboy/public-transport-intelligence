@@ -47,6 +47,13 @@ class RunResultTest {
     }
 
     @Test
+    void rewritingAnEpisodeThatStaysOpenIsNotAChange() {
+        assertThat(new RunResult(Detector.BUNCHING, "18", Trigger.TICK, Outcome.OK, BATCH, 1, 0, 3, 0, 0, List.of())
+                        .changedAnything())
+                .isFalse();
+    }
+
+    @Test
     void theEventListIsACopy() {
         List<InsightEvent> events = new ArrayList<>();
         events.add(event());

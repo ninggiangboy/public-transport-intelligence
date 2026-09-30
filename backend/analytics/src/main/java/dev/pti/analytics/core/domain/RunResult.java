@@ -49,9 +49,12 @@ public record RunResult(
         return empty(detector, scope, trigger, Outcome.ERROR, batchId);
     }
 
-    /** True when the run changed a row, which decides between {@code DEBUG} and {@code INFO} in the log. */
+    /**
+     * True when the run opened, closed or deleted something, which decides between {@code DEBUG} and {@code INFO} in
+     * the log (DOC-23 §14.2). Rewriting an episode that stays open does not count: it happens on every tick.
+     */
     public boolean changedAnything() {
-        return opened > 0 || updated > 0 || closed > 0 || deleted > 0;
+        return opened > 0 || closed > 0 || deleted > 0;
     }
 
     private static RunResult empty(Detector detector, String scope, Trigger trigger, Outcome outcome, UUID batchId) {
