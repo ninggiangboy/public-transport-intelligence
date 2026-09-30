@@ -1,0 +1,6 @@
+Method <dev.pti.common.gtfs.GtfsCsv.read(java.lang.String, java.io.InputStream, java.util.function.Consumer)> calls constructor <java.io.UncheckedIOException.<init>(java.io.IOException)> in (GtfsCsv.java:47)
+Method <dev.pti.common.gtfs.GtfsZipReader.close()> calls constructor <java.io.UncheckedIOException.<init>(java.io.IOException)> in (GtfsZipReader.java:54)
+Method <dev.pti.common.gtfs.GtfsZipReader.read(java.lang.String, java.util.function.Consumer)> calls constructor <java.io.UncheckedIOException.<init>(java.io.IOException)> in (GtfsZipReader.java:45)
+Method <dev.pti.common.message.MessageSchemas.load(com.networknt.schema.SchemaRegistry, java.lang.String)> calls constructor <java.io.UncheckedIOException.<init>(java.io.IOException)> in (MessageSchemas.java:73)
+Method <dev.pti.common.message.PayloadHasher.canonical(tools.jackson.databind.JsonNode)> calls constructor <java.io.UncheckedIOException.<init>(java.io.IOException)> in (PayloadHasher.java:68)
+Method <dev.pti.common.time.BusinessClock.withZone(java.time.ZoneId)> calls constructor <java.lang.UnsupportedOperationException.<init>(java.lang.String)> in (BusinessClock.java:70)

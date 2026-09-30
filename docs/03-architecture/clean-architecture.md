@@ -280,7 +280,7 @@ Thêm vào `PtiArchitectureRules` (`backend/common/src/testFixtures`) ở P4-18.
 
 - Module mới (`analytics`, `api`, `triage-worker`) gọi các luật trực tiếp: vi phạm là test đỏ.
 - Module cũ (`etl`, `source-simulator`, `common`, `db`) gọi `FreezingArchRule.freeze(rule)`. Vi phạm hiện có được ghi vào store `backend/<module>/src/test/resources/archunit_store/`, commit vào repo.
-- `archunit.properties` của mỗi module cũ: `freeze.store.default.allowStoreCreation=false` (CI không tự tạo store), `freeze.store.default.allowStoreUpdate=true` (vi phạm đã sửa tự bị xóa khỏi store).
+- `archunit.properties` của mỗi module cũ: `freeze.store.default.allowStoreCreation=false` (CI không tự tạo store), `freeze.store.default.allowStoreUpdate=true` (vi phạm đã sửa tự bị xóa khỏi store), và `freeze.store.default.path=src/test/resources/archunit_store` (Gradle chạy test với thư mục làm việc là thư mục module).
 - Store chỉ được **giảm**. Diff làm store tăng là lý do từ chối commit. Store chỉ được tạo một lần, ở P4-18; số vi phạm theo module lúc tạo ghi vào bảng §12.
 - Phase R đưa store về rỗng rồi xóa `FreezingArchRule` (RF-07).
 
@@ -387,10 +387,17 @@ Làm theo thứ tự ở master plan §5 (Phase R). Nguyên tắc:
 
 | Module | Vi phạm lúc freeze (P4-18) | Còn lại | Task |
 | --- | --- | --- | --- |
-| `common` | (điền ở P4-18) | | RF-01 |
-| `source-simulator` | (điền ở P4-18) | | RF-02 |
-| `etl` | (điền ở P4-18) | | RF-03, RF-04 |
-| `db` | (điền ở P4-18) | | RF-05 |
+| `common` | 64 (A-08: 6, A-14: 16, A-18: 42) | 64 | RF-01 |
+| `source-simulator` | 254 (A-08: 18, A-14: 28, A-16: 36, A-18: 172) | 254 | RF-02 |
+| `etl` | 290 (A-07: 9, A-08: 41, A-14: 42, A-18: 198) | 290 | RF-03, RF-04 |
+| `db` | 2 (A-18: 2) | 2 | RF-05 |
+
+Ghi chú về số liệu lúc freeze (P4-18):
+
+- Đơn vị là số dòng vi phạm trong store, tức số vi phạm ArchUnit báo. Các luật không liệt kê có 0 vi phạm: `A-11`, `A-12`, `A-13`, `A-15`, `A-17` đạt vì code cũ chưa có tầng `domain`/`application`/`adapter`, không phải vì đã được refactor.
+- `A-07` (`etl`) và `A-08` (`etl`, `source-simulator`, `common`) cũng bị freeze vì code cũ vi phạm: `A-07` do `Clock.systemUTC()` trong các lớp `config` và `Instant.now()` trong `FeedWorkspace`; `A-08` do exception riêng không kế thừa `PtiException` (`JobRequestPoller.Rejected`, `FeedRejectedException`, `ScenarioException`, `InvalidParamException`…), `UncheckedIOException` và `UnsupportedOperationException` của `BusinessClock.withZone`. Luật `A-01`…`A-06`, `A-09`, `A-10` không có vi phạm nên chạy thẳng, không freeze.
+- Store của `common` chỉ phủ các package cũ (`message`, `json`, `pii`, `gtfs`, `time`, `error`, `dq`). Các package thêm ở P4-18 (`tx`, `id`, `events`, `spring`) là shared kernel phẳng theo §4.2 nên không áp `A-11`…`A-18` và không nằm trong store; thay vào đó luật "shared kernel là Java thuần" chạy thẳng.
+- Với `etl`, `source-simulator`, `db`: package nằm ngoài danh sách package cũ trong `ArchitectureTest` của module (ví dụ `dev.pti.etl.analytics`) bị kiểm `A-11`…`A-18` **không qua freeze**, ngoài việc mọi vi phạm không có trong store đều làm test đỏ.
 
 ## 13. Checklist review
 

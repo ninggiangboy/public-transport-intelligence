@@ -14,7 +14,17 @@ dependencies {
     api(libs.jspecify)
     implementation(libs.json.schema.validator)
     implementation(libs.json.canonicalization)
+    implementation(libs.ulid.creator)
+    implementation(libs.uuid.creator)
+    // Only SpringTransactionRunner (dev.pti.common.spring) needs spring-tx. compileOnly keeps it off the classpath
+    // of modules that never build a runner (etl and the simulator have it through their own starters), like the
+    // libraries that ErrorClassifier recognises by name.
+    compileOnly(libs.spring.tx)
 
+    // The ArchUnit rules of DOC-44 §3.3 are shared through the test fixtures.
+    testFixturesApi(libs.archunit.junit5)
+
+    testImplementation(libs.spring.tx)
     testImplementation(libs.hibernate.validator)
     // ErrorClassifier recognises these libraries' exceptions by name; the tests throw the real ones (DOC-30 §6).
     testImplementation(platform(libs.spring.cloud.aws.dependencies))

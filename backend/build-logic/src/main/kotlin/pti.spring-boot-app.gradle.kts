@@ -10,8 +10,6 @@ val libs = the<VersionCatalogsExtension>().named("libs")
 dependencies {
     implementation(libs.findLibrary("spring-boot-starter").get())
     testImplementation(libs.findLibrary("spring-boot-starter-test").get())
-    testImplementation(libs.findLibrary("archunit-junit5").get())
-    testImplementation(testFixtures(project(":common")))
     "integrationTestImplementation"(libs.findLibrary("spring-boot-testcontainers").get())
 }
 

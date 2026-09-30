@@ -1,0 +1,12 @@
+#
+#Wed Sep 30 06:44:54 UTC 2026
+A-07\ no\ LocalDateTime.now(),\ Instant.now()\ or\ Clock.systemUTC()\ outside\ BusinessClock\ and\ SystemClockConfig=06e7e2ab-c75a-4290-af37-e32ac3298dc5
+A-08\ exceptions\ thrown\ by\ project\ code\ extend\ PtiException\ (IllegalArgumentException\ and\ IllegalStateException\ allowed\ in\ guards)=aaebbb48-13a6-4cdd-a105-f0b2cf09b4cf
+A-11\ layering\:\ domain\ <-\ application\ <-\ adapter,\ config\ is\ wired\ from\ outside=4db64ac4-030b-4d77-8705-6e1ab5879bf6
+A-12\ domain\ and\ application\ depend\ on\ no\ framework\ or\ infrastructure=f62bff31-f285-4df5-9fab-1402a2e54d1a
+A-13\ domain\ and\ application\ use\ common\ only\ through\ the\ shared\ kernel=990e46bf-c07d-4463-9469-abb250312cc6
+A-14\ features\ do\ not\ use\ each\ other's\ adapter\ or\ config\ and\ form\ no\ cycle=ceae6f39-ae32-433a-9d15-a089538a523c
+A-15\ adapter.in\ does\ not\ depend\ on\ adapter.out=047cb8cd-9033-4254-85c8-8c82ea096568
+A-16\ @Configuration,\ @Bean\ and\ @ConfigurationProperties\ only\ live\ in\ config\ packages=aac2698c-02e6-47d6-b1b0-148d3eb66f75
+A-17\ implementations\ of\ application.port\ interfaces\ live\ in\ adapter\ packages=3db63104-32ab-491a-b6bb-557477fc6fe9
+A-18\ every\ class\ is\ in\ a\ layer\ of\ a\ feature;\ the\ root\ package\ holds\ only\ *Application=dbd46642-f8f7-43dd-9dfa-61ff6fc5f691

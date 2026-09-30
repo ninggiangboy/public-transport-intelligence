@@ -1,0 +1,2 @@
+Class <dev.pti.db.DbMigrate> is in the root package but is not an *Application class in (DbMigrate.java:0)
+Class <dev.pti.db.MigrationSet> is in the root package but is not an *Application class in (MigrationSet.java:0)

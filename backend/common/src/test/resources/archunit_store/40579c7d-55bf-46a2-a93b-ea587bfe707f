@@ -1,0 +1,16 @@
+Cycle detected: Slice json -> \
+                Slice message -> \
+                Slice json\
+  1. Dependencies of Slice json\
+    - Method <dev.pti.common.json.MessageJson.payloadType(tools.jackson.databind.JsonNode)> has return type <dev.pti.common.message.PayloadType> in (MessageJson.java:0)\
+    - Method <dev.pti.common.json.MessageJson.toEnvelope(tools.jackson.databind.JsonNode)> has generic return type <dev.pti.common.message.Envelope<? extends dev.pti.common.message.Payload>> with type argument depending on <dev.pti.common.message.Payload> in (MessageJson.java:0)\
+    - Method <dev.pti.common.json.MessageJson.toEnvelope(tools.jackson.databind.JsonNode)> has return type <dev.pti.common.message.Envelope> in (MessageJson.java:0)\
+    - Method <dev.pti.common.json.MessageJson.toEnvelope(tools.jackson.databind.JsonNode)> calls method <dev.pti.common.message.PayloadType.javaType()> in (MessageJson.java:53)\
+    - Method <dev.pti.common.json.MessageJson.toEnvelope(tools.jackson.databind.JsonNode)> references class object <dev.pti.common.message.Envelope> in (MessageJson.java:53)\
+    - Method <dev.pti.common.json.MessageJson.payloadType(tools.jackson.databind.JsonNode)> calls method <dev.pti.common.message.EntityType.valueOf(java.lang.String)> in (MessageJson.java:66)\
+    - Method <dev.pti.common.json.MessageJson.payloadType(tools.jackson.databind.JsonNode)> calls method <dev.pti.common.message.PayloadType.of(dev.pti.common.message.EntityType, int)> in (MessageJson.java:70)\
+  2. Dependencies of Slice message\
+    - Method <dev.pti.common.message.PayloadHasher.hash(dev.pti.common.message.Envelope)> calls method <dev.pti.common.json.MessageJson.mapper()> in (PayloadHasher.java:29)\
+    - Method <dev.pti.common.message.PayloadHasher.hash(tools.jackson.databind.JsonNode)> calls method <dev.pti.common.json.MessageJson.mapper()> in (PayloadHasher.java:39)\
+    - Method <dev.pti.common.message.MessageSchemas.validate(tools.jackson.databind.JsonNode)> calls method <dev.pti.common.json.MessageJson.payloadType(tools.jackson.databind.JsonNode)> in (MessageSchemas.java:51)\
+    - Method <dev.pti.common.message.PayloadHasher.canonical(tools.jackson.databind.JsonNode)> calls method <dev.pti.common.json.MessageJson.mapper()> in (PayloadHasher.java:66)

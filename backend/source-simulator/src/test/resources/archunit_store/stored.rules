@@ -1,0 +1,11 @@
+#
+#Wed Sep 30 06:44:51 UTC 2026
+A-08\ exceptions\ thrown\ by\ project\ code\ extend\ PtiException\ (IllegalArgumentException\ and\ IllegalStateException\ allowed\ in\ guards)=e85c79f9-3cde-406a-8f21-d9bc89d7bf08
+A-11\ layering\:\ domain\ <-\ application\ <-\ adapter,\ config\ is\ wired\ from\ outside=483629dd-29fe-4cbc-b2a3-eb08dec74971
+A-12\ domain\ and\ application\ depend\ on\ no\ framework\ or\ infrastructure=b1b23fb8-8a78-4056-8c2f-b3e40b18c62d
+A-13\ domain\ and\ application\ use\ common\ only\ through\ the\ shared\ kernel=e152fd51-6673-4951-b236-4df6d729efa2
+A-14\ features\ do\ not\ use\ each\ other's\ adapter\ or\ config\ and\ form\ no\ cycle=8c354a7b-899f-4135-aa91-d441de48cd74
+A-15\ adapter.in\ does\ not\ depend\ on\ adapter.out=0f928580-32c7-4c67-a369-f19f6d67e228
+A-16\ @Configuration,\ @Bean\ and\ @ConfigurationProperties\ only\ live\ in\ config\ packages=153e61f3-e1b7-4c3b-910f-8e4902146f3b
+A-17\ implementations\ of\ application.port\ interfaces\ live\ in\ adapter\ packages=508e18a9-28f2-4488-9ad8-e903167ca102
+A-18\ every\ class\ is\ in\ a\ layer\ of\ a\ feature;\ the\ root\ package\ holds\ only\ *Application=c3bd7cbe-94e7-4237-bb9d-b96f7f64bc17

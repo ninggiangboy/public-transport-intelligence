@@ -1,0 +1,10 @@
+#
+#Wed Sep 30 06:43:09 UTC 2026
+A-11\ layering\:\ domain\ <-\ application\ <-\ adapter,\ config\ is\ wired\ from\ outside=33f1903b-3cd6-410f-a47d-f18eb1656021
+A-12\ domain\ and\ application\ depend\ on\ no\ framework\ or\ infrastructure=4d1062af-86cd-4e65-a348-1409ce90f20b
+A-13\ domain\ and\ application\ use\ common\ only\ through\ the\ shared\ kernel=fc886912-9e07-480e-bc0e-be39eea0f24e
+A-14\ features\ do\ not\ use\ each\ other's\ adapter\ or\ config\ and\ form\ no\ cycle=50020500-3aa1-4cf7-aa72-cd53642f8b25
+A-15\ adapter.in\ does\ not\ depend\ on\ adapter.out=bc1f73cb-96c0-480a-ab1b-54400d464fb4
+A-16\ @Configuration,\ @Bean\ and\ @ConfigurationProperties\ only\ live\ in\ config\ packages=3dbc19c4-c40e-4d72-8fa3-774ca2a3bc87
+A-17\ implementations\ of\ application.port\ interfaces\ live\ in\ adapter\ packages=d384f8c2-fbc6-4a88-853b-5d40ac82ae92
+A-18\ every\ class\ is\ in\ a\ layer\ of\ a\ feature;\ the\ root\ package\ holds\ only\ *Application=d34b52a5-ab1e-408f-ac0d-dd6253ab47b2

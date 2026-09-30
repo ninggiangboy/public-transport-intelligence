@@ -38,6 +38,14 @@ sourceSets.configureEach {
         .forEach { dependencies.add(it, dependencies.platform(lib("spring-boot-dependencies"))) }
 }
 
+// Every module runs the architecture rules (DOC-44 §3.3, DOC-49 §9). The rules live in common's testFixtures.
+dependencies {
+    testImplementation(lib("archunit-junit5"))
+    if (project.path != ":common") {
+        testImplementation(testFixtures(project(":common")))
+    }
+}
+
 // Backend tests read three locations outside backend/ through this property only (ADR-0030).
 val repoRoot: String = rootDir.parentFile.absolutePath
 
@@ -99,6 +107,21 @@ tasks.register<Test>("slowTest") {
     }
     maxParallelForks = 1
     shouldRunAfter(tasks.named("test"))
+}
+
+// A-09 also checks the test code of the integrationTest and contractTest suites, which the unit-test classpath does
+// not contain: the rules read their class directories from this property, so `test` compiles those suites first.
+afterEvaluate {
+    val otherSuites = listOf("integrationTest", "contractTest").mapNotNull { sourceSets.findByName(it) }
+    tasks.named<Test>("test") {
+        dependsOn(otherSuites.map { it.classesTaskName })
+        val dirs = otherSuites.map { it.output.classesDirs }
+        jvmArgumentProviders.add(
+            CommandLineArgumentProvider {
+                listOf("-Dpti.arch.extra-test-classes=" + dirs.flatMap { it.files }.joinToString(File.pathSeparator))
+            }
+        )
+    }
 }
 
 tasks.withType<Test>().configureEach {

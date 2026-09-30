@@ -1,0 +1,28 @@
+Cycle detected: Slice scenario -> \
+                Slice ticketing -> \
+                Slice scenario\
+  1. Dependencies of Slice scenario\
+    - Class <dev.pti.simulator.scenario.RefundBurstScenario$Burst> implements interface <dev.pti.simulator.ticketing.TicketingOverlay> in (RefundBurstScenario.java:0)\
+    - Class <dev.pti.simulator.scenario.TicketSpikeScenario$Spike> implements interface <dev.pti.simulator.ticketing.TicketingOverlay> in (TicketSpikeScenario.java:0)\
+    - Constructor <dev.pti.simulator.scenario.RefundBurstScenario$1.<init>(dev.pti.simulator.scenario.RefundBurstScenario, dev.pti.simulator.scenario.RefundBurstScenario$Burst, dev.pti.simulator.ticketing.SalePoint)> has parameter of type <dev.pti.simulator.ticketing.SalePoint> in (RefundBurstScenario.java:0)\
+    - Constructor <dev.pti.simulator.scenario.RefundBurstScenario$Burst.<init>(dev.pti.simulator.ticketing.SalePoint, double, double, long, java.util.SplittableRandom)> has parameter of type <dev.pti.simulator.ticketing.SalePoint> in (RefundBurstScenario.java:0)\
+    - Constructor <dev.pti.simulator.scenario.RefundBurstScenario$Refund.<init>(long, dev.pti.simulator.ticketing.Transaction)> has parameter of type <dev.pti.simulator.ticketing.Transaction> in (RefundBurstScenario.java:0)\
+    - Constructor <dev.pti.simulator.scenario.RefundBurstScenario.<init>(dev.pti.simulator.ticketing.SalePointCatalog)> has parameter of type <dev.pti.simulator.ticketing.SalePointCatalog> in (RefundBurstScenario.java:0)\
+    - Constructor <dev.pti.simulator.scenario.TicketSpikeScenario$1.<init>(dev.pti.simulator.scenario.TicketSpikeScenario, dev.pti.simulator.scenario.TicketSpikeScenario$Spike, dev.pti.simulator.scenario.ScenarioHooks$Registration, dev.pti.simulator.ticketing.SalePoint)> has parameter of type <dev.pti.simulator.ticketing.SalePoint> in (TicketSpikeScenario.java:0)\
+    - Constructor <dev.pti.simulator.scenario.TicketSpikeScenario$Spike.<init>(dev.pti.simulator.ticketing.SalePoint, double, java.util.SplittableRandom)> has parameter of type <dev.pti.simulator.ticketing.SalePoint> in (TicketSpikeScenario.java:0)\
+    - Constructor <dev.pti.simulator.scenario.TicketSpikeScenario.<init>(dev.pti.simulator.ticketing.SalePointCatalog)> has parameter of type <dev.pti.simulator.ticketing.SalePointCatalog> in (TicketSpikeScenario.java:0)\
+    - Field <dev.pti.simulator.scenario.RefundBurstScenario$1.val$point> has type <dev.pti.simulator.ticketing.SalePoint> in (RefundBurstScenario.java:0)\
+    - Field <dev.pti.simulator.scenario.RefundBurstScenario$Burst.point> has type <dev.pti.simulator.ticketing.SalePoint> in (RefundBurstScenario.java:0)\
+    - Field <dev.pti.simulator.scenario.RefundBurstScenario$Refund.sale> has type <dev.pti.simulator.ticketing.Transaction> in (RefundBurstScenario.java:0)\
+    - Field <dev.pti.simulator.scenario.RefundBurstScenario.catalog> has type <dev.pti.simulator.ticketing.SalePointCatalog> in (RefundBurstScenario.java:0)\
+    - Field <dev.pti.simulator.scenario.ScenarioHooks.ticketing> has generic type <java.util.List<dev.pti.simulator.scenario.ScenarioHooks$Hook<dev.pti.simulator.ticketing.TicketingOverlay>>> with type argument depending on <dev.pti.simulator.ticketing.TicketingOverlay> in (ScenarioHooks.java:0)\
+    - Field <dev.pti.simulator.scenario.TicketSpikeScenario$1.val$point> has type <dev.pti.simulator.ticketing.SalePoint> in (TicketSpikeScenario.java:0)\
+    - Field <dev.pti.simulator.scenario.TicketSpikeScenario$Spike.point> has type <dev.pti.simulator.ticketing.SalePoint> in (TicketSpikeScenario.java:0)\
+    - Field <dev.pti.simulator.scenario.TicketSpikeScenario.catalog> has type <dev.pti.simulator.ticketing.SalePointCatalog> in (TicketSpikeScenario.java:0)\
+    - Method <dev.pti.simulator.scenario.RefundBurstScenario$Burst.onTick(dev.pti.simulator.ticketing.TicketingActions, long, long)> has parameter of type <dev.pti.simulator.ticketing.TicketingActions> in (RefundBurstScenario.java:0)\
+    - Method <dev.pti.simulator.scenario.RefundBurstScenario$Refund.sale()> has return type <dev.pti.simulator.ticketing.Transaction> in (RefundBurstScenario.java:0)\
+    - Method <dev.pti.simulator.scenario.ScenarioConfiguration.scenarioCatalog(tools.jackson.databind.json.JsonMapper, dev.pti.simulator.SimProperties, dev.pti.simulator.ticketing.SalePointCatalog, org.springframework.jdbc.core.JdbcTemplate, dev.pti.common.time.BusinessClock)> has parameter of type <dev.pti.simulator.ticketing.SalePointCatalog> in (ScenarioConfiguration.java:0)\
+    (30 further dependencies have been omitted...)\
+  2. Dependencies of Slice ticketing\
+    - Method <dev.pti.simulator.ticketing.TicketingConfiguration.ticketingSeeder(dev.pti.common.time.BusinessClock, dev.pti.simulator.feed.Feed, dev.pti.simulator.ticketing.SalePointCatalog, org.springframework.jdbc.core.JdbcTemplate, dev.pti.simulator.rate.RateControl, dev.pti.simulator.SimProperties, io.micrometer.core.instrument.MeterRegistry, dev.pti.simulator.Throughput, dev.pti.simulator.scenario.ScenarioHooks)> has parameter of type <dev.pti.simulator.scenario.ScenarioHooks> in (TicketingConfiguration.java:0)\
+    - Method <dev.pti.simulator.ticketing.TicketingConfiguration.ticketingSeeder(dev.pti.common.time.BusinessClock, dev.pti.simulator.feed.Feed, dev.pti.simulator.ticketing.SalePointCatalog, org.springframework.jdbc.core.JdbcTemplate, dev.pti.simulator.rate.RateControl, dev.pti.simulator.SimProperties, io.micrometer.core.instrument.MeterRegistry, dev.pti.simulator.Throughput, dev.pti.simulator.scenario.ScenarioHooks)> references method <dev.pti.simulator.scenario.ScenarioHooks.ticketing()> in (TicketingConfiguration.java:52)

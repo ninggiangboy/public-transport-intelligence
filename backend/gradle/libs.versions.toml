@@ -55,6 +55,7 @@ flyway-database-postgresql = { module = "org.flywaydb:flyway-database-postgresql
 spring-batch-core = { module = "org.springframework.batch:spring-batch-core" }
 spring-batch-test = { module = "org.springframework.batch:spring-batch-test" }
 spring-jdbc = { module = "org.springframework:spring-jdbc" }
+spring-tx = { module = "org.springframework:spring-tx" }
 spring-kafka = { module = "org.springframework.kafka:spring-kafka" }
 kafka-clients = { module = "org.apache.kafka:kafka-clients" }
 caffeine = { module = "com.github.ben-manes.caffeine:caffeine" }
