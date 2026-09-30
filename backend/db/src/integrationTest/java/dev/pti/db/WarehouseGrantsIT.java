@@ -11,7 +11,10 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
-/** DOC-17 §7.1: the pti_warehouse permission matrix, case numbers as in the document. */
+/**
+ * DOC-17 §7.1: the pti_warehouse permission matrix, case numbers as in the document. The insight tables of V7 are
+ * covered further in {@link InsightGrantsIT}.
+ */
 class WarehouseGrantsIT {
 
     private static final String DB = "pti_warehouse";
@@ -65,8 +68,7 @@ class WarehouseGrantsIT {
                         "update dead_letter",
                         "UPDATE ops.dead_letter SET status = 'MANUAL' WHERE id = " + DEAD_LETTER),
                 denied(6, DB, API, "select dedup_registry", "SELECT * FROM ops.dedup_registry LIMIT 1"),
-                denied(7, DB, API, "select analytics state", "SELECT * FROM insight.analytics_route_baseline LIMIT 1")
-                        .requires("insight.analytics_route_baseline"),
+                denied(7, DB, API, "select analytics state", "SELECT * FROM insight.analytics_route_baseline LIMIT 1"),
                 denied(8, DB, ETL, "drop fact", "DROP TABLE dw.fact_vehicle_position"),
                 denied(9, DB, ETL, "truncate fact", "TRUNCATE dw.fact_vehicle_position"),
                 denied(10, DB, ETL, "create table in dw", "CREATE TABLE dw.grants_probe (id INT)"),
@@ -103,8 +105,7 @@ class WarehouseGrantsIT {
                         ETL,
                         "write runtime_flag",
                         "UPDATE ops.runtime_flag SET value = 'false' WHERE key = 'triage.dlq.enabled'"),
-                denied(18, DB, ETL, "insert dispatch suggestion", INSERT_DISPATCH_SUGGESTION)
-                        .requires("insight.insight_dispatch_suggestion"),
+                denied(18, DB, ETL, "insert dispatch suggestion", INSERT_DISPATCH_SUGGESTION),
                 allowed(19, DB, ETL, "batch sequence", "SELECT nextval('batch.batch_job_execution_seq')"),
                 allowed(
                         20,
@@ -181,15 +182,14 @@ class WarehouseGrantsIT {
                 allowed(35, DB, OPERATOR, "feedback", """
                                 UPDATE insight.insight_dispatch_suggestion
                                 SET operator_feedback = 'accepted', feedback_by = 'user:alice', feedback_at = now()
-                                WHERE id = gen_random_uuid()""").requires("insight.insight_dispatch_suggestion"),
+                                WHERE id = gen_random_uuid()"""),
                 denied(
-                                36,
-                                DB,
-                                OPERATOR,
-                                "rewrite suggestion",
-                                "UPDATE insight.insight_dispatch_suggestion SET action = 'no_action'"
-                                        + " WHERE id = gen_random_uuid()")
-                        .requires("insight.insight_dispatch_suggestion"),
+                        36,
+                        DB,
+                        OPERATOR,
+                        "rewrite suggestion",
+                        "UPDATE insight.insight_dispatch_suggestion SET action = 'no_action'"
+                                + " WHERE id = gen_random_uuid()"),
                 allowed(37, DB, EXPERIMENT, "read facts", "SELECT * FROM dw.fact_vehicle_position LIMIT 1"),
                 allowed(38, DB, EXPERIMENT, "truncate exp", "TRUNCATE exp.exp_fact_vehicle_position"),
                 denied(39, DB, EXPERIMENT, "truncate dw", "TRUNCATE dw.fact_vehicle_position"),

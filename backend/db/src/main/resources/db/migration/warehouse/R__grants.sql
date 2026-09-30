@@ -1,6 +1,5 @@
 -- pti_warehouse grants (DOC-17). Repeatable: Flyway re-runs it after the versioned migrations
 -- whenever this file changes. It first revokes everything, so it is the complete truth.
--- Blocks marked [P4] are added together with V7__insight.sql.
 
 DO $$
 BEGIN
@@ -78,3 +77,27 @@ GRANT USAGE ON SCHEMA dw, ops, insight, exp TO experiment_runner;
 GRANT SELECT ON ALL TABLES IN SCHEMA dw, ops, insight, exp TO experiment_runner;
 GRANT TRUNCATE ON ALL TABLES IN SCHEMA exp TO experiment_runner;
 REVOKE SELECT ON ops.dedup_registry FROM experiment_runner;
+
+-- ---------------------------------------------------------------- insight (V7, DOC-17 §4.1)
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA insight TO etl_writer;   -- DELETE: retention job
+REVOKE INSERT, UPDATE, DELETE ON insight.insight_dispatch_suggestion FROM etl_writer;
+
+GRANT SELECT ON ALL TABLES IN SCHEMA insight TO triage_writer;
+GRANT UPDATE (enrichment_status, enrichment_attempts, enrichment_lease_until)
+  ON insight.insight_bus_bunching TO triage_writer;
+GRANT UPDATE (data_issue_probability, likely_cause, cause_confidence, model_version, enriched_at,
+              enrichment_status, enrichment_attempts, enrichment_lease_until)
+  ON insight.insight_service_disruption TO triage_writer;
+GRANT UPDATE (category, category_confidence, severity, severity_confidence, model_version, enriched_at,
+              enrichment_status, enrichment_attempts, enrichment_lease_until)
+  ON insight.insight_ticketing_anomaly TO triage_writer;
+GRANT INSERT, UPDATE (action, action_confidence, state_snapshot, model_version)
+  ON insight.insight_dispatch_suggestion TO triage_writer;
+
+-- Never the analytics_* state tables (DOC-17 §4.1 notes).
+GRANT SELECT ON insight.insight_bus_bunching, insight.insight_dispatch_suggestion, insight.insight_eta_prediction,
+                insight.insight_service_disruption, insight.insight_otp_scorecard, insight.insight_ticketing_anomaly
+  TO api_reader;
+
+GRANT SELECT ON insight.insight_dispatch_suggestion TO replay_operator;
+GRANT UPDATE (operator_feedback, feedback_by, feedback_at) ON insight.insight_dispatch_suggestion TO replay_operator;
