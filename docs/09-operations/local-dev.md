@@ -1,6 +1,6 @@
 # Môi trường dev cục bộ
 
-> Trạng thái: **Approved** · Cập nhật: 2026-09-29 · DOC-38
+> Trạng thái: **Approved** · Cập nhật: 2026-09-30 (target P3-05, P3-09) · DOC-38
 > Phụ thuộc: [DOC-10](../03-architecture/quality-attributes.md) §5, [DOC-11](../03-architecture/tech-stack-and-versions.md), [DOC-17](../05-data/db-roles-and-grants.md) §6, [DOC-25](../06-design/source-simulator.md), [DOC-39](deploy-compose.md), [DR](../00-decision-register.md) (DR-40, 56, 61, 66, 67)
 > Người dùng chính: mọi người phát triển; P1-01, P1-15; kiểm chứng NFR-07
 
@@ -105,7 +105,7 @@ Offset được làm tròn tới phút và là độ dời ngắn nhất để t
 
 `Makefile` ở gốc repo gọi `docker compose -f deploy/compose/compose.yaml --env-file deploy/versions.env --env-file .env`. Biến `S=<service>` chọn service cho các lệnh có service. `make help` liệt kê các target đã có.
 
-**Target được thêm dần theo phase.** Khi hết P1 (2026-09-29) Makefile có: `help`, `doctor`, `secrets`, `images`, `up`, `down`, `reset`, `restart`, `ps`, `logs`, `psql-wh`, `psql-src`, `psql-sim`, `topics`, `tail-<topic>`, `connectors`, `s3-ls`, `clock-offset`, `sim-status`, `sim-start`, `sim-stop`, `sim-rate`, `fmt`, `lint`, `test`, `it`. P3-01 thêm `scenarios`, `scenario`, `scenario-stop`; P3-02 thêm `up-obs`; P3-04 thêm `check-dashboards`. Các target khác trong các bảng dưới đây được thêm cùng việc cần tới chúng. Tham số `PRETTY=1` của `make logs` cũng chưa có.
+**Target được thêm dần theo phase.** Khi hết P1 (2026-09-29) Makefile có: `help`, `doctor`, `secrets`, `images`, `up`, `down`, `reset`, `restart`, `ps`, `logs`, `psql-wh`, `psql-src`, `psql-sim`, `topics`, `tail-<topic>`, `connectors`, `s3-ls`, `clock-offset`, `sim-status`, `sim-start`, `sim-stop`, `sim-rate`, `fmt`, `lint`, `test`, `it`. P3-01 thêm `scenarios`, `scenario`, `scenario-stop`; P3-02 thêm `up-obs`; P3-04 thêm `check-dashboards`; P3-05 thêm `up-exp`, `reset-warehouse`, `replay`, `job-run`; P3-09 thêm `stop-apps`, `start-apps`, `backup`, `backup-verify`, `restore-warehouse`, `ensure-partitions`, `s3-shell`. Các target khác trong các bảng dưới đây được thêm cùng việc cần tới chúng. Tham số `PRETTY=1` của `make logs` cũng chưa có.
 
 ### 4.1 Vòng đời
 
@@ -162,7 +162,7 @@ Offset được làm tròn tới phút và là độ dời ngắn nhất để t
 | `make backup` / `make backup-verify [TS=…]` | `pg_dump` ba database vào `backups/<TS>/`, giữ 7 bản; kiểm tra bản sao lưu (DOC-43 §3) |
 | `make restore-warehouse TS=<thư mục>` | Khôi phục `pti_warehouse` từ dump (DOC-43 §4.2) |
 | `make ensure-partitions FROM=<YYYY-MM-DD>` | Tạo partition fact từ ngày `FROM` tới hôm nay + 7 (DOC-43 §4.1), cần trước khi replay ngày quá khứ |
-| `make s3-shell` | Shell `amazon/aws-cli` với credential `admin`, endpoint SeaweedFS (DOC-43 §4.5) |
+| `make s3-shell` | Shell `amazon/aws-cli` với credential `admin`; endpoint SeaweedFS nằm trong biến `$S3`: `aws $S3 s3api …` (DOC-43 §4.5) |
 | `make replay SOURCE=<etl_source> FROM=<ISO> TO=<ISO> [RECOMPUTE=true] [WAIT=1]` | Ghi một dòng `ops.replay_request` `RAW_RANGE` (`requested_by = 'user:cli'`, `id` UUIDv7 sinh bằng `uuidgen`) bằng `pti_owner`, rồi in `id`. `RECOMPUTE` mặc định `false` như cột của DB; chỉ đặt `true` từ P4 (DOC-22 §4.1). `WAIT=1`: chờ tới khi yêu cầu `DONE`/`FAILED` rồi in `stats` (thoát mã 1 nếu `FAILED`). `FROM`/`TO` là giờ record Kafka (DR-70). Dùng trước khi có API (P3: EXP-04, RB-11) và khi API không chạy. Ràng buộc của DB (khoảng ≤ 7 ngày, một replay mỗi nguồn) vẫn áp dụng; ràng buộc `to_ts ≤ now − 10 phút` của API thì lệnh tự kiểm trước khi ghi |
 
 ### 4.4 Build và test

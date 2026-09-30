@@ -1,6 +1,6 @@
 # Backup và khôi phục
 
-> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-43
+> Trạng thái: **Approved** · Cập nhật: 2026-09-30 (P3-09: script, số đo, DR-101) · DOC-43
 >
 > Phụ thuộc: SDD §12.6, DOC-14 §7.4, §8, DOC-17 §3, DOC-18 §1, §6, DOC-21 §1, DOC-22 §4–6, DOC-38 §4, DOC-39 §6, DR-16, DR-64, DR-66, DR-70, EXP-04
 >
@@ -58,9 +58,9 @@ pg_dump -h pg-source -U ticketing_owner -d ticketing_source -Fc -Z zstd:3 -f "ba
 pg_dump -h pg-source -U sim_owner       -d pti_sim          -Fc -Z zstd:3 -f "backups/${TS}/pti_sim.dump"
 ```
 
-- `TS` = giờ UTC dạng `20261012T040000Z`. Script chạy trong container `postgres` cùng phiên bản với server (`docker compose run --rm --no-deps` trên image `pg-warehouse`), để `pg_dump` luôn khớp phiên bản. Mật khẩu lấy từ `.env` qua `PGPASSWORD`.
+- `TS` = giờ UTC dạng `20261012T040000Z`. `pg_dump` chạy ngay trong container `pg-warehouse` / `pg-source` (`docker compose exec`) qua socket cục bộ, nên luôn cùng phiên bản với server và script không cần mật khẩu; file dump đi ra host qua stdout (DR-101).
 - Dump giữ schema của **mọi** bảng (kể cả partition của VP, không dữ liệu), quyền (`GRANT`), default privileges và bảng lịch sử Flyway. Role là đối tượng cấp cluster nên không có trong dump; bootstrap (DOC-17 §3.1) tạo lại chúng.
-- Sau khi dump, script ghi `backups/${TS}/manifest.json`: kích thước, SHA-256 của từng file, `feed_version` ACTIVE, số dòng của các bảng fact (trừ VP) và `max(event_timestamp)` mỗi bảng. Manifest giúp chọn dump và kiểm tra sau khi khôi phục.
+- Script ghi `backups/${TS}/manifest.json`: kích thước, SHA-256 của từng file, `feed_version` ACTIVE, số dòng của các bảng fact (trừ VP) và `max(event_timestamp)` mỗi bảng. Số dòng đọc **ngay trước** khi dump: dữ liệu live vẫn chảy vào trong lúc dump, nên dump có ít nhất số dòng đó. Manifest giúp chọn dump và kiểm tra sau khi khôi phục.
 - Giữ 7 bản mới nhất; script xóa thư mục cũ hơn. Thư mục `backups/` nằm trong `.gitignore`.
 - Lịch: compose chạy `make backup` khi cần (trước khi nâng cấp Postgres, trước demo, trước EXP-04 nếu muốn giữ dữ liệu). k3d chạy CronJob 04:00 UTC hằng ngày và đẩy lên bucket `backup` của SeaweedFS (lifecycle 7 ngày, DOC-40).
 - Kích thước dự kiến: phần lớn là `fact_trip_update` (30 ngày trên compose) và `fact_ticket_sales`. Con số thật được đo ở P3-09 và ghi vào bảng ở §6.
@@ -76,7 +76,7 @@ pg_dump -h pg-source -U sim_owner       -d pti_sim          -Fc -Z zstd:3 -f "ba
 
 1. Kiểm SHA-256 theo manifest.
 2. `pg_restore --list` từng file (phát hiện file hỏng).
-3. Khôi phục `pti_warehouse.dump` vào database tạm `pti_warehouse_verify` trên cùng instance, so số dòng với manifest, rồi `DROP DATABASE pti_warehouse_verify`.
+3. Khôi phục `pti_warehouse.dump` vào database tạm `pti_warehouse_verify` trên cùng instance, kiểm số dòng ≥ manifest (manifest đếm ngay trước dump), rồi `DROP DATABASE pti_warehouse_verify`.
 
 Chạy sau mỗi `make backup` trên compose; trên k3d là Job chạy sau CronJob backup, lỗi thì alert `BatchJobFailed` không áp dụng (không phải Spring Batch) nên Job gửi kết quả qua metric của `kube-state-metrics` (`kube_job_status_failed`), DOC-40 định nghĩa alert.
 
@@ -109,7 +109,7 @@ flowchart TD
 1. `make stop-apps`. Ghi lại `t_stop` (giờ thật UTC) và committed offset của các consumer group (`make topics`).
 2. `DROP DATABASE pti_warehouse WITH (FORCE)`, `CREATE DATABASE` theo bootstrap (DOC-17 §3.1).
 3. `pg_restore -U pti_owner -d pti_warehouse --exit-on-error -j 4 backups/<TS>/pti_warehouse.dump`.
-4. Chạy `db-migrate`: Flyway chỉ áp migration mới hơn dump (khi khôi phục sau nâng cấp).
+4. Chạy `db-migrate`: Flyway chỉ áp migration mới hơn dump (khi khôi phục sau nâng cấp). Dump không chứa quyền cấp database (`CONNECT`), còn Flyway bỏ qua `R__grants.sql` khi checksum không đổi, nên script xóa dòng `R__grants.sql` khỏi `flyway_schema_history` trước khi chạy `db-migrate` để quyền được áp lại (DR-101). Thiếu bước này, mọi app báo `permission denied for database "pti_warehouse"`.
 5. `make ensure-partitions FROM=<today − retention VP>` (compose: 3 ngày).
 6. `make start-apps`. `etl-stream` tiếp tục từ offset đã commit; `StaleExecutionRecoverer` đánh dấu `FAILED` các execution đang `STARTED` trong dump; `PartitionMaintenanceJob` chạy lúc khởi động.
 7. **Bù khoảng giữa dump và sự cố** cho cả bốn nguồn: `make replay SOURCE=<s> FROM=<thời điểm dump − 1 giờ> TO=<t_stop + 1 phút>`, bắt đầu bằng `TICKETING_SALE_POINTS` (như EXP-04 §5). Khoảng > 7 ngày thì chia nhỏ (DB CHECK, DOC-15). Nếu `t_stop` còn chưa quá 10 phút thì chờ (DR-70).
@@ -145,8 +145,8 @@ Trên compose, `make reset` (bắt đầu lại từ đầu) thường đơn gi�
 
 ### 4.5 D: Object raw bị ghi đè hoặc xóa
 
-1. Liệt kê phiên bản: `aws s3api list-object-versions --bucket raw --prefix <topic>/dt=<d>/hh=<h>/` (credential `admin`, trong `make s3-shell`: container `amazon/aws-cli` nối mạng `pti_default`).
-2. Xóa delete marker (object bị xóa) hoặc chép phiên bản cũ lên thành bản hiện hành (object bị ghi đè): `aws s3api copy-object --copy-source raw/<key>?versionId=<id> --bucket raw --key <key>`.
+1. Liệt kê phiên bản: `aws $S3 s3api list-object-versions --bucket raw --prefix <topic>/dt=<d>/hh=<h>/` (trong `make s3-shell`: container `amazon/aws-cli` nối mạng `pti_default`, credential `admin`, biến `$S3` là `--endpoint-url` của SeaweedFS).
+2. Xóa delete marker (object bị xóa) hoặc chép phiên bản cũ lên thành bản hiện hành (object bị ghi đè): `aws $S3 s3api copy-object --copy-source raw/<key>?versionId=<id> --bucket raw --key <key>`.
 3. Nếu warehouse đã bị ảnh hưởng (ví dụ replay đã chạy trên object sai), replay lại khoảng giờ đó.
 
 Chỉ làm được trong 7 ngày (lifecycle noncurrent).
@@ -170,15 +170,18 @@ Chỉ làm được trong 7 ngày (lifecycle noncurrent).
 | Checksum (đường B, khi còn bản so sánh) | `experiments/sql/checksum/*.sql` (DR-58) trên khoảng đã dựng lại | Khớp |
 | Alert | Grafana `pti-overview`, Alertmanager | Không còn alert critical |
 
-## 6. Số đo (điền ở P3-09)
+## 6. Số đo (P3-09, 2026-09-30)
+
+Máy dev (Apple Silicon, OrbStack), stack compose sau khoảng 1 giờ chạy ở hệ số 1 cộng chuỗi smoke P3-08 (tải tới ×10 trong 90 giây). Dữ liệu còn ít hơn nhiều so với 7 ngày của bảng cũ, nên các số dưới đây là cận dưới; đo lại ở P3-10 trên máy thực nghiệm.
 
 | Chỉ số | Giá trị |
 | --- | --- |
-| Kích thước dump `pti_warehouse` (compose, dữ liệu 7 ngày) | … |
-| Thời gian `make backup` / `make backup-verify` | … / … |
-| Thời gian `pg_restore` | … |
-| Thông lượng replay theo nguồn (từ EXP-04) | … |
-| RTO đo được của đường A và B (diễn tập một lần mỗi đường) | … |
+| Kích thước dump | `pti_warehouse` 16 MB (13.545 dòng `fact_trip_update`, 1.019 dòng `fact_ticket_sales`, VP không có dữ liệu); `pti_sim` 54 MB (ledger); `ticketing_source` 136 KB |
+| Thời gian `make backup` / `make backup-verify` | 5 s / 5 s |
+| Thời gian `pg_restore` (`-j 4`) | 3–4 s |
+| Thông lượng replay theo nguồn | EXP-04 smoke (cửa sổ 11 phút, 3 replay song song): VP 612.287 dòng raw trong 31 s (≈ 19.800 dòng/s), TU 109.808 trong 17 s (≈ 6.600), vé 3.152 trong 6 s. Diễn tập đường A (khoảng 70 phút dữ liệu): VP 800.114 dòng trong 130 s (≈ 6.100 dòng/s), TU 147.915 trong 57 s (≈ 2.600), vé 6.082 trong 4 s. "Dòng" là dòng JSON của raw zone, gồm cả dòng bị lọc ngoài khoảng giờ |
+| RTO đường A (diễn tập) | Dữ liệu trực tiếp chạy lại sau **47 s** tính từ lúc dừng app (`stop-apps` → `restore-warehouse` → `start-apps` → readiness). Lịch sử đầy đủ: replay bù khoảng 70 phút mất khoảng 2,5 phút, sau thời gian chờ raw zone 10 phút (DR-70) |
+| RTO đường B (EXP-04 smoke, P3-08) | `reset-warehouse` 7 s, nạp lại GTFS từ raw zone 87 s, bốn replay của cửa sổ 11 phút xong sau tổng cộng 150 s |
 
 ## 7. Test bắt buộc
 
@@ -190,6 +193,17 @@ Chỉ làm được trong 7 ngày (lifecycle noncurrent).
 | BR-04 | Đường D: ghi đè một object raw bằng nội dung rác, khôi phục phiên bản cũ, replay giờ đó → checksum khớp trước khi ghi đè | P3-09 |
 | BR-05 | `make ensure-partitions FROM=<3 ngày trước>` rồi replay dữ liệu 3 ngày trước: không dòng nào ở DEFAULT | P3-09 |
 | BR-06 | Script backup giữ đúng 7 bản mới nhất | Unit test của script (bats) hoặc kiểm tay |
+
+Kết quả P3-09 (2026-09-30):
+
+| ID | Kết quả |
+| --- | --- |
+| BR-01 | Đạt: SHA-256 khớp, `pg_restore --list` đạt cả ba dump, số dòng khôi phục bằng manifest |
+| BR-02 | Đạt (thu nhỏ: dump sau khoảng 1 giờ dữ liệu, dừng app 2 phút sau dump). So với ledger trên `[01:54, t_stop]`: VP 702.513 key, `lost = 0`, `wrong_value = 0`; TU 26.186 key không đổi sau `t_stop`, `lost = 0`, `wrong_value = 0` (TU có message sau `t_stop` thì mang giá trị mới hơn, đúng); vé 4.674/4.674 giao dịch có trong warehouse. Lần diễn tập đầu phát hiện thiếu quyền `CONNECT` sau khi khôi phục, đã sửa (§4.2 bước 4) |
+| BR-03 | Đạt: EXP-04 trong chuỗi smoke P3-08 (master plan M3) |
+| BR-04 | Đạt: ghi đè một object VP bằng 8 byte rác, chép phiên bản cũ lên lại, SHA-256 khớp bản gốc; replay của BR-02 đọc lại object này và không mất key nào |
+| BR-05 | Đạt một phần: `make ensure-partitions FROM=2026-09-20` tạo 7 partition ngày cho VP và TU, chạy lại tạo 0 (idempotent); sau replay của BR-02, mọi partition DEFAULT rỗng. Stack mới dựng nên không có dữ liệu 3 ngày trước để replay; làm lại ở P3-10 |
+| BR-06 | Đạt: với 8 thư mục cũ và một backup mới, script xóa 3 thư mục cũ nhất và giữ 7 |
 
 ## 8. Câu hỏi còn mở
 

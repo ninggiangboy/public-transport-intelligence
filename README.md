@@ -8,7 +8,7 @@ The core of the project is the **ETL pipeline**. It answers one question:
 
 The answer is effectively-once delivery, fault isolation, a dead letter queue and replay across both streaming and batch processing, backed by a set of measurable experiments.
 
-> **Status: phase 2 (core ETL) complete; phase 3 (reliability experiments and observability) is next.** One command starts the local stack: the simulator publishes GTFS-realtime and writes ticket sales that Debezium captures, `etl-batch` loads the GTFS feed, and `etl-stream` writes every source into the warehouse exactly once, with a dead-letter queue, replay from the raw zone and post-write data quality checks. Killing either ETL container or stopping Postgres loses and duplicates nothing. Implementation follows the [roadmap](#roadmap).
+> **Status: phase 3 (reliability experiments and observability) complete; phase 4 (analytics and API) is next.** One command starts the local stack: the simulator publishes GTFS-realtime and writes ticket sales that Debezium captures, `etl-batch` loads the GTFS feed, and `etl-stream` writes every source into the warehouse exactly once, with a dead-letter queue, replay from the raw zone and post-write data quality checks. Grafana dashboards, traces, logs and alerts cover the pipeline, and a 26-minute smoke run of experiments EXP-01…05 passes: a killed consumer, redelivered messages, 5% bad records, a load ramp to 10× and a warehouse rebuild from the raw zone lose and duplicate nothing. The full experiment runs come after phase 6. Implementation follows the [roadmap](#roadmap).
 
 ## What it does
 
@@ -88,7 +88,7 @@ Pipeline correctness is verified by measurement, not by assertion alone.
 | EXP-07 | Autoscaling at 10× load on k3d | p95 < 10 s |
 | EXP-08 | Chaos: pod, broker, database primary and external service failures | Self-healing, zero loss, zero duplicates |
 
-Protocols are in [docs/10-testing/experiments/](docs/10-testing/experiments/).
+Protocols are in [docs/10-testing/experiments/](docs/10-testing/experiments/). The 30-minute smoke run of EXP-01…05 passed on 2026-09-30 ([results](docs/00-master-plan.md#phase-3-thực-nghiệm-độ-tin-cậy-và-observability)); the full runs with 10–30 repetitions each follow after phase 6.
 
 ## Repository layout
 
@@ -126,6 +126,17 @@ make sim-start   # the simulator starts paused; this makes it publish
 
 On the first start `etl-batch` loads the pinned GTFS feed (about a minute); `etl-stream` turns ready once that feed is active. Then `make sim-status`, `make tail-gtfs.vehicle_positions`, `make connectors` and `make s3-ls` show the data moving, and `make psql-wh Q='select count(*) from dw.fact_vehicle_position'` shows it arriving in the warehouse; `make sim-stop` pauses it again. The ETL health is on `localhost:9082/actuator/health/sources` (stream) and `localhost:9083/actuator/health` (batch). The feed runs on Chicago time, so between 02:00 and 04:30 there (afternoon in Vietnam) no vehicles are in service: run `make clock-offset AT=16:30 && make up` first. `make help` lists every target.
 
+`make up-obs` adds Prometheus, Grafana (`localhost:3000`, user `admin`, password `GRAFANA_ADMIN_PASSWORD` in `.env`), Loki, Tempo and Mailpit (`localhost:8025`, where alerts arrive). `make backup` and `make backup-verify` dump and check the databases; `make restore-warehouse TS=<dir>` restores one.
+
+To run the experiments (the stack with Toxiproxy and the baseline consumer, then the 30-minute smoke chain):
+
+```bash
+make up-exp
+cd experiments && uv run pti-exp env check && uv run pti-exp smoke
+```
+
+Results land in `experiments/results/smoke/<series>/`. Protocols and the full runs are described in [docs/10-testing/experiments/](docs/10-testing/experiments/).
+
 Requirements: 16 GB RAM (12 GB allocated to the Docker VM with every profile enabled), 8 CPU cores and about 80 GB of free disk. See [docs/09-operations/local-dev.md](docs/09-operations/local-dev.md).
 
 ## Roadmap
@@ -135,8 +146,8 @@ Requirements: 16 GB RAM (12 GB allocated to the Docker VM with every profile ena
 | P0 | Specification, decisions, spikes | Decisions settled, core documents approved | Done |
 | P1 | Infrastructure and data sources | `make up` works; events reach Kafka; CDC and raw zone running | Done (2026-09-29) |
 | P2 | Core ETL (Spring Batch + Spring Kafka) | Data in the warehouse; `kill -9` causes no loss or duplicates | Done (2026-09-29) |
-| P3 | Reliability experiments and observability | Experiment runner and a 30-minute smoke run of EXP-01…05; Grafana; alerts | Next |
-| P4 | Analytics and API | Real insights over REST and SSE | |
+| P3 | Reliability experiments and observability | Experiment runner and a 30-minute smoke run of EXP-01…05; Grafana; alerts | Done (2026-09-30) |
+| P4 | Analytics and API | Real insights over REST and SSE | Next |
 | P5 | Dashboard | Full real-time UI | |
 | P6 | AI triage | Triage, auto-replay, suggestions in the UI | |
 | P7 | Kubernetes and fault tolerance | Full EXP-01…05 runs first (P3-10); autoscaling and self-healing; EXP-07/08 results | |

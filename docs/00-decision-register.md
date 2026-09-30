@@ -53,6 +53,7 @@ Tài liệu gốc mô tả tốt *cái gì* và *vì sao*, nhưng còn nhiều c
 | 2026-09-28 | Claude (Owner ủy quyền) | **S3 sink OOM khi chạy live (P1-14):** Aiven 3.4.3 cắt file mỗi 10 giây trên mỗi partition và giữ buffer của writer tới lần commit, nên với commit 5 phút task chết sau vài phút có traffic. Giữ 3.4.3; `aws.s3.part.size.bytes` = 1 MiB, worker commit mỗi 30 giây. Số object raw zone tăng khoảng 15 lần; replay (P3) phải xem lại `pti.replay.max-objects` | DR-89 (mới), sửa DR-81, ADR-0012, DOC-09 §7, DOC-39 §3.4, DOC-40, DOC-22 §4.3 |
 | 2026-09-29 | Claude (Owner ủy quyền) | **Phase 2 xong:** claim yêu cầu job/replay commit trước khi gọi `JobOperator`; replay raw zone liệt kê object theo giờ thay vì lưu danh sách (đóng mục mở của DR-89); hoãn DQ-27 sang P3; các chi tiết nhỏ khác | DR-90, DR-91, DR-92, DR-93 (mới) |
 | 2026-09-29 | Owner | **Máy thực nghiệm và lưu kết quả:** thực nghiệm chính thức chạy trên một máy riêng cố định 16 GB (không gắn với máy cụ thể), không chạy trên máy dev hay GitHub Actions; file kết quả nhỏ commit vào git, file lớn gói theo chuỗi lên GitHub Release `exp-results` | DR-94 (mới) |
+| 2026-09-30 | Claude (Owner ủy quyền) | **Backup và khôi phục (P3-09):** `pg_dump` qua `docker compose exec`; manifest đếm trước khi dump; khôi phục áp lại `R__grants.sql`; thêm `make s3-shell` | DR-101 (mới), DOC-43 |
 | 2026-09-30 | Claude (Owner ủy quyền) | **DQ-07 khi replay và runner thực nghiệm (P3-06…08):** replay kiểm DQ-07 theo lúc publish thay vì bỏ qua; EXP-04 smoke chỉ so key TripUpdate có đủ lịch sử trong cửa sổ; đóng cửa sổ bằng hệ số 0; bỏ DQ-27 | DR-100 (mới), DR-16, DR-92, DOC-16 §2, EXP-04, DOC-45 §1.3 |
 | 2026-09-30 | Claude (Owner ủy quyền) | **Alert (P3-05):** alert đếm sự kiện rời rạc tính cả giá trị đầu tiên của series mới (`events()`); `CircuitBreakerOpen` tính cả `half_open`; gauge phụ thuộc DB/Connect không được chặn scrape; kết quả O-08 ghi ở DOC-42 §4 | DR-99 (mới), DOC-28 §6.1, §6.3, §9, DOC-42 §4 |
 | 2026-09-29 | Claude (Owner ủy quyền) | **Instrumentation (P3-03):** `pti.etl.poll` là span gốc có link tới span producer; không làm span `pti.etl.dedup` riêng; metric có label phụ thuộc dữ liệu chỉ xuất hiện sau sự kiện đầu tiên; catalog metric nằm trong test resources của từng module; key OTLP mới của Spring Boot 4.1 | DR-98 (mới), DOC-28 §5.2, §8, §9 |
@@ -765,6 +766,14 @@ Tài liệu gốc mô tả tốt *cái gì* và *vì sao*, nhưng còn nhiều c
   - Lag đã commit đọc bằng `docker exec pti-kafka-1 kafka-consumer-groups.sh` (DOC-45 §4.2). Runner ghi `PTI_CLOCK_OFFSET` vào `.env` và tạo lại `source-simulator`, `etl-*` với cùng biến của `make up-exp` khi phải nhảy đồng hồ.
   - `sql/rows/<bảng>.sql` bên cạnh `sql/checksum/<bảng>.sql`: cùng danh sách cột, nhưng trả md5 theo từng business key để EXP-04 chỉ ra key nào khác.
 - **Ghi vào:** DR-16, DR-92, DOC-16 §2 (DQ-07, ca test 15–15c), EXP-04 §2 và §9, DOC-45 §1.3, §2.1, master plan P3-06…08.
+
+### DR-101 · Chi tiết khi làm backup và khôi phục (P3-09) — **Chốt** (P3)
+- `pg_dump` chạy trong chính container Postgres (`docker compose exec`) qua socket cục bộ và ghi ra host qua stdout, thay cho `docker compose run` trên image: luôn cùng phiên bản với server và không cần mật khẩu. `pg_restore -j 4` cần file nên script chép dump vào container (`docker compose cp`) rồi xóa sau khi khôi phục.
+- Manifest đếm số dòng **trước** khi dump; `backup-verify` kiểm số dòng khôi phục ≥ manifest. Đếm sau dump thì dữ liệu live chảy vào trong lúc dump làm số lệch (đo được 50 dòng TU).
+- Dump không chứa quyền mức database (`GRANT CONNECT`), và Flyway không chạy lại `R__grants.sql` khi checksum không đổi, nên sau `pg_restore` mọi app bị từ chối kết nối. `make restore-warehouse` xóa dòng `R__grants.sql` trong `flyway_schema_history` trước `db-migrate`, để quyền được áp lại từ đúng một nguồn.
+- Thêm `make s3-shell` (AWS CLI với credential admin, biến `$S3` là endpoint) mà DOC-43 §4.5 đã nhắc. `make stop-apps` / `start-apps` chỉ tác động lên app đã có container (`api`, `triage-worker` vào compose ở P4, P6).
+- Số đo và kết quả BR-01…06 ở DOC-43 §6, §7.
+- **Ghi vào:** DOC-43 §3.1, §3.3, §4.2, §4.5, §6, §7; `deploy/compose/scripts/{backup,backup-verify,restore-warehouse,ensure-partitions}.sh`; `Makefile`.
 
 ---
 

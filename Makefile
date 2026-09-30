@@ -64,6 +64,29 @@ replay: .env ## Queue a raw-zone replay: SOURCE=<etl_source> FROM=<ISO> TO=<ISO>
 job-run: .env ## Queue a batch job: NAME=<Job> [PARAMS='k=v,…'] [WAIT=1]
 	@NAME="$(NAME)" PARAMS="$(PARAMS)" WAIT="$(WAIT)" deploy/compose/scripts/job-run.sh $(COMPOSE)
 
+.PHONY: stop-apps start-apps
+APPS = etl-stream etl-batch etl-stream-baseline api triage-worker
+# Only apps that have a container: api and triage-worker join the stack in P4 and P6.
+EXISTING_APPS = $$(for a in $(APPS); do [ -n "$$($(COMPOSE) --profile '*' ps -a -q $$a 2>/dev/null)" ] && echo $$a; done)
+stop-apps: .env ## Stop the apps and keep the infrastructure (DOC-43 §4.1)
+	@$(COMPOSE) --profile '*' stop $(EXISTING_APPS)
+
+start-apps: .env ## Start the apps stopped by stop-apps
+	@$(COMPOSE) --profile '*' start $(EXISTING_APPS)
+
+.PHONY: backup backup-verify restore-warehouse ensure-partitions
+backup: .env ## pg_dump the warehouse (without VP facts), ticketing_source and pti_sim into backups/<ts>/ (DOC-43 §3.1)
+	@deploy/compose/scripts/backup.sh $(COMPOSE)
+
+backup-verify: .env ## Check a backup: SHA-256, pg_restore --list, test restore and row counts [TS=<dir>] (DOC-43 §3.3)
+	@TS="$(TS)" deploy/compose/scripts/backup-verify.sh $(COMPOSE)
+
+restore-warehouse: .env ## Recreate pti_warehouse from backups/<TS>/ and restart the apps (DOC-43 §4.2)
+	@TS="$(TS)" deploy/compose/scripts/restore-warehouse.sh $(COMPOSE)
+
+ensure-partitions: .env ## Create fact partitions from FROM=<YYYY-MM-DD> to today + 7 (DOC-43 §4.1)
+	@FROM="$(FROM)" deploy/compose/scripts/ensure-partitions.sh $(COMPOSE)
+
 .PHONY: check-dashboards
 check-dashboards: .env ## Run every query of the Grafana dashboards and report errors or empty panels (DOC-28 O-09)
 	@GRAFANA_URL=http://localhost:$$(v=$$(sed -n 's/^HOST_PORT_GRAFANA=//p' .env); echo "$${v:-3000}") \
@@ -134,6 +157,12 @@ s3-ls: .env ## List objects in the raw bucket [P=<prefix>]
 	@$(COMPOSE) run --rm --no-deps -T --entrypoint bash s3-init -c \
 		'AWS_ACCESS_KEY_ID="$$S3_ADMIN_ACCESS_KEY" AWS_SECRET_ACCESS_KEY="$$S3_ADMIN_SECRET_KEY" AWS_DEFAULT_REGION=us-east-1 \
 		aws --endpoint-url http://seaweedfs:8333 s3 ls --recursive "s3://raw/$(P)"'
+
+.PHONY: s3-shell
+s3-shell: .env ## Shell with the AWS CLI on the raw zone as admin (versions, restores: DOC-43 §4.5); aws needs $$S3
+	@$(COMPOSE) run --rm --no-deps --entrypoint bash \
+		-e AWS_DEFAULT_REGION=us-east-1 -e S3='--endpoint-url http://seaweedfs:8333' s3-init -c \
+		'export AWS_ACCESS_KEY_ID="$$S3_ADMIN_ACCESS_KEY" AWS_SECRET_ACCESS_KEY="$$S3_ADMIN_SECRET_KEY"; exec bash'
 
 # ---------------------------------------------------------------- simulator (DOC-25 §8)
 
