@@ -116,6 +116,8 @@ afterEvaluate {
     tasks.named<Test>("test") {
         dependsOn(otherSuites.map { it.classesTaskName })
         val dirs = otherSuites.map { it.output.classesDirs }
+        // Inputs, so that a change to an integration test re-runs the architecture test and is not served from cache.
+        inputs.files(dirs).withPropertyName("archExtraTestClasses").withPathSensitivity(PathSensitivity.RELATIVE)
         jvmArgumentProviders.add(
             CommandLineArgumentProvider {
                 listOf("-Dpti.arch.extra-test-classes=" + dirs.flatMap { it.files }.joinToString(File.pathSeparator))
