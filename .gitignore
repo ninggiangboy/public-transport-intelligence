@@ -9,6 +9,8 @@
 .gradle/
 build/
 out/
+# The IDE output directory above must not swallow the adapter.out packages of DOC-49 (dev/pti/<app>/<feature>/adapter/out).
+!**/src/**/out/
 .kotlin/
 hs_err_pid*.log
 
