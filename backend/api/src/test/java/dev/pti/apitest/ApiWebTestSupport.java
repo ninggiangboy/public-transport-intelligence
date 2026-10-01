@@ -17,8 +17,9 @@ import org.springframework.test.web.servlet.MockMvc;
 /**
  * The application as the security tests see it: the whole context over MockMvc, in the {@code static-jwt} profile so
  * that tokens signed by {@link JwtFixture} are the ones the API accepts, with the probe scheduler off and the stand-in
- * controllers of {@link StubEndpoints} and {@link StubWebhook} imported. The database is never reached: the pools
- * connect on first use, and the ports of the transit feature are the in-memory ones of {@link TransitFakes}.
+ * controllers of {@link StubEndpoints} imported. The database is never reached: the pools connect on first use, and
+ * the ports of the transit, insight and alert features are the in-memory ones of {@link TransitFakes} and {@link
+ * InsightFakes}.
  *
  * <p>Rate limiting is off here; {@code RateLimitWebTest} turns it on.
  */
@@ -30,7 +31,7 @@ import org.springframework.test.web.servlet.MockMvc;
         })
 @AutoConfigureMockMvc
 @ActiveProfiles("static-jwt")
-@Import({StubEndpoints.StubController.class, StubWebhook.StubWebhookController.class, TransitFakes.class})
+@Import({StubEndpoints.StubController.class, TransitFakes.class, InsightFakes.class})
 public abstract class ApiWebTestSupport {
 
     /** Content of the webhook token file. */

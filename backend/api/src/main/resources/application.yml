@@ -21,6 +21,12 @@ spring:
     default-property-inclusion: non_null
     deserialization:
       fail-on-unknown-properties: true
+  # The api only produces to pti.events.ui (UI events after its own writes, DOC-33 §2.1); the consumer of the
+  # SSE hub comes with the stream feature.
+  kafka:
+    bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    template:
+      observation-enabled: true
   security:
     oauth2:
       resourceserver:
@@ -109,6 +115,8 @@ springdoc:
 pti:
   clock:
     offset: 0s
+  kafka:
+    topic-prefix: ""
   observability:
     freshness-probe:
       interval: 15s

@@ -2,6 +2,7 @@ package dev.pti.api.platform.domain;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import org.jspecify.annotations.Nullable;
 
 /**
  * How the API writes instants (DOC-31 §4.1): ISO-8601 UTC with a {@code Z} suffix, at most three fraction digits, no
@@ -20,5 +21,10 @@ public final class ApiTime {
     /** {@code 2026-09-29T21:19:30Z} or {@code 2026-09-29T21:19:30.107Z}. */
     public static String format(Instant instant) {
         return truncate(instant).toString();
+    }
+
+    /** {@link #format} of an instant that may be absent: an absent one stays absent, and is left out of the JSON. */
+    public static @Nullable String formatNullable(@Nullable Instant instant) {
+        return instant == null ? null : format(instant);
     }
 }

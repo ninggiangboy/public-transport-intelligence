@@ -10,6 +10,7 @@ import dev.pti.api.platform.adapter.in.web.CursorCodec;
 import dev.pti.api.platform.adapter.in.web.PageParams;
 import dev.pti.api.platform.adapter.in.web.ProblemFactory;
 import dev.pti.api.platform.adapter.in.web.ProblemWriter;
+import dev.pti.api.platform.adapter.in.web.TimeRanges;
 import dev.pti.api.platform.adapter.in.web.UnknownQueryParameterInterceptor;
 import dev.pti.api.platform.adapter.out.cache.ApiCaches;
 import dev.pti.api.platform.adapter.out.cache.CachingActiveFeedReader;
@@ -19,6 +20,7 @@ import dev.pti.api.platform.application.RequireActiveFeed;
 import dev.pti.api.platform.application.port.ActiveFeedReader;
 import dev.pti.api.platform.domain.ActiveFeed;
 import dev.pti.common.error.ErrorClassifier;
+import dev.pti.common.time.BusinessClock;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.observation.ObservationPredicate;
 import jakarta.servlet.http.HttpServletRequest;
@@ -109,6 +111,18 @@ class PlatformConfiguration implements WebMvcConfigurer {
     PageParams pageParams(ApiProperties properties, CursorCodec codec) {
         return new PageParams(
                 properties.paging().defaultLimit(), properties.paging().maxLimit(), codec);
+    }
+
+    /** Ranges of event-time parameters ({@code from}/{@code to} of insights), "now" being business time (DOC-31 §4.2). */
+    @Bean
+    TimeRanges eventTimeRanges(ApiProperties properties, BusinessClock clock) {
+        return new TimeRanges(clock::instant, properties.time().maxRange());
+    }
+
+    /** Ranges of audit-time parameters (alerts, jobs, dead letters), "now" being real time (DOC-31 §4.2). */
+    @Bean
+    TimeRanges auditTimeRanges(ApiProperties properties, BusinessClock clock) {
+        return new TimeRanges(clock::realNow, properties.time().maxRange());
     }
 
     @Bean

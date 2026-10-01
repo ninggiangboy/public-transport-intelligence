@@ -432,7 +432,10 @@ class PlatformWebTest extends ApiWebTestSupport {
         mvc.perform(post("/internal/alerts/alertmanager")
                         .header("Authorization", "Bearer " + "x".repeat(WEBHOOK_TOKEN.length())))
                 .andExpect(status().isUnauthorized());
-        mvc.perform(post("/internal/alerts/alertmanager").header("Authorization", "Bearer " + WEBHOOK_TOKEN))
+        mvc.perform(post("/internal/alerts/alertmanager")
+                        .header("Authorization", "Bearer " + WEBHOOK_TOKEN)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"alerts\": []}"))
                 .andExpect(status().isNoContent());
     }
 

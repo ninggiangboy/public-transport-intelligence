@@ -118,6 +118,8 @@ class RateLimitWebTest extends ApiWebTestSupport {
         for (int i = 0; i < 10; i++) {
             mvc.perform(post("/internal/alerts/alertmanager")
                             .header("Authorization", "Bearer " + WEBHOOK_TOKEN)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"alerts\": []}")
                             .with(from("198.51.100.77")))
                     .andExpect(status().isNoContent());
         }

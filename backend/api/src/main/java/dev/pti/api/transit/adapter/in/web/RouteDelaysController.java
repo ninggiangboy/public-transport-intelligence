@@ -2,6 +2,7 @@ package dev.pti.api.transit.adapter.in.web;
 
 import dev.pti.api.platform.adapter.in.web.ApiPaths;
 import dev.pti.api.platform.adapter.in.web.DataAsOfHeader;
+import dev.pti.api.platform.adapter.in.web.TimeRanges;
 import dev.pti.api.platform.domain.ApiException.FieldError;
 import dev.pti.api.platform.domain.WithAsOf;
 import dev.pti.api.transit.application.GetRouteDelayProfile;
@@ -18,6 +19,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import org.jspecify.annotations.Nullable;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.CacheControl;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -43,7 +45,9 @@ class RouteDelaysController {
     private final TimeRanges timeRanges;
 
     RouteDelaysController(
-            GetRouteDelays getRouteDelays, GetRouteDelayProfile getRouteDelayProfile, TimeRanges timeRanges) {
+            GetRouteDelays getRouteDelays,
+            GetRouteDelayProfile getRouteDelayProfile,
+            @Qualifier("eventTimeRanges") TimeRanges timeRanges) {
         this.getRouteDelays = getRouteDelays;
         this.getRouteDelayProfile = getRouteDelayProfile;
         this.timeRanges = timeRanges;

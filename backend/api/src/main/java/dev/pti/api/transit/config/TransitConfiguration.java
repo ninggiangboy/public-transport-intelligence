@@ -2,7 +2,6 @@ package dev.pti.api.transit.config;
 
 import dev.pti.api.platform.application.RequireActiveFeed;
 import dev.pti.api.platform.application.port.DataAsOfReader;
-import dev.pti.api.transit.adapter.in.web.TimeRanges;
 import dev.pti.api.transit.application.GetRoute;
 import dev.pti.api.transit.application.GetRouteDelayProfile;
 import dev.pti.api.transit.application.GetRouteDelays;
@@ -37,12 +36,7 @@ import org.springframework.context.annotation.Configuration;
  * cache and query timer of the platform in their constructors, which a {@code config} class may not (A-14).
  */
 @Configuration(proxyBeanMethods = false)
-@EnableConfigurationProperties({
-    VehiclesProperties.class,
-    TimeRangeProperties.class,
-    OtpProperties.class,
-    EtaProperties.class
-})
+@EnableConfigurationProperties({VehiclesProperties.class, OtpProperties.class, EtaProperties.class})
 class TransitConfiguration {
 
     @Bean
@@ -139,11 +133,6 @@ class TransitConfiguration {
                 properties.realtimeMaxAge(),
                 confidence(properties));
         return new ListStopArrivals(requireActiveFeed, stops, arrivals, asOf, clock, settings, tx);
-    }
-
-    @Bean
-    TimeRanges timeRanges(BusinessClock clock, TimeRangeProperties properties) {
-        return new TimeRanges(clock, properties.maxRange());
     }
 
     private static ConfidenceThresholds confidence(EtaProperties properties) {
