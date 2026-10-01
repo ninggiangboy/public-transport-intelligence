@@ -27,4 +27,13 @@ public interface AlertWriter {
      * alert is already at 2, resolved or missing.
      */
     Optional<AlertRecord> raiseSeverity(String dedupKey, Map<String, Object> bodyPatch);
+
+    /**
+     * Withdraws the alert of an episode that a recompute deleted (DOC-23 §11.2): {@code resolved_at} is set if it is
+     * not yet and {@code {"withdrawn": true}} is merged into the body. A recompute emits no event for it, so no row
+     * comes back.
+     *
+     * @return whether an alert with this key exists
+     */
+    boolean withdraw(String dedupKey);
 }

@@ -204,6 +204,11 @@ final class InMemoryBunching {
         public Optional<AlertRecord> raiseSeverity(String dedupKey, Map<String, Object> bodyPatch) {
             throw new UnsupportedOperationException("Bunching alerts keep severity 1");
         }
+
+        @Override
+        public boolean withdraw(String dedupKey) {
+            throw new UnsupportedOperationException("The detector never withdraws; only a recompute does");
+        }
     }
 
     /** A feed with a few routes, the given trips and one headway for every hour. */

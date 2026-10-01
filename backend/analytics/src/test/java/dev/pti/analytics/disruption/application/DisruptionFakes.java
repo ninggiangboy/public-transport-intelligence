@@ -172,6 +172,11 @@ final class DisruptionFakes {
             return Optional.of(raised);
         }
 
+        @Override
+        public boolean withdraw(String dedupKey) {
+            throw new UnsupportedOperationException("The detector never withdraws; only a recompute does");
+        }
+
         /** Triage narrows the audience after the alert was opened (FR-09.5). */
         void narrowTo(String dedupKey, Audience audience) {
             AlertRecord record = byKey.get(dedupKey);
