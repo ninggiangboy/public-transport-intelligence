@@ -125,6 +125,12 @@ class PlatformConfiguration implements WebMvcConfigurer {
         return new TimeRanges(clock::realNow, properties.time().maxRange());
     }
 
+    /** Audit-time ranges of the job endpoints, which are at most 24 hours long (DOC-15 §5, DOC-31 §4.3). */
+    @Bean
+    TimeRanges opsTimeRanges(ApiProperties properties, BusinessClock clock) {
+        return new TimeRanges(clock::realNow, properties.time().opsMaxRange());
+    }
+
     @Bean
     FilterRegistrationBean<ApiRequestFilter> apiRequestFilter(ProblemWriter problems) {
         FilterRegistrationBean<ApiRequestFilter> registration =

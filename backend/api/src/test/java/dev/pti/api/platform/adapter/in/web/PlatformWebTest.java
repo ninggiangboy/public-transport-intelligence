@@ -257,7 +257,7 @@ class PlatformWebTest extends ApiWebTestSupport {
     @DisplayName("A request body nested deeper than 64 levels is refused")
     void deeplyNestedBody() throws Exception {
         String deep = "[".repeat(100) + "]".repeat(100);
-        mvc.perform(put("/api/v1/etl/flags/stub-flag")
+        mvc.perform(put("/api/v1/etl/flags/etl.consumer.gtfs-rt.paused")
                         .header("Authorization", operator())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"value\": " + deep + "}"))

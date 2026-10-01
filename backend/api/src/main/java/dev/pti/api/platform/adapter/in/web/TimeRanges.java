@@ -33,6 +33,9 @@ public final class TimeRanges {
     /** A resolved range: {@code from} inclusive, {@code to} exclusive. */
     public record Range(Instant from, Instant to) {}
 
+    /** The optional bounds of a list that has no default range: either may be {@code null}. */
+    public record Bounds(@Nullable Instant from, @Nullable Instant to) {}
+
     private static final Pattern RELATIVE = Pattern.compile("^-(\\d{1,6})([mhd])$");
     private static final Duration MAX_FUTURE = Duration.ofDays(1);
 
@@ -84,7 +87,7 @@ public final class TimeRanges {
             if (!start.isBefore(end)) {
                 errors.add(new FieldError("from", "must be before to"));
             } else if (Duration.between(start, measuredEnd).compareTo(maxRange) > 0) {
-                errors.add(new FieldError("from", "the range must not be longer than " + maxRange.toDays() + " days"));
+                errors.add(new FieldError("from", "the range must not be longer than " + describe(maxRange)));
             }
             if (end.isAfter(current.plus(MAX_FUTURE))) {
                 errors.add(new FieldError("to", "must not be more than one day ahead"));
@@ -94,6 +97,27 @@ public final class TimeRanges {
             throw new ValidationException("The time range is not valid.", errors);
         }
         return new Range(start, end);
+    }
+
+    /**
+     * The bounds of a list that has no default range and no maximum: a list that is indexed and paged, whose oldest
+     * rows still have to be seen (the dead letters, DOC-32 E-40, an exception of DOC-31 §4.3). Each bound may be absent;
+     * when both are given {@code from} must be before {@code to}.
+     *
+     * @throws ValidationException on {@code from} or {@code to}: not a time, no offset, or {@code from} not before {@code to}
+     */
+    public Bounds bounds(@Nullable String from, @Nullable String to) {
+        Instant current = now.get();
+        List<FieldError> errors = new ArrayList<>();
+        Instant start = from == null ? null : parse("from", from, current, errors);
+        Instant end = to == null ? null : parse("to", to, current, errors);
+        if (errors.isEmpty() && start != null && end != null && !start.isBefore(end)) {
+            errors.add(new FieldError("from", "must be before to"));
+        }
+        if (!errors.isEmpty()) {
+            throw new ValidationException("The time range is not valid.", errors);
+        }
+        return new Bounds(start, end);
     }
 
     /**
@@ -108,7 +132,7 @@ public final class TimeRanges {
         Instant value = parse(field, text, current, errors);
         if (value != null) {
             if (Duration.between(value, current).compareTo(maxRange) > 0) {
-                errors.add(new FieldError(field, "must not be more than " + maxRange.toDays() + " days ago"));
+                errors.add(new FieldError(field, "must not be more than " + describe(maxRange) + " ago"));
             } else if (value.isAfter(current.plus(MAX_FUTURE))) {
                 errors.add(new FieldError(field, "must not be more than one day ahead"));
             }
@@ -117,6 +141,11 @@ public final class TimeRanges {
             throw new ValidationException("The request is not valid.", errors);
         }
         return value;
+    }
+
+    /** {@code 31 days}, {@code 24 hours}. */
+    private static String describe(Duration max) {
+        return max.toHours() % 24 == 0 && max.toDays() > 1 ? max.toDays() + " days" : max.toHours() + " hours";
     }
 
     private static @Nullable Instant parse(String field, String text, Instant now, List<FieldError> errors) {

@@ -24,6 +24,7 @@ dependencies {
     implementation(libs.springdoc.openapi.webmvc.api)
     implementation(libs.bucket4j.core)
     implementation(libs.caffeine)
+    implementation(libs.uuid.creator)
     runtimeOnly(libs.micrometer.registry.prometheus)
     runtimeOnly(libs.postgresql)
 
