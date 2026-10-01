@@ -144,10 +144,22 @@ public class JobRequestPoller {
             }
             builder.addString(p.getKey(), validated(job, p.getKey(), p.getValue()), identifying);
         }
+        validatedAsAWhole(job, request.parameters());
         if (!request.parameters().containsKey(identity)) {
             builder.addString(identity, defaultIdentity(job, request), true);
         }
         return builder.addString(JobParams.JOB_REQUEST_ID, request.id().toString(), false);
+    }
+
+    /** The checks that look at several parameters at once, after every one of them is valid on its own. */
+    private void validatedAsAWhole(PtiJob job, Map<String, String> parameters) {
+        for (JobParameterCheck check : parameterChecks) {
+            try {
+                check.checkAll(job, parameters);
+            } catch (IllegalArgumentException e) {
+                throw new Rejected(e.getMessage());
+            }
+        }
     }
 
     private String validated(PtiJob job, String key, String value) {

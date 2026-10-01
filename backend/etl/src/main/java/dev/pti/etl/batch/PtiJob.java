@@ -19,7 +19,13 @@ public enum PtiJob {
     DEDUP_REGISTRY_CLEANUP("DedupRegistryCleanupJob", Identity.SLOT, Set.of(), Stale.FAIL, true),
     DATA_QUALITY("DataQualityJob", Identity.SLOT, Set.of(), Stale.FAIL, true),
     ETA_AGGREGATION("EtaAggregationJob", Identity.RUN_KEY, Set.of("hour", "force"), Stale.RESTART, true),
-    OTP_SCORECARD("OtpScorecardJob", Identity.RUN_KEY, Set.of("serviceDates"), Stale.RESTART, true);
+    OTP_SCORECARD("OtpScorecardJob", Identity.RUN_KEY, Set.of("serviceDates"), Stale.RESTART, true),
+    ANALYTICS_RECOMPUTE(
+            "AnalyticsRecomputeJob",
+            Identity.RUN_KEY,
+            Set.of("detectors", "fromTs", "toTs"),
+            Stale.RESTART,
+            true);
 
     /** The identifying job parameter (DOC-19 §2, "Tham số định danh"). */
     public enum Identity {
