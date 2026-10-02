@@ -11,7 +11,7 @@ RUN --mount=type=cache,id=pti-pnpm-store,target=/root/.local/share/pnpm/store pn
 COPY . .
 RUN pnpm build && rm -rf dist/.vite
 
-FROM nginx:1.30.5-alpine@sha256:0985e772fb9f729e6fa0980da05fca5d9c468e870eed43071545afa9d2e27d94
+FROM nginx:1.31.0-alpine@sha256:2f07d83bf561b506400dc183b1b2003803e39efbd22451f848adaba14d28c7c7
 # The entrypoint exports the container's DNS servers as NGINX_LOCAL_RESOLVERS for the resolver directive, and sizes
 # worker_processes to the CPU quota: one worker per host core would not fit the 32 MB of DOC-39.
 ENV NGINX_ENTRYPOINT_LOCAL_RESOLVERS=1 NGINX_ENTRYPOINT_WORKER_PROCESSES_AUTOTUNE=1
