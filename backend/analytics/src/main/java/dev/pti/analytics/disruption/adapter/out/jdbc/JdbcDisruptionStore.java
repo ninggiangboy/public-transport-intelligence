@@ -12,6 +12,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.Arrays;
@@ -34,10 +35,15 @@ public class JdbcDisruptionStore implements DisruptionStore {
     private static final String CURSOR =
             "SELECT min(last_bucket) FROM insight.analytics_route_baseline WHERE route_id = :routeId";
 
+    /**
+     * One service date at a time. With {@code service_date} fixed the planner reads the route's rows through
+     * {@code (service_date, route_id)}; over a {@code BETWEEN} that covers whole partitions it scans every row of the
+     * day instead. {@code event_timestamp} changes on every update, so it stays out of the index (DR-65).
+     */
     private static final String NEWEST_UPDATE = """
             SELECT max(event_timestamp)
             FROM dw.fact_trip_update
-            WHERE service_date BETWEEN :fromDate AND :toDate
+            WHERE service_date = :serviceDate
               AND route_id = :routeId""";
 
     private static final String BASELINES = """
@@ -144,12 +150,18 @@ public class JdbcDisruptionStore implements DisruptionStore {
 
     @Override
     public Optional<Instant> newestUpdate(String routeId, DateRange serviceDates) {
-        return jdbc.sql(NEWEST_UPDATE)
-                .param("fromDate", serviceDates.from())
-                .param("toDate", serviceDates.to())
-                .param("routeId", routeId)
-                .query((rs, row) -> Optional.ofNullable(instant(rs.getObject(1, OffsetDateTime.class))))
-                .single();
+        Optional<Instant> newest = Optional.empty();
+        for (LocalDate date = serviceDates.from(); !date.isAfter(serviceDates.to()); date = date.plusDays(1)) {
+            Optional<Instant> ofDate = jdbc.sql(NEWEST_UPDATE)
+                    .param("serviceDate", date)
+                    .param("routeId", routeId)
+                    .query((rs, row) -> Optional.ofNullable(instant(rs.getObject(1, OffsetDateTime.class))))
+                    .single();
+            if (ofDate.isPresent() && (newest.isEmpty() || ofDate.get().isAfter(newest.get()))) {
+                newest = ofDate;
+            }
+        }
+        return newest;
     }
 
     @Override
