@@ -47,6 +47,9 @@ services:
     profiles: [core]
     image: ${POSTGRES_IMAGE:?deploy/versions.env is not loaded}
     restart: unless-stopped
+    # Parallel queries keep their shared memory in /dev/shm; Docker's 64 MB default is too small for the checksum
+    # queries of EXP-04 (DOC-45) and the analytics recompute scans.
+    shm_size: 256m
     command: >-
       postgres -c shared_buffers=512MB -c max_connections=100 -c work_mem=16MB -c maintenance_work_mem=128MB
       -c wal_level=replica -c max_wal_size=2GB -c log_min_duration_statement=500 -c timezone=UTC
@@ -71,6 +74,7 @@ services:
     profiles: [core]
     image: ${POSTGRES_IMAGE:?deploy/versions.env is not loaded}
     restart: unless-stopped
+    shm_size: 256m
     command: >-
       postgres -c wal_level=logical -c max_replication_slots=4 -c max_wal_senders=4 -c max_slot_wal_keep_size=4GB
       -c shared_buffers=64MB -c max_connections=50 -c timezone=UTC
