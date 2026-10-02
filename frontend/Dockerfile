@@ -2,7 +2,7 @@
 # pti-frontend (DOC-41 §5): the static build served by nginx, about 30 MB (ADR-0020). Runtime configuration comes
 # from PTI_* variables at startup (nginx/40-pti-runtime-config.sh), so one image serves every environment.
 
-FROM node:24.21.0-alpine@sha256:ebfe2f90462722a7a4de65e91990e97fe0d401c70e0e762c5b53302f905ec1c1 AS build
+FROM node:26.10.0-alpine@sha256:0b36e8c136b94cd4fcf02188228e76c31ad5872eef3fec8cbd2eee500cfd9e80 AS build
 WORKDIR /app
 ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0 CI=true
 RUN corepack enable
