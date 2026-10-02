@@ -48,6 +48,7 @@ import org.springframework.batch.core.ExitStatus;
 import org.springframework.batch.core.job.JobExecution;
 import org.springframework.batch.core.job.parameters.JobParameters;
 import org.springframework.batch.core.job.parameters.JobParametersBuilder;
+import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.scope.context.StepSynchronizationManager;
 import org.springframework.batch.core.step.StepContribution;
 import org.springframework.batch.core.step.StepExecution;
@@ -363,13 +364,17 @@ class ReplayUnitTest {
         when(launcher.start(eq(PtiJob.DLQ_REPLAY), any())).thenThrow(new TaskRejectedException("full"));
         poller.scheduled();
 
-        verify(launcher).start(eq(PtiJob.RAW_ZONE_REPLAY), any());
+        verify(launcher, org.mockito.Mockito.times(2)).start(eq(PtiJob.RAW_ZONE_REPLAY), any());
         verify(requests).fail(eq(dlq.id()), org.mockito.ArgumentMatchers.contains("executor is full"));
-        verify(requests).fail(eq(analytics.id()), org.mockito.ArgumentMatchers.contains("P4"));
+        verify(requests, never()).fail(eq(analytics.id()), anyString());
         JobParameters parameters = ReplayRequestPoller.parameters(PtiJob.RAW_ZONE_REPLAY, raw);
         assertThat(parameters.getString("source")).isEqualTo("TICKETING_SALES");
         assertThat(parameters.getString("replay")).isEqualTo("true");
+        assertThat(parameters.getString("recomputeAnalytics")).isEqualTo("false");
         assertThat(parameters.getIdentifyingParameters()).hasSize(1);
+        assertThat(ReplayRequestPoller.parameters(PtiJob.RAW_ZONE_REPLAY, analytics)
+                        .getString("recomputeAnalytics"))
+                .isEqualTo("true");
     }
 
     @Test
@@ -379,7 +384,7 @@ class ReplayUnitTest {
         when(jdbc.queryForMap(anyString(), any(Object[].class)))
                 .thenReturn(Map.of("status", "NEW", "stage", "QUALITY", "rule_id", "DQ-10"));
         SimpleMeterRegistry meters = new SimpleMeterRegistry();
-        ReplayRequestListener listener = new ReplayRequestListener(requests, jdbc, meters);
+        ReplayRequestListener listener = new ReplayRequestListener(requests, jdbc, meters, mock(JobRepository.class));
         UUID id = UUID.randomUUID();
         JobParameters parameters = new JobParametersBuilder()
                 .addString("replayRequestId", id.toString())

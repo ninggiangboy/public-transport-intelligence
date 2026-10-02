@@ -135,20 +135,21 @@ public class JdbcDisruptionStore implements DisruptionStore {
 
     @Override
     public Optional<Instant> cursor(String routeId) {
-        return Optional.ofNullable(jdbc.sql(CURSOR)
+        // An aggregate over no rows is one row holding NULL, which a row mapper may not return as a bare null.
+        return jdbc.sql(CURSOR)
                 .param("routeId", routeId)
-                .query((rs, row) -> instant(rs.getObject(1, OffsetDateTime.class)))
-                .single());
+                .query((rs, row) -> Optional.ofNullable(instant(rs.getObject(1, OffsetDateTime.class))))
+                .single();
     }
 
     @Override
     public Optional<Instant> newestUpdate(String routeId, DateRange serviceDates) {
-        return Optional.ofNullable(jdbc.sql(NEWEST_UPDATE)
+        return jdbc.sql(NEWEST_UPDATE)
                 .param("fromDate", serviceDates.from())
                 .param("toDate", serviceDates.to())
                 .param("routeId", routeId)
-                .query((rs, row) -> instant(rs.getObject(1, OffsetDateTime.class)))
-                .single());
+                .query((rs, row) -> Optional.ofNullable(instant(rs.getObject(1, OffsetDateTime.class))))
+                .single();
     }
 
     @Override

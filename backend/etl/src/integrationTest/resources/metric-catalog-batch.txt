@@ -28,3 +28,4 @@ pti_errors_total counter kind,type lazy
 # Analytics jobs (DOC-23 §14.1), phase P4: created with first use
 pti_analytics_runs_total counter detector,trigger,outcome lazy
 pti_analytics_run_seconds histogram detector lazy
+pti_analytics_recompute_rows_total counter detector,op lazy

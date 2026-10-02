@@ -123,12 +123,23 @@ class ReplayIT extends BatchContextSupport {
     }
 
     private UUID rawReplay(Instant from, Instant to) {
+        return rawReplay(from, to, false);
+    }
+
+    private UUID rawReplay(Instant from, Instant to, boolean recomputeAnalytics) {
         UUID id = UUID.randomUUID();
         api.update("""
-                INSERT INTO ops.replay_request (id, kind, source, from_ts, to_ts, requested_by)
-                VALUES (?, 'RAW_RANGE', 'TICKETING_SALES', ?, ?, 'user:test')
-                """, id, java.sql.Timestamp.from(from), java.sql.Timestamp.from(to));
+                INSERT INTO ops.replay_request (id, kind, source, from_ts, to_ts, recompute_analytics, requested_by)
+                VALUES (?, 'RAW_RANGE', 'TICKETING_SALES', ?, ?, ?, 'user:test')
+                """, id, java.sql.Timestamp.from(from), java.sql.Timestamp.from(to), recomputeAnalytics);
         return id;
+    }
+
+    private List<String> steps(Map<String, Object> request) {
+        return jdbc.queryForList(
+                "SELECT step_name FROM batch.batch_step_execution WHERE job_execution_id = ? ORDER BY step_execution_id",
+                String.class,
+                request.get("job_execution_id"));
     }
 
     private Map<String, Object> awaitRequest(UUID id) {
@@ -188,6 +199,37 @@ class ReplayIT extends BatchContextSupport {
                         """, Long.class, second))
                 .as("R-12: every row traces back to the second replay")
                 .isEqualTo(40);
+    }
+
+    @Test
+    void anR12AReplayWithRecomputeAnalyticsRunsTheStepAndReportsItsStats() {
+        Instant hour = hour();
+        sales(hour, 0, firstOffset(), 3);
+
+        Map<String, Object> done = awaitRequest(rawReplay(hour, hour.plus(1, ChronoUnit.HOURS), true));
+
+        assertThat(done).as(done::toString).containsEntry("status", "DONE");
+        assertThat(steps(done)).containsExactly("listObjects", "replayRecords", "recomputeAnalytics");
+        JsonNode stats = stats(done);
+        assertThat(stats.path("analytics_recomputed").asBoolean()).isTrue();
+        assertThat(stats.path("analytics").isObject())
+                .as("DOC-23 §11.7; ticketing has no recompute before P6-05, so no detector has an entry")
+                .isTrue();
+        assertThat(stats.path("analytics").isEmpty()).isTrue();
+        assertThat(stats.path("written").asLong()).isEqualTo(3);
+    }
+
+    @Test
+    void aReplayWithoutRecomputeAnalyticsSkipsTheStep() {
+        Instant hour = hour();
+        sales(hour, 0, firstOffset(), 2);
+
+        Map<String, Object> done = awaitRequest(rawReplay(hour, hour.plus(1, ChronoUnit.HOURS)));
+
+        assertThat(done).containsEntry("status", "DONE");
+        assertThat(steps(done)).containsExactly("listObjects", "replayRecords");
+        assertThat(stats(done).path("analytics_recomputed").asBoolean()).isFalse();
+        assertThat(stats(done).has("analytics")).isFalse();
     }
 
     @Test

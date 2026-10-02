@@ -26,6 +26,9 @@ public class ReplayRequestPoller {
 
     static final Duration INTERRUPTED_AFTER = Duration.ofMinutes(2);
 
+    /** Job parameter of {@code RawZoneReplayJob}: {@code true} runs step {@code recomputeAnalytics} (DOC-22 §4.4). */
+    public static final String RECOMPUTE_ANALYTICS = "recomputeAnalytics";
+
     private final ReplayRequests requests;
     private final PtiJobLauncher launcher;
     private final BatchSchedules schedules;
@@ -69,10 +72,6 @@ public class ReplayRequestPoller {
 
     void start(ReplayRequest request) {
         PtiJob job = request.kind() == ReplayRequests.Kind.DLQ_RECORD ? PtiJob.DLQ_REPLAY : PtiJob.RAW_ZONE_REPLAY;
-        if (request.recomputeAnalytics()) {
-            requests.fail(request.id(), "recomputeAnalytics is not available before the analytics phase (P4)");
-            return;
-        }
         try {
             launcher.start(job, parameters(job, request));
         } catch (TaskRejectedException e) {
@@ -90,7 +89,7 @@ public class ReplayRequestPoller {
                     .addString(
                             "fromTs", Objects.requireNonNull(request.fromTs()).toString(), false)
                     .addString("toTs", Objects.requireNonNull(request.toTs()).toString(), false)
-                    .addString("recomputeAnalytics", "false", false);
+                    .addString(RECOMPUTE_ANALYTICS, Boolean.toString(request.recomputeAnalytics()), false);
         }
         return builder.toJobParameters();
     }

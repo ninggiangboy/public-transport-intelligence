@@ -13,11 +13,11 @@ import java.util.OptionalInt;
  * The {@link BunchingSchedule} of the ACTIVE feed: trips and headways from the reference cache. The headway is looked
  * up by the day type of the service date and the hour of that service day (DOC-23 §2.1).
  */
-final class ReferenceBunchingSchedule implements BunchingSchedule {
+public final class ReferenceBunchingSchedule implements BunchingSchedule {
 
     private final AnalyticsReferenceCache reference;
 
-    ReferenceBunchingSchedule(AnalyticsReferenceCache reference) {
+    public ReferenceBunchingSchedule(AnalyticsReferenceCache reference) {
         this.reference = reference;
     }
 

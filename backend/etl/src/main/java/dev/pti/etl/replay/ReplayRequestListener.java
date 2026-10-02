@@ -13,6 +13,7 @@ import org.slf4j.MDC;
 import org.springframework.batch.core.BatchStatus;
 import org.springframework.batch.core.job.JobExecution;
 import org.springframework.batch.core.listener.JobExecutionListener;
+import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.step.StepExecution;
 import org.springframework.batch.infrastructure.item.ExecutionContext;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -26,14 +27,23 @@ public class ReplayRequestListener implements JobExecutionListener {
 
     static final String MDC_REQUEST = "replay_request_id";
 
+    /**
+     * Job context: the statistics of step {@code recomputeAnalytics} as JSON (DOC-23 §11.7), present once the step has
+     * finished; they become {@code stats.analytics}.
+     */
+    public static final String ANALYTICS_STATS = "pti.recompute.analytics";
+
     private final ReplayRequests requests;
     private final JdbcTemplate jdbc;
     private final MeterRegistry meters;
+    private final JobRepository repository;
 
-    public ReplayRequestListener(ReplayRequests requests, JdbcTemplate jdbc, MeterRegistry meters) {
+    public ReplayRequestListener(
+            ReplayRequests requests, JdbcTemplate jdbc, MeterRegistry meters, JobRepository repository) {
         this.requests = requests;
         this.jdbc = jdbc;
         this.meters = meters;
+        this.repository = repository;
     }
 
     @Override
@@ -49,7 +59,7 @@ public class ReplayRequestListener implements JobExecutionListener {
             UUID id = requestId(execution);
             boolean done = execution.getStatus() == BatchStatus.COMPLETED;
             boolean dlq = execution.getJobInstance().getJobName().equals("DlqReplayJob");
-            ObjectNode stats = dlq ? dlqStats(id) : rawStats(execution);
+            ObjectNode stats = dlq ? dlqStats(id) : rawStats(execution, replayRecords(execution));
             if (execution.getStartTime() != null && execution.getEndTime() != null) {
                 stats.put(
                         "duration_ms",
@@ -142,13 +152,23 @@ public class ReplayRequestListener implements JobExecutionListener {
         return stats;
     }
 
-    private static ObjectNode rawStats(JobExecution execution) {
+    /**
+     * Step {@code replayRecords} of the instance: that of this execution, or, when a restart only ran
+     * {@code recomputeAnalytics}, that of the execution before it.
+     */
+    private @Nullable StepExecution replayRecords(JobExecution execution) {
+        for (StepExecution step : execution.getStepExecutions()) {
+            if (step.getStepName().equals("replayRecords")) {
+                return step;
+            }
+        }
+        return repository.getLastStepExecution(execution.getJobInstance(), "replayRecords");
+    }
+
+    private static ObjectNode rawStats(JobExecution execution, @Nullable StepExecution step) {
         ObjectNode stats = MessageJson.mapper().createObjectNode();
         stats.put("objects", execution.getExecutionContext().getLong(ListObjectsTasklet.OBJECT_COUNT, 0L));
-        for (StepExecution step : execution.getStepExecutions()) {
-            if (!step.getStepName().equals("replayRecords")) {
-                continue;
-            }
+        if (step != null) {
             ExecutionContext c = step.getExecutionContext();
             stats.put("lines_read", c.getLong(RawZoneReader.LINES_READ, 0L));
             stats.put("filtered", c.getLong(RawZoneReader.FILTERED, 0L));
@@ -166,7 +186,11 @@ public class ReplayRequestListener implements JobExecutionListener {
                 stats.put("max_event_ts", max);
             }
         }
-        stats.put("analytics_recomputed", false);
+        String analytics = execution.getExecutionContext().getString(ANALYTICS_STATS, "");
+        stats.put("analytics_recomputed", !analytics.isEmpty());
+        if (!analytics.isEmpty()) {
+            stats.set("analytics", MessageJson.mapper().readTree(analytics));
+        }
         return stats;
     }
 

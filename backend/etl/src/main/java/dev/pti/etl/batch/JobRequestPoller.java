@@ -14,6 +14,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.BooleanSupplier;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.batch.core.BatchStatus;
@@ -137,17 +138,40 @@ public class JobRequestPoller {
     JobParametersBuilder parameters(PtiJob job, JobRequest request) {
         String identity = job.identity().parameter();
         JobParametersBuilder builder = new JobParametersBuilder();
+        String refused = null;
         for (Map.Entry<String, String> p : request.parameters().entrySet()) {
             boolean identifying = p.getKey().equals(identity) && job.identity() != PtiJob.Identity.RUN_KEY;
             if (!identifying && !job.extraParameters().contains(p.getKey())) {
-                throw new Rejected("Parameter " + p.getKey() + " is not allowed for " + job.jobName());
+                refused = "Parameter " + p.getKey() + " is not allowed for " + job.jobName();
+                break;
             }
             builder.addString(p.getKey(), validated(job, p.getKey(), p.getValue()), identifying);
+        }
+        if (refused == null) {
+            refused = refusedAsAWhole(job, request.parameters());
+        }
+        if (refused != null) {
+            throw new Rejected(refused);
         }
         if (!request.parameters().containsKey(identity)) {
             builder.addString(identity, defaultIdentity(job, request), true);
         }
         return builder.addString(JobParams.JOB_REQUEST_ID, request.id().toString(), false);
+    }
+
+    /**
+     * The checks that look at several parameters at once, after every one of them is valid on its own; the reason
+     * the request is refused, or {@code null}.
+     */
+    private @Nullable String refusedAsAWhole(PtiJob job, Map<String, String> parameters) {
+        for (JobParameterCheck check : parameterChecks) {
+            try {
+                check.checkAll(job, parameters);
+            } catch (IllegalArgumentException e) {
+                return e.getMessage();
+            }
+        }
+        return null;
     }
 
     private String validated(PtiJob job, String key, String value) {

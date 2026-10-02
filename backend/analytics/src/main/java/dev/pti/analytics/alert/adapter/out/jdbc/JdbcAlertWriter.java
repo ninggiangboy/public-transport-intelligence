@@ -50,6 +50,12 @@ public class JdbcAlertWriter implements AlertWriter {
             WHERE dedup_key = :dedupKey AND severity < 2 AND resolved_at IS NULL
             """ + RETURNING;
 
+    /** DOC-23 §11.2: a recompute that deletes the episode closes its alert and marks it as withdrawn. */
+    private static final String WITHDRAW = """
+            UPDATE ops.alert_event
+            SET resolved_at = coalesce(resolved_at, now()), body = body || CAST('{"withdrawn": true}' AS jsonb)
+            WHERE dedup_key = :dedupKey""";
+
     private static final TypeReference<Map<String, Object>> JSON_OBJECT = new TypeReference<>() {};
 
     private static final RowMapper<AlertRecord> ROW = JdbcAlertWriter::map;
@@ -93,6 +99,11 @@ public class JdbcAlertWriter implements AlertWriter {
                 .param("patch", json(bodyPatch))
                 .query(ROW)
                 .optional();
+    }
+
+    @Override
+    public boolean withdraw(String dedupKey) {
+        return jdbc.sql(WITHDRAW).param("dedupKey", dedupKey).update() > 0;
     }
 
     private static String json(Map<String, Object> value) {
