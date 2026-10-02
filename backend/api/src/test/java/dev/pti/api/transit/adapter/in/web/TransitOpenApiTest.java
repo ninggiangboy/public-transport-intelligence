@@ -49,7 +49,7 @@ class TransitOpenApiTest extends TransitWebTest {
                             .path("responses")
                             .path("200")
                             .path("content")
-                            .path("*/*")
+                            .path("application/json")
                             .path("examples")
                             .size())
                     .as(entry.getKey() + " has an example")

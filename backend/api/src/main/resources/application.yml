@@ -115,6 +115,8 @@ springdoc:
   swagger-ui:
     enabled: false
   paths-to-match: /api/v1/**
+  # The API only produces JSON (ProblemFactory NOT_ACCEPTABLE); without this every response is documented as */*.
+  default-produces-media-type: application/json
 
 pti:
   clock:

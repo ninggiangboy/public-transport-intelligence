@@ -118,10 +118,36 @@ class OpenApiDocumentTest extends ApiWebTestSupport {
     }
 
     @Test
+    @DisplayName(
+            "A success response has the schema of the return type; record components without @Nullable are required")
+    void successSchemas() throws Exception {
+        assertThat(document()
+                        .at("/paths/~1api~1v1~1me/get/responses/200/content/application~1json/schema/$ref")
+                        .asString())
+                .isEqualTo("#/components/schemas/CurrentUserResponse");
+        List<String> required = new ArrayList<>();
+        document()
+                .at("/components/schemas/CurrentUserResponse/required")
+                .forEach(node -> required.add(node.asString()));
+
+        assertThat(required).containsExactlyInAnyOrder("authenticated", "roles");
+    }
+
+    @Test
+    @DisplayName("Errors are Problem Details, also those declared on a controller; the resolved Caller is no parameter")
+    void annotatedErrorsAndCaller() throws Exception {
+        JsonNode notFound = document().at("/paths/~1api~1v1~1stops~1{stopId}/get/responses/404/content");
+        assertThat(notFound.propertyNames()).containsExactly("application/problem+json");
+        assertThat(document().at("/paths/~1api~1v1~1me/get/parameters").isMissingNode())
+                .isTrue();
+        assertThat(document().at("/components/schemas/Caller").isMissingNode()).isTrue();
+    }
+
+    @Test
     @DisplayName("Operations carry the examples of DOC-32")
     void examples() throws Exception {
         assertThat(document()
-                        .at("/paths/~1api~1v1~1me/get/responses/200/content/*~1*/examples/operator/value")
+                        .at("/paths/~1api~1v1~1me/get/responses/200/content/application~1json/examples/operator/value")
                         .toString())
                 .contains("Demo Operator");
     }
