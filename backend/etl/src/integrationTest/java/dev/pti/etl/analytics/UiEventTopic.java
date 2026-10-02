@@ -15,14 +15,14 @@ import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.StringDeserializer;
 
 /** Reads {@code pti.events.ui} under a test prefix from the start, as a client of the topic would. */
-final class UiEventTopic implements AutoCloseable {
+public final class UiEventTopic implements AutoCloseable {
 
-    static final String NAME = "pti.events.ui";
+    public static final String NAME = "pti.events.ui";
 
     private final KafkaConsumer<String, String> consumer;
     private final List<ConsumerRecord<String, String>> seen = new ArrayList<>();
 
-    UiEventTopic(String prefix) {
+    public UiEventTopic(String prefix) {
         consumer = new KafkaConsumer<>(
                 Map.of(
                         ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG,
@@ -42,12 +42,12 @@ final class UiEventTopic implements AutoCloseable {
     }
 
     /** Every record read so far plus what one more poll brings. */
-    List<ConsumerRecord<String, String>> poll() {
+    public List<ConsumerRecord<String, String>> poll() {
         consumer.poll(Duration.ofMillis(200)).forEach(seen::add);
         return List.copyOf(seen);
     }
 
-    List<ConsumerRecord<String, String>> polled(Predicate<ConsumerRecord<String, String>> filter) {
+    public List<ConsumerRecord<String, String>> polled(Predicate<ConsumerRecord<String, String>> filter) {
         return poll().stream().filter(filter).toList();
     }
 

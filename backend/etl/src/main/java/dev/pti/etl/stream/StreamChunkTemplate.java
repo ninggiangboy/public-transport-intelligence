@@ -315,7 +315,10 @@ public class StreamChunkTemplate {
                 outcome.minEventTimestamp().orElse(null),
                 outcome.maxEventTimestamp().orElse(null),
                 request.minRecordTimestamp().orElse(null),
-                outcome.routeIds());
+                outcome.routeIds(),
+                outcome.written().stream()
+                        .flatMap(set -> set.vehiclePositions().stream())
+                        .toList());
         batchLog.insert(request, result, startedAt, clock.realNow());
         faults.hit(FaultPoint.AFTER_WRITE_BEFORE_COMMIT);
         return result;
