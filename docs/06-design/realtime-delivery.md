@@ -165,7 +165,7 @@ Với mỗi `HubEvent` và mỗi kết nối: kênh thuộc `subscription.channe
 
 ### 6.5 Đo độ trễ
 
-Khi writer ghi xong một khung: `pti_api_publish_to_emit_seconds` = `now − occurredAt`; nếu `sourceRecordTs` khác null thì `pti_end_to_end_latency_seconds{channel}` = `now − sourceRecordTs` (DR-57). Chỉ đo cho sự kiện live, không đo cho sự kiện replay.
+Đo **một lần cho mỗi sự kiện ở mỗi pod**, lúc hub chuyển sự kiện live tới các kết nối (sau throttle của kênh `vehicles`), không nhân theo số kết nối (DOC-28 §3.5): `pti_api_publish_to_emit_seconds{channel}` = `now − occurredAt`; nếu `sourceRecordTs` khác null thì `pti_end_to_end_latency_seconds{channel}` = `now − sourceRecordTs` (DR-57). Sự kiện replay và dữ liệu nạp trước không được đo. Thời gian một khung nằm trong queue của kết nối chậm không có trong số đo; client chậm được theo dõi bằng `pti_api_sse_dropped_total{reason="slow_client"}`.
 
 ## 7. Giới hạn và vòng đời kết nối
 

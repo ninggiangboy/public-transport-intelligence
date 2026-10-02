@@ -562,7 +562,7 @@ Dashboard (P3-04, `make check-dashboards`) và alert (P3-05, DOC-42 §4) hoạt 
 | P4-11 | Endpoint nhóm insight (bunching, disruption, otp, dispatch-suggestions cùng feedback) | Như trên | P4-09 | DOC-32 |
 | P4-12 | Endpoint vận hành ETL (jobs, jobs/summary, dlq CRUD, replay, confirm, discard, replays, flags, freshness), alerts và ack, webhook Alertmanager | Như trên; replay tạo `replay_request` và ETL xử lý nó | P4-09, P2-16 | DOC-32, 22 |
 | P4-13 | SSE `/stream`: consumer riêng cho mỗi pod, ring buffer, Last-Event-ID, resync, heartbeat, throttle kênh vehicles | Test: ngắt kết nối 30 giây rồi nối lại → nhận bù đủ sự kiện; vượt buffer → nhận `resync` | P4-07, P4-09 | DOC-26, 33 |
-| P4-14 | Metric `end_to_end_latency_seconds` tại điểm emit | Có trên Grafana | P4-13 | DOC-28 |
+| P4-14 | Metric `end_to_end_latency_seconds` tại điểm emit; `VehiclesBatchPublisher` của etl-stream (DOC-20 §8) phát `vehicles.batch` có `source_record_ts` để đo kênh `vehicles` | Có trên Grafana | P4-13 | DOC-28, DOC-20 |
 | P4-15 | Xuất `openapi.json` khi build, check `openapi-diff` trong CI | CI chặn được breaking change | P4-10…12 | DOC-41 |
 | P4-16 | Đưa `api` và `keycloak` vào compose | `make up` → curl được các endpoint | P4-09 | DOC-39 |
 | P4-17 | Tính lại analytics: `AnalyticsRecomputeService` (`plan`/`execute`), step `recomputeAnalytics` của `RawZoneReplayJob`, `AnalyticsRecomputeJob` | Bảng test AN-R của DOC-23; EXP-04 C5 (hoặc `not_applicable` có lý do) kiểm ở P3-10, vì chuỗi smoke không so sánh bảng insight (DR-95) | P4-03, 04, P2-16 | DOC-23, 22 |
