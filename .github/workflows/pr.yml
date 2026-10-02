@@ -24,6 +24,7 @@ jobs:
       experiments: ${{ steps.filter.outputs.experiments }}
       deploy: ${{ steps.filter.outputs.deploy }}
       docs: ${{ steps.filter.outputs.docs }}
+      openapi: ${{ steps.filter.outputs.openapi }}
     steps:
       - uses: actions/checkout@v7
       - uses: dorny/paths-filter@v4
@@ -38,6 +39,8 @@ jobs:
             frontend:
               - 'frontend/**'
               - 'backend/api/openapi.json'
+            openapi:
+              - 'backend/api/**'
             experiments:
               - 'experiments/**'
             deploy:
@@ -98,6 +101,48 @@ jobs:
             backend/*/build/reports/
             backend/*/build/test-results/
           retention-days: 7
+
+  # OpenApiSnapshotTest (backend job) keeps openapi.json equal to what the api serves; this job compares the file
+  # with the base branch and fails on a breaking change unless the PR has the label breaking-api (DOC-41 §3).
+  openapi-diff:
+    needs: changes
+    if: github.event_name == 'pull_request' && needs.changes.outputs.openapi == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Breaking changes against the base branch
+        env:
+          BASE_REF: origin/${{ github.base_ref }}
+          BREAKING_ALLOWED: ${{ contains(github.event.pull_request.labels.*.name, 'breaking-api') }}
+        run: |
+          spec=backend/api/openapi.json
+          if ! git cat-file -e "$BASE_REF:$spec" 2>/dev/null; then
+            echo "$BASE_REF has no $spec yet; nothing to compare"
+            exit 0
+          fi
+          mkdir -p build/openapi
+          git show "$BASE_REF:$spec" >build/openapi/base.json
+          cp "$spec" build/openapi/head.json
+          image=$(sed -n 's/^OPENAPI_DIFF_IMAGE=//p' deploy/versions.env)
+          set +e
+          docker run --rm -v "$PWD/build/openapi:/specs" "$image" /specs/base.json /specs/head.json \
+            --fail-on-incompatible --markdown /specs/diff.md
+          status=$?
+          set -e
+          if [ -f build/openapi/diff.md ]; then
+            cat build/openapi/diff.md >>"$GITHUB_STEP_SUMMARY"
+          fi
+          if [ "$status" -ne 0 ] && [ "$BREAKING_ALLOWED" = "true" ]; then
+            echo "::warning file=$spec::Breaking API change accepted by the breaking-api label"
+            exit 0
+          fi
+          if [ "$status" -ne 0 ]; then
+            echo "::error file=$spec::Breaking API change; add the breaking-api label if it is intended"
+          fi
+          exit "$status"
 
   experiments:
     needs: changes

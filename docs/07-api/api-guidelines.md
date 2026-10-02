@@ -263,7 +263,7 @@ Bucket4j (`bucket4j_jdk17-core`) trong bộ nhớ, token bucket nạp đều (`r
 ## 12. Phiên bản và OpenAPI
 
 - Phiên bản nằm trong path (`/api/v1`). Thay đổi **tương thích** được làm tại chỗ: thêm endpoint, thêm trường response không bắt buộc, thêm tham số query tùy chọn, thêm giá trị enum ở trường response mà frontend đã có nhánh mặc định. Thay đổi **phá vỡ** (xóa hoặc đổi tên trường, đổi kiểu, thêm tham số bắt buộc, siết validation, xóa giá trị enum) cần `/api/v2` cho endpoint đó.
-- `openapi.json` sinh khi build bằng `springdoc-openapi-gradle-plugin` và commit vào repo; CI chạy `openapi-diff` so với `main` và chặn thay đổi phá vỡ (DR-44, DOC-41). Frontend sinh type bằng `openapi-typescript` (P5-02).
+- `backend/api/openapi.json` được commit vào repo. `OpenApiSnapshotTest` (unit test của `api`, chạy trong `./gradlew build`) khởi động app với springdoc bật, so tài liệu được phục vụ (khóa đã sắp xếp) với file; `./gradlew :api:updateOpenApi` ghi lại file. Job `openapi-diff` của PR so file với nhánh đích và chặn thay đổi phá vỡ, trừ khi PR có nhãn `breaking-api` (DR-44, DOC-41). Frontend sinh type bằng `openapi-typescript` (P5-02).
 - Mọi endpoint có `@Operation(summary)` tiếng Anh, `@ApiResponse` cho từng mã lỗi ở DOC-32, và ít nhất một ví dụ response (FR-10.1). Ví dụ lấy từ DOC-32.
 - Swagger UI (`/swagger-ui.html`) và `/v3/api-docs` chỉ bật ở profile `dev`; ở profile khác `springdoc.api-docs.enabled=false`.
 
@@ -322,7 +322,7 @@ Bổ sung vào DOC-28 §3.5 (đã có `pti_api_problems_total`, `pti_api_rate_li
 | AG-17 | Body có trường lạ | 400 `validation-error` |
 | AG-18 | Feed đổi (`feedVersionId` mới) | Sau ≤ 30 s `/routes` trả dữ liệu feed mới; cache `routes` và `route-detail` của feed cũ bị xóa |
 | AG-19 | Chưa có feed ACTIVE | Nhóm vận tải trả 503, `Retry-After: 30` |
-| AG-20 | `openapi.json` sinh ra khác bản đã commit | Build fail với thông báo chạy `./gradlew :api:generateOpenApiDocs` |
+| AG-20 | `openapi.json` sinh ra khác bản đã commit | Build fail với thông báo chạy `./gradlew :api:updateOpenApi` |
 
 ## 17. Câu hỏi còn mở
 

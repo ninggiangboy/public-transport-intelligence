@@ -301,7 +301,7 @@ F-01…F-03 chạy với dữ liệu có 5% record hỏng (`Messages.invalid`) �
 
 ### 9.3 API ↔ frontend
 
-- `OpenApiSnapshotTest` (`backend/api/src/contractTest`): khởi động app, lấy `/v3/api-docs`, so với `backend/api/openapi.json` đã commit (bỏ qua thứ tự key). Khác nhau → fail kèm hướng dẫn chạy `./gradlew :api:updateOpenApi`.
+- `OpenApiSnapshotTest` (`backend/api/src/test`, để chạy trong `./gradlew build` của mọi PR): khởi động app không cần DB, lấy `/v3/api-docs`, so với `backend/api/openapi.json` đã commit (bỏ qua thứ tự key). Khác nhau → fail kèm hướng dẫn chạy `./gradlew :api:updateOpenApi`.
 - `openapi-diff` so `backend/api/openapi.json` với bản ở tag phát hành gần nhất; breaking change cần nhãn `breaking-api` (DOC-41 §3).
 - Frontend: `pnpm gen:api` + `git diff --exit-code` + `tsc --noEmit` (DOC-41 §2). Handler MSW khai báo kiểu từ type sinh ra, nên đổi API làm vỡ test frontend lúc typecheck.
 - Mọi Problem slug trong `ConstraintProblemMap` và bảng DOC-30 §3 phải có trong `openapi.json` (`components.schemas.Problem.type` enum) — test `ProblemSlugCatalogTest`.

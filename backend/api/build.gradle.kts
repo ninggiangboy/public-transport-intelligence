@@ -50,3 +50,20 @@ dependencies {
     integrationTestImplementation(libs.spring.boot.starter.security.test)
     integrationTestImplementation(libs.micrometer.registry.prometheus)
 }
+
+// AG-20: OpenApiSnapshotTest compares the served document with openapi.json; this task writes the file instead.
+tasks.named<Test>("test") {
+    inputs.file("openapi.json").withPropertyName("openApiSnapshot").optional()
+}
+
+tasks.register<Test>("updateOpenApi") {
+    description = "Writes openapi.json from the document the API serves (DOC-31 §12)."
+    group = "documentation"
+    testClassesDirs = sourceSets.test.get().output.classesDirs
+    classpath = sourceSets.test.get().runtimeClasspath
+    useJUnitPlatform()
+    filter { includeTestsMatching("dev.pti.api.OpenApiSnapshotTest") }
+    systemProperty("pti.openapi.update", "true")
+    outputs.file("openapi.json")
+    outputs.upToDateWhen { false }
+}
