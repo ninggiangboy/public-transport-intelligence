@@ -581,7 +581,7 @@ Chuỗi smoke `p4-m4-b` trên máy dev (Linux x86_64, Docker rootless 29.8, 8 CP
 | EXP-05 (`etl-only`, bậc 1/3/5/10, 90 s) | C3 | Đạt. 198.345 key VP, 7.132 key TU, 716 giao dịch không mất, không sai; cả 4 bậc đạt | Bậc ×10: 1.351 msg/s, p95 `kafka_to_commit` 2,51 s (1,57 s), lag cuối 1.488. `pg-warehouse` dùng 1,7–1,9 CPU ngay từ bậc ×1 (0,06–0,37) |
 | EXP-04 (cửa sổ EXP-03 → EXP-02, 10,5 phút) | C1 (giới hạn), C2, C4 | Đạt. 59.101 dòng VP, 775 dòng TU đủ lịch sử, 320 giao dịch khớp từng key; 1.244 dead letter `dlq_symdiff = 0`; 9 bảng GTFS khớp | `reset-warehouse` 38 s (7 s), nạp GTFS 250 s (87 s), dựng lại 409 s (150 s) |
 
-Số đo chậm hơn M3 chủ yếu vì analytics chạy trên `pg-warehouse` sau mỗi micro-batch: truy vấn `NEWEST` của `JdbcVehicleHistoryReader` (`max(event_timestamp)` với `service_date BETWEEN`) quét mọi dòng trong ngày của tuyến thay vì đọc một dòng của index. Không ảnh hưởng tiêu chí nào; cần xử lý trước P3-10.
+Số đo chậm hơn M3 chủ yếu vì analytics chạy trên `pg-warehouse` sau mỗi micro-batch: truy vấn `NEWEST` của `JdbcVehicleHistoryReader` (`max(event_timestamp)` với `service_date BETWEEN`) quét mọi dòng trong ngày của tuyến thay vì đọc một dòng của index. Không ảnh hưởng tiêu chí nào. Đã sửa sau chuỗi (một truy vấn `service_date =` mỗi ngày, `ORDER BY event_timestamp DESC LIMIT 1`): khoảng 11 ms còn 0,2 ms mỗi lần gọi, CPU `pg-warehouse` ở tải ×1 từ khoảng 120% còn 66%. Còn lại: watermark của gián đoạn (`max(event_timestamp)` trên `fact_trip_update`, khoảng 6,5 ms, quét tuần tự partition của ngày) cần index `(service_date, route_id, event_timestamp)`, tức một migration mới; làm trước P3-10.
 
 ---
 

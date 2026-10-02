@@ -20,9 +20,16 @@ import org.springframework.jdbc.core.simple.JdbcClient;
  */
 public class JdbcVehicleHistoryReader implements VehicleHistoryReader {
 
+    /**
+     * One service date at a time: with {@code service_date} fixed the index gives the newest row of the route by
+     * reading backwards one entry. Over a {@code BETWEEN} it would scan every row of the route in the range, a few
+     * thousand per day, and this runs for each route after every micro-batch.
+     */
     private static final String NEWEST = """
-            SELECT max(event_timestamp) FROM dw.fact_vehicle_position
-            WHERE service_date BETWEEN :fromDate AND :toDate AND route_id = :routeId""";
+            SELECT event_timestamp FROM dw.fact_vehicle_position
+            WHERE service_date = :serviceDate AND route_id = :routeId
+            ORDER BY event_timestamp DESC
+            LIMIT 1""";
 
     private static final String ANY = """
             SELECT EXISTS (
@@ -47,13 +54,18 @@ public class JdbcVehicleHistoryReader implements VehicleHistoryReader {
 
     @Override
     public Optional<Instant> newestEventTime(String routeId, DateRange serviceDates) {
-        return jdbc.sql(NEWEST)
-                .param("fromDate", serviceDates.from())
-                .param("toDate", serviceDates.to())
-                .param("routeId", routeId)
-                .query((rs, n) -> Optional.ofNullable(rs.getObject(1, OffsetDateTime.class))
-                        .map(OffsetDateTime::toInstant))
-                .single();
+        Optional<Instant> newest = Optional.empty();
+        for (LocalDate date = serviceDates.from(); !date.isAfter(serviceDates.to()); date = date.plusDays(1)) {
+            Optional<Instant> ofDate = jdbc.sql(NEWEST)
+                    .param("serviceDate", date)
+                    .param("routeId", routeId)
+                    .query((rs, n) -> rs.getObject(1, OffsetDateTime.class).toInstant())
+                    .optional();
+            if (ofDate.isPresent() && (newest.isEmpty() || ofDate.get().isAfter(newest.get()))) {
+                newest = ofDate;
+            }
+        }
+        return newest;
     }
 
     @Override
