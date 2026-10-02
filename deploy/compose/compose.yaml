@@ -373,6 +373,37 @@ services:
     mem_limit: 640m
     cpus: 1.0
 
+  # The only entry point of the frontend (DOC-39 §3.4). Two pools on the warehouse: api_reader for reads,
+  # replay_operator for writes (DOC-29 §3.1). JWKS comes over the internal network, the issuer is the URL the browser
+  # sees (DOC-27 §3.2). Demo endpoints (E-90) come with PTI_EXTRA_PROFILES=demo.
+  api:
+    <<: *spring-app
+    profiles: [core]
+    image: ghcr.io/${GHCR_OWNER:-ninggiangboy}/pti-api:${PTI_IMAGE_TAG:-local}
+    depends_on:
+      kafka-init: { condition: service_completed_successfully }
+      db-migrate: { condition: service_completed_successfully }
+      keycloak: { condition: service_healthy }
+    environment:
+      <<: *spring-env
+      SPRING_PROFILES_INCLUDE: ${PTI_EXTRA_PROFILES:-}
+      PTI_DATASOURCE_READER_URL: jdbc:postgresql://pg-warehouse:5432/pti_warehouse
+      PTI_DATASOURCE_OPERATOR_URL: jdbc:postgresql://pg-warehouse:5432/pti_warehouse
+      API_READER_PASSWORD: ${API_READER_PASSWORD:?run make secrets}
+      REPLAY_OPERATOR_PASSWORD: ${REPLAY_OPERATOR_PASSWORD:?run make secrets}
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://keycloak:8080/realms/pti/protocol/openid-connect/certs
+      PTI_API_SECURITY_ISSUER: http://localhost:${HOST_PORT_KEYCLOAK:-8180}/realms/pti
+      PTI_API_ALERT_WEBHOOK_TOKEN_FILE: /run/secrets/alertmanager-webhook-token
+      PTI_API_SIM_BASE_URL: http://source-simulator:8080
+      PTI_API_LINKS_GRAFANA_URL: http://localhost:${HOST_PORT_GRAFANA:-3000}
+    volumes:
+      - ./.generated/webhook-token:/run/secrets/alertmanager-webhook-token:ro
+    ports:
+      - "127.0.0.1:${HOST_PORT_API:-8081}:8080"
+      - "127.0.0.1:9081:9080"
+    mem_limit: 640m
+    cpus: 1.0
+
   # ---------------------------------------------------------------- experiment (DOC-45, DR-27)
 
   # Network faults between the ETL and the warehouse (DOC-39 §3.6): make up-exp points etl-stream and the baseline at

@@ -28,6 +28,10 @@ scrape_configs:
     metrics_path: /actuator/prometheus
     static_configs:
       - targets: [etl-batch:9080]
+  - job_name: pti-api
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: [api:9080]
 
   # Apps of optional profiles: found through Docker's DNS, so they are scraped only while they run.
   - job_name: pti-etl-stream-baseline

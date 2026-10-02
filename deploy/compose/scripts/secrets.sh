@@ -79,7 +79,7 @@ for var in S3_ADMIN_ACCESS_KEY S3_ADMIN_SECRET_KEY S3_CONNECT_ACCESS_KEY S3_CONN
 done
 printf '%s\n' "$s3_json" >"$GENERATED/s3.json"
 printf '%s' "$ALERTMANAGER_WEBHOOK_TOKEN" >"$GENERATED/webhook-token"
-chmod 600 "$GENERATED/webhook-token"
-# SeaweedFS runs as a non-root user and must be able to read its identity file.
-chmod 644 "$GENERATED/s3.json"
+# SeaweedFS, Alertmanager and api run as non-root users and must be able to read the files mounted into them; the
+# directory is git-ignored and only on the developer's machine.
+chmod 644 "$GENERATED/webhook-token" "$GENERATED/s3.json"
 echo "Rendered deploy/compose/.generated/"
