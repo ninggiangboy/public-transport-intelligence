@@ -262,7 +262,7 @@ Các nhóm còn lại:
 
 ### 3.5 frontend (`env.js`, DOC-34 §12)
 
-Frontend không có file cấu hình Spring. Entrypoint của image `pti-frontend` đọc biến môi trường, render `/env.js` (`window.__PTI_ENV__`, `Cache-Control: no-store`) và header CSP (DOC-27 §5.3). `src/env.ts` kiểm bằng zod; thiếu hoặc sai thì dùng mặc định an toàn (UX-07).
+Frontend không có file cấu hình Spring. Entrypoint của image `pti-frontend` (`frontend/nginx/40-pti-runtime-config.sh`) đọc biến môi trường, render `/env.js` (`window.__PTI_ENV__`, `Cache-Control: no-store`) và header CSP (DOC-27 §5.3). `src/env.ts` kiểm bằng zod; thiếu hoặc sai thì dùng mặc định an toàn (UX-07).
 
 | Biến môi trường | Khóa `env.js` | Mặc định | Ý nghĩa |
 | --- | --- | --- | --- |
@@ -272,6 +272,7 @@ Frontend không có file cấu hình Spring. Entrypoint của image `pti-fronten
 | `PTI_MAP_STYLE` | `mapStyle` | `offline` | `offline` (PMTiles cục bộ `/tiles/`) \| `online` (OpenFreeMap, ADR-0021) |
 | `PTI_MAP_TILE_ORIGINS` | — (chỉ CSP) | rỗng | Origin tile thêm vào `connect-src`/`img-src` khi `online` |
 | `PTI_EXTRA_PROFILES` | `demoControl` | rỗng | Chứa `demo` → `demoControl: true` (hiện màn Demo control) |
+| `PTI_API_UPSTREAM` | — (chỉ nginx) | `http://api:8080` | Đích của `proxy_pass` cho `/api/`. nginx phân giải tên mỗi request qua DNS của container (`resolver`), nên frontend khởi động được khi api chưa có và theo kịp container api được tạo lại |
 
 Dev server (`pnpm dev`) dùng `frontend/public/env.js` đã commit: `mapStyle: "online"`, `demoControl: true`, Keycloak `http://localhost:8180`.
 

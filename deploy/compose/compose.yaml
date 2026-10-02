@@ -408,6 +408,35 @@ services:
     mem_limit: 640m
     cpus: 1.0
 
+  # SPA and same-origin proxy to the api (DOC-39, DOC-26 §10). PTI_* become /env.js and the CSP at startup (P5-15).
+  frontend:
+    profiles: [core]
+    image: ghcr.io/${GHCR_OWNER:-ninggiangboy}/pti-frontend:${PTI_IMAGE_TAG:-local}
+    build:
+      context: ../../frontend
+    restart: unless-stopped
+    depends_on:
+      api: { condition: service_healthy }
+    environment:
+      PTI_KEYCLOAK_URL: http://localhost:${HOST_PORT_KEYCLOAK:-8180}
+      PTI_KEYCLOAK_REALM: pti
+      PTI_KEYCLOAK_CLIENT_ID: pti-web
+      PTI_MAP_STYLE: ${PTI_MAP_STYLE:-offline}
+      # Empty with the local PMTiles; the tile server's origin when PTI_MAP_STYLE=online (ADR-0021).
+      PTI_MAP_TILE_ORIGINS: ${PTI_MAP_TILE_ORIGINS:-}
+      PTI_EXTRA_PROFILES: ${PTI_EXTRA_PROFILES:-}
+    volumes:
+      - ../tiles:/usr/share/nginx/html/tiles:ro
+    ports: ["127.0.0.1:${HOST_PORT_FRONTEND:-8080}:80"]
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+    mem_limit: 32m
+    cpus: 0.25
+    logging: *default-logging
+
   # ---------------------------------------------------------------- experiment (DOC-45, DR-27)
 
   # Network faults between the ETL and the warehouse (DOC-39 §3.6): make up-exp points etl-stream and the baseline at

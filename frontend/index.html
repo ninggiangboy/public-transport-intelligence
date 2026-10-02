@@ -9,6 +9,8 @@
   </head>
   <body>
     <div id="root"></div>
+    <!-- Runtime configuration (DOC-34 §10); a classic script, so it runs before the module bundle. -->
+    <script src="/env.js"></script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

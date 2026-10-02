@@ -43,3 +43,10 @@ and `respondProblem(...)` answers with Problem Details.
 
 Routes are files under `src/routes/` (TanStack Router); the Vite plugin regenerates `src/routeTree.gen.ts`, which is
 committed so that `tsc` works on a fresh clone.
+
+## Image
+
+`frontend/Dockerfile` builds `pti-frontend`: the static build behind nginx, which also proxies `/api/` (SSE without
+buffering) to the api and serves the PMTiles mounted at `/tiles/`. At startup `nginx/40-pti-runtime-config.sh` writes
+`/env.js` and the CSP from the `PTI_*` variables (DOC-29 §3.5), so one image serves every environment. `make up` builds
+it and starts it in the compose `core` profile on http://localhost:8080.

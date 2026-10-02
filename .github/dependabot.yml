@@ -32,3 +32,8 @@ updates:
         patterns: ["@tanstack/*"]
       dev-dependencies:
         dependency-type: development
+
+  - package-ecosystem: docker
+    directory: /frontend
+    schedule:
+      interval: monthly
