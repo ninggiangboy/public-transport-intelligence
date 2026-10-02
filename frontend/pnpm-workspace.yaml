@@ -1,0 +1,5 @@
+# Install scripts that pnpm skips on purpose: msw's would copy its service worker into a public directory, which this
+# app does not ship, and unrs-resolver ships prebuilt binaries.
+ignoredBuiltDependencies:
+  - msw
+  - unrs-resolver

@@ -1,0 +1,9 @@
+pnpm-lock.yaml
+dist/
+coverage/
+playwright-report/
+test-results/
+src/routeTree.gen.ts
+src/api/generated/
+# Markdown follows the repo's docs style, not Prettier's table alignment.
+*.md

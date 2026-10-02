@@ -24,7 +24,7 @@ Phần đã có khác thiết kế ở trên như sau; các mục chưa làm s�
 
 - Suốt P1 repo vẫn private, trái với DR-56. **Đã chuyển sang public ngày 2026-09-29**, bật secret scanning và push protection (§9.1). Từ đó các giả định về runner 4 vCPU/16 GB và số phút ở đầu tài liệu và ở §7 đều áp dụng.
 - **Chỉ có `pr.yml`.** Remote mới có nhánh `dev` (nhánh mặc định), chưa có `main`, nên `main.yml`, job `images` (§3, §5), check `main-healthy` và branch protection (§4) chưa có. Chúng được tạo trước lần promote `dev` → `main` đầu tiên.
-- Job trong `pr.yml`: `changes`, `lint`, `backend`, `compose-config`, `secrets-scan`, và `pr-title` (`amannn/action-semantic-pull-request`, chỉ chạy với `pull_request`; §4 mô tả kiểm tra này như một điều kiện merge). Chưa có: `frontend` (P5-01), `experiments` (khi `experiments/` có code Python), `k8s-render` (P7), `markdown-links`. Filter `backend` gồm thêm `.github/workflows/pr.yml`, để sửa workflow thì build backend chạy lại.
+- Job trong `pr.yml`: `changes`, `lint`, `backend`, `compose-config`, `secrets-scan`, và `pr-title` (`amannn/action-semantic-pull-request`, chỉ chạy với `pull_request`; §4 mô tả kiểm tra này như một điều kiện merge). Job `frontend` có từ P5-01 (2026-10-02). Chưa có: `experiments` (khi `experiments/` có code Python), `k8s-render` (P7), `markdown-links`. Filter `backend` gồm thêm `.github/workflows/pr.yml`, để sửa workflow thì build backend chạy lại.
 - `compose-config` hiện chỉ gồm `docker compose config -q` cho mọi profile, `shellcheck` và kiểm tra `.env.example` không có giá trị. Kiểm tra `deploy/topics.yaml` theo schema, `promtool` và `amtool` sẽ được thêm cùng observability (P3).
 - `secrets-scan` chạy `gitleaks git` trên toàn bộ lịch sử (checkout `fetch-depth: 0`), không chỉ diff của PR.
 - Cache Gradle dùng mặc định của `gradle/actions/setup-gradle`: chỉ **nhánh mặc định** (`dev`) ghi cache, PR chỉ đọc (§6).
@@ -48,9 +48,9 @@ flowchart LR
 | Job | Chạy khi (path filter, `dorny/paths-filter`) | Bước |
 | --- | --- | --- |
 | `changes` | Luôn chạy | Xuất các cờ `backend`, `frontend`, `experiments`, `deploy`, `docs` |
-| `lint` | `backend` hoặc `frontend` | `./gradlew spotlessCheck checkstyleMain checkstyleTest`; `pnpm -C frontend lint && pnpm -C frontend typecheck` |
+| `lint` | `backend` | `./gradlew spotlessCheck checkstyleMain checkstyleTest`. Lint của frontend chạy trong job `frontend`, vì job này đã cài Node và `node_modules` |
 | `backend` | `backend` = `backend/**`, `deploy/topics.yaml`, `deploy/connect/**` (test backend đọc hai chỗ này, ADR-0030) | `./gradlew build -x integrationTest` (compile, unit test, JaCoCo); rồi `./gradlew integrationTest` **chỉ cho module bị ảnh hưởng** (task `affectedIntegrationTest` trong `build-logic`: module đổi và các module phụ thuộc vào nó). Testcontainers dùng Docker có sẵn trên runner |
-| `frontend` | `frontend/**`, `backend/api/openapi.json` | `pnpm install --frozen-lockfile`, `pnpm gen:api` rồi `git diff --exit-code` (type sinh ra phải khớp với file đã commit), `pnpm test --run`, `pnpm build` |
+| `frontend` | `frontend/**`, `backend/api/openapi.json` | `pnpm install --frozen-lockfile`; `pnpm lint`, `pnpm format:check`, `pnpm typecheck`; `pnpm gen:api` rồi `git diff --exit-code` (type sinh ra phải khớp với file đã commit); `pnpm test --run --coverage` (ngưỡng DOC-44 §7); `pnpm build`. Store của pnpm được cache theo `pnpm-lock.yaml` |
 | `experiments` | `experiments/**` | `uv sync --frozen`, `uv run ruff check`, `uv run pytest -q` |
 | `k8s-render` | `deploy/k3d/**`, `deploy/helm/**`, `deploy/helmfile.yaml.gotmpl`, `deploy/topics.yaml`, `deploy/connect/connectors/**`, `deploy/chaos/**`, `deploy/compose/observability/prometheus/rules/**` | §10.2 (KD-01, KD-02, KD-07 của DOC-40) |
 | `compose-config` | `deploy/**` | `docker compose config -q` với mọi tổ hợp profile (C-01, DOC-39 §9); `shellcheck` cho `deploy/**/*.sh`; kiểm tra `deploy/topics.yaml` theo schema; `promtool check rules` và `promtool test rules` cho `deploy/compose/observability/prometheus/` (DOC-28 §6.1); `amtool check-config` cho Alertmanager |

@@ -102,6 +102,39 @@ jobs:
             backend/*/build/test-results/
           retention-days: 7
 
+  # DOC-41 §2. Lint and typecheck run here rather than in the lint job, which only sets up Java.
+  frontend:
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v7
+      - uses: jdx/mise-action@v4
+        with:
+          install_args: node pnpm
+      - name: pnpm store path
+        id: pnpm-store
+        run: echo "path=$(pnpm store path --silent)" >>"$GITHUB_OUTPUT"
+      - uses: actions/cache@v6
+        with:
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: pnpm-${{ runner.os }}-${{ hashFiles('frontend/pnpm-lock.yaml') }}
+          restore-keys: pnpm-${{ runner.os }}-
+      - run: pnpm install --frozen-lockfile
+      - name: Lint, format and typecheck
+        run: |
+          pnpm lint
+          pnpm format:check
+          pnpm typecheck
+      - name: Unit and component tests with coverage (DOC-44 §7)
+        run: pnpm test --run --coverage
+      - name: Build
+        run: pnpm build
+
   # OpenApiSnapshotTest (backend job) keeps openapi.json equal to what the api serves; this job compares the file
   # with the base branch and fails on a breaking change unless the PR has the label breaking-api (DOC-41 §3).
   openapi-diff:

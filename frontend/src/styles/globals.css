@@ -1,0 +1,5 @@
+/* Tailwind entry. Design tokens (DOC-35) are added in P5-03 as src/styles/tokens.css. */
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+@custom-variant dark (&:where(.dark, .dark *));

@@ -20,3 +20,15 @@ updates:
     groups:
       actions:
         patterns: ["*"]
+
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule:
+      interval: weekly
+    groups:
+      react:
+        patterns: ["react", "react-dom", "@types/react", "@types/react-dom"]
+      tanstack:
+        patterns: ["@tanstack/*"]
+      dev-dependencies:
+        dependency-type: development

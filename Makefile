@@ -232,12 +232,12 @@ fmt: ## Format the code (Spotless, Prettier)
 .PHONY: lint
 lint: ## Static checks: Spotless, Checkstyle, ESLint, tsc
 	cd backend && ./gradlew --quiet spotlessCheck checkstyleMain checkstyleTest
-	@if [ -f frontend/package.json ]; then pnpm -C frontend lint && pnpm -C frontend exec tsc --noEmit; fi
+	@if [ -f frontend/package.json ]; then pnpm -C frontend lint && pnpm -C frontend typecheck; fi
 
 .PHONY: test
 test: ## Unit tests of every module
 	cd backend && ./gradlew --quiet test
-	@if [ -f frontend/package.json ]; then pnpm -C frontend test; fi
+	@if [ -f frontend/package.json ]; then pnpm -C frontend test --run; fi
 
 .PHONY: it
 it: ## Integration and contract tests (Testcontainers; needs Docker, not the compose stack)
