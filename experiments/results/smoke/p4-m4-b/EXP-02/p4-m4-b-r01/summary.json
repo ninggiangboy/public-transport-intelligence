@@ -1,0 +1,93 @@
+{
+  "exp": "EXP-02",
+  "run_id": "p4-m4-b-r01",
+  "profile": "smoke",
+  "valid": true,
+  "invalid_reason": null,
+  "window": {
+    "t0": "2026-10-02T06:55:35.310293Z",
+    "t1": "2026-10-02T06:59:35.199416Z"
+  },
+  "variant": "short",
+  "ratio": 0.1,
+  "normal": {
+    "GTFS_RT_VEHICLE_POSITION": {
+      "expected": 27326,
+      "lost": 0,
+      "duplicates": 0,
+      "wrong_value": 0,
+      "loss_rate": 0.0,
+      "dup_rate": 0.0,
+      "lost_keys": [],
+      "wrong_keys": []
+    },
+    "GTFS_RT_TRIP_UPDATE": {
+      "expected": 6244,
+      "lost": 0,
+      "duplicates": 0,
+      "wrong_value": 0,
+      "loss_rate": 0.0,
+      "dup_rate": 0.0,
+      "lost_keys": [],
+      "wrong_keys": []
+    },
+    "TICKETING_SALES": {
+      "expected": 345,
+      "lost": 0,
+      "duplicates": 0,
+      "wrong_value": 0,
+      "lost_keys": []
+    },
+    "unexpected_dlq": 0,
+    "latest_regressions": 0
+  },
+  "baseline": {
+    "GTFS_RT_VEHICLE_POSITION": {
+      "expected": 27326,
+      "lost": 0,
+      "duplicates": 2010,
+      "wrong_value": 0,
+      "loss_rate": 0.0,
+      "dup_rate": 0.07355631998828954
+    },
+    "GTFS_RT_TRIP_UPDATE": {
+      "expected": 6244,
+      "lost": 0,
+      "duplicates": 53626,
+      "wrong_value": 0,
+      "loss_rate": 0.0,
+      "dup_rate": 8.588404868673926
+    }
+  },
+  "resend": {
+    "GTFS_RT_VEHICLE_POSITION": {
+      "resends": 2010,
+      "resend_keys": 2010,
+      "lost_resend": 0,
+      "wrong_resend": 0,
+      "baseline_extra_rows": 2010
+    },
+    "GTFS_RT_TRIP_UPDATE": {
+      "resends": 429,
+      "resend_keys": 2789,
+      "lost_resend": 0,
+      "wrong_resend": 0,
+      "baseline_extra_rows": 29441
+    }
+  },
+  "registry_hits": 2413.0,
+  "guard_blocks": 3.0,
+  "in_chunk_collapses": 49.0,
+  "total_duplicate": 2465.0,
+  "resends": 2439,
+  "baseline_extra_ratio": 12.895038950389504,
+  "alerts": {
+    "unexpected_fired": [
+      "AnalyticsDispatchSlow",
+      "DlqBacklogHigh",
+      "DlqRateHigh",
+      "EndToEndLatencyHigh"
+    ]
+  },
+  "criteria_problems": []
+}

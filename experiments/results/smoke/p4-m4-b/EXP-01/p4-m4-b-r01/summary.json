@@ -1,0 +1,89 @@
+{
+  "exp": "EXP-01",
+  "run_id": "p4-m4-b-r01",
+  "profile": "smoke",
+  "valid": true,
+  "invalid_reason": null,
+  "window": {
+    "t0": "2026-10-02T07:00:57.465745Z",
+    "t1": "2026-10-02T07:05:00.476030Z"
+  },
+  "fault": {
+    "kind": "kill-external",
+    "at_offset_s": 153.3,
+    "target": "etl-stream,etl-stream-baseline"
+  },
+  "normal": {
+    "GTFS_RT_VEHICLE_POSITION": {
+      "expected": 55024,
+      "lost": 0,
+      "duplicates": 0,
+      "wrong_value": 0,
+      "loss_rate": 0.0,
+      "dup_rate": 0.0,
+      "lost_keys": [],
+      "wrong_keys": []
+    },
+    "GTFS_RT_TRIP_UPDATE": {
+      "expected": 6202,
+      "lost": 0,
+      "duplicates": 0,
+      "wrong_value": 0,
+      "loss_rate": 0.0,
+      "dup_rate": 0.0,
+      "lost_keys": [],
+      "wrong_keys": []
+    },
+    "TICKETING_SALES": {
+      "expected": 342,
+      "lost": 0,
+      "duplicates": 0,
+      "wrong_value": 0,
+      "lost_keys": []
+    },
+    "unexpected_dlq": 0,
+    "latest_regressions": 0
+  },
+  "baseline": {
+    "GTFS_RT_VEHICLE_POSITION": {
+      "expected": 55024,
+      "lost": 0,
+      "duplicates": 0,
+      "wrong_value": 0,
+      "loss_rate": 0.0,
+      "dup_rate": 0.0
+    },
+    "GTFS_RT_TRIP_UPDATE": {
+      "expected": 6202,
+      "lost": 0,
+      "duplicates": 90777,
+      "wrong_value": 0,
+      "loss_rate": 0.0,
+      "dup_rate": 14.636730087068688
+    }
+  },
+  "recovery": {
+    "lag_ref": 206.13333333333333,
+    "t_kill": "2026-10-02T07:03:30.871580Z",
+    "t_start": "2026-10-02T07:03:39.233978Z",
+    "t_ready": "2026-10-02T07:03:55.537200Z",
+    "t_caught_up": "2026-10-02T07:04:29.937498Z",
+    "recovery_seconds": 50.70352,
+    "kill_to_caught_up": 59.065918,
+    "start_to_ready": 16.303222
+  },
+  "redelivered": 1118.0,
+  "no_inflight": false,
+  "alerts": {
+    "fired": [
+      "AnalyticsDispatchSlow",
+      "DlqBacklogHigh",
+      "EndToEndLatencyHigh"
+    ],
+    "unexpected_fired": [
+      "AnalyticsDispatchSlow",
+      "DlqBacklogHigh"
+    ]
+  },
+  "criteria_problems": []
+}

@@ -569,6 +569,20 @@ Dashboard (P3-04, `make check-dashboards`) và alert (P3-05, DOC-42 §4) hoạt 
 
 **Tiêu chí thoát (M4):** mọi endpoint trả dữ liệu thật từ simulator. Dùng `curl -N /stream` thấy sự kiện. Mọi analytics chạy lại đều ra cùng kết quả. Chuỗi smoke `pti-exp smoke` vẫn đạt (DR-95). Luật A-11…A-18 xanh cho `analytics`, `api` và package mới của `etl`; store freeze của module cũ không lớn hơn lúc tạo ở P4-18 (DR-104).
 
+**M4 đạt 2026-10-02.** Kiểm trên stack compose thật với simulator chạy: endpoint của DOC-32 trả dữ liệu thật (120 xe, 127 tuyến, trạm, lượt đến, freshness); `curl -N /stream` nhận 448 khung `vehicles.batch` trong 25 giây, kênh `alerts` nhận `bunching.closed` và `alert.updated`; replay raw zone có `recompute_analytics` cho `analytics_recomputed = true` và `stats.analytics`, `AnalyticsRecomputeJob` chạy 65 item, khoảng > 7 ngày bị `REJECTED`; p95 `pti_end_to_end_latency_seconds{channel="vehicles"}` ≈ 2,4 s trên Grafana. A-11…A-18 xanh; store freeze không tăng.
+
+Chuỗi smoke `p4-m4-b` trên máy dev (Linux x86_64, Docker rootless 29.8, 8 CPU, 15,5 GiB; profile `core` + `experiment` + `observability`), commit `0a52081` (cây sạch), bắt đầu 2026-10-02 06:50 UTC, giờ nghiệp vụ thứ Sáu 15:44 CDT, **32,1 phút** (hơi quá mục tiêu 30 phút, do EXP-04 dựng lại chậm hơn). Mọi tiêu chí DOC-45 §1.3 đạt. Chuỗi trước `p4-m4` dừng ở EXP-04 vì `/dev/shm` 64 MB của `pg-warehouse` không đủ cho truy vấn checksum song song; đã nâng `shm_size` lên 256 MB (`0a52081`). Kết quả gốc: `experiments/results/smoke/p4-m4-b/` (DR-102).
+
+| EXP | Tiêu chí | Kết quả | Số đo tham khảo (so với `p3-08-d`) |
+| --- | --- | --- | --- |
+| EXP-03 (`bad-data` 5%, 3 phút) | C1–C5 | Đạt. 19.601 key VP, 5.903 key TU, 242 giao dịch: không mất, không sai, `valid_loaded_ratio = 1`; 1.244 message lỗi: `dlq_recall = 1`, đúng stage 100%, `false_dlq = 0`, không lọt, không dừng listener | `commit_p95` 1,8 s (1,0 s) |
+| EXP-02 (`short`, 10%, 3 phút) | C1, C2, C4, C5 | Đạt. 27.326 key VP, 6.244 key TU, 345 giao dịch không mất, không sai; registry 2.413 + gộp trong chunk 49 + guard 3 = `duplicate` 2.465 | Baseline thêm 2.010 dòng VP trùng |
+| EXP-01 (`kill-external`, kill ở giây 153) | C1, C2 | Đạt. 55.024 key VP, 6.202 key TU, 342 giao dịch: không mất, không sai | `recovery_seconds` 50,7 (42,9); 1.118 message đọc lại bị chặn là trùng. Alert ngoài dự kiến: `AnalyticsDispatchSlow`, `DlqBacklogHigh` |
+| EXP-05 (`etl-only`, bậc 1/3/5/10, 90 s) | C3 | Đạt. 198.345 key VP, 7.132 key TU, 716 giao dịch không mất, không sai; cả 4 bậc đạt | Bậc ×10: 1.351 msg/s, p95 `kafka_to_commit` 2,51 s (1,57 s), lag cuối 1.488. `pg-warehouse` dùng 1,7–1,9 CPU ngay từ bậc ×1 (0,06–0,37) |
+| EXP-04 (cửa sổ EXP-03 → EXP-02, 10,5 phút) | C1 (giới hạn), C2, C4 | Đạt. 59.101 dòng VP, 775 dòng TU đủ lịch sử, 320 giao dịch khớp từng key; 1.244 dead letter `dlq_symdiff = 0`; 9 bảng GTFS khớp | `reset-warehouse` 38 s (7 s), nạp GTFS 250 s (87 s), dựng lại 409 s (150 s) |
+
+Số đo chậm hơn M3 chủ yếu vì analytics chạy trên `pg-warehouse` sau mỗi micro-batch: truy vấn `NEWEST` của `JdbcVehicleHistoryReader` (`max(event_timestamp)` với `service_date BETWEEN`) quét mọi dòng trong ngày của tuyến thay vì đọc một dòng của index. Không ảnh hưởng tiêu chí nào; cần xử lý trước P3-10.
+
 ---
 
 ### Phase 5: Dashboard

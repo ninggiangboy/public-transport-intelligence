@@ -11,3 +11,5 @@ archive/
 results/smoke/*
 !results/smoke/p3-08-d/
 !results/smoke/p3-08-d/**
+!results/smoke/p4-m4-b/
+!results/smoke/p4-m4-b/**

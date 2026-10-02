@@ -1,0 +1,27 @@
+{
+  "exp": "EXP-04",
+  "run_id": "p4-m4-b-r01",
+  "series": "p4-m4-b",
+  "profile": "smoke",
+  "git_sha": "0a520811b8147b5b05893bb84a6061113b2c6a62",
+  "dirty": false,
+  "image_digests": {
+    "etl-stream": "sha256:33614dd12da026d4439aae0d09e28f67d0f8820383a14e7d9dfff23b9903c914",
+    "etl-batch": "sha256:33614dd12da026d4439aae0d09e28f67d0f8820383a14e7d9dfff23b9903c914",
+    "source-simulator": "sha256:c509bbd67787a086a76d33c0ef500d595e78e4117f1a87787f65409f2a88589f"
+  },
+  "params": {
+    "rebuild_twice": false,
+    "variant": "window"
+  },
+  "seed": 1000,
+  "clock_offset": "834m",
+  "machine": {
+    "platform": "Linux-6.19.10-300.fc44.x86_64-x86_64-with-glibc2.43",
+    "docker_cpus": 8,
+    "docker_memory_bytes": 16659283968,
+    "docker_version": "29.8.0",
+    "architecture": "x86_64"
+  },
+  "created_at": "2026-10-02T07:13:33.560503Z"
+}

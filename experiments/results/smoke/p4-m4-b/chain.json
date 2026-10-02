@@ -1,0 +1,80 @@
+{
+  "series": "p4-m4-b",
+  "started_at": "2026-10-02T06:50:33.823273Z",
+  "finished_at": "2026-10-02T07:22:37.753182Z",
+  "seconds": 1923.9,
+  "within_30_minutes": false,
+  "clock": {
+    "moved": false,
+    "offset": "834m"
+  },
+  "passed": true,
+  "runs": [
+    {
+      "exp": "EXP-03",
+      "variant": null,
+      "run_id": "p4-m4-b-r01",
+      "valid": true,
+      "passed": true,
+      "problems": [],
+      "seconds": 271.2,
+      "window": {
+        "t0": "2026-10-02T06:51:04.794087Z",
+        "t1": "2026-10-02T06:54:08.272729Z"
+      }
+    },
+    {
+      "exp": "EXP-02",
+      "variant": "short",
+      "run_id": "p4-m4-b-r01",
+      "valid": true,
+      "passed": true,
+      "problems": [],
+      "seconds": 322.1,
+      "window": {
+        "t0": "2026-10-02T06:55:35.310293Z",
+        "t1": "2026-10-02T06:59:35.199416Z"
+      }
+    },
+    {
+      "exp": "EXP-01",
+      "variant": "kill-external",
+      "run_id": "p4-m4-b-r01",
+      "valid": true,
+      "passed": true,
+      "problems": [],
+      "seconds": 325.9,
+      "window": {
+        "t0": "2026-10-02T07:00:57.465745Z",
+        "t1": "2026-10-02T07:05:00.476030Z"
+      }
+    },
+    {
+      "exp": "EXP-05",
+      "variant": "etl-only",
+      "run_id": "p4-m4-b-r01",
+      "valid": true,
+      "passed": true,
+      "problems": [],
+      "seconds": 460.4,
+      "window": {
+        "t0": "2026-10-02T07:06:25.039501Z",
+        "t1": "2026-10-02T07:12:27.039601Z",
+        "end": "2026-10-02T07:12:32.043946Z"
+      }
+    },
+    {
+      "exp": "EXP-04",
+      "variant": "window",
+      "run_id": "p4-m4-b-r01",
+      "valid": true,
+      "passed": true,
+      "problems": [],
+      "seconds": 544.3,
+      "window": {
+        "t0": "2026-10-02T06:50:04.794087Z",
+        "t1": "2026-10-02T07:00:35.199416Z"
+      }
+    }
+  ]
+}

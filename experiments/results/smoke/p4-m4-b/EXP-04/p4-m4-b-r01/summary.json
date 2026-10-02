@@ -1,0 +1,99 @@
+{
+  "exp": "EXP-04",
+  "run_id": "p4-m4-b-r01",
+  "profile": "smoke",
+  "valid": true,
+  "invalid_reason": null,
+  "window": {
+    "t0": "2026-10-02T06:50:04.794087Z",
+    "t1": "2026-10-02T07:00:35.199416Z"
+  },
+  "keys": {
+    "vp": 59101,
+    "tu": 775,
+    "sales": 320
+  },
+  "tables": {
+    "fact_vehicle_position": {
+      "before": {
+        "row_count": 59101,
+        "checksum": "ddc839aae052214d2b358414d74dc7e6"
+      },
+      "after": {
+        "row_count": 59101,
+        "checksum": "ddc839aae052214d2b358414d74dc7e6"
+      },
+      "table_match": true,
+      "missing": 0,
+      "different": 0,
+      "sample": []
+    },
+    "fact_trip_update": {
+      "before": {
+        "row_count": 775,
+        "checksum": "145d057b13ef81bdcde3c1c4e5715941"
+      },
+      "after": {
+        "row_count": 775,
+        "checksum": "145d057b13ef81bdcde3c1c4e5715941"
+      },
+      "table_match": true,
+      "missing": 0,
+      "different": 0,
+      "sample": []
+    },
+    "fact_ticket_sales": {
+      "before": {
+        "row_count": 320,
+        "checksum": "6b059174da48787732422bf475c4b1a9"
+      },
+      "after": {
+        "row_count": 320,
+        "checksum": "6b059174da48787732422bf475c4b1a9"
+      },
+      "table_match": true,
+      "missing": 0,
+      "different": 0,
+      "sample": []
+    }
+  },
+  "dlq_symdiff": 0,
+  "dlq_before": 1244,
+  "dlq_missing": {},
+  "dlq_extra": {},
+  "reset_seconds": 37.952615,
+  "gtfs_load_seconds": 250.339527,
+  "rebuild_total_seconds": 408.865519,
+  "replay_stats": {
+    "TICKETING_SALE_POINTS": "make: Entering directory '/home/rb071/dev/ninggiangboy/public-transport-intelligence'\n68244fb7-df95-4ceb-a81a-c780ccd617d4\n{\"objects\": 0, \"skipped\": 0, \"written\": 0, \"filtered\": 0, \"duplicate\": 0, \"processed\": 0, \"lines_read\": 0, \"dlq_updated\": 0, \"duration_ms\": 255, \"dlq_inserted\": 0, \"dlq_resolved\": 0, \"analytics_recomputed\": false}\nmake: Leaving directory '/home/rb071/dev/ninggiangboy/public-transport-intelligence'\n",
+    "TICKETING_SALES": "make: Leaving directory '/home/rb071/dev/ninggiangboy/public-transport-intelligence'",
+    "GTFS_RT_VEHICLE_POSITION": "make: Leaving directory '/home/rb071/dev/ninggiangboy/public-transport-intelligence'",
+    "GTFS_RT_TRIP_UPDATE": "make: Leaving directory '/home/rb071/dev/ninggiangboy/public-transport-intelligence'"
+  },
+  "gtfs_rows": {
+    "before": {
+      "dim_agency": 8,
+      "dim_route": 127,
+      "dim_stop": 8183,
+      "gtfs_calendar": 19,
+      "gtfs_calendar_date": 25,
+      "gtfs_shape": 320611,
+      "gtfs_stop_time": 872717,
+      "gtfs_trip": 20220,
+      "route_headway": 8177
+    },
+    "after": {
+      "dim_agency": 8,
+      "dim_route": 127,
+      "dim_stop": 8183,
+      "gtfs_calendar": 19,
+      "gtfs_calendar_date": 25,
+      "gtfs_shape": 320611,
+      "gtfs_stop_time": 872717,
+      "gtfs_trip": 20220,
+      "route_headway": 8177
+    }
+  },
+  "gtfs_rows_match": true,
+  "criteria_problems": []
+}

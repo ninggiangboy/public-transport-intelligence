@@ -1,0 +1,237 @@
+{
+  "exp": "EXP-05",
+  "run_id": "p4-m4-b-r01",
+  "profile": "smoke",
+  "valid": true,
+  "invalid_reason": null,
+  "window": {
+    "t0": "2026-10-02T07:06:25.039501Z",
+    "t1": "2026-10-02T07:12:27.039601Z",
+    "end": "2026-10-02T07:12:32.043946Z"
+  },
+  "series": "etl-only",
+  "scenario_run": "01a0fb6f-859d-7873-a30c-a512bc7298ff",
+  "steps": [
+    {
+      "step": 1,
+      "multiplier": 1,
+      "seconds": 58.130159,
+      "latency_p50": 0.6499108053007135,
+      "latency_p95": 1.6860202492211833,
+      "latency_p99": 1.9372040498442367,
+      "throughput_in": 139.20484889779848,
+      "throughput_out": 138.7059684457426,
+      "lag_end": 161,
+      "lag_slope": 1.2377697398327343,
+      "pool_wait": 0.0,
+      "restarted": false,
+      "circuit_open": false,
+      "usage": {
+        "etl-stream": {
+          "cpu_mean": 0.16585128178424804,
+          "cpu_max": 0.20786082603254066,
+          "cpu_util": 0.08292564089212402,
+          "mem_max": 801415168
+        },
+        "pg-warehouse": {
+          "cpu_mean": 1.7287433593409318,
+          "cpu_max": 1.978455790784558,
+          "cpu_util": 0.8643716796704659,
+          "mem_max": 1172660224
+        },
+        "kafka": {
+          "cpu_mean": 1.0044194212269433,
+          "cpu_max": 1.0262046855733662,
+          "cpu_util": 1.0044194212269433,
+          "mem_max": 955617280
+        },
+        "source-simulator": {
+          "cpu_mean": 0.04765686296936139,
+          "cpu_max": 0.07043469640644362,
+          "cpu_util": 0.04765686296936139,
+          "mem_max": 353783808
+        }
+      },
+      "step_pass": true,
+      "valid": true
+    },
+    {
+      "step": 2,
+      "multiplier": 3,
+      "seconds": 58.08409,
+      "latency_p50": 0.7830640866323451,
+      "latency_p95": 1.8372378138847856,
+      "latency_p99": 1.9758375184638108,
+      "throughput_in": 405.8770654752446,
+      "throughput_out": 403.86274451403125,
+      "lag_end": 342,
+      "lag_slope": 0.3552279371113394,
+      "pool_wait": 0.0,
+      "restarted": false,
+      "circuit_open": false,
+      "usage": {
+        "etl-stream": {
+          "cpu_mean": 0.2016895492335753,
+          "cpu_max": 0.2371087546239211,
+          "cpu_util": 0.10084477461678765,
+          "mem_max": 801869824
+        },
+        "pg-warehouse": {
+          "cpu_mean": 1.7087527679162033,
+          "cpu_max": 2.093283855421687,
+          "cpu_util": 0.8543763839581017,
+          "mem_max": 1230082048
+        },
+        "kafka": {
+          "cpu_mean": 0.939148818509468,
+          "cpu_max": 1.021218070818071,
+          "cpu_util": 0.939148818509468,
+          "mem_max": 912650240
+        },
+        "source-simulator": {
+          "cpu_mean": 0.06055372584797715,
+          "cpu_max": 0.07677313432835821,
+          "cpu_util": 0.06055372584797715,
+          "mem_max": 351711232
+        }
+      },
+      "step_pass": true,
+      "valid": true
+    },
+    {
+      "step": 3,
+      "multiplier": 5,
+      "seconds": 58.119287,
+      "latency_p50": 0.9658230428704566,
+      "latency_p95": 1.9729810011175815,
+      "latency_p99": 2.759761580381473,
+      "throughput_in": 673.2016516307228,
+      "throughput_out": 677.3482957559338,
+      "lag_end": 685,
+      "lag_slope": -4.9411209655397625,
+      "pool_wait": 0.0,
+      "restarted": false,
+      "circuit_open": false,
+      "usage": {
+        "etl-stream": {
+          "cpu_mean": 0.2906424682246098,
+          "cpu_max": 0.5563056831922611,
+          "cpu_util": 0.1453212341123049,
+          "mem_max": 801681408
+        },
+        "pg-warehouse": {
+          "cpu_mean": 1.7734687942444012,
+          "cpu_max": 2.0888334928229666,
+          "cpu_util": 0.8867343971222006,
+          "mem_max": 1304514560
+        },
+        "kafka": {
+          "cpu_mean": 0.9311022888129298,
+          "cpu_max": 0.9942851435705369,
+          "cpu_util": 0.9311022888129298,
+          "mem_max": 965013504
+        },
+        "source-simulator": {
+          "cpu_mean": 0.08176132630067098,
+          "cpu_max": 0.09694106041923552,
+          "cpu_util": 0.08176132630067098,
+          "mem_max": 353173504
+        }
+      },
+      "step_pass": true,
+      "valid": true
+    },
+    {
+      "step": 4,
+      "multiplier": 10,
+      "seconds": 58.086549,
+      "latency_p50": 1.3320733340199815,
+      "latency_p95": 2.512492842145447,
+      "latency_p99": 3.4570887096774143,
+      "throughput_in": 1351.4488526422874,
+      "throughput_out": 1343.185321613787,
+      "lag_end": 1488,
+      "lag_slope": -5.833939453653715,
+      "pool_wait": 2.0,
+      "restarted": false,
+      "circuit_open": false,
+      "usage": {
+        "etl-stream": {
+          "cpu_mean": 0.36045773920140795,
+          "cpu_max": 0.4172378109452736,
+          "cpu_util": 0.18022886960070397,
+          "mem_max": 801259520
+        },
+        "pg-warehouse": {
+          "cpu_mean": 1.8983052949395116,
+          "cpu_max": 2.0731460784313724,
+          "cpu_util": 0.9491526474697558,
+          "mem_max": 1456791552
+        },
+        "kafka": {
+          "cpu_mean": 0.996314207632993,
+          "cpu_max": 1.0290319809069213,
+          "cpu_util": 0.996314207632993,
+          "mem_max": 1014857728
+        },
+        "source-simulator": {
+          "cpu_mean": 0.17883413320451438,
+          "cpu_max": 0.20938829268292683,
+          "cpu_util": 0.17883413320451438,
+          "mem_max": 358146048
+        }
+      },
+      "step_pass": true,
+      "valid": true
+    }
+  ],
+  "threshold_multiplier": ">= 10",
+  "threshold_msgs": 1351.4488526422874,
+  "passing_steps": [
+    1,
+    3,
+    5,
+    10
+  ],
+  "drain_seconds": 2.0001246700012416,
+  "normal": {
+    "GTFS_RT_VEHICLE_POSITION": {
+      "expected": 198345,
+      "lost": 0,
+      "duplicates": 0,
+      "wrong_value": 0,
+      "loss_rate": 0.0,
+      "dup_rate": 0.0,
+      "lost_keys": [],
+      "wrong_keys": []
+    },
+    "GTFS_RT_TRIP_UPDATE": {
+      "expected": 7132,
+      "lost": 0,
+      "duplicates": 0,
+      "wrong_value": 0,
+      "loss_rate": 0.0,
+      "dup_rate": 0.0,
+      "lost_keys": [],
+      "wrong_keys": []
+    },
+    "TICKETING_SALES": {
+      "expected": 716,
+      "lost": 0,
+      "duplicates": 0,
+      "wrong_value": 0,
+      "lost_keys": []
+    },
+    "unexpected_dlq": 0,
+    "latest_regressions": 0
+  },
+  "alerts": {
+    "fired": [
+      "AnalyticsDispatchSlow",
+      "DlqBacklogHigh",
+      "EndToEndLatencyHigh",
+      "TargetDown"
+    ]
+  },
+  "criteria_problems": []
+}

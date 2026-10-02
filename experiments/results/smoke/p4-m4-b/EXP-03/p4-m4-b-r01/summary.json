@@ -1,0 +1,150 @@
+{
+  "exp": "EXP-03",
+  "run_id": "p4-m4-b-r01",
+  "profile": "smoke",
+  "valid": true,
+  "invalid_reason": null,
+  "window": {
+    "t0": "2026-10-02T06:51:04.794087Z",
+    "t1": "2026-10-02T06:54:08.272729Z"
+  },
+  "ratio": 0.05,
+  "normal": {
+    "GTFS_RT_VEHICLE_POSITION": {
+      "expected": 19601,
+      "lost": 0,
+      "duplicates": 0,
+      "wrong_value": 0,
+      "loss_rate": 0.0,
+      "dup_rate": 0.0,
+      "lost_keys": [],
+      "wrong_keys": []
+    },
+    "GTFS_RT_TRIP_UPDATE": {
+      "expected": 5903,
+      "lost": 0,
+      "duplicates": 0,
+      "wrong_value": 0,
+      "loss_rate": 0.0,
+      "dup_rate": 0.0,
+      "lost_keys": [],
+      "wrong_keys": []
+    },
+    "TICKETING_SALES": {
+      "expected": 242,
+      "lost": 0,
+      "duplicates": 0,
+      "wrong_value": 0,
+      "lost_keys": []
+    },
+    "unexpected_dlq": 0,
+    "latest_regressions": 0
+  },
+  "baseline": {
+    "GTFS_RT_VEHICLE_POSITION": {
+      "expected": 19601,
+      "lost": 16601,
+      "duplicates": 0,
+      "wrong_value": 0,
+      "loss_rate": 0.8469465843579409,
+      "dup_rate": 0.0
+    },
+    "GTFS_RT_TRIP_UPDATE": {
+      "expected": 5903,
+      "lost": 41,
+      "duplicates": 24318,
+      "wrong_value": 1579,
+      "loss_rate": 0.006945620870743689,
+      "dup_rate": 4.119600203286464
+    }
+  },
+  "valid_loaded_ratio": {
+    "GTFS_RT_VEHICLE_POSITION": 1.0,
+    "GTFS_RT_TRIP_UPDATE": 1.0,
+    "TICKETING_SALES": 1.0
+  },
+  "dlq_recall": 1.0,
+  "dlq_multiplicity": 0,
+  "stage_accuracy": {
+    "malformed_json": 1.0,
+    "schema_violation": 1.0,
+    "unknown_route": 1.0,
+    "unknown_stop": 1.0,
+    "future_timestamp": 1.0,
+    "unknown_schema_version": 1.0,
+    "out_of_bbox": 1.0,
+    "delay_out_of_range": 1.0
+  },
+  "rule_accuracy": {
+    "malformed_json": 1.0,
+    "schema_violation": 1.0,
+    "unknown_route": 1.0,
+    "unknown_stop": 1.0,
+    "future_timestamp": 1.0,
+    "unknown_schema_version": 1.0,
+    "out_of_bbox": 1.0,
+    "delay_out_of_range": 1.0
+  },
+  "per_kind": {
+    "malformed_json": {
+      "sent": 157,
+      "in_dlq": 157,
+      "stage_ok": 157,
+      "rule_ok": 157
+    },
+    "schema_violation": {
+      "sent": 194,
+      "in_dlq": 194,
+      "stage_ok": 194,
+      "rule_ok": 194
+    },
+    "unknown_route": {
+      "sent": 170,
+      "in_dlq": 170,
+      "stage_ok": 170,
+      "rule_ok": 170
+    },
+    "unknown_stop": {
+      "sent": 170,
+      "in_dlq": 170,
+      "stage_ok": 170,
+      "rule_ok": 170
+    },
+    "future_timestamp": {
+      "sent": 180,
+      "in_dlq": 180,
+      "stage_ok": 180,
+      "rule_ok": 180
+    },
+    "unknown_schema_version": {
+      "sent": 189,
+      "in_dlq": 189,
+      "stage_ok": 189,
+      "rule_ok": 189
+    },
+    "out_of_bbox": {
+      "sent": 157,
+      "in_dlq": 157,
+      "stage_ok": 157,
+      "rule_ok": 157
+    },
+    "delay_out_of_range": {
+      "sent": 27,
+      "in_dlq": 27,
+      "stage_ok": 27,
+      "rule_ok": 27
+    }
+  },
+  "invalid_sent": 1244,
+  "false_dlq": 0,
+  "leaked": 0,
+  "stalls": 0,
+  "commit_p95": 1.7975170924793087,
+  "alerts": {
+    "fired": [
+      "AnalyticsDispatchSlow",
+      "EndToEndLatencyHigh"
+    ]
+  },
+  "criteria_problems": []
+}
