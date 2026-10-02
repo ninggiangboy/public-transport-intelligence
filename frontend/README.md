@@ -44,6 +44,19 @@ and `respondProblem(...)` answers with Problem Details.
 Routes are files under `src/routes/` (TanStack Router); the Vite plugin regenerates `src/routeTree.gen.ts`, which is
 committed so that `tsc` works on a fresh clone.
 
+## Realtime
+
+`RealtimeProvider` (inside `QueryClientProvider`) owns the one `GET /api/v1/stream` connection of the app (DOC-26 §8). A
+screen declares what it needs with `useRealtime({ channels, routeIds })`; with no subscriber nothing is opened. Events
+never reach components directly: `src/realtime/handlers.ts` patches or invalidates the TanStack Query cache, using the
+keys of `src/api/keys.ts`, so screens must build their query keys with `keys`. Cached entries may be `read()` results
+(`{ data, asOf }`), plain bodies or infinite-query pages; the handlers keep whichever shape is there. While the stream
+is down for more than 5 s the provider polls the REST endpoints instead (`status` is `polling`).
+
+The zod schemas in `src/realtime/schemas/` are hand-written from DOC-33 §5 until the backend publishes the JSON Schemas.
+Tests use `FakeSseServer` from `src/test/sse.ts` (an injectable `fetch` whose streams the test pushes frames into).
+The auth provider calls `useRealtimeControls().reconnect()` after a token refresh.
+
 ## Image
 
 `frontend/Dockerfile` builds `pti-frontend`: the static build behind nginx, which also proxies `/api/` (SSE without

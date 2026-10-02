@@ -3,6 +3,7 @@ import { RouterProvider } from '@tanstack/react-router';
 import { useState } from 'react';
 
 import { createQueryClient } from '@/app/query-client';
+import { RealtimeProvider } from '@/realtime/RealtimeProvider';
 import { createAppRouter } from '@/router';
 
 // DOC-34 §9.2 nests Theme → Auth → Query → Freshness → Realtime → Router; the providers other than Query join in
@@ -12,7 +13,9 @@ export function AppProviders() {
   const [router] = useState(() => createAppRouter({ queryClient }));
   return (
     <QueryClientProvider client={queryClient}>
-      <RouterProvider router={router} />
+      <RealtimeProvider>
+        <RouterProvider router={router} />
+      </RealtimeProvider>
     </QueryClientProvider>
   );
 }

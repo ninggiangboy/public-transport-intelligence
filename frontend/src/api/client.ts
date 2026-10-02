@@ -22,6 +22,11 @@ export function setAuth(adapter: AuthAdapter | undefined) {
   auth = adapter;
 }
 
+/** The installed adapter, for the event stream, which sends the token itself (DOC-26 §8.2). */
+export function getAuth(): AuthAdapter | undefined {
+  return auth;
+}
+
 /** POSTs that accept `Idempotency-Key` (DOC-31 §8). */
 const IDEMPOTENT_POSTS = [
   /^\/api\/v1\/etl\/replays$/,

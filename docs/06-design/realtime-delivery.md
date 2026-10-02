@@ -246,6 +246,18 @@ Khi kết nối mở lại: dừng poll, refetch `GET /vehicles/live` một lầ
 
 Mọi dữ liệu REST nằm trong cache của TanStack Query (DR-46). Sự kiện SSE chỉ cập nhật hoặc invalidate cache; component không đọc trực tiếp từ luồng sự kiện.
 
+### 8.5 Ghi chú hiện thực (P5-05)
+
+Những chỗ `frontend/src/realtime/` làm khác hoặc chi tiết hơn các mục trên:
+
+- Không component nào đăng ký kênh thì **không mở kết nối** (`status` giữ `connecting`). Lần mở đầu tiên cũng qua debounce 500 ms.
+- `routeId` hợp nhất: một người đăng ký không lọc tuyến, hoặc hợp nhất quá 20 tuyến, thì gửi không lọc (màn hình chỉ đọc key của mình).
+- 403 xử lý như 401 thất bại: bỏ `jobs`, `dlq`, nối lại với kênh công khai. Mọi 4xx khác (trừ 401, 403, 429) dừng thử lại cho tới khi tập đăng ký đổi hoặc gọi `reconnect()`; polling dự phòng vẫn chạy.
+- Poll `vehicles` ghi vào `['vehicles','live',routeIds]` theo từng bộ lọc tuyến của người đăng ký, đúng dạng entry đang có trong cache (`{ data, asOf }` của `read()` hoặc body thuần); poll `alerts` và `jobs` đi qua cùng hàm chèn/thay thế như `alert.updated` và `job.run`; poll `dlq` ghi summary và invalidate danh sách. Nối lại sau mất kết nối luôn refetch `GET /vehicles/live` một lần, dù có vào `polling` hay không (kênh `vehicles` không replay, §5).
+- `alert.updated` làm alert không còn khớp bộ lọc của một danh sách (ví dụ `state=open` sau khi resolved) thì gỡ nó khỏi danh sách đó, thay vì chỉ bỏ qua.
+- `resync` của kênh `alerts` invalidate thêm `['vehicles','live',*]` (overlay bunching) và `['stops',*,'detail']`, theo bảng ở §9.
+- `lastEventAt` công bố tối đa mỗi giây để các component gọi `useRealtime` không render lại theo từng khung.
+
 ## 9. Sự kiện → cache frontend
 
 | Sự kiện | Query key bị ảnh hưởng | Cách xử lý |
