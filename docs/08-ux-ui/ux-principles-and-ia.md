@@ -230,7 +230,9 @@ frontend/
         # each: components/, hooks/, search.ts (zod schema), queries.ts, *.test.tsx
     api/
       generated/schema.d.ts     # openapi-typescript output (committed)
-      client.ts                 # openapi-fetch instance + middleware (auth, problem, as-of)
+      generated/examples.ts     # response examples of openapi.json, typed with satisfies (committed)
+      types.ts                  # ResponseBody<path, method, status> and friends
+      client.ts                 # openapi-fetch instance + middleware (auth, idempotency), read()/write()
       problem.ts                # ProblemDetails type, ApiError class
       keys.ts                   # query key factories (DOC-26 §9)
       sim.ts                    # zod schemas for /sim/** (not in the public OpenAPI)
@@ -288,9 +290,9 @@ Luồng:
 
 ### 9.4 Client API
 
-- `openapi-fetch` với `baseUrl: '/api/v1'`, type từ `src/api/generated/schema.d.ts` (`pnpm gen:api` đọc `../backend/api/openapi.json`, DR-44).
-- Middleware theo thứ tự: gắn `Authorization` khi có token; gắn `Idempotency-Key` (UUIDv4 sinh một lần cho mỗi lần người dùng bấm, giữ nguyên khi retry) cho các request trong danh sách của DOC-31 §8; đọc `X-Data-As-Of`; đổi response lỗi thành `ApiError` chứa Problem Details (DOC-30) và `traceId`.
-- Query function trả `{ data, asOf }` để `FreshnessIndicator` dùng (P-1).
+- `openapi-fetch` với `baseUrl` là origin của trang (path trong `openapi.json` đã có tiền tố `/api/v1`), type từ `src/api/generated/schema.d.ts` (`pnpm gen:api` đọc `../backend/api/openapi.json`, DR-44). `pnpm gen:api` cũng ghi `src/api/generated/examples.ts`: ví dụ response của mọi operation trong `openapi.json` (chính là ví dụ của DOC-32), mỗi ví dụ được `satisfies` kiểm theo type sinh ra, nên ví dụ lệch schema làm `tsc` fail. Handler MSW (`src/test/handlers.ts`) trả các ví dụ này cho test component và `pnpm dev:mock`.
+- Middleware: gắn `Authorization` khi có token (lấy qua `AuthAdapter` mà provider OIDC cài bằng `setAuth`, P5-04); gặp 401 trên request có token thì gọi `renew()` (`signinSilent`) một lần rồi gửi lại, vẫn 401 thì `expired()` (UX-06); gắn `Idempotency-Key` cho các POST trong danh sách của DOC-31 §8 nếu caller chưa truyền. Khóa nên được sinh bằng `newIdempotencyKey()` một lần cho mỗi lần người dùng bấm và truyền lại khi retry cùng thao tác; middleware chỉ là lưới an toàn.
+- `read(api.GET(...))` trả `{ data, asOf }` (`asOf` từ `X-Data-As-Of`) để `FreshnessIndicator` dùng (P-1); `write(api.POST(...))` trả body. Cả hai đổi response lỗi thành `ApiError` chứa Problem Details (DOC-30), `slug` và `traceId` (từ body, nếu không có thì từ `X-Trace-Id`); lỗi mạng vẫn là `TypeError` của `fetch` để retry phân biệt được.
 - Query key lấy từ `src/api/keys.ts`, khớp bảng DOC-26 §9 (ví dụ `keys.dlq.list(filters)` → `['etl', 'dlq', 'list', filters]`).
 - Endpoint `/sim/**` (E-90) không có trong `openapi.json` công khai; `src/api/sim.ts` khai báo schema zod theo DOC-25 §8 và validate response lúc chạy.
 

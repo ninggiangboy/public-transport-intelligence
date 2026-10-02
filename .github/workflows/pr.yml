@@ -125,6 +125,10 @@ jobs:
           key: pnpm-${{ runner.os }}-${{ hashFiles('frontend/pnpm-lock.yaml') }}
           restore-keys: pnpm-${{ runner.os }}-
       - run: pnpm install --frozen-lockfile
+      - name: Generated API types and examples match openapi.json (DOC-44 §9.3)
+        run: |
+          pnpm gen:api
+          git diff --exit-code -- src/api/generated/
       - name: Lint, format and typecheck
         run: |
           pnpm lint

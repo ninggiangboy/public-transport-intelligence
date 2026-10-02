@@ -239,6 +239,11 @@ test: ## Unit tests of every module
 	cd backend && ./gradlew --quiet test
 	@if [ -f frontend/package.json ]; then pnpm -C frontend test --run; fi
 
+.PHONY: openapi
+openapi: ## Write backend/api/openapi.json from the api, then the frontend types and MSW examples (DR-44)
+	cd backend && ./gradlew --quiet :api:updateOpenApi
+	pnpm -C frontend gen:api
+
 .PHONY: it
 it: ## Integration and contract tests (Testcontainers; needs Docker, not the compose stack)
 	cd backend && ./gradlew --quiet integrationTest contractTest

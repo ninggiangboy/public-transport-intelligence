@@ -12,6 +12,8 @@ Node 24 and pnpm 10 come from `mise install` in the repo root (or `corepack enab
 | --- | --- |
 | `pnpm install` | Install dependencies from `pnpm-lock.yaml` |
 | `pnpm dev` | Vite dev server on http://localhost:5173; `/api` is proxied to the api on http://localhost:8081 |
+| `pnpm dev:mock` | Same dev server without a backend: MSW answers `/api` with the examples of `openapi.json` |
+| `pnpm gen:api` | Regenerate `src/api/generated/` (types and examples) from `../backend/api/openapi.json`; CI fails when the committed files differ. `make openapi` in the repo root rewrites `openapi.json` first |
 | `pnpm build` | Typecheck, then build to `dist/` (with `dist/.vite/manifest.json` for the bundle budget) |
 | `pnpm preview` | Serve `dist/` on http://localhost:4173 |
 | `pnpm lint` / `pnpm format` / `pnpm typecheck` | ESLint, Prettier, `tsc -b` |
@@ -26,6 +28,18 @@ Node 24 and pnpm 10 come from `mise install` in the repo root (or `corepack enab
 - Components never call `fetch` or open an `EventSource`; requests go through `src/api/`, events through `src/realtime/`.
 - `src/features/*` do not import each other, and `src/components/` imports neither `features/` nor `api/`.
 - No `dangerouslySetInnerHTML`.
+
+## API client
+
+Calls go through `api` from `src/api/client.ts`, which is typed from the generated `paths`:
+
+```ts
+const { data, asOf } = await read(api.GET('/api/v1/stops/{stopId}', { params: { path: { stopId } } }));
+```
+
+`read` and `write` throw `ApiError` (Problem Details with its `slug` and `traceId`) on a non-2xx response. In tests,
+`server.use(respond('get', '/api/v1/routes', body))` overrides one operation with a body that must match its type,
+and `respondProblem(...)` answers with Problem Details.
 
 Routes are files under `src/routes/` (TanStack Router); the Vite plugin regenerates `src/routeTree.gen.ts`, which is
 committed so that `tsc` works on a fresh clone.
