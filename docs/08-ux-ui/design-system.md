@@ -158,6 +158,8 @@ Dùng cho icon xe trên bản đồ, cột trễ trong danh sách, đoạn tuy�
 
 **Bunching** có màu riêng không dùng cho việc gì khác: `--bunching` `#C026D3` (dark `#D85BE6`), nền nhạt `--bunching-soft` `#FBEAFD` (dark 16%). Dùng cho halo và đường nối trên bản đồ, badge "Bunching" (`tone-bunching`), đường headway trong biểu đồ.
 
+Cài đặt (P5-03): `--bunching` trên `--bunching-soft` chỉ đạt khoảng 4,1:1 nên chữ của badge và callout bunching dùng thêm `--bunching-fg` (light `#A21CAF`, dark `#EBA6F4`) và viền `--bunching-border`. Hai biến này, cùng `--scrim` (lớp mờ sau dialog/drawer) và nhóm `--code-*` của §5.6, nằm trong `tokens.css` ở cả hai theme.
+
 ### 3.5 Bảng màu biểu đồ
 
 - **Phân loại** `--chart-1` … `--chart-8` (series không phải nguồn), theo thứ tự: light `#4F57D9`, `#22A39A`, `#E59A1A`, `#C026D3`, `#3B7BEA`, `#E0454F`, `#84A83A`, `#9AA0A9`; dark `#7C83F2`, `#26B2A8`, `#ECA62E`, `#D85BE6`, `#4E8CF0`, `#F0616A`, `#9BC04C`, `#7C818B`.
@@ -432,6 +434,7 @@ interface JsonEditorProps {
 - `JsonViewer` và `JsonEditor` luôn là **khối code tối** ở cả hai theme (nền `#15161B`, viền `#23252C`, số dòng `#50545E`, bo 12 px) với thanh trên ghi tên file và nút "Copy". Có `compareTo` thì hiện diff theo dòng: dòng xóa nền đỏ 14% và dấu "−", dòng thêm nền xanh 16% và dấu "+" (dùng cho "Edited" so với "Original" ở Dead letters).
 - `JsonEditor` tải CodeMirror qua `React.lazy` (DOC-34 §7). Có lint JSON cú pháp phía client; lỗi schema từ server gắn vào dòng theo JSON Pointer (tìm vị trí khóa trong văn bản; không tìm được thì hiện ở danh sách dưới trình sửa).
 - Phím `Esc` trong trình sửa **không** đóng drawer (tránh mất bản sửa); có nút "Discard changes" riêng.
+- Cài đặt (P5-03): bảng màu khối code là token `--code-*` trong `tokens.css` (không còn mã hex trong component, DS-11). Số dòng `#50545E` chỉ đạt 2,4:1 nên được vẽ bằng nội dung sinh ra (`::before` với `data-line`): đúng màu của prototype, không nằm trong văn bản được đọc, chọn, sao chép hay kiểm tương phản.
 
 ### 5.7 Biểu đồ
 
@@ -573,7 +576,7 @@ Mục tiêu **WCAG 2.2 AA** cho màn hành khách (NFR-11) và cùng tiêu chí,
 
 ## 10. Trang `/_ui`
 
-Route chỉ có trong bản build dev (`import.meta.env.DEV`), đáp ứng P5-03. Bố cục như artifact "PTI Design System" (DR-88): trang bìa, bảng màu, thang chữ, rồi liệt kê mọi component ở §5 với mọi biến thể (mọi severity, mọi `(domain, status)`, mọi mức tin cậy, mọi lớp trễ, `ErrorState` cho từng slug của DOC-30, bảng 10.000 dòng giả), cạnh nhau ở hai theme. Playwright chạy axe trên trang này.
+Route chỉ có trong bản build dev (`import.meta.env.DEV`) hoặc bản build đặt `VITE_PTI_UI_CATALOG=true` (build của `pnpm e2e`, để chạy axe); image `pti-frontend` không đặt biến này nên trả 404. URL là `/_ui` đúng nghĩa đen (file route `[_]ui.tsx`), đáp ứng P5-03. Bố cục như artifact "PTI Design System" (DR-88): trang bìa, bảng màu, thang chữ, rồi liệt kê mọi component ở §5 với mọi biến thể (mọi severity, mọi `(domain, status)`, mọi mức tin cậy, mọi lớp trễ, `ErrorState` cho từng slug của DOC-30, bảng 10.000 dòng giả), cạnh nhau ở hai theme. Playwright chạy axe trên trang này. Bảng 10.000 dòng giả (`DataTable`) và `JsonEditor` thuộc P5-10 nên chưa có trong trang.
 
 ## 11. Test bắt buộc
 

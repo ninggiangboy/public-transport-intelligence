@@ -29,6 +29,14 @@ Node 24 and pnpm 10 come from `mise install` in the repo root (or `corepack enab
 - `src/features/*` do not import each other, and `src/components/` imports neither `features/` nor `api/`.
 - No `dangerouslySetInnerHTML`.
 
+## Design system
+
+Tokens live in `src/styles/tokens.css` (the only file with hex colours) and are mapped to Tailwind utilities in
+`globals.css`; shared components are in `src/components/` ([DOC-35](../docs/08-ux-ui/design-system.md)). Open
+http://localhost:5173/_ui under `pnpm dev` to see every component and variant in light and dark. The page is not in the
+image: a production build serves it only when built with `VITE_PTI_UI_CATALOG=true`, which `pnpm e2e` does for its axe
+check (DS-01).
+
 ## API client
 
 Calls go through `api` from `src/api/client.ts`, which is typed from the generated `paths`:

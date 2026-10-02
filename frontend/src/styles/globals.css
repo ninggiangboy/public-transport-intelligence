@@ -1,5 +1,188 @@
-/* Tailwind entry. Design tokens (DOC-35) are added in P5-03 as src/styles/tokens.css. */
+/* Tailwind entry. Tokens (DOC-35 §3, §4) live in tokens.css, fonts in fonts.css; @theme inline below maps them to utilities. */
 @import 'tailwindcss';
 @import 'tw-animate-css';
+@import './fonts.css';
+@import './tokens.css';
 
 @custom-variant dark (&:where(.dark, .dark *));
+
+@theme inline {
+  /* Colours (DOC-35 §3.1) */
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-muted: var(--muted);
+  --color-muted-2: var(--muted-2);
+  --color-foreground: var(--foreground);
+  --color-foreground-2: var(--foreground-2);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-subtle-foreground: var(--subtle-foreground);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-soft: var(--primary-soft);
+  --color-primary-soft-fg: var(--primary-soft-fg);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-bunching: var(--bunching);
+  --color-bunching-soft: var(--bunching-soft);
+  --color-bunching-fg: var(--bunching-fg);
+  --color-bunching-border: var(--bunching-border);
+
+  /* Tones (§3.2): bg-tone-warning-bg, text-tone-warning-fg, border-tone-warning-border, bg-tone-warning-solid */
+  --color-tone-neutral-bg: var(--tone-neutral-bg);
+  --color-tone-neutral-fg: var(--tone-neutral-fg);
+  --color-tone-neutral-border: var(--tone-neutral-border);
+  --color-tone-neutral-solid: var(--tone-neutral-solid);
+  --color-tone-info-bg: var(--tone-info-bg);
+  --color-tone-info-fg: var(--tone-info-fg);
+  --color-tone-info-border: var(--tone-info-border);
+  --color-tone-info-solid: var(--tone-info-solid);
+  --color-tone-success-bg: var(--tone-success-bg);
+  --color-tone-success-fg: var(--tone-success-fg);
+  --color-tone-success-border: var(--tone-success-border);
+  --color-tone-success-solid: var(--tone-success-solid);
+  --color-tone-teal-bg: var(--tone-teal-bg);
+  --color-tone-teal-fg: var(--tone-teal-fg);
+  --color-tone-teal-border: var(--tone-teal-border);
+  --color-tone-teal-solid: var(--tone-teal-solid);
+  --color-tone-warning-bg: var(--tone-warning-bg);
+  --color-tone-warning-fg: var(--tone-warning-fg);
+  --color-tone-warning-border: var(--tone-warning-border);
+  --color-tone-warning-solid: var(--tone-warning-solid);
+  --color-tone-danger-bg: var(--tone-danger-bg);
+  --color-tone-danger-fg: var(--tone-danger-fg);
+  --color-tone-danger-border: var(--tone-danger-border);
+  --color-tone-danger-solid: var(--tone-danger-solid);
+  --color-tone-progress-bg: var(--tone-progress-bg);
+  --color-tone-progress-fg: var(--tone-progress-fg);
+  --color-tone-progress-border: var(--tone-progress-border);
+  --color-tone-progress-solid: var(--tone-progress-solid);
+
+  /* Delay classes (§3.4) */
+  --color-delay-early: var(--delay-early);
+  --color-delay-on-time: var(--delay-on-time);
+  --color-delay-late: var(--delay-late);
+  --color-delay-very-late: var(--delay-very-late);
+  --color-delay-unknown: var(--delay-unknown);
+
+  /* Charts (§3.5), basemap (§3.6) and the code block (§5.6) */
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-chart-6: var(--chart-6);
+  --color-chart-7: var(--chart-7);
+  --color-chart-8: var(--chart-8);
+  --color-heat-1: var(--heat-1);
+  --color-heat-2: var(--heat-2);
+  --color-heat-3: var(--heat-3);
+  --color-heat-4: var(--heat-4);
+  --color-heat-5: var(--heat-5);
+  --color-heat-6: var(--heat-6);
+  --color-heat-7: var(--heat-7);
+  --color-map-land: var(--map-land);
+  --color-map-water: var(--map-water);
+  --color-map-park: var(--map-park);
+  --color-map-block: var(--map-block);
+  --color-map-road: var(--map-road);
+  --color-map-casing: var(--map-casing);
+  --color-map-label: var(--map-label);
+  --color-scrim: var(--scrim);
+  --color-code-bg: var(--code-bg);
+  --color-code-border: var(--code-border);
+  --color-code-line-number: var(--code-line-number);
+  --color-code-bar-fg: var(--code-bar-fg);
+  --color-code-fg: var(--code-fg);
+  --color-code-key: var(--code-key);
+  --color-code-string: var(--code-string);
+  --color-code-number: var(--code-number);
+  --color-code-literal: var(--code-literal);
+  --color-code-punctuation: var(--code-punctuation);
+  --color-code-add-bg: var(--code-add-bg);
+  --color-code-del-bg: var(--code-del-bg);
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    font-size: var(--text-base);
+    line-height: var(--text-base--line-height);
+    letter-spacing: var(--tracking-body);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Focus is visible for the keyboard only (DOC-35 §4.2, §8). */
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+
+  ::placeholder {
+    color: var(--subtle-foreground);
+  }
+
+  /* Skeleton shimmer, 1.6 s (DOC-35 §4.4). */
+  @keyframes pti-shimmer {
+    from {
+      background-position: 200% 0;
+    }
+    to {
+      background-position: -200% 0;
+    }
+  }
+
+  /* Highlight of a new row, 2 s (DOC-35 §4.4, DOC-34 P-5). */
+  @keyframes pti-highlight {
+    from {
+      background-color: var(--tone-info-bg);
+    }
+    to {
+      background-color: transparent;
+    }
+  }
+}
+
+@utility animate-shimmer {
+  background-image: linear-gradient(90deg, var(--muted) 25%, var(--muted-2) 50%, var(--muted) 75%);
+  background-size: 200% 100%;
+  animation: pti-shimmer 1.6s linear infinite;
+}
+
+@utility animate-highlight {
+  animation: pti-highlight 2s var(--ease-out) 1 forwards;
+}
+
+/* prefers-reduced-motion: no transitions or animations; spinners stand still (DOC-35 §4.4, DS-09). */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

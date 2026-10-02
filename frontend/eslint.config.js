@@ -108,10 +108,27 @@ export default tseslint.config(
     rules: { 'i18next/no-literal-string': 'off' },
   },
   {
+    // The /_ui catalogue (DOC-35 §10) is a developer page whose props are sample data (ids, colours, iso durations);
+    // its headings and sentences still come from src/i18n/catalog.ts.
+    files: ['src/catalog/**'],
+    rules: { 'i18next/no-literal-string': 'off' },
+  },
+  {
     // shadcn/ui primitives export variants next to components; route files export `Route`, and the router plugin
-    // splits their components into separate chunks that refresh on their own.
-    files: ['src/components/ui/**', 'src/routes/**'],
+    // splits their components into separate chunks that refresh on their own. A context module keeps its provider and
+    // hook together.
+    files: ['src/components/ui/**', 'src/routes/**', 'src/app/theme-provider.tsx', 'src/lib/business-clock.tsx'],
     rules: { 'react-refresh/only-export-components': 'off' },
+  },
+  {
+    // `throw notFound()` is TanStack Router's way to answer 404 from beforeLoad (DOC-34 §5.2); it is a plain object.
+    files: ['src/routes/**'],
+    rules: {
+      '@typescript-eslint/only-throw-error': [
+        'error',
+        { allow: [{ from: 'package', package: '@tanstack/router-core', name: 'NotFoundError' }] },
+      ],
+    },
   },
   {
     files: ['*.{js,ts}', 'e2e/**', 'scripts/**'],

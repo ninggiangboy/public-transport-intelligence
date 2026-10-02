@@ -1,3 +1,5 @@
+import { designSystemCopy } from '@/i18n/design-system';
+
 // Every user-visible string of the app (DR-48, DOC-37). ESLint rejects JSX string literals anywhere else.
 export const en = {
   app: {
@@ -17,4 +19,6 @@ export const en = {
     body: "The page you're looking for doesn't exist.",
     action: 'Go to the map',
   },
+  // Shared design-system components and formats (P5-03); see design-system.ts.
+  ...designSystemCopy,
 } as const;

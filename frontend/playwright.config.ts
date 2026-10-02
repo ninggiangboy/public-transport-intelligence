@@ -17,7 +17,14 @@ export default defineConfig({
     video: 'retain-on-failure',
   },
   projects: [{ name: 'main', use: { ...devices['Desktop Chrome'] } }],
+  // The preview build keeps the /_ui design-system catalogue (DOC-35 §10, DS-01); the image build does not set the flag.
   webServer: process.env.E2E_BASE_URL
     ? undefined
-    : { command: 'pnpm build && pnpm preview', url: baseURL, reuseExistingServer: !isCi, timeout: 120_000 },
+    : {
+        command: 'pnpm build && pnpm preview',
+        url: baseURL,
+        reuseExistingServer: !isCi,
+        timeout: 120_000,
+        env: { VITE_PTI_UI_CATALOG: 'true' },
+      },
 });
