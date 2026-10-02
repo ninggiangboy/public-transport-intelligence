@@ -24,8 +24,12 @@ final class AlertProjection {
 
     private AlertProjection() {}
 
+    static List<String> publicBodyKeys(AlertType type) {
+        return PUBLIC_BODY_KEYS.getOrDefault(type, List.of());
+    }
+
     static Alert forAnonymous(Alert alert) {
-        List<String> allowed = PUBLIC_BODY_KEYS.getOrDefault(alert.type(), List.of());
+        List<String> allowed = publicBodyKeys(alert.type());
         Map<String, Object> body = new LinkedHashMap<>();
         allowed.stream()
                 .filter(alert.body()::containsKey)

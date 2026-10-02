@@ -7101,6 +7101,93 @@
         "tags" : [ "stop-arrivals-controller" ]
       }
     },
+    "/api/v1/stream" : {
+      "get" : {
+        "operationId" : "openEventStream",
+        "parameters" : [ {
+          "description" : "Channels, comma separated: vehicles, alerts, jobs, dlq (jobs and dlq need a viewer)",
+          "in" : "query",
+          "name" : "channels",
+          "required" : false,
+          "schema" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          }
+        }, {
+          "description" : "Only these routes (at most 20); events without a route are always sent",
+          "in" : "query",
+          "name" : "routeId",
+          "required" : false,
+          "schema" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          }
+        }, {
+          "description" : "The id of the last event received, to get what was missed",
+          "in" : "header",
+          "name" : "Last-Event-ID",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "caller",
+          "required" : true,
+          "schema" : {
+            "$ref" : "#/components/schemas/Caller"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "text/event-stream" : {
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            },
+            "description" : "The event stream; a frame is an id, an event type and one line of JSON"
+          },
+          "400" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Invalid request"
+          },
+          "429" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Too many requests"
+          },
+          "503" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Service temporarily unavailable"
+          }
+        },
+        "summary" : "Server-sent events: vehicle positions, alerts, job runs and dead-letter changes (DOC-33)",
+        "tags" : [ "stream-controller" ]
+      }
+    },
     "/api/v1/system/freshness" : {
       "get" : {
         "operationId" : "getFreshness",

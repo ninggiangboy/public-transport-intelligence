@@ -4,6 +4,7 @@ import dev.pti.common.events.Audience;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.jspecify.annotations.Nullable;
@@ -36,6 +37,11 @@ public record Alert(
     /** The alert as an anonymous caller may see it: see {@link AlertProjection}. */
     public Alert forAnonymous() {
         return AlertProjection.forAnonymous(this);
+    }
+
+    /** The keys of {@code body} an anonymous caller sees for an alert of the type (DOC-32 E-20, DOC-33 §4). */
+    public static List<String> publicBodyKeys(AlertType type) {
+        return AlertProjection.publicBodyKeys(type);
     }
 
     /** {@link AlertLinks#of}: where the screens take the user for this alert. */

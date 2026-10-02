@@ -18,27 +18,26 @@ public final class AlertLinks {
     private AlertLinks() {}
 
     public static String of(Alert alert) {
-        return switch (alert.type()) {
-            case DISRUPTION -> map(alert, "disruption");
-            case BUNCHING -> map(alert, "bunching");
-            case TICKETING_ANOMALY -> ticketing(alert);
+        return of(alert.type(), alert.routeId(), alert.refId(), alert.body());
+    }
+
+    /** As {@link #of(Alert)}, from the fields of an alert, for an alert that comes as a UI event (DOC-33 §5.5). */
+    public static String of(
+            AlertType type, @Nullable String routeId, @Nullable String refId, Map<String, Object> body) {
+        return switch (type) {
+            case DISRUPTION -> map(routeId, refId, "disruption");
+            case BUNCHING -> map(routeId, refId, "bunching");
+            case TICKETING_ANOMALY -> refId == null ? "/ops/ticketing" : "/ops/ticketing?anomaly=" + refId;
             case DLQ_SEVERE -> "/ops/dlq?severity=2&status=NEW,MANUAL,PENDING_CONFIRM";
             case FEED_STALE -> "/ops/jobs?kind=STREAM";
-            case INFRA -> runbook(alert.body());
+            case INFRA -> runbook(body);
         };
     }
 
-    private static String ticketing(Alert alert) {
-        String ref = alert.refId();
-        return ref == null ? "/ops/ticketing" : "/ops/ticketing?anomaly=" + ref;
-    }
-
     /** The map of the route with the episode selected; an alert that lacks either still gets a sensible link. */
-    private static String map(Alert alert, String parameter) {
+    private static String map(@Nullable String route, @Nullable String ref, String parameter) {
         StringBuilder link = new StringBuilder("/map");
         char separator = '?';
-        String route = alert.routeId();
-        String ref = alert.refId();
         if (route != null) {
             link.append(separator).append("route=").append(route);
             separator = '&';
