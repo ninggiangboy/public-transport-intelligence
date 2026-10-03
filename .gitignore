@@ -42,3 +42,6 @@ backups/
 deploy/tiles/*.pmtiles
 deploy/tiles/fonts/
 deploy/tiles/sprites/
+
+# Claude Code worktrees
+.claude/worktrees/
