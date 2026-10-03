@@ -436,7 +436,7 @@ Datasource Postgres dùng user `api_reader` (DOC-39 §3.7): đọc được bộ
 | `management.endpoints.web.exposure.include` | `health,info,prometheus` | DOC-29 §2 |
 | `management.metrics.tags.application` | `${spring.application.name}` | |
 | `management.metrics.distribution.slo.*` | bucket ở §2 | |
-| `management.tracing.enabled` | `${PTI_TRACING_ENABLED:false}` | DOC-39: `make up-obs` bật |
+| `management.tracing.export.enabled` | `${PTI_TRACING_ENABLED:false}` | DOC-39: `make up-obs` bật |
 | `management.tracing.sampling.probability` | §5.1 | |
 | `management.opentelemetry.tracing.export.otlp.endpoint` | `http://otel-collector:4318/v1/traces` | Tên key của Spring Boot 4.1; `management.otlp.tracing.endpoint` đã deprecated (DR-98) |
 | `management.logging.export.otlp.enabled` | `false` | Log đi qua stdout và Alloy, không qua OTLP (DR-50) |

@@ -54,7 +54,6 @@ class StreamObservabilityIT {
         registry.add("spring.datasource.url", () -> MigratedDatabases.jdbcUrl("pti_warehouse"));
         registry.add("spring.datasource.password", () -> MigratedDatabases.password("etl_writer"));
         registry.add("pti.kafka.topic-prefix", () -> PREFIX);
-        registry.add("management.tracing.enabled", () -> "true");
         registry.add("management.tracing.export.enabled", () -> "false");
         registry.add("server.port", () -> "0");
         registry.add("management.server.port", () -> "0");

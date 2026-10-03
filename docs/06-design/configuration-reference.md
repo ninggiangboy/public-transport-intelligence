@@ -33,7 +33,7 @@ Cột **Trạng thái** của từng key:
 | `spring.profiles.active` | `etl`: `stream` hoặc `batch`, có thể thêm `experiment` (DR-27). `api`, `source-simulator`: có thể thêm `demo` (DR-49) | | Chốt |
 | `management.endpoints.web.exposure.include` | `health,info,prometheus` | | Chốt (DOC-28 §8) |
 | `management.server.port` | `9080` | Tách actuator khỏi cổng app | Chốt |
-| `management.tracing.enabled` / `.sampling.probability` | `${PTI_TRACING_ENABLED:false}` / theo app (DOC-28 §5.1) | | Chốt |
+| `management.tracing.export.enabled` / `.sampling.probability` | `${PTI_TRACING_ENABLED:false}` / theo app (DOC-28 §5.1) | | Chốt |
 | `logging.structured.format.console` | `ecs` | DOC-28 §4 | Chốt |
 | `spring.kafka.template.observation-enabled`, `spring.kafka.listener.observation-enabled` | `true` | DR-50 | Chốt |
 | `pti.observability.freshness-probe.interval` (api), `.slot-probe.interval` (simulator), `.connector-probe.interval` (etl-stream) | `15s` / `30s` / `15s` | Gauge thay exporter (DR-71) | Chốt |

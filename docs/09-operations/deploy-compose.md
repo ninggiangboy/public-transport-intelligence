@@ -109,11 +109,11 @@ x-spring-env: &spring-env
   PTI_CLOCK_OFFSET: ${PTI_CLOCK_OFFSET:-0s}
   SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
   MANAGEMENT_OPENTELEMETRY_TRACING_EXPORT_OTLP_ENDPOINT: http://otel-collector:4318/v1/traces
-  MANAGEMENT_TRACING_ENABLED: ${PTI_TRACING_ENABLED:-false}
+  MANAGEMENT_TRACING_EXPORT_ENABLED: ${PTI_TRACING_ENABLED:-false}
 ```
 
 - Image từ Jib dựa trên `eclipse-temurin:25-jre` (Ubuntu), có `bash` nhưng không có `curl`, nên healthcheck dùng `/dev/tcp` của bash. Jib đặt thêm JVM flag `--enable-native-access=ALL-UNNAMED`, vì `zstd-jni` (nén của Kafka client) nạp thư viện native.
-- `MANAGEMENT_TRACING_ENABLED` mặc định `false`; `make up-obs` và `make up-all` đặt `PTI_TRACING_ENABLED=true`. Khi không có `otel-collector`, exporter không spam log lỗi.
+- `MANAGEMENT_TRACING_EXPORT_ENABLED` mặc định `false`; `make up-obs` và `make up-all` đặt `PTI_TRACING_ENABLED=true`. Khi không có `otel-collector`, exporter không spam log lỗi.
 - `-XX:+ExitOnOutOfMemoryError`: JVM hết heap thì thoát và compose khởi động lại, thay vì chạy tiếp ở trạng thái hỏng.
 
 | Service | Image | Env riêng | Cổng host | `mem_limit` / CPU |

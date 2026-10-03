@@ -83,7 +83,8 @@ management:
       enabled: true
   # Traces go to the OTel Collector (DOC-28 §5, DR-50); logs stay on stdout for Alloy, never OTLP.
   tracing:
-    enabled: ${PTI_TRACING_ENABLED:false}
+    export:
+      enabled: ${PTI_TRACING_ENABLED:false}
     sampling:
       probability: 1.0
   opentelemetry:

@@ -231,7 +231,7 @@ releases:
 | `SPRING_PROFILES_INCLUDE` | `k8s` (+ `demo` khi `demo: true`; + `static-jwt` cho `api` ở `lite`) | Profile `k8s` chỉ đặt `pti.env=k3d` (label `env` của log và metric, DOC-28 §2) |
 | `PTI_CLOCK_OFFSET` | `.Values.global.clockOffset` (mặc định `0s`) | Runner EXP-07/08 đặt bằng `helmfile -e lite apply --set global.clockOffset=…` rồi rollout (§14) |
 | `SPRING_KAFKA_BOOTSTRAP_SERVERS` | `pti-kafka-bootstrap:9092` | Service do Strimzi tạo cho Kafka tên `pti` |
-| `PTI_TRACING_ENABLED` | `true` (dev, staging), `false` (lite) | Ánh xạ tới `management.tracing.enabled` (DOC-29 §2) |
+| `PTI_TRACING_ENABLED` | `true` (dev, staging), `false` (lite) | Ánh xạ tới `management.tracing.export.enabled` (DOC-29 §2) |
 | `MANAGEMENT_TRACING_SAMPLING_PROBABILITY` | Cột k3d của DOC-28 §5.1 | |
 | `MANAGEMENT_OTLP_TRACING_ENDPOINT` | `http://otel-collector.monitoring:4318/v1/traces` | |
 

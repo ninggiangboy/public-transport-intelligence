@@ -51,7 +51,8 @@ management:
         http.server.requests: 25ms,50ms,100ms,200ms,300ms,500ms,1s,2s,5s
   # One producer span per message: 5% keeps Tempo within bounds at peak (DOC-28 §5.1).
   tracing:
-    enabled: ${PTI_TRACING_ENABLED:false}
+    export:
+      enabled: ${PTI_TRACING_ENABLED:false}
     sampling:
       probability: 0.05
   opentelemetry:

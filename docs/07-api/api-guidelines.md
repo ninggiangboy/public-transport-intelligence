@@ -147,7 +147,7 @@ Endpoint mà số phần tử bị chặn bởi bản chất dữ liệu trả t
 
 | Header | Khi nào | Giá trị |
 | --- | --- | --- |
-| `X-Trace-Id` | Mọi response, kể cả lỗi và SSE (FR-10.6) | Trace id của request (32 hex). Có ngay cả khi tracing tắt (`MANAGEMENT_TRACING_ENABLED=false`): khi đó filter tự sinh id ngẫu nhiên và đưa vào MDC |
+| `X-Trace-Id` | Mọi response, kể cả lỗi và SSE (FR-10.6) | Trace id của request (32 hex). Có ngay cả khi tracing tắt (`MANAGEMENT_TRACING_EXPORT_ENABLED=false`): khi đó filter tự sinh id ngẫu nhiên và đưa vào MDC |
 | `X-Data-As-Of` | Response dữ liệu (nhóm vận tải, insight, cảnh báo, freshness) | Thời điểm (ISO-8601 UTC, event time) của dữ liệu mới nhất mà response phản ánh; quy tắc ở §7.3. Không có ở endpoint vận hành ETL và response ghi |
 | `Cache-Control` | Mọi response | §10.3 |
 | `Location` | `201`/`202` tạo tài nguyên | URL tuyệt đối-đường dẫn (`/api/v1/etl/replays/{id}`) |
