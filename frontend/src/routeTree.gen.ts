@@ -11,6 +11,20 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as UiRouteImport } from './routes/[_]ui'
+import { Route as AlertsRouteImport } from './routes/alerts'
+import { Route as MapRouteImport } from './routes/map'
+import { Route as OverviewRouteImport } from './routes/overview'
+import { Route as AuthCallbackRouteImport } from './routes/auth/callback'
+import { Route as OpsIndexRouteImport } from './routes/ops/index'
+import { Route as OpsControlsRouteImport } from './routes/ops/controls'
+import { Route as OpsDemoRouteImport } from './routes/ops/demo'
+import { Route as OpsDlqRouteImport } from './routes/ops/dlq'
+import { Route as OpsJobsRouteImport } from './routes/ops/jobs'
+import { Route as OpsReplayRouteImport } from './routes/ops/replay'
+import { Route as OpsTicketingRouteImport } from './routes/ops/ticketing'
+import { Route as ScorecardIndexRouteImport } from './routes/scorecard/index'
+import { Route as StopsIndexRouteImport } from './routes/stops/index'
+import { Route as StopsStopIdRouteImport } from './routes/stops/$stopId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -22,31 +36,206 @@ const UiRoute = UiRouteImport.update({
   path: '/_ui',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AlertsRoute = AlertsRouteImport.update({
+  id: '/alerts',
+  path: '/alerts',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MapRoute = MapRouteImport.update({
+  id: '/map',
+  path: '/map',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OverviewRoute = OverviewRouteImport.update({
+  id: '/overview',
+  path: '/overview',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthCallbackRoute = AuthCallbackRouteImport.update({
+  id: '/auth/callback',
+  path: '/auth/callback',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OpsIndexRoute = OpsIndexRouteImport.update({
+  id: '/ops/',
+  path: '/ops/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OpsControlsRoute = OpsControlsRouteImport.update({
+  id: '/ops/controls',
+  path: '/ops/controls',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OpsDemoRoute = OpsDemoRouteImport.update({
+  id: '/ops/demo',
+  path: '/ops/demo',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OpsDlqRoute = OpsDlqRouteImport.update({
+  id: '/ops/dlq',
+  path: '/ops/dlq',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OpsJobsRoute = OpsJobsRouteImport.update({
+  id: '/ops/jobs',
+  path: '/ops/jobs',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OpsReplayRoute = OpsReplayRouteImport.update({
+  id: '/ops/replay',
+  path: '/ops/replay',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OpsTicketingRoute = OpsTicketingRouteImport.update({
+  id: '/ops/ticketing',
+  path: '/ops/ticketing',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ScorecardIndexRoute = ScorecardIndexRouteImport.update({
+  id: '/scorecard/',
+  path: '/scorecard/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StopsIndexRoute = StopsIndexRouteImport.update({
+  id: '/stops/',
+  path: '/stops/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StopsStopIdRoute = StopsStopIdRouteImport.update({
+  id: '/stops/$stopId',
+  path: '/stops/$stopId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/_ui': typeof UiRoute
+  '/alerts': typeof AlertsRoute
+  '/map': typeof MapRoute
+  '/overview': typeof OverviewRoute
+  '/auth/callback': typeof AuthCallbackRoute
+  '/ops/controls': typeof OpsControlsRoute
+  '/ops/demo': typeof OpsDemoRoute
+  '/ops/dlq': typeof OpsDlqRoute
+  '/ops/jobs': typeof OpsJobsRoute
+  '/ops/replay': typeof OpsReplayRoute
+  '/ops/ticketing': typeof OpsTicketingRoute
+  '/stops/$stopId': typeof StopsStopIdRoute
+  '/ops/': typeof OpsIndexRoute
+  '/scorecard/': typeof ScorecardIndexRoute
+  '/stops/': typeof StopsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/_ui': typeof UiRoute
+  '/alerts': typeof AlertsRoute
+  '/map': typeof MapRoute
+  '/overview': typeof OverviewRoute
+  '/auth/callback': typeof AuthCallbackRoute
+  '/ops/controls': typeof OpsControlsRoute
+  '/ops/demo': typeof OpsDemoRoute
+  '/ops/dlq': typeof OpsDlqRoute
+  '/ops/jobs': typeof OpsJobsRoute
+  '/ops/replay': typeof OpsReplayRoute
+  '/ops/ticketing': typeof OpsTicketingRoute
+  '/stops/$stopId': typeof StopsStopIdRoute
+  '/ops': typeof OpsIndexRoute
+  '/scorecard': typeof ScorecardIndexRoute
+  '/stops': typeof StopsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_ui': typeof UiRoute
+  '/alerts': typeof AlertsRoute
+  '/map': typeof MapRoute
+  '/overview': typeof OverviewRoute
+  '/auth/callback': typeof AuthCallbackRoute
+  '/ops/controls': typeof OpsControlsRoute
+  '/ops/demo': typeof OpsDemoRoute
+  '/ops/dlq': typeof OpsDlqRoute
+  '/ops/jobs': typeof OpsJobsRoute
+  '/ops/replay': typeof OpsReplayRoute
+  '/ops/ticketing': typeof OpsTicketingRoute
+  '/stops/$stopId': typeof StopsStopIdRoute
+  '/ops/': typeof OpsIndexRoute
+  '/scorecard/': typeof ScorecardIndexRoute
+  '/stops/': typeof StopsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/_ui'
+  fullPaths:
+    | '/'
+    | '/_ui'
+    | '/alerts'
+    | '/map'
+    | '/overview'
+    | '/auth/callback'
+    | '/ops/controls'
+    | '/ops/demo'
+    | '/ops/dlq'
+    | '/ops/jobs'
+    | '/ops/replay'
+    | '/ops/ticketing'
+    | '/stops/$stopId'
+    | '/ops/'
+    | '/scorecard/'
+    | '/stops/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/_ui'
-  id: '__root__' | '/' | '/_ui'
+  to:
+    | '/'
+    | '/_ui'
+    | '/alerts'
+    | '/map'
+    | '/overview'
+    | '/auth/callback'
+    | '/ops/controls'
+    | '/ops/demo'
+    | '/ops/dlq'
+    | '/ops/jobs'
+    | '/ops/replay'
+    | '/ops/ticketing'
+    | '/stops/$stopId'
+    | '/ops'
+    | '/scorecard'
+    | '/stops'
+  id:
+    | '__root__'
+    | '/'
+    | '/_ui'
+    | '/alerts'
+    | '/map'
+    | '/overview'
+    | '/auth/callback'
+    | '/ops/controls'
+    | '/ops/demo'
+    | '/ops/dlq'
+    | '/ops/jobs'
+    | '/ops/replay'
+    | '/ops/ticketing'
+    | '/stops/$stopId'
+    | '/ops/'
+    | '/scorecard/'
+    | '/stops/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   UiRoute: typeof UiRoute
+  AlertsRoute: typeof AlertsRoute
+  MapRoute: typeof MapRoute
+  OverviewRoute: typeof OverviewRoute
+  AuthCallbackRoute: typeof AuthCallbackRoute
+  OpsControlsRoute: typeof OpsControlsRoute
+  OpsDemoRoute: typeof OpsDemoRoute
+  OpsDlqRoute: typeof OpsDlqRoute
+  OpsJobsRoute: typeof OpsJobsRoute
+  OpsReplayRoute: typeof OpsReplayRoute
+  OpsTicketingRoute: typeof OpsTicketingRoute
+  StopsStopIdRoute: typeof StopsStopIdRoute
+  OpsIndexRoute: typeof OpsIndexRoute
+  ScorecardIndexRoute: typeof ScorecardIndexRoute
+  StopsIndexRoute: typeof StopsIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -65,12 +254,124 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof UiRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/alerts': {
+      id: '/alerts'
+      path: '/alerts'
+      fullPath: '/alerts'
+      preLoaderRoute: typeof AlertsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/map': {
+      id: '/map'
+      path: '/map'
+      fullPath: '/map'
+      preLoaderRoute: typeof MapRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/overview': {
+      id: '/overview'
+      path: '/overview'
+      fullPath: '/overview'
+      preLoaderRoute: typeof OverviewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth/callback': {
+      id: '/auth/callback'
+      path: '/auth/callback'
+      fullPath: '/auth/callback'
+      preLoaderRoute: typeof AuthCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ops/': {
+      id: '/ops/'
+      path: '/ops'
+      fullPath: '/ops/'
+      preLoaderRoute: typeof OpsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ops/controls': {
+      id: '/ops/controls'
+      path: '/ops/controls'
+      fullPath: '/ops/controls'
+      preLoaderRoute: typeof OpsControlsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ops/demo': {
+      id: '/ops/demo'
+      path: '/ops/demo'
+      fullPath: '/ops/demo'
+      preLoaderRoute: typeof OpsDemoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ops/dlq': {
+      id: '/ops/dlq'
+      path: '/ops/dlq'
+      fullPath: '/ops/dlq'
+      preLoaderRoute: typeof OpsDlqRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ops/jobs': {
+      id: '/ops/jobs'
+      path: '/ops/jobs'
+      fullPath: '/ops/jobs'
+      preLoaderRoute: typeof OpsJobsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ops/replay': {
+      id: '/ops/replay'
+      path: '/ops/replay'
+      fullPath: '/ops/replay'
+      preLoaderRoute: typeof OpsReplayRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ops/ticketing': {
+      id: '/ops/ticketing'
+      path: '/ops/ticketing'
+      fullPath: '/ops/ticketing'
+      preLoaderRoute: typeof OpsTicketingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/scorecard/': {
+      id: '/scorecard/'
+      path: '/scorecard'
+      fullPath: '/scorecard/'
+      preLoaderRoute: typeof ScorecardIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/stops/': {
+      id: '/stops/'
+      path: '/stops'
+      fullPath: '/stops/'
+      preLoaderRoute: typeof StopsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/stops/$stopId': {
+      id: '/stops/$stopId'
+      path: '/stops/$stopId'
+      fullPath: '/stops/$stopId'
+      preLoaderRoute: typeof StopsStopIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   UiRoute: UiRoute,
+  AlertsRoute: AlertsRoute,
+  MapRoute: MapRoute,
+  OverviewRoute: OverviewRoute,
+  AuthCallbackRoute: AuthCallbackRoute,
+  OpsControlsRoute: OpsControlsRoute,
+  OpsDemoRoute: OpsDemoRoute,
+  OpsDlqRoute: OpsDlqRoute,
+  OpsJobsRoute: OpsJobsRoute,
+  OpsReplayRoute: OpsReplayRoute,
+  OpsTicketingRoute: OpsTicketingRoute,
+  StopsStopIdRoute: StopsStopIdRoute,
+  OpsIndexRoute: OpsIndexRoute,
+  ScorecardIndexRoute: ScorecardIndexRoute,
+  StopsIndexRoute: StopsIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

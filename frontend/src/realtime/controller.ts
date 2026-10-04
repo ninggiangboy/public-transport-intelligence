@@ -27,6 +27,7 @@ import {
   HIDDEN_CLOSE_MS,
   LAST_EVENT_PUBLISH_MS,
   MAX_ROUTE_IDS,
+  POLL_PERIOD_MS,
   POLLING_AFTER_MS,
   RESTRICTED_CHANNELS,
   RESUBSCRIBE_DEBOUNCE_MS,
@@ -472,8 +473,12 @@ export class RealtimeController {
       this.pollTimer = undefined;
       const session = this.session;
       if (!session || this.state.status === 'open') return;
-      this.publish({ status: 'polling' });
-      this.poller.start(this.pollTarget(session));
+      const target = this.pollTarget(session);
+      this.publish({
+        status: 'polling',
+        pollPeriodMs: Math.min(...target.channels.map((channel) => POLL_PERIOD_MS[channel])),
+      });
+      this.poller.start(target);
     }, POLLING_AFTER_MS);
   }
 

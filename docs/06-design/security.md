@@ -163,12 +163,12 @@ add_header X-Frame-Options "DENY" always;
 add_header Referrer-Policy "strict-origin-when-cross-origin" always;
 add_header Permissions-Policy "geolocation=(self), camera=(), microphone=(), payment=()" always;
 add_header Cross-Origin-Opener-Policy "same-origin" always;
-add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; worker-src 'self'; connect-src 'self' ${PTI_KEYCLOAK_URL} ${PTI_MAP_TILE_ORIGINS}; frame-src ${PTI_KEYCLOAK_URL}; frame-ancestors 'none'; base-uri 'self'; form-action 'self' ${PTI_KEYCLOAK_URL}; object-src 'none'" always;
+add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; worker-src 'self'; connect-src 'self' ${PTI_KEYCLOAK_URL} ${PTI_MAP_TILE_ORIGINS}; frame-src 'self' ${PTI_KEYCLOAK_URL}; frame-ancestors 'none'; base-uri 'self'; form-action 'self' ${PTI_KEYCLOAK_URL}; object-src 'none'" always;
 ```
 
 - `worker-src 'self'`, không có `blob:`: MapLibre 6 tạo module worker từ file cùng origin (`setWorkerUrl`, ADR-0021). S-05 chạy bản đồ dưới đúng CSP này (DR-82). Nếu `PTI_MAP_STYLE=online` thì style và tile đến từ `PTI_MAP_TILE_ORIGINS`, còn worker vẫn cùng origin.
 - `style-src 'unsafe-inline'`: MapLibre và ECharts đặt style inline trên phần tử; chấp nhận vì script vẫn bị khóa chặt.
-- `connect-src` và `frame-src` có origin Keycloak (`PTI_KEYCLOAK_URL`, mặc định `http://localhost:8180`) cho `signinSilent` và gọi token endpoint. `PTI_MAP_TILE_ORIGINS` rỗng khi dùng PMTiles cục bộ (DR-47), là origin tile server khi dev.
+- `connect-src` và `frame-src` có origin Keycloak (`PTI_KEYCLOAK_URL`, mặc định `http://localhost:8180`) cho `signinSilent` và gọi token endpoint. `frame-src` có thêm `'self'`: Keycloak chuyển iframe của `signinSilent` về `/auth/silent.html` trên origin của app. Riêng `location = /auth/silent.html` dùng `X-Frame-Options: SAMEORIGIN` và `frame-ancestors 'self'` (trang duy nhất app tự nhúng); mọi trang khác giữ `DENY`/`'none'`. `PTI_MAP_TILE_ORIGINS` rỗng khi dùng PMTiles cục bộ (DR-47), là origin tile server khi dev.
 - Giá trị `${…}` được entrypoint của image frontend thay lúc khởi động (cùng cơ chế với `env.js`, DOC-39).
 - `Strict-Transport-Security` chỉ bật ở profile `tls` (§5.5).
 - API tự đặt `X-Content-Type-Options: nosniff` và `Cache-Control` (DOC-31 §10.3) cho trường hợp gọi thẳng cổng 8081.

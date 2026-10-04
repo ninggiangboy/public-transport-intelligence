@@ -26,4 +26,13 @@ declare module '@tanstack/react-router' {
   interface Register {
     router: ReturnType<typeof createAppRouter>;
   }
+  /** What a route tells the shell about its layout (DOC-34 §4.2). */
+  interface StaticDataRouteOption {
+    /** Live map: content fills the area, no padding, no footer (attribution sits on the map). */
+    fullBleed?: boolean;
+    /** Pages without real-time or event-time data (Scorecard, Controls) show no StaleBanner (DOC-37 §2.4). */
+    hideStaleBanner?: boolean;
+    /** Pages rendered without the shell (the /_ui catalogue). */
+    bare?: boolean;
+  }
 }

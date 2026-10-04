@@ -117,7 +117,15 @@ export default tseslint.config(
     // shadcn/ui primitives export variants next to components; route files export `Route`, and the router plugin
     // splits their components into separate chunks that refresh on their own. A context module keeps its provider and
     // hook together.
-    files: ['src/components/ui/**', 'src/routes/**', 'src/app/theme-provider.tsx', 'src/lib/business-clock.tsx'],
+    files: [
+      'src/components/ui/**',
+      'src/routes/**',
+      'src/app/theme-provider.tsx',
+      'src/app/auth.tsx',
+      'src/app/env-context.tsx',
+      'src/app/freshness.tsx',
+      'src/lib/business-clock.tsx',
+    ],
     rules: { 'react-refresh/only-export-components': 'off' },
   },
   {

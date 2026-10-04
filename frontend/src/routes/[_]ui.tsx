@@ -13,6 +13,8 @@ export function isUiCatalogEnabled(): boolean {
 
 // The brackets escape the underscore: a bare leading `_` would make this file a pathless layout route.
 export const Route = createFileRoute('/_ui')({
+  // A developer page with its own layout, outside the shell.
+  staticData: { bare: true },
   beforeLoad: () => {
     if (!isUiCatalogEnabled()) throw notFound();
   },

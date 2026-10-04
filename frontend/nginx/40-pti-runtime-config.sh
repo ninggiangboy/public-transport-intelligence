@@ -42,17 +42,21 @@ for origin in $keycloak_url $tile_origins; do
   esac
 done
 
-frame_src="${keycloak_url:-'none'}"
+# signinSilent opens Keycloak in a hidden iframe, which Keycloak redirects back to /auth/silent.html on this origin
+# (DOC-34 §9.3): frame-src needs both.
+frame_src="'self' $keycloak_url"
 PTI_CSP="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: $tile_origins; font-src 'self'; worker-src 'self'; connect-src 'self' $keycloak_url $tile_origins; frame-src $frame_src; frame-ancestors 'none'; base-uri 'self'; form-action 'self' $keycloak_url; object-src 'none'"
 # Collapse the gaps left by empty origins.
 PTI_CSP="$(printf '%s' "$PTI_CSP" | tr -s ' ' | sed 's/ ;/;/g')"
+# /auth/silent.html is the one page the app frames, from its own origin only.
+PTI_CSP_SILENT="$(printf '%s' "$PTI_CSP" | sed "s/frame-ancestors 'none'/frame-ancestors 'self'/")"
 PTI_API_UPSTREAM="${PTI_API_UPSTREAM:-http://api:8080}"
 # 15-local-resolvers.envsh exports it when NGINX_ENTRYPOINT_LOCAL_RESOLVERS is set (Dockerfile).
 NGINX_LOCAL_RESOLVERS="${NGINX_LOCAL_RESOLVERS:-127.0.0.11}"
-export PTI_CSP PTI_API_UPSTREAM NGINX_LOCAL_RESOLVERS
+export PTI_CSP PTI_CSP_SILENT PTI_API_UPSTREAM NGINX_LOCAL_RESOLVERS
 
 # shellcheck disable=SC2016 # the variable names are for envsubst, not for the shell
-envsubst '${PTI_CSP} ${PTI_API_UPSTREAM} ${NGINX_LOCAL_RESOLVERS}' \
+envsubst '${PTI_CSP} ${PTI_CSP_SILENT} ${PTI_API_UPSTREAM} ${NGINX_LOCAL_RESOLVERS}' \
   </etc/nginx/pti/default.conf.template >/etc/nginx/conf.d/default.conf
 
 echo "$0: env.js rendered (mapStyle=$map_style, demoControl=$demo_control, keycloak=${keycloak_url:-none})"

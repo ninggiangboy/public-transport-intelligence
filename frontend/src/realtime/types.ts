@@ -14,6 +14,8 @@ export interface RealtimeState {
   status: RealtimeStatus;
   /** Wall clock of the last frame of any type (published at most once a second). */
   lastEventAt?: Date;
+  /** While `polling`: the shortest poll period of the subscribed channels, for "Refreshing every {n} s". */
+  pollPeriodMs?: number;
   /** From the last heartbeat. */
   businessNow?: string;
 }

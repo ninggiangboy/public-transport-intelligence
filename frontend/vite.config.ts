@@ -47,6 +47,13 @@ export default defineConfig(({ mode }) => ({
   build: {
     // dist/.vite/manifest.json is read by the bundle budget check (DOC-34 §7, UX-08).
     manifest: true,
+    // The app, and the page signinSilent loads in its iframe (DOC-34 §9.3).
+    rolldownOptions: {
+      input: {
+        main: fileURLToPath(new URL('./index.html', import.meta.url)),
+        silent: fileURLToPath(new URL('./auth/silent.html', import.meta.url)),
+      },
+    },
     target: 'es2023',
   },
   test: {

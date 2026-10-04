@@ -1,18 +1,16 @@
-import { createFileRoute } from '@tanstack/react-router';
+import { createFileRoute, Navigate } from '@tanstack/react-router';
 
-import { en } from '@/i18n/en';
+import { useAccess } from '@/app/access';
+import { homePath } from '@/app/shell/nav-items';
+import { PanelSkeleton } from '@/components/PanelSkeleton';
 
-// Placeholder until the shell (P5-04) redirects "/" to /overview or /map (DOC-34 §5.2).
+// "/" has no page: signed-in viewers and operators go to the overview, everyone else to the map (DOC-34 §5.2, UX-11).
 export const Route = createFileRoute('/')({
   component: Home,
 });
 
 function Home() {
-  return (
-    <main className="mx-auto flex min-h-svh max-w-xl flex-col justify-center gap-3 p-6">
-      <h1 className="text-3xl font-semibold tracking-tight">{en.app.name}</h1>
-      <p className="text-muted-foreground">{en.app.agency}</p>
-      <p>{en.scaffold.body}</p>
-    </main>
-  );
+  const access = useAccess();
+  if (access.pending) return <PanelSkeleton variant="detail" />;
+  return <Navigate to={homePath(access) as '/'} replace />;
 }

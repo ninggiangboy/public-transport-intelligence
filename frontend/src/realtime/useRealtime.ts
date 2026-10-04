@@ -33,6 +33,12 @@ export function useRealtime(options: RealtimeOptions): RealtimeState {
   return useSyncExternalStore(controller?.subscribe ?? noSubscribe, controller?.getState ?? outsideState);
 }
 
+/** The state of the stream without subscribing to any channel: for the shell's status dot and banners. */
+export function useRealtimeState(): RealtimeState {
+  const controller = useContext(RealtimeContext);
+  return useSyncExternalStore(controller?.subscribe ?? noSubscribe, controller?.getState ?? outsideState);
+}
+
 /** For the auth provider: `reconnect()` reopens the stream with the new token after `userLoaded` (DOC-26 §8.2). */
 export function useRealtimeControls(): { reconnect: () => void } {
   const controller = useContext(RealtimeContext);

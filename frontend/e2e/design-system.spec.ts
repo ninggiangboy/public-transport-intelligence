@@ -2,16 +2,15 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 
+import { collectErrors, withoutBackend } from './support';
+
 // The catalogue is built into the e2e build only (playwright.config.ts sets VITE_PTI_UI_CATALOG); the image does not have it.
 test.skip(Boolean(process.env.E2E_BASE_URL), 'The /_ui catalogue is not part of the image');
 
 for (const theme of ['light', 'dark'] as const) {
   test(`DS-01 /_ui has no serious accessibility violations in ${theme}`, async ({ page }) => {
-    const errors: string[] = [];
-    page.on('console', (message) => {
-      if (message.type() === 'error') errors.push(message.text());
-    });
-    page.on('pageerror', (error) => errors.push(error.message));
+    await withoutBackend(page);
+    const errors = collectErrors(page);
 
     await page.addInitScript((value) => {
       window.localStorage.setItem('pti.theme', value);

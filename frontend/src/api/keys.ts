@@ -28,6 +28,16 @@ export function normalizeFilters(filters: Filters | undefined): Filters {
 }
 
 export const keys = {
+  /** E-61: who is signed in and with which roles (DOC-34 §3). */
+  me: () => ['me'] as const,
+  system: {
+    /** E-60, polled every 15 s by the FreshnessProvider. */
+    freshness: () => ['system', 'freshness'] as const,
+  },
+  routes: {
+    /** E-01: every route of the active feed, cached for the session. */
+    list: () => ['routes'] as const,
+  },
   vehicles: {
     all: () => ['vehicles'] as const,
     /** Prefix of every live-vehicles query, whatever its route filter. */
@@ -37,14 +47,19 @@ export const keys = {
   alerts: {
     all: () => ['alerts'] as const,
     list: (filters?: Filters) => ['alerts', 'list', normalizeFilters(filters)] as const,
+    /** The unacknowledged alerts behind the sidebar count; under `alerts`, so alert events patch it. */
+    badge: () => ['alerts', 'badge'] as const,
   },
   insights: {
     bunching: (filters?: Filters) => ['insights', 'bunching', normalizeFilters(filters)] as const,
     dispatch: (filters?: Filters) => ['insights', 'dispatch', normalizeFilters(filters)] as const,
     disruption: (filters?: Filters) => ['insights', 'disruption', normalizeFilters(filters)] as const,
+    /** Ticketing anomalies of the last 24 hours behind the sidebar count. */
+    ticketingBadge: () => ['insights', 'ticketing', 'badge'] as const,
   },
   stops: {
     detail: (stopId: string) => ['stops', stopId, 'detail'] as const,
+    search: (q: string) => ['stops', 'search', q] as const,
   },
   etl: {
     jobs: {
@@ -61,5 +76,7 @@ export const keys = {
       summary: () => ['etl', 'dlq', 'summary'] as const,
       detail: (id: string) => ['etl', 'dlq', 'detail', id] as const,
     },
+    flags: () => ['etl', 'flags'] as const,
+    replays: (filters?: Filters) => ['etl', 'replays', normalizeFilters(filters)] as const,
   },
 } as const;

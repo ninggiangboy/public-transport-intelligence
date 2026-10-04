@@ -396,6 +396,8 @@ export function createHandlers(queryClient: QueryClient): Handlers {
           break;
         case 'alert.created':
           upsertAlert(queryClient, toAlertResponse(event.data), 'created');
+          // The sidebar counts ticketing anomalies from their own endpoint (screens/shell-and-navigation §5).
+          if (event.data.type === 'TICKETING_ANOMALY') invalidate(keys.insights.ticketingBadge());
           break;
         case 'alert.updated':
           upsertAlert(queryClient, toAlertResponse(event.data), 'updated');

@@ -120,3 +120,14 @@ export function formatPassengerDelay(delaySeconds: number): string {
   const minutes = Math.round(Math.abs(delaySeconds) / 60);
   return delaySeconds > 0 ? en.format.minLate(minutes) : en.format.minEarly(minutes);
 }
+
+/** Up to two initials of a name for an avatar: "Linh Tran" → "LT", "demo.operator" → "DO". */
+export function initials(name: string): string {
+  return name
+    .trim()
+    .split(/[\s._@-]+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((word) => word.charAt(0).toUpperCase())
+    .join('');
+}

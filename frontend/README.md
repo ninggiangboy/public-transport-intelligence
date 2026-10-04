@@ -63,7 +63,19 @@ is down for more than 5 s the provider polls the REST endpoints instead (`status
 
 The zod schemas in `src/realtime/schemas/` are hand-written from DOC-33 §5 until the backend publishes the JSON Schemas.
 Tests use `FakeSseServer` from `src/test/sse.ts` (an injectable `fetch` whose streams the test pushes frames into).
-The auth provider calls `useRealtimeControls().reconnect()` after a token refresh.
+`SessionStreamSync` (`src/app/freshness.tsx`) reopens the stream when the access token changes.
+
+## Shell and sign-in
+
+`src/app/shell/` is the frame of every page (DOC-36 `screens/shell-and-navigation.md`): sidebar, mobile bars, `⌘K`
+search, StaleBanner and footer. It picks one layout per Tailwind breakpoint with `matchMedia`, so jsdom (no
+`matchMedia`) renders the wide desktop layout. A route tells the shell about its layout with `staticData`
+(`fullBleed`, `hideStaleBanner`, `bare`; see `src/router.tsx`).
+
+Sign-in is OIDC with PKCE against Keycloak (`src/app/auth.tsx`, DOC-34 §9.3). Tokens stay in memory; a reload signs in
+again through `signinSilent`, whose hidden iframe loads `auth/silent.html`, a second Vite entry. Without `keycloakUrl`
+in `env.js` everyone is anonymous. Roles come from `GET /me` (`useAccess()`), and `RequireRole` renders a page's
+content only for that role. Component tests pick the user with `renderRoute(path, { as: 'viewer' })`.
 
 ## Image
 

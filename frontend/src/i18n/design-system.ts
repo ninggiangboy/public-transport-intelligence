@@ -248,6 +248,8 @@ export const designSystemCopy = {
       forbiddenTitle: "You don't have access to this page",
       forbiddenBody: 'This page requires the operator role. Ask an administrator for access.',
       goToOverview: 'Go to overview',
+      unavailableTitle: "Sign-in isn't available",
+      unavailableBody: 'This deployment only shows public pages.',
     },
   },
 
