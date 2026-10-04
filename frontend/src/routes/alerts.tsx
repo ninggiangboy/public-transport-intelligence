@@ -1,13 +1,14 @@
 import { createFileRoute } from '@tanstack/react-router';
 
-import { PlaceholderPage } from '@/app/shell/PlaceholderPage';
-import { en } from '@/i18n/en';
+import { AlertsPage } from '@/features/alerts/components/AlertsPage';
+import { alertsSearch } from '@/features/alerts/search';
 
-// The shell routes this page already (P5-04); its screen replaces the placeholder later in phase 5.
+// The alert feed (DOC-36 screens/alert-feed): public alerts for everyone, every audience for staff.
 export const Route = createFileRoute('/alerts')({
+  validateSearch: alertsSearch,
   component: Alerts,
 });
 
 function Alerts() {
-  return <PlaceholderPage title={en.nav.items.alerts} />;
+  return <AlertsPage search={Route.useSearch()} />;
 }

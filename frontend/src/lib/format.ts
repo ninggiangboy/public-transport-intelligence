@@ -131,3 +131,13 @@ export function initials(name: string): string {
     .map((word) => word.charAt(0).toUpperCase())
     .join('');
 }
+
+/** Actors are recorded as `user:<preferred_username>` (DOC-31); people read the name alone. */
+export function actorName(actor: string): string {
+  return actor.startsWith('user:') ? actor.slice('user:'.length) : actor;
+}
+
+/** The actor id the API records for `username`. */
+export function actorOf(username: string): string {
+  return `user:${username}`;
+}

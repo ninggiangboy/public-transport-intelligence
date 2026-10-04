@@ -61,6 +61,10 @@ export const keys = {
     disruption: (filters?: Filters) => ['insights', 'disruption', normalizeFilters(filters)] as const,
     /** E-13: one disruption episode; under `['insights', 'disruption']`, so disruption events invalidate it. */
     disruptionDetail: (id: string) => ['insights', 'disruption', 'detail', id] as const,
+    /** E-11: a bunching episode with its dispatch suggestion. */
+    bunchingDetail: (id: string) => ['insights', 'bunching', 'detail', id] as const,
+    /** E-16: a ticketing anomaly with its summary. */
+    ticketingDetail: (id: string) => ['insights', 'ticketing', 'detail', id] as const,
     /** Ticketing anomalies of the last 24 hours behind the sidebar count. */
     ticketingBadge: () => ['insights', 'ticketing', 'badge'] as const,
   },
