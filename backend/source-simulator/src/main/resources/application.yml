@@ -43,6 +43,11 @@ management:
     health:
       probes:
         enabled: true
+  # Metrics are scraped from /actuator/prometheus; only traces go to the collector (DOC-28 §2, §5).
+  otlp:
+    metrics:
+      export:
+        enabled: false
   metrics:
     tags:
       application: ${spring.application.name}
