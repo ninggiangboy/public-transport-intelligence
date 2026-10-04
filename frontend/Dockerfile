@@ -9,7 +9,11 @@ RUN corepack enable
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN --mount=type=cache,id=pti-pnpm-store,target=/root/.local/share/pnpm/store pnpm install --frozen-lockfile
 COPY . .
-RUN pnpm build && rm -rf dist/.vite
+# Hashed assets are gzipped once here, at the level the bundle budgets are measured at (DOC-34 §7), and served with
+# gzip_static instead of being compressed per request at nginx's default level 1.
+RUN pnpm build && rm -rf dist/.vite \
+  && find dist/assets -type f \( -name '*.js' -o -name '*.css' -o -name '*.svg' -o -name '*.json' \) \
+    -exec gzip -9 -k -n {} +
 
 FROM nginx:1.30.5-alpine@sha256:0985e772fb9f729e6fa0980da05fca5d9c468e870eed43071545afa9d2e27d94
 # The entrypoint exports the container's DNS servers as NGINX_LOCAL_RESOLVERS for the resolver directive, and sizes

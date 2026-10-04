@@ -1,29 +1,43 @@
-import { Ellipsis, Keyboard, LogIn, LogOut, Monitor, Moon, Sun } from 'lucide-react';
+import { Ellipsis, LogIn, Moon, Sun } from 'lucide-react';
+import { cloneElement, lazy, Suspense, useState, type ReactElement } from 'react';
 
 import type { Access } from '@/app/access';
+import type { MenuPlacement } from '@/app/shell/account-menus';
 import { useSession } from '@/app/session';
-import { useTheme, type ThemeChoice } from '@/app/theme-provider';
+import { useTheme } from '@/app/theme-provider';
 import { Button } from '@/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { Skeleton } from '@/components/ui/skeleton';
 import { en } from '@/i18n/en';
 import { initials } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
-const THEMES: { value: ThemeChoice; icon: typeof Sun }[] = [
-  { value: 'light', icon: Sun },
-  { value: 'dark', icon: Moon },
-  { value: 'system', icon: Monitor },
-];
+const loadMenus = () => import('@/app/shell/account-menus');
+const ThemeMenu = lazy(() => loadMenus().then((module) => ({ default: module.ThemeMenu })));
+const UserMenu = lazy(() => loadMenus().then((module) => ({ default: module.UserMenu })));
+
+/**
+ * The trigger alone until it is used; then the menu module (loaded on hover or focus already) takes over with the same
+ * trigger and opens. Keeps Radix Menu out of the initial bundle (DOC-34 §7).
+ */
+function DeferredMenu({
+  trigger,
+  menu,
+}: {
+  trigger: ReactElement<Record<string, unknown>>;
+  menu: (trigger: ReactElement) => ReactElement;
+}) {
+  const [used, setUsed] = useState(false);
+  const preload = () => void loadMenus();
+  const idle = cloneElement(trigger, {
+    onPointerEnter: preload,
+    onFocus: preload,
+    onClick: () => {
+      setUsed(true);
+    },
+  });
+  if (!used) return idle;
+  return <Suspense fallback={idle}>{menu(trigger)}</Suspense>;
+}
 
 function displayNameOf(access: Access, fallback?: string): string {
   return access.me?.displayName ?? fallback ?? access.me?.username ?? '';
@@ -44,28 +58,6 @@ export function Avatar({ name, className }: { name: string; className?: string }
     >
       {initials(name)}
     </span>
-  );
-}
-
-function ThemeItems() {
-  const { theme, setTheme } = useTheme();
-  return (
-    <>
-      <DropdownMenuLabel>{en.account.theme}</DropdownMenuLabel>
-      <DropdownMenuRadioGroup
-        value={theme}
-        onValueChange={(value) => {
-          setTheme(value as ThemeChoice);
-        }}
-      >
-        {THEMES.map(({ value, icon: Icon }) => (
-          <DropdownMenuRadioItem key={value} value={value}>
-            <Icon aria-hidden="true" />
-            {en.theme[value]}
-          </DropdownMenuRadioItem>
-        ))}
-      </DropdownMenuRadioGroup>
-    </>
   );
 }
 
@@ -123,55 +115,45 @@ export function AccountMenu({ access, onShowShortcuts, layout = 'full' }: Accoun
     return (
       <div className={cn('flex items-center gap-2', layout === 'rail' && 'flex-col')}>
         {signIn}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
+        <DeferredMenu
+          trigger={
             <Button variant="ghost" size="icon" aria-label={en.account.theme}>
               <ThemeIcon aria-hidden="true" />
             </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" side={layout === 'rail' ? 'right' : 'top'}>
-            <ThemeItems />
-          </DropdownMenuContent>
-        </DropdownMenu>
+          }
+          menu={(trigger) => <ThemeMenu trigger={trigger} align="end" side={layout === 'rail' ? 'right' : 'top'} />}
+        />
       </div>
     );
   }
 
   const name = displayNameOf(access, session.displayName);
   const role = roleKey(access);
-  const menu = (
-    <DropdownMenuContent
-      align={layout === 'full' ? 'start' : 'end'}
-      side={layout === 'bar' ? 'bottom' : layout === 'rail' ? 'right' : 'top'}
-    >
-      <DropdownMenuLabel className="text-sm font-normal text-foreground">
-        {en.account.signedInAs(name)}
-      </DropdownMenuLabel>
-      <DropdownMenuLabel className="pt-0 font-normal">{en.account.role(en.account.roles[role])}</DropdownMenuLabel>
-      <DropdownMenuSeparator />
-      <ThemeItems />
-      <DropdownMenuSeparator />
-      <DropdownMenuItem onSelect={onShowShortcuts}>
-        <Keyboard aria-hidden="true" />
-        {en.account.shortcuts}
-      </DropdownMenuItem>
-      <DropdownMenuItem onSelect={() => void session.signOut()}>
-        <LogOut aria-hidden="true" />
-        {en.account.signOut}
-      </DropdownMenuItem>
-    </DropdownMenuContent>
+  const placement: MenuPlacement = {
+    align: layout === 'full' ? 'start' : 'end',
+    side: layout === 'bar' ? 'bottom' : layout === 'rail' ? 'right' : 'top',
+  };
+  const menu = (trigger: ReactElement) => (
+    <UserMenu
+      trigger={trigger}
+      {...placement}
+      name={name}
+      roleLabel={en.account.roles[role]}
+      onShowShortcuts={onShowShortcuts}
+      onSignOut={() => void session.signOut()}
+    />
   );
 
   if (compact) {
     return (
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
+      <DeferredMenu
+        trigger={
           <button type="button" aria-label={en.account.menu} className="rounded-full">
             <Avatar name={name} />
           </button>
-        </DropdownMenuTrigger>
-        {menu}
-      </DropdownMenu>
+        }
+        menu={menu}
+      />
     );
   }
 
@@ -182,14 +164,14 @@ export function AccountMenu({ access, onShowShortcuts, layout = 'full' }: Accoun
         <p className="truncate text-sm leading-tight font-medium">{name}</p>
         <p className="truncate text-xs text-muted-foreground">{en.account.roleLine[role]}</p>
       </div>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
+      <DeferredMenu
+        trigger={
           <Button variant="ghost" size="icon-sm" aria-label={en.account.menu}>
             <Ellipsis aria-hidden="true" />
           </Button>
-        </DropdownMenuTrigger>
-        {menu}
-      </DropdownMenu>
+        }
+        menu={menu}
+      />
     </div>
   );
 }

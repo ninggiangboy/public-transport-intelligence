@@ -56,6 +56,8 @@ server {
 
   # Vite puts a content hash in every file name under /assets/.
   location /assets/ {
+    # .gz files made at build time (Dockerfile), at gzip -9.
+    gzip_static on;
     add_header Cache-Control "public, max-age=31536000, immutable";
     try_files $uri =404;
   }

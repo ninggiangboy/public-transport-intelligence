@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link, useNavigate } from '@tanstack/react-router';
 import { ArrowLeft, BusFront, Map as MapIcon, Star } from 'lucide-react';
-import { useEffect, useState, type ReactNode } from 'react';
+import { lazy, Suspense, useEffect, useState, type ReactNode } from 'react';
 
 import type { components } from '@/api/generated/schema';
 import { EmptyState } from '@/components/EmptyState';
@@ -9,7 +9,6 @@ import { ErrorState } from '@/components/ErrorState';
 import { FreshnessIndicator } from '@/components/FreshnessIndicator';
 import { PageHeader } from '@/components/PageHeader';
 import { RouteBadge } from '@/components/RouteBadge';
-import { SegmentedControl } from '@/components/SegmentedControl';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { directionLabel, directionsOf, visibleArrivals, type Arrival } from '@/features/stops/arrivals';
@@ -55,6 +54,11 @@ function useWallClock(): number {
   }, []);
   return wall;
 }
+
+// Shown only at stops served in both directions, and not needed for the first paint (DOC-34 §7).
+const SegmentedControl = lazy(() =>
+  import('@/components/SegmentedControl').then((module) => ({ default: module.SegmentedControl })),
+);
 
 /** The value of the direction control that means "both directions". */
 const ALL_DIRECTIONS = 'all';
@@ -264,24 +268,26 @@ function Departures({ stop, search }: DeparturesProps) {
             </div>
           ) : null}
           {directions.length > 1 ? (
-            <SegmentedControl
-              size="sm"
-              label={copy.directionFilter}
-              value={search.dir === undefined ? ALL_DIRECTIONS : String(search.dir)}
-              onChange={(value) => {
-                setSearch({ ...search, dir: value === ALL_DIRECTIONS ? undefined : Number(value) });
-              }}
-              options={[
-                { value: ALL_DIRECTIONS, label: copy.all },
-                ...directions.map((direction) => ({
-                  value: String(direction),
-                  label: directionLabel(
-                    routeDetail.data?.data.directions.find((d) => d.directionId === direction)?.label,
-                    direction,
-                  ),
-                })),
-              ]}
-            />
+            <Suspense>
+              <SegmentedControl
+                size="sm"
+                label={copy.directionFilter}
+                value={search.dir === undefined ? ALL_DIRECTIONS : String(search.dir)}
+                onChange={(value) => {
+                  setSearch({ ...search, dir: value === ALL_DIRECTIONS ? undefined : Number(value) });
+                }}
+                options={[
+                  { value: ALL_DIRECTIONS, label: copy.all },
+                  ...directions.map((direction) => ({
+                    value: String(direction),
+                    label: directionLabel(
+                      routeDetail.data?.data.directions.find((d) => d.directionId === direction)?.label,
+                      direction,
+                    ),
+                  })),
+                ]}
+              />
+            </Suspense>
           ) : null}
         </div>
       </div>

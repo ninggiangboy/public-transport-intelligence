@@ -11,6 +11,11 @@ let fake: FakeSseServer;
 let client: QueryClient;
 
 async function elapse(ms: number) {
+  // The provider loads the controller with a dynamic import: let it arrive, and the subscribers register with it,
+  // before the clock moves.
+  await act(async () => {
+    await import('@/realtime/controller');
+  });
   await act(async () => {
     await vi.advanceTimersByTimeAsync(ms);
   });

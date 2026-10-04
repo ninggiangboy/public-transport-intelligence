@@ -190,6 +190,7 @@ Breakpoint dùng mặc định của Tailwind (`sm` 640, `md` 768, `lg` 1024, `x
 Kỹ thuật bắt buộc:
 
 - Code-split theo route (`lazy` route của TanStack Router). Màn hành khách không import ECharts, CodeMirror, TanStack Table.
+- Thứ lần vẽ đầu không cần thì tải bằng `import()`: client OIDC, controller SSE, Toaster, menu tài khoản, sheet mobile, hộp tìm kiếm (DR-105). Image nén sẵn asset bằng `gzip -9` và nginx dùng `gzip_static`; `scripts/check-bundle.mjs` đo cùng mức nén đó.
 - Font tự host (`@fontsource-variable/geist`, `@fontsource-variable/geist-mono`), subset `latin`, `font-display: swap`, preload Geist (DOC-35 §4.1). Không gọi Google Fonts.
 - Stop detail render được ngay từ E-07 + E-08 mà không đợi `/me` hay SSE.
 - Cập nhật vị trí xe gom theo `requestAnimationFrame` và ghi thẳng vào GeoJSON source của MapLibre (`setData`), không re-render React cho từng xe (DOC-35 §6).
@@ -220,7 +221,7 @@ frontend/
     main.tsx                    # mounts providers and the router
     env.ts                      # reads and validates window.__PTI_ENV__ (zod)
     app/
-      providers.tsx             # Theme → Auth → Query → Freshness → Realtime → Router
+      providers.tsx             # Theme → Query → Session → Freshness → Realtime → Router
       shell/                    # AppShell, AppSidebar, LiveFeedCard, CommandSearch, MobileTopBar, BottomTabs, AccountMenu, GlobalBanners
       guards.tsx                # RequireRole, RequireDemo
     routes/                     # TanStack Router file routes (§5.2)
@@ -258,15 +259,15 @@ Quy tắc phụ thuộc (ESLint `import/no-restricted-paths`): `features/*` khô
 Thứ tự lồng nhau trong `app/providers.tsx`:
 
 1. `ThemeProvider`: `light` \| `dark` \| `system`, lưu `localStorage` `pti.theme` (bọc try/catch; không đọc được thì theo `system`). Gắn class `dark` lên `<html>`.
-2. `AuthProvider` (`react-oidc-context`), cấu hình ở §9.3. Không có `keycloakUrl` trong `env.js` thì bỏ qua provider này và mọi người là anonymous.
-3. `QueryClientProvider`: mặc định `staleTime` 10 s, `gcTime` 5 phút, `refetchInterval` 60 s khi trang hiển thị (DR-42), `refetchOnWindowFocus: true`, `retry`: tối đa 2 lần với lỗi mạng và 5xx, không retry 4xx; `placeholderData: keepPreviousData` cho mọi query danh sách.
+2. `QueryClientProvider`: mặc định `staleTime` 10 s, `gcTime` 5 phút, `refetchInterval` 60 s khi trang hiển thị (DR-42), `refetchOnWindowFocus: true`, `retry`: tối đa 2 lần với lỗi mạng và 5xx, không retry 4xx; `placeholderData: keepPreviousData` cho mọi query danh sách.
+3. `SessionProvider` (`src/app/auth.tsx`), cấu hình ở §9.3. Nằm trong `QueryClientProvider` vì đăng xuất xóa cache và token mới làm `/me` tải lại. Không có `keycloakUrl` trong `env.js` thì mọi người là anonymous.
 4. `FreshnessProvider`: query E-60 mỗi 15 s, cung cấp `businessNow`, `timezone`, `stale`, `sources[]` cho `StaleBanner` và bộ định dạng thời gian.
-5. `RealtimeProvider`: một kết nối SSE cho cả ứng dụng (DOC-26 §8).
-6. `RouterProvider` với `context = { queryClient, auth, me }` để `beforeLoad` kiểm quyền.
+5. `RealtimeProvider`: một kết nối SSE cho cả ứng dụng (DOC-26 §8). Controller tải bằng `import()` sau lần vẽ đầu (DR-105).
+6. `RouterProvider` với `context = { queryClient }`. Quyền kiểm trong component route bằng `RequireRole` (`app/guards.tsx`): role đến từ `/me`, có sau lần render đầu, và query của trang nằm trong phần được bảo vệ nên không chạy khi không đủ quyền (UX-03).
 
 ### 9.3 Đăng nhập
 
-Cấu hình `oidc-client-ts` (qua `react-oidc-context`):
+Cấu hình `oidc-client-ts`, dùng trực tiếp và tải bằng `import()` khi khởi động để không nằm trong JS ban đầu (DR-105):
 
 | Khóa | Giá trị |
 | --- | --- |

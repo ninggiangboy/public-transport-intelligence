@@ -9,7 +9,8 @@
  * The schemas are tolerant on purpose (DOC-31 §12): unknown fields are dropped without an error, only what the cache
  * handlers need is required, and `null` is treated as absent (the parser removes nulls before validating).
  */
-import { z } from 'zod';
+// zod/mini: the functional API, so that the bundle carries only the validators used here (DOC-34 §7).
+import { z } from 'zod/mini';
 
 const text = z.string();
 const int = z.number();
@@ -17,12 +18,12 @@ const int = z.number();
 /** The part of the envelope every event frame has (DOC-33 §2.2). `audience` and `source_record_ts` never reach SSE. */
 const envelope = {
   id: text,
-  channel: text.optional(),
-  occurredAt: text.optional(),
-  routeId: text.optional(),
+  channel: z.optional(text),
+  occurredAt: z.optional(text),
+  routeId: z.optional(text),
 };
 
-function event<T extends string, D extends z.ZodType>(type: T, data: D) {
+function event<T extends string, D extends z.ZodMiniType>(type: T, data: D) {
   return z.object({ ...envelope, type: z.literal(type), data });
 }
 
@@ -33,12 +34,12 @@ export const vehiclePositionSchema = z.object({
   directionId: int,
   lat: z.number(),
   lon: z.number(),
-  bearing: z.number().optional(),
-  speedMps: z.number().optional(),
+  bearing: z.optional(z.number()),
+  speedMps: z.optional(z.number()),
   currentStatus: text,
   stopId: text,
   currentStopSequence: int,
-  occupancyStatus: text.optional(),
+  occupancyStatus: z.optional(text),
   eventTimestamp: text,
 });
 export type VehiclePosition = z.infer<typeof vehiclePositionSchema>;
@@ -51,23 +52,23 @@ const bunchingOpened = event(
   z.object({
     id: text,
     routeId: text,
-    directionId: int.optional(),
+    directionId: z.optional(int),
     vehicleLeader: text,
     vehicleFollower: text,
     gapSeconds: int,
     headwaySeconds: int,
-    stopId: text.optional(),
-    episodeStart: text.optional(),
+    stopId: z.optional(text),
+    episodeStart: z.optional(text),
   }),
 );
 const bunchingClosed = event(
   'bunching.closed',
   z.object({
     id: text,
-    routeId: text.optional(),
-    episodeEnd: text.optional(),
-    closeReason: text.optional(),
-    minGapSeconds: int.optional(),
+    routeId: z.optional(text),
+    episodeEnd: z.optional(text),
+    closeReason: z.optional(text),
+    minGapSeconds: z.optional(int),
   }),
 );
 
@@ -76,25 +77,25 @@ const disruptionOpened = event(
   'disruption.opened',
   z.object({
     id: text,
-    routeId: text.optional(),
-    directionId: int.optional(),
-    episodeStart: text.optional(),
-    currentAvgDelaySeconds: z.number().optional(),
-    baselineMeanSeconds: z.number().optional(),
-    zScore: z.number().optional(),
-    affectedStopIds: z.array(text).optional(),
+    routeId: z.optional(text),
+    directionId: z.optional(int),
+    episodeStart: z.optional(text),
+    currentAvgDelaySeconds: z.optional(z.number()),
+    baselineMeanSeconds: z.optional(z.number()),
+    zScore: z.optional(z.number()),
+    affectedStopIds: z.optional(z.array(text)),
   }),
 );
 const disruptionClosed = event(
   'disruption.closed',
   z.object({
     id: text,
-    routeId: text.optional(),
-    directionId: int.optional(),
-    episodeEnd: text.optional(),
-    closeReason: text.optional(),
-    peakZScore: z.number().optional(),
-    affectedStopIds: z.array(text).optional(),
+    routeId: z.optional(text),
+    directionId: z.optional(int),
+    episodeEnd: z.optional(text),
+    closeReason: z.optional(text),
+    peakZScore: z.optional(z.number()),
+    affectedStopIds: z.optional(z.array(text)),
   }),
 );
 
@@ -103,12 +104,12 @@ const dispatchSuggested = event(
   'dispatch.suggested',
   z.object({
     id: text,
-    bunchingId: text.optional(),
-    routeId: text.optional(),
-    action: text.optional(),
-    actionConfidence: z.number().optional(),
-    modelVersion: text.optional(),
-    createdAt: text.optional(),
+    bunchingId: z.optional(text),
+    routeId: z.optional(text),
+    action: z.optional(text),
+    actionConfidence: z.optional(z.number()),
+    modelVersion: z.optional(text),
+    createdAt: z.optional(text),
   }),
 );
 
@@ -118,23 +119,23 @@ export const alertRecordSchema = z.object({
   type: text,
   severity: int,
   audience: text,
-  routeId: text.optional(),
-  refTable: text.optional(),
-  refId: text.optional(),
+  routeId: z.optional(text),
+  refTable: z.optional(text),
+  refId: z.optional(text),
   title: text,
-  body: z.record(text, z.unknown()).default({}),
+  body: z._default(z.record(text, z.unknown()), {}),
   createdAt: text,
-  resolvedAt: text.optional(),
-  acknowledgedBy: text.optional(),
-  acknowledgedAt: text.optional(),
-  link: text.optional(),
+  resolvedAt: z.optional(text),
+  acknowledgedBy: z.optional(text),
+  acknowledgedAt: z.optional(text),
+  link: z.optional(text),
 });
 export type AlertRecord = z.infer<typeof alertRecordSchema>;
 
 const alertCreated = event('alert.created', alertRecordSchema);
 const alertUpdated = event('alert.updated', alertRecordSchema);
 // §5.6
-const alertRetracted = event('alert.retracted', z.object({ id: text, routeId: text.optional() }));
+const alertRetracted = event('alert.retracted', z.object({ id: text, routeId: z.optional(text) }));
 
 // §5.7
 export const jobRunSchema = z.object({
@@ -142,14 +143,14 @@ export const jobRunSchema = z.object({
   kind: text,
   name: text,
   status: text,
-  startedAt: text.optional(),
-  endedAt: text.optional(),
-  exitCode: text.optional(),
-  exitMessage: text.optional(),
-  readCount: int.default(0),
-  writeCount: int.default(0),
-  skipCount: int.default(0),
-  jobExecutionId: int.optional(),
+  startedAt: z.optional(text),
+  endedAt: z.optional(text),
+  exitCode: z.optional(text),
+  exitMessage: z.optional(text),
+  readCount: z._default(int, 0),
+  writeCount: z._default(int, 0),
+  skipCount: z._default(int, 0),
+  jobExecutionId: z.optional(int),
 });
 export type JobRunData = z.infer<typeof jobRunSchema>;
 
@@ -161,24 +162,24 @@ const dlqChanged = event(
   z.discriminatedUnion('kind', [
     z.object({
       kind: z.literal('CREATED'),
-      source: text.optional(),
-      count: int.optional(),
-      lastCreatedAt: text.optional(),
+      source: z.optional(text),
+      count: z.optional(int),
+      lastCreatedAt: z.optional(text),
     }),
     z.object({
       kind: z.literal('UPDATED'),
       id: text,
-      source: text.optional(),
+      source: z.optional(text),
       status: text,
-      previousStatus: text.optional(),
-      action: text.optional(),
-      actor: text.optional(),
+      previousStatus: z.optional(text),
+      action: z.optional(text),
+      actor: z.optional(text),
     }),
     z.object({
       kind: z.literal('BULK_UPDATED'),
-      source: text.optional(),
-      status: text.optional(),
-      count: int.optional(),
+      source: z.optional(text),
+      status: z.optional(text),
+      count: z.optional(int),
     }),
   ]),
 );
@@ -186,12 +187,12 @@ const dlqChanged = event(
 // §5.9, §5.10: no `id`, so that they never move `Last-Event-ID`.
 const resync = z.object({
   type: z.literal('resync'),
-  occurredAt: text.optional(),
+  occurredAt: z.optional(text),
   data: z.object({ reason: text, channels: z.array(text) }),
 });
 const heartbeat = z.object({
   type: z.literal('heartbeat'),
-  data: z.object({ serverTime: text.optional(), businessNow: text }),
+  data: z.object({ serverTime: z.optional(text), businessNow: text }),
 });
 
 /** Every event type this client understands, by its `type`. */

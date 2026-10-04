@@ -15,6 +15,7 @@ Node 24 and pnpm 10 come from `mise install` in the repo root (or `corepack enab
 | `pnpm dev:mock` | Same dev server without a backend: MSW answers `/api` with the examples of `openapi.json` |
 | `pnpm gen:api` | Regenerate `src/api/generated/` (types and examples) from `../backend/api/openapi.json`; CI fails when the committed files differ. `make openapi` in the repo root rewrites `openapi.json` first |
 | `pnpm build` | Typecheck, then build to `dist/` (with `dist/.vite/manifest.json` for the bundle budget) |
+| `pnpm check:bundle` | Check the bundle budgets of DOC-34 §7 on the last build; CI runs it after `pnpm build` |
 | `pnpm preview` | Serve `dist/` on http://localhost:4173 |
 | `pnpm lint` / `pnpm format` / `pnpm typecheck` | ESLint, Prettier, `tsc -b` |
 | `pnpm test` | Vitest in watch mode; `pnpm test --run --coverage` is what CI runs |
@@ -72,7 +73,8 @@ search, StaleBanner and footer. It picks one layout per Tailwind breakpoint with
 `matchMedia`) renders the wide desktop layout. A route tells the shell about its layout with `staticData`
 (`fullBleed`, `hideStaleBanner`, `bare`; see `src/router.tsx`).
 
-Sign-in is OIDC with PKCE against Keycloak (`src/app/auth.tsx`, DOC-34 §9.3). Tokens stay in memory; a reload signs in
+Sign-in is OIDC with PKCE against Keycloak (`src/app/auth.tsx`, DOC-34 §9.3), with `oidc-client-ts` loaded by a
+dynamic import after the first paint. Tokens stay in memory; a reload signs in
 again through `signinSilent`, whose hidden iframe loads `auth/silent.html`, a second Vite entry. Without `keycloakUrl`
 in `env.js` everyone is anonymous. Roles come from `GET /me` (`useAccess()`), and `RequireRole` renders a page's
 content only for that role. Component tests pick the user with `renderRoute(path, { as: 'viewer' })`.
@@ -83,3 +85,10 @@ content only for that role. Component tests pick the user with `renderRoute(path
 buffering) to the api and serves the PMTiles mounted at `/tiles/`. At startup `nginx/40-pti-runtime-config.sh` writes
 `/env.js` and the CSP from the `PTI_*` variables (DOC-29 §3.5), so one image serves every environment. `make up` builds
 it and starts it in the compose `core` profile on http://localhost:8080.
+
+## Bundle budget
+
+`pnpm build && pnpm check:bundle` measures the initial JS of `/stops/$stopId` (at most 200 KB gzip) and the heavy
+chunks of DOC-34 §7 from `dist/.vite/manifest.json`; CI runs it after the build. What the first paint does not need is
+loaded with `import()`: the OIDC client, the event stream controller, the Toaster (raise toasts with `notify` from
+`src/lib/notify.ts`), the account menu, the mobile sheets and the search dialog (DR-105). Zod schemas use `zod/mini`.

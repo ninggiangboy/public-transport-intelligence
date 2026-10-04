@@ -138,6 +138,8 @@ jobs:
         run: pnpm test --run --coverage
       - name: Build
         run: pnpm build
+      - name: Bundle budgets (DOC-34 §7, UX-08)
+        run: pnpm check:bundle
       - name: Image (P5-15)
         run: |
           shellcheck nginx/*.sh

@@ -23,7 +23,7 @@ Ràng buộc chung:
 1. **Next.js (App Router, SSR).** Mạnh cho SEO và trang nội dung; ở đây không cần SEO, SSR thêm một tiến trình Node trong compose và làm phức tạp việc giữ token trong bộ nhớ.
 2. **Angular.** Đầy đủ tính năng nhưng nặng cho một người, hệ sinh thái bản đồ và biểu đồ ít lựa chọn hơn.
 3. **SvelteKit.** Nhỏ và nhanh; hệ sinh thái bảng dữ liệu, OIDC và component có a11y kém phong phú hơn React.
-4. **SPA React 19 + Vite**, với TanStack Router/Query/Table/Virtual, Tailwind + shadcn/ui, ECharts, MapLibre, react-hook-form + zod, CodeMirror 6, `react-oidc-context`, Zustand.
+4. **SPA React 19 + Vite**, với TanStack Router/Query/Table/Virtual, Tailwind + shadcn/ui, ECharts, MapLibre, react-hook-form + zod, CodeMirror 6, `oidc-client-ts`, Zustand.
 
 ## Quyết định
 
@@ -42,7 +42,7 @@ Chọn **phương án 4** (đúng DR-46). Phiên bản ở DOC-11.
 | Bản đồ | MapLibre GL JS + `react-map-gl/maplibre` + `pmtiles` | ADR-0021 |
 | Form | react-hook-form + zod | Schema dùng chung cho kiểm tra form và search params |
 | Sửa JSON | CodeMirror 6 (`@uiw/react-codemirror`, `@codemirror/lang-json`) | Nhẹ hơn Monaco nhiều, có lint JSON |
-| Đăng nhập | `react-oidc-context` + `oidc-client-ts` | PKCE, silent renew, `InMemoryWebStorage` |
+| Đăng nhập | `oidc-client-ts` (tải bằng `import()`; bỏ `react-oidc-context` theo DR-105) | PKCE, silent renew, `InMemoryWebStorage` |
 | State UI | Zustand | Chỉ cho state không thuộc server (panel đang mở, lựa chọn trên bản đồ, theme) |
 | Test | Vitest, React Testing Library, MSW, Playwright + `@axe-core/playwright` | Unit, component, mock API từ ví dụ DOC-32, E2E, a11y |
 

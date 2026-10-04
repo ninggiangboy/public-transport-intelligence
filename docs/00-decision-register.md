@@ -63,6 +63,7 @@ Tài liệu gốc mô tả tốt *cái gì* và *vì sao*, nhưng còn nhiều c
 | 2026-09-29 | Owner | **Thực nghiệm hai bước:** P3 viết đủ runner và chạy một chuỗi smoke ≤ 30 phút (mỗi EXP-01…05 một lần chạy rút gọn) trên máy dev; đợt chạy đầy đủ trên máy thực nghiệm dời thành P3-10, làm sau M6 và trước P7. Chuỗi smoke chạy lại khi chốt M4 và M6 | DR-95 (mới), master plan P3, DOC-45 |
 | 2026-09-30 | Owner | **Không dùng Redis:** SSE fan-out qua Kafka, cache và rate limit theo pod, khóa và idempotency trên PostgreSQL. Ghi rõ dấu hiệu cần xem lại và phương án không cần Redis cần thử trước | DR-103 (mới), ADR-0031 (mới) |
 | 2026-09-30 | Owner | **Clean Architecture cho backend Java:** code mới từ P4 (`analytics`, `api`, `triage-worker`) chia tầng `domain`/`application`/`adapter`/`config`, domain và application là Java thuần, ArchUnit fail build. Code P1–P3 giữ nguyên, bị freeze bằng ArchUnit, refactor ở Phase R sau M6 và trước P3-10 | DR-104 (mới), ADR-0032 (mới), DOC-49 (mới), master plan §4, §5 |
+| 2026-10-04 | Claude (Owner ủy quyền) | **Ngân sách JS ban đầu (P5):** `zod/mini`; bỏ `react-oidc-context`, tải `oidc-client-ts` bằng `import()`; tải lười controller SSE, Toaster, menu tài khoản, sheet mobile; asset nén sẵn `gzip -9` với `gzip_static`; `check-bundle` trong CI | DR-105 (mới), DR-46, ADR-0020, DOC-11, DOC-34 §7, §9 |
 
 ---
 
@@ -589,7 +590,7 @@ Tài liệu gốc mô tả tốt *cái gì* và *vì sao*, nhưng còn nhiều c
 ## G. Frontend và UX
 
 ### DR-46 · Stack frontend — **Chốt**
-- **Quyết định:** Vite, React 19, TypeScript strict, pnpm. TanStack Router (search params có kiểu, tiện đồng bộ bộ lọc lên URL). TanStack Query. Tailwind CSS cùng shadcn/ui (Radix). Apache ECharts cho biểu đồ chuỗi thời gian. TanStack Table + TanStack Virtual cho bảng DLQ. MapLibre GL JS qua `react-map-gl/maplibre`. react-hook-form + zod. CodeMirror 6 để sửa payload JSON. `react-oidc-context`. Zustand cho state UI. Test bằng Vitest, React Testing Library, MSW và Playwright.
+- **Quyết định:** Vite, React 19, TypeScript strict, pnpm. TanStack Router (search params có kiểu, tiện đồng bộ bộ lọc lên URL). TanStack Query. Tailwind CSS cùng shadcn/ui (Radix). Apache ECharts cho biểu đồ chuỗi thời gian. TanStack Table + TanStack Virtual cho bảng DLQ. MapLibre GL JS qua `react-map-gl/maplibre`. react-hook-form + zod. CodeMirror 6 để sửa payload JSON. `oidc-client-ts` (bỏ `react-oidc-context` theo DR-105). Zustand cho state UI. Test bằng Vitest, React Testing Library, MSW và Playwright.
 - **Ghi vào:** ADR-0020, DOC-11.
 
 ### DR-47 · Bản đồ khi demo offline — **Chốt** (đã xác minh ở S-05)
@@ -604,6 +605,18 @@ Tài liệu gốc mô tả tốt *cái gì* và *vì sao*, nhưng còn nhiều c
 ### DR-49 · Màn điều khiển kịch bản demo — **Chốt**
 - **Quyết định:** Thêm tab "Demo control" trong ops console, chỉ hiện khi bật profile `demo`, để bật và tắt kịch bản simulator mà không phải dùng curl. Việc này giúp buổi bảo vệ trơn tru hơn.
 - **Ghi vào:** DOC-36 (`screens/demo-control.md`: route `/ops/demo`, cần role operator và `demoControl` trong `env.js`).
+
+### DR-105 · Giữ ngân sách JS ban đầu của frontend — **Chốt** (P5; sửa DR-46)
+- **Vấn đề:** Sau P5-04 và P5-07, JS tải ban đầu của `/stops/$stopId` là khoảng 255 KB gzip, vượt ngân sách 200 KB của DOC-34 §7 (NFR-12). Phần lớn đến từ thư viện tải sẵn mà lần vẽ đầu không cần: zod bản đầy đủ (`env.ts`, schema sự kiện SSE), `oidc-client-ts` qua `react-oidc-context`, `sonner`, Radix Menu và Dialog của menu tài khoản và sheet trên mobile, bộ điều khiển SSE. Ngoài ra nginx nén asset ở mức mặc định 1, nên dung lượng thật lớn hơn mức đo bằng gzip thường khoảng 10%.
+- **Quyết định:**
+  - Schema zod (search params, `env.ts`, sự kiện SSE) viết bằng `zod/mini`, API dạng hàm, chỉ đóng gói validator được dùng.
+  - Bỏ `react-oidc-context`; `src/app/auth.tsx` dùng thẳng `oidc-client-ts` và tải nó bằng `import()` khi khởi động. Trang công khai render trước khi client OIDC tới; `signinSilent` lúc khởi động chạy khi nó tới, skeleton vẫn tối đa 1,5 s.
+  - Tải lười (sau lần vẽ đầu hoặc khi dùng lần đầu): `RealtimeController` (kết nối SSE), `Toaster` (toast qua `src/lib/notify.ts`, toast phát trước khi Toaster sẵn sàng thì chờ), menu tài khoản và theme (nút trigger hiện ngay, module menu tải khi hover, focus hoặc bấm), sheet điều hướng của mobile, hộp tìm kiếm `⌘K`, dialog phím tắt, bộ chọn chiều ở stop detail.
+  - Image `pti-frontend` nén sẵn asset bằng `gzip -9` lúc build và nginx bật `gzip_static` cho `/assets/`.
+  - `scripts/check-bundle.mjs` (UX-08) đo bằng gzip -9 theo `dist/.vite/manifest.json`, chạy trong CI frontend sau `pnpm build`.
+- **Kết quả:** JS ban đầu của `/stops/$stopId` còn khoảng 191 KB (2026-10-04).
+- **Hệ quả:** Màn mới phải đi qua `pnpm check:bundle`; thư viện chỉ cần khi người dùng thao tác thì tải bằng `import()`. `useRealtime` báo `connecting` cho tới khi controller tới, rồi các subscriber tự đăng ký.
+- **Ghi vào:** DR-46, ADR-0020, DOC-11, DOC-34 §7, §9.2, §9.3, DOC-26 §8.2, DOC-27 §3.
 
 ---
 

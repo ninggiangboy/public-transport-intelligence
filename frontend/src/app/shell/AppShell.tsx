@@ -9,7 +9,6 @@ import { visibleItems } from '@/app/shell/nav-items';
 import { ShellFooter } from '@/app/shell/ShellFooter';
 import { OpsNarrowNotice, StaleBanner } from '@/app/shell/StaleBanner';
 import { useNavCounts } from '@/app/shell/use-nav-counts';
-import { Toaster } from '@/components/ui/sonner';
 import { en } from '@/i18n/en';
 import { useMediaQuery, useStoredFlag } from '@/lib/browser';
 import { cn } from '@/lib/utils';
@@ -24,6 +23,8 @@ const MD = '(min-width: 768px)';
 const CommandSearch = lazy(() =>
   import('@/app/shell/CommandSearch').then((module) => ({ default: module.CommandSearch })),
 );
+// Toasts come from src/lib/notify.ts, which waits for this to mount.
+const Toaster = lazy(() => import('@/components/ui/sonner').then((module) => ({ default: module.Toaster })));
 const KeyboardShortcutsDialog = lazy(() =>
   import('@/app/shell/KeyboardShortcutsDialog').then((module) => ({ default: module.KeyboardShortcutsDialog })),
 );
@@ -163,7 +164,9 @@ function Shell() {
         {searchUsed ? <CommandSearch open={searchOpen} onOpenChange={setSearchOpen} pages={items} /> : null}
         {shortcutsUsed ? <KeyboardShortcutsDialog open={shortcutsOpen} onOpenChange={setShortcutsOpen} /> : null}
       </Suspense>
-      <Toaster position={tablet ? 'bottom-right' : 'top-center'} />
+      <Suspense>
+        <Toaster position={tablet ? 'bottom-right' : 'top-center'} />
+      </Suspense>
     </div>
   );
 }

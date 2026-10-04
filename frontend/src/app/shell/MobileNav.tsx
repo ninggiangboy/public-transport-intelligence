@@ -1,23 +1,22 @@
 import { Link, useRouterState } from '@tanstack/react-router';
 import { Bell, Ellipsis, Map as MapIcon, MapPin, Menu, Search } from 'lucide-react';
-import { useState } from 'react';
+import { lazy, Suspense, useState } from 'react';
 
 import type { Access } from '@/app/access';
 import { AccountMenu } from '@/app/shell/AccountMenu';
-import { SidebarContent, type SidebarProps } from '@/app/shell/AppSidebar';
+import type { SidebarProps } from '@/app/shell/AppSidebar';
 import { Logo } from '@/app/shell/Logo';
-import { NavList } from '@/app/shell/NavList';
 import { homePath, isItemActive, NAV_ITEMS, type NavItem } from '@/app/shell/nav-items';
 import { RealtimeStatusDot } from '@/app/shell/RealtimeStatusDot';
 import type { NavCounts } from '@/app/shell/use-nav-counts';
-import { useSession } from '@/app/session';
-import { useTheme, type ThemeChoice } from '@/app/theme-provider';
-import { SegmentedControl } from '@/components/SegmentedControl';
 import { Button } from '@/components/ui/button';
-import { Sheet, SheetContent, SheetDescription, SheetTitle } from '@/components/ui/sheet';
 import { en } from '@/i18n/en';
 import { cn } from '@/lib/utils';
 import type { RealtimeState } from '@/realtime/useRealtime';
+
+const loadSheets = () => import('@/app/shell/mobile-sheets');
+const MenuSheet = lazy(() => loadSheets().then((module) => ({ default: module.MenuSheet })));
+const MoreSheet = lazy(() => loadSheets().then((module) => ({ default: module.MoreSheet })));
 
 interface MobileTopBarProps extends SidebarProps {
   /** 768–1023 px: a menu button opens the sidebar in a sheet. */
@@ -27,31 +26,32 @@ interface MobileTopBarProps extends SidebarProps {
 /** 48 px bar under 1024 px: logo, stream state, search and account (DOC-34 §4.2). */
 export function MobileTopBar({ withMenu, ...sidebar }: MobileTopBarProps) {
   const [menuOpen, setMenuOpen] = useState(false);
+  // Mounted from the first opening on, so that the sheet can animate closed.
+  const [menuUsed, setMenuUsed] = useState(false);
   return (
     <header className="sticky top-0 z-(--z-banner) flex h-12 shrink-0 items-center gap-2 border-b border-border bg-surface px-3">
       {withMenu ? (
-        <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
+        <>
           <Button
             variant="ghost"
             size="icon-sm"
             aria-label={en.nav.openMenu}
+            aria-haspopup="dialog"
+            aria-expanded={menuOpen}
+            onPointerEnter={() => void loadSheets()}
             onClick={() => {
+              setMenuUsed(true);
               setMenuOpen(true);
             }}
           >
             <Menu aria-hidden="true" />
           </Button>
-          <SheetContent side="left" className="px-3 pt-3.5 pb-3">
-            <SheetTitle className="sr-only">{en.nav.menuTitle}</SheetTitle>
-            <SheetDescription className="sr-only">{en.nav.primary}</SheetDescription>
-            <SidebarContent
-              {...sidebar}
-              onNavigate={() => {
-                setMenuOpen(false);
-              }}
-            />
-          </SheetContent>
-        </Sheet>
+          {menuUsed ? (
+            <Suspense>
+              <MenuSheet open={menuOpen} onOpenChange={setMenuOpen} sidebar={sidebar} />
+            </Suspense>
+          ) : null}
+        </>
       ) : null}
       <Link to={homePath(sidebar.access) as '/'} aria-label={en.brand.home} className="rounded-md">
         <Logo />
@@ -73,8 +73,6 @@ const TABS: { id: 'map' | 'stops' | 'alerts'; icon: typeof MapIcon }[] = [
   { id: 'alerts', icon: Bell },
 ];
 
-const THEMES: ThemeChoice[] = ['light', 'dark', 'system'];
-
 interface BottomTabsProps {
   access: Access;
   items: readonly NavItem[];
@@ -86,8 +84,7 @@ interface BottomTabsProps {
 export function BottomTabs({ access, items, counts }: BottomTabsProps) {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const [moreOpen, setMoreOpen] = useState(false);
-  const session = useSession();
-  const { theme, setTheme } = useTheme();
+  const [moreUsed, setMoreUsed] = useState(false);
   const tabItem = (id: string) => NAV_ITEMS.find((item) => item.id === id);
   const inMore = (item: NavItem) => !TABS.some((tab) => tab.id === item.id);
   const moreActive = items.some((item) => inMore(item) && isItemActive(item, pathname));
@@ -124,48 +121,32 @@ export function BottomTabs({ access, items, counts }: BottomTabsProps) {
           </Link>
         );
       })}
-      <Sheet open={moreOpen} onOpenChange={setMoreOpen}>
-        <button
-          type="button"
-          aria-haspopup="dialog"
-          aria-expanded={moreOpen}
-          className={cn(tabClass, moreActive && 'text-primary')}
-          onClick={() => {
-            setMoreOpen(true);
-          }}
-        >
-          <Ellipsis className="size-5" strokeWidth={1.75} aria-hidden="true" />
-          {en.nav.mobile.more}
-        </button>
-        <SheetContent side="bottom" className="px-3 pt-2 pb-4">
-          <SheetTitle className="px-2.5 pt-2 text-panel font-semibold">{en.nav.moreTitle}</SheetTitle>
-          <SheetDescription className="sr-only">{en.nav.primary}</SheetDescription>
-          <NavList
+      <button
+        type="button"
+        aria-haspopup="dialog"
+        aria-expanded={moreOpen}
+        className={cn(tabClass, moreActive && 'text-primary')}
+        onPointerEnter={() => void loadSheets()}
+        onClick={() => {
+          setMoreUsed(true);
+          setMoreOpen(true);
+        }}
+      >
+        <Ellipsis className="size-5" strokeWidth={1.75} aria-hidden="true" />
+        {en.nav.mobile.more}
+      </button>
+      {moreUsed ? (
+        <Suspense>
+          <MoreSheet
+            open={moreOpen}
+            onOpenChange={setMoreOpen}
+            access={access}
             items={items}
             counts={counts}
-            readOnly={access.role === 'viewer'}
-            only={inMore}
-            onNavigate={() => {
-              setMoreOpen(false);
-            }}
+            inMore={inMore}
           />
-          <div className="mt-4 flex flex-col gap-3 border-t border-border px-1 pt-4">
-            <SegmentedControl
-              label={en.account.theme}
-              value={theme}
-              onChange={setTheme}
-              options={THEMES.map((value) => ({ value, label: en.theme[value] }))}
-            />
-            {access.pending ? null : access.signedIn ? (
-              <Button variant="outline" onClick={() => void session.signOut()}>
-                {en.account.signOut}
-              </Button>
-            ) : session.available ? (
-              <Button onClick={() => void session.signIn()}>{en.account.signIn}</Button>
-            ) : null}
-          </div>
-        </SheetContent>
-      </Sheet>
+        </Suspense>
+      ) : null}
     </nav>
   );
 }

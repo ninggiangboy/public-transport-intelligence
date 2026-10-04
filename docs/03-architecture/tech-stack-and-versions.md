@@ -121,7 +121,7 @@ Mọi phiên bản trong bảng này được pin ở P7-02 vào `deploy/version
 | MapLibre GL JS / `react-map-gl` / `pmtiles` / `@protomaps/basemaps` | **6.x** / 8.x / 4.x / 5.x | Bản đồ offline (DR-47, DR-82). S-05 chạy với 6.11.2 / — / 4.5.0 / 5.7.2. MapLibre 6 chỉ có ESM; worker đặt bằng `setWorkerUrl` (ADR-0021) | ✅ (S-05) |
 | react-hook-form + zod | 7.x + 4.x | Form | 🔬 |
 | CodeMirror 6 (`@uiw/react-codemirror`, `@codemirror/lang-json`) | 6.x | Sửa payload DLQ | 🔬 |
-| `react-oidc-context` + `oidc-client-ts` | 3.x | OIDC PKCE | 🔬 |
+| `oidc-client-ts` | 3.x | OIDC PKCE, tải bằng `import()` (DR-105) | 🔬 |
 | Zustand | 5.x | State UI | 🔬 |
 | `@microsoft/fetch-event-source` | 2.x | SSE có header Authorization (DR-41) | 🔬 |
 | `openapi-typescript` + `openapi-fetch` | 7.x + 0.x | Type sinh từ `openapi.json` (DR-44) | 🔬 |

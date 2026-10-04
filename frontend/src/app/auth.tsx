@@ -1,24 +1,25 @@
 import { useQueryClient } from '@tanstack/react-query';
-import { InMemoryWebStorage, UserManager, WebStorageStateStore, type User } from 'oidc-client-ts';
+import type { User, UserManager, UserManagerSettings } from 'oidc-client-ts';
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { AuthProvider, useAuth } from 'react-oidc-context';
-import { toast } from 'sonner';
 
 import { setAuth } from '@/api/client';
 import { keys } from '@/api/keys';
 import { safeReturnPath, SessionContext, SIGN_IN_UNAVAILABLE, type Session } from '@/app/session';
 import type { AppEnv } from '@/env';
 import { en } from '@/i18n/en';
+import { notify } from '@/lib/notify';
 
 /** The account skeleton shows at most this long while the start-up silent sign-in runs (DOC-34 §9.3). */
 export const RESTORE_WAIT_MS = 1_500;
 
 export const CALLBACK_PATH = '/auth/callback';
 
-/** The client of DOC-34 §9.3, or `undefined` when `env.js` names no Keycloak. */
-export function createUserManager(appEnv: AppEnv, origin = globalThis.location.origin): UserManager | undefined {
+/** Settings of the client of DOC-34 §9.3 (the user store is added on load), or `undefined` without Keycloak. */
+export type OidcSettings = Omit<UserManagerSettings, 'userStore'>;
+
+export function oidcSettings(appEnv: AppEnv, origin = globalThis.location.origin): OidcSettings | undefined {
   if (!appEnv.keycloakUrl) return undefined;
-  return new UserManager({
+  return {
     authority: `${appEnv.keycloakUrl.replace(/\/+$/, '')}/realms/${appEnv.keycloakRealm}`,
     client_id: appEnv.keycloakClientId,
     redirect_uri: `${origin}${CALLBACK_PATH}`,
@@ -26,37 +27,42 @@ export function createUserManager(appEnv: AppEnv, origin = globalThis.location.o
     post_logout_redirect_uri: `${origin}/`,
     response_type: 'code',
     scope: 'openid profile',
-    // Tokens live in memory only (DOC-27 §3.2); a reload signs in again through signinSilent.
-    userStore: new WebStorageStateStore({ store: new InMemoryWebStorage() }),
     automaticSilentRenew: true,
     monitorSession: false,
-  });
-}
-
-/** Item 2 of DOC-34 §9.2. Without Keycloak there is nothing to provide. */
-export function OidcProvider({ userManager, children }: { userManager: UserManager | undefined; children: ReactNode }) {
-  if (!userManager) return children;
-  // /auth/callback completes the sign-in itself, so that it can show its own progress and error states.
-  return (
-    <AuthProvider userManager={userManager} skipSigninCallback>
-      {children}
-    </AuthProvider>
-  );
+  };
 }
 
 /**
- * Turns the OIDC state into the app's {@link Session}. It sits inside `QueryClientProvider`, because signing out
- * clears the query cache and a new token refetches `/me`.
+ * Loads oidc-client-ts on demand, so that it stays out of the initial bundle (DOC-34 §7): public pages render before
+ * it arrives, and the start-up silent sign-in runs once it has.
  */
-export function SessionProvider({
-  userManager,
-  children,
-}: {
-  userManager: UserManager | undefined;
+export async function loadUserManager(settings: OidcSettings): Promise<UserManager> {
+  const oidc = await import('oidc-client-ts');
+  return new oidc.UserManager({
+    ...settings,
+    // Tokens live in memory only (DOC-27 §3.2); a reload signs in again through signinSilent.
+    userStore: new oidc.WebStorageStateStore({ store: new oidc.InMemoryWebStorage() }),
+  });
+}
+
+interface SessionProviderProps {
+  settings: OidcSettings | undefined;
+  /** Tests pass a manager of their own. */
+  load?: (settings: OidcSettings) => Promise<UserManager>;
   children: ReactNode;
-}) {
-  if (!userManager) return <SessionContext value={SIGN_IN_UNAVAILABLE}>{children}</SessionContext>;
-  return <OidcSession userManager={userManager}>{children}</OidcSession>;
+}
+
+/**
+ * Item 2 of DOC-34 §9.2, turned into the app's {@link Session}. It sits inside `QueryClientProvider`, because signing
+ * out clears the query cache and a new token refetches `/me`. Without Keycloak everyone is anonymous.
+ */
+export function SessionProvider({ settings, load = loadUserManager, children }: SessionProviderProps) {
+  if (!settings) return <SessionContext value={SIGN_IN_UNAVAILABLE}>{children}</SessionContext>;
+  return (
+    <OidcSession settings={settings} load={load}>
+      {children}
+    </OidcSession>
+  );
 }
 
 // One start-up silent sign-in per client, even when StrictMode runs effects twice.
@@ -64,66 +70,80 @@ const restoreStarted = new WeakSet<UserManager>();
 // The redirect callback consumes its state once; a second call (StrictMode) reuses the first result.
 const callbacks = new WeakMap<UserManager, Promise<string>>();
 
-function OidcSession({ userManager, children }: { userManager: UserManager; children: ReactNode }) {
-  const auth = useAuth();
+interface OidcSessionProps {
+  settings: OidcSettings;
+  load: (settings: OidcSettings) => Promise<UserManager>;
+  children: ReactNode;
+}
+
+function OidcSession({ settings, load, children }: OidcSessionProps) {
   const queryClient = useQueryClient();
+  const [manager] = useState(() => load(settings));
+  const [user, setUser] = useState<User | null>(null);
   const [restoring, setRestoring] = useState(true);
   // Read synchronously by the API client, which may ask for the token right after a renewal, before React re-renders.
   const token = useRef<string | undefined>(undefined);
 
+  // The skeleton waits 1.5 s at most, whether or not the client has loaded by then.
   useEffect(() => {
-    if (restoreStarted.has(userManager)) return;
-    restoreStarted.add(userManager);
-    const done = () => {
+    const timer = setTimeout(() => {
       setRestoring(false);
-    };
-    const timer = setTimeout(done, RESTORE_WAIT_MS);
-    if (globalThis.location.pathname === CALLBACK_PATH) return;
-    // An existing Keycloak session signs the user in without a visible redirect; otherwise they stay anonymous.
-    userManager
-      .signinSilent()
-      .catch(() => undefined)
-      .finally(() => {
-        clearTimeout(timer);
-        done();
-      });
-  }, [userManager]);
-
-  useEffect(() => {
-    const loaded = (user: User) => {
-      token.current = user.access_token;
-    };
-    const unloaded = () => {
-      token.current = undefined;
-    };
-    userManager.events.addUserLoaded(loaded);
-    userManager.events.addUserUnloaded(unloaded);
+    }, RESTORE_WAIT_MS);
     return () => {
-      userManager.events.removeUserLoaded(loaded);
-      userManager.events.removeUserUnloaded(unloaded);
+      clearTimeout(timer);
     };
-  }, [userManager]);
+  }, []);
 
-  const user = auth.user && !auth.user.expired ? auth.user : undefined;
-  const accessToken = user?.access_token;
   useEffect(() => {
-    token.current = accessToken;
-  }, [accessToken]);
+    // An object, so that the async callback reads the cleanup's change.
+    const effect = { active: true, unsubscribe: () => undefined as unknown };
+    const active = () => effect.active;
+    void manager.then(async (userManager) => {
+      if (!active()) return;
+      const loaded = (next: User) => {
+        token.current = next.access_token;
+        setUser(next);
+      };
+      const unloaded = () => {
+        token.current = undefined;
+        setUser(null);
+      };
+      userManager.events.addUserLoaded(loaded);
+      userManager.events.addUserUnloaded(unloaded);
+      effect.unsubscribe = () => {
+        userManager.events.removeUserLoaded(loaded);
+        userManager.events.removeUserUnloaded(unloaded);
+      };
+      const stored = await userManager.getUser();
+      if (active() && stored && !stored.expired) loaded(stored);
+
+      if (restoreStarted.has(userManager) || globalThis.location.pathname === CALLBACK_PATH) return;
+      restoreStarted.add(userManager);
+      // An existing Keycloak session signs the user in without a visible redirect; otherwise they stay anonymous.
+      await userManager.signinSilent().catch(() => undefined);
+      if (active()) setRestoring(false);
+    });
+    return () => {
+      effect.active = false;
+      effect.unsubscribe();
+    };
+  }, [manager]);
 
   const signIn = useCallback(
     async (returnTo: string = globalThis.location.href) => {
       try {
-        await userManager.signinRedirect({ state: { returnTo } });
+        await (await manager).signinRedirect({ state: { returnTo } });
       } catch {
-        toast.error(en.auth.unreachable);
+        notify.error(en.auth.unreachable);
       }
     },
-    [userManager],
+    [manager],
   );
 
   const signOut = useCallback(async () => {
     // Data fetched with the operator's rights must not outlive the session in memory (UX-10).
     queryClient.clear();
+    const userManager = await manager;
     try {
       await userManager.signoutRedirect();
     } catch {
@@ -131,9 +151,10 @@ function OidcSession({ userManager, children }: { userManager: UserManager; chil
       await userManager.removeUser();
       globalThis.location.assign('/');
     }
-  }, [queryClient, userManager]);
+  }, [manager, queryClient]);
 
-  const completeSignIn = useCallback(() => {
+  const completeSignIn = useCallback(async () => {
+    const userManager = await manager;
     let pending = callbacks.get(userManager);
     if (!pending) {
       pending = userManager.signinRedirectCallback().then((signedIn) => {
@@ -144,7 +165,7 @@ function OidcSession({ userManager, children }: { userManager: UserManager; chil
       callbacks.set(userManager, pending);
     }
     return pending;
-  }, [userManager]);
+  }, [manager]);
 
   // The API client renews once on a 401 and gives up after that (DOC-34 §9.3, UX-06).
   useEffect(() => {
@@ -152,7 +173,7 @@ function OidcSession({ userManager, children }: { userManager: UserManager; chil
       accessToken: () => token.current,
       renew: async () => {
         try {
-          const renewed = await userManager.signinSilent();
+          const renewed = await (await manager).signinSilent();
           token.current = renewed?.access_token;
           return renewed !== null;
         } catch {
@@ -161,9 +182,9 @@ function OidcSession({ userManager, children }: { userManager: UserManager; chil
       },
       expired: () => {
         token.current = undefined;
-        void userManager.removeUser();
+        void manager.then((userManager) => userManager.removeUser());
         queryClient.removeQueries({ queryKey: keys.me() });
-        toast(en.auth.expired, {
+        notify.message(en.auth.expired, {
           id: 'session-expired',
           action: { label: en.account.signIn, onClick: () => void signIn() },
         });
@@ -172,7 +193,10 @@ function OidcSession({ userManager, children }: { userManager: UserManager; chil
     return () => {
       setAuth(undefined);
     };
-  }, [queryClient, signIn, userManager]);
+  }, [manager, queryClient, signIn]);
+
+  const current = user && !user.expired ? user : undefined;
+  const accessToken = current?.access_token;
 
   // Who the user is follows the token: sign-in, renewal and sign-out refetch /me (DOC-34 §3).
   useEffect(() => {
@@ -181,15 +205,15 @@ function OidcSession({ userManager, children }: { userManager: UserManager; chil
 
   const session = useMemo<Session>(
     () => ({
-      status: user ? 'authenticated' : restoring || auth.isLoading ? 'restoring' : 'anonymous',
+      status: current ? 'authenticated' : restoring ? 'restoring' : 'anonymous',
       available: true,
       accessToken,
-      displayName: user?.profile.name ?? user?.profile.preferred_username,
+      displayName: current?.profile.name ?? current?.profile.preferred_username,
       signIn,
       signOut,
       completeSignIn,
     }),
-    [user, restoring, auth.isLoading, accessToken, signIn, signOut, completeSignIn],
+    [current, restoring, accessToken, signIn, signOut, completeSignIn],
   );
   return <SessionContext value={session}>{children}</SessionContext>;
 }

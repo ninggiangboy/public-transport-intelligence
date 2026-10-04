@@ -42,7 +42,7 @@ Client:
 
 | Client | Loại | Luồng | Cấu hình | Dùng bởi |
 | --- | --- | --- | --- | --- |
-| `pti-web` | public | Authorization Code + PKCE (`S256` bắt buộc) | Redirect `http://localhost:8080/*`, `http://localhost:5173/*` (dev server Vite); web origins tương ứng; post-logout redirect `http://localhost:8080/`; không có direct access grant | SPA (`react-oidc-context`, `oidc-client-ts`) |
+| `pti-web` | public | Authorization Code + PKCE (`S256` bắt buộc) | Redirect `http://localhost:8080/*`, `http://localhost:5173/*` (dev server Vite); web origins tương ứng; post-logout redirect `http://localhost:8080/`; không có direct access grant | SPA (`oidc-client-ts`) |
 | `pti-smoke` | public | Direct access grant (password) | Chỉ có trong realm dev; không có redirect | Smoke test compose (DOC-39 §8), integration test |
 | `pti-experiments` | confidential | Client credentials | Service account có realm role `operator`; secret `${KEYCLOAK_EXPERIMENTS_CLIENT_SECRET}` thay lúc import | Runner thực nghiệm (DOC-45 §2) |
 

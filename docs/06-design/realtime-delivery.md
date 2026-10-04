@@ -226,7 +226,7 @@ Một kết nối duy nhất cho cả ứng dụng (`RealtimeProvider` ở gốc
 - Mất kết nối, lỗi mạng, hay server đóng: nối lại với backoff lũy thừa **1 s → 2 s → 4 s … tối đa 30 s**, cộng jitter ngẫu nhiên 0–1 s (UC-01 E1). Thành công thì đặt lại backoff.
 - 4xx (trừ 429) khi mở: không thử lại tự động với cùng tham số. 401 → gọi `signinSilent`; thành công thì nối lại, thất bại thì bỏ các kênh cần quyền và nối lại với kênh công khai. 429 → đợi `Retry-After`.
 - Không nhận được khung nào (kể cả heartbeat) trong **45 giây** → coi như chết, đóng và nối lại.
-- Token được làm mới (`react-oidc-context` sự kiện `userLoaded`) → nối lại chủ động với token mới, trước khi server đóng vì `exp`.
+- Token được làm mới (sự kiện `userLoaded` của `oidc-client-ts`) → nối lại chủ động với token mới, trước khi server đóng vì `exp`.
 - Tab ẩn quá 5 phút (`document.visibilityState`) → đóng kết nối; tab hiện lại → nối lại (thường nhận `resync`) và refetch các query đang hiển thị.
 
 ### 8.3 Polling dự phòng
