@@ -1,5 +1,6 @@
 import { designSystemCopy } from '@/i18n/design-system';
 import { shellCopy } from '@/i18n/shell';
+import { stopsCopy } from '@/i18n/stops';
 
 // Every user-visible string of the app (DR-48, DOC-37). ESLint rejects JSX string literals anywhere else.
 export const en = {
@@ -21,4 +22,6 @@ export const en = {
   ...designSystemCopy,
   // The app shell: navigation, account, search, banners (P5-04); see shell.ts.
   ...shellCopy,
+  // Find a stop and stop detail (P5-07); see stops.ts.
+  ...stopsCopy,
 } as const;

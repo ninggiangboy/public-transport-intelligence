@@ -118,6 +118,23 @@ export function formatWeekday(index: number) {
   return formatter('UTC', { weekday: 'short' }).format(Date.UTC(2024, 0, 1 + index));
 }
 
+/** "Monday" … "Sunday" for an ISO day of week 1 (Monday) … 7. */
+export function formatWeekdayLong(isoDay: number) {
+  return formatter('UTC', { weekday: 'long' }).format(Date.UTC(2024, 0, isoDay));
+}
+
+const ISO_WEEKDAY: Record<string, number> = { Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6, Sun: 7 };
+
+/** ISO day of week (1 = Monday) and hour 0..23 of an instant in a zone: the slot of the ETA table (DOC-23 §7). */
+export function zonedWeekdayHour(at: Instant, timeZone = browserTimeZone()): { dayOfWeek: number; hourOfDay: number } {
+  const parts = formatter(timeZone, { weekday: 'short', hour: 'numeric', hourCycle: 'h23' }).formatToParts(
+    toMillis(at),
+  );
+  const weekday = parts.find((part) => part.type === 'weekday')?.value ?? 'Mon';
+  const hour = Number(parts.find((part) => part.type === 'hour')?.value ?? 0);
+  return { dayOfWeek: ISO_WEEKDAY[weekday] ?? 1, hourOfDay: hour % 24 };
+}
+
 /** "12 AM", "1 AM" … "11 PM" for an hour of the day 0..23 (heatmap axis). */
 export function formatHourOfDay(hour: number) {
   return plain(formatter('UTC', { hour: 'numeric' }).format(Date.UTC(2024, 0, 1, hour)));

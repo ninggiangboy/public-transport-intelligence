@@ -11,6 +11,7 @@ import {
   formatTime,
   formatTimeRange,
   formatWeekday,
+  formatWeekdayLong,
   fromLocalInput,
   isSameDay,
   parseIsoDuration,
@@ -18,6 +19,7 @@ import {
   relativeRefreshMs,
   toLocalInput,
   zoneAbbreviation,
+  zonedWeekdayHour,
 } from '@/lib/time';
 
 const CHICAGO = 'America/Chicago';
@@ -147,5 +149,19 @@ describe('presetSeconds', () => {
     expect(presetSeconds('6h')).toBe(21_600);
     expect(presetSeconds('7d')).toBe(604_800);
     expect(presetSeconds('soon')).toBeNaN();
+  });
+});
+
+describe('zonedWeekdayHour', () => {
+  it('reads the weekday and hour in the agency zone, not UTC', () => {
+    // Tuesday 2026-09-29 21:19 UTC is Tuesday 4 PM in Chicago; 03:00 UTC on Wednesday is still Tuesday 10 PM there.
+    expect(zonedWeekdayHour('2026-09-29T21:19:35Z', 'America/Chicago')).toEqual({ dayOfWeek: 2, hourOfDay: 16 });
+    expect(zonedWeekdayHour('2026-09-30T03:00:00Z', 'America/Chicago')).toEqual({ dayOfWeek: 2, hourOfDay: 22 });
+    expect(zonedWeekdayHour('2026-10-04T05:30:00Z', 'America/Chicago')).toEqual({ dayOfWeek: 7, hourOfDay: 0 });
+  });
+
+  it('names ISO weekdays', () => {
+    expect(formatWeekdayLong(1)).toBe('Monday');
+    expect(formatWeekdayLong(7)).toBe('Sunday');
   });
 });

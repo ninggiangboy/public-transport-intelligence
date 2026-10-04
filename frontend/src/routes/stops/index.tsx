@@ -1,13 +1,15 @@
 import { createFileRoute } from '@tanstack/react-router';
 
-import { PlaceholderPage } from '@/app/shell/PlaceholderPage';
-import { en } from '@/i18n/en';
+import { FindStopPage } from '@/features/stops/components/FindStopPage';
+import { findStopSearch } from '@/features/stops/search';
 
-// The shell routes this page already (P5-04); its screen replaces the placeholder later in phase 5.
+// Find a stop (DOC-36 screens/stop-detail): `q` searches E-06; empty shows saved and recent stops.
 export const Route = createFileRoute('/stops/')({
-  component: Stops,
+  validateSearch: findStopSearch,
+  component: FindStop,
 });
 
-function Stops() {
-  return <PlaceholderPage title={en.nav.items.stops} />;
+function FindStop() {
+  const { q } = Route.useSearch();
+  return <FindStopPage q={q} />;
 }

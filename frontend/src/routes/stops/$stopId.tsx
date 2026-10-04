@@ -1,13 +1,17 @@
 import { createFileRoute } from '@tanstack/react-router';
 
-import { PlaceholderPage } from '@/app/shell/PlaceholderPage';
-import { en } from '@/i18n/en';
+import { StopDetailPage } from '@/features/stops/components/StopDetailPage';
+import { stopDetailSearch } from '@/features/stops/search';
 
-// The shell routes this page already (P5-04); its screen replaces the placeholder later in phase 5.
+// Stop detail (DOC-36 screens/stop-detail). It renders from E-07 and E-08 without waiting for /me or the event
+// stream (DOC-34 §7).
 export const Route = createFileRoute('/stops/$stopId')({
+  validateSearch: stopDetailSearch,
   component: StopDetail,
 });
 
 function StopDetail() {
-  return <PlaceholderPage title={en.nav.items.stops} />;
+  const { stopId } = Route.useParams();
+  const search = Route.useSearch();
+  return <StopDetailPage key={stopId} stopId={stopId} search={search} />;
 }

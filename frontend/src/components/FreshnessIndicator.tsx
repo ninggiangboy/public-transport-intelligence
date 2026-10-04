@@ -13,6 +13,8 @@ interface FreshnessIndicatorProps {
   mode?: 'relative' | 'absolute';
   /** Older than this turns the indicator to warning. */
   staleAfterSeconds?: number;
+  /** `absolute` only: the sentence around the time, e.g. "Predictions as of {time}". Default "As of {time}". */
+  label?: (when: string) => string;
 }
 
 function Dot({ stale }: { stale: boolean }) {
@@ -23,7 +25,13 @@ function Dot({ stale }: { stale: boolean }) {
 }
 
 /** Every live number states its freshness (DOC-34 P-1). */
-export function FreshnessIndicator({ asOf, axis, mode = 'relative', staleAfterSeconds }: FreshnessIndicatorProps) {
+export function FreshnessIndicator({
+  asOf,
+  axis,
+  mode = 'relative',
+  staleAfterSeconds,
+  label = en.time.asOf,
+}: FreshnessIndicatorProps) {
   const clock = useBusinessClock();
   const wakeAt =
     asOf !== undefined && staleAfterSeconds !== undefined ? toMillis(asOf) + staleAfterSeconds * 1000 + 1 : undefined;
@@ -44,9 +52,7 @@ export function FreshnessIndicator({ asOf, axis, mode = 'relative', staleAfterSe
 
   const stale = staleAfterSeconds !== undefined && (now - toMillis(asOf)) / 1000 > staleAfterSeconds;
   const updated =
-    mode === 'absolute'
-      ? en.time.asOf(formatDateTime(asOf, { timeZone: clock.timezone, now }))
-      : en.time.updated(relative);
+    mode === 'absolute' ? label(formatDateTime(asOf, { timeZone: clock.timezone, now })) : en.time.updated(relative);
   return (
     <span
       title={`${en.help.freshness} ${formatIsoUtc(asOf)}`}

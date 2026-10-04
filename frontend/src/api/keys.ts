@@ -37,6 +37,11 @@ export const keys = {
   routes: {
     /** E-01: every route of the active feed, cached for the session. */
     list: () => ['routes'] as const,
+    /** E-02: directions, stops and geometry of one route. */
+    detail: (routeId: string) => ['routes', routeId, 'detail'] as const,
+    /** E-04: historical delay per stop of one direction, for a day of week and hour. */
+    delayProfile: (routeId: string, params: Filters) =>
+      ['routes', routeId, 'delay-profile', normalizeFilters(params)] as const,
   },
   vehicles: {
     all: () => ['vehicles'] as const,
@@ -54,12 +59,16 @@ export const keys = {
     bunching: (filters?: Filters) => ['insights', 'bunching', normalizeFilters(filters)] as const,
     dispatch: (filters?: Filters) => ['insights', 'dispatch', normalizeFilters(filters)] as const,
     disruption: (filters?: Filters) => ['insights', 'disruption', normalizeFilters(filters)] as const,
+    /** E-13: one disruption episode; under `['insights', 'disruption']`, so disruption events invalidate it. */
+    disruptionDetail: (id: string) => ['insights', 'disruption', 'detail', id] as const,
     /** Ticketing anomalies of the last 24 hours behind the sidebar count. */
     ticketingBadge: () => ['insights', 'ticketing', 'badge'] as const,
   },
   stops: {
     detail: (stopId: string) => ['stops', stopId, 'detail'] as const,
     search: (q: string) => ['stops', 'search', q] as const,
+    /** E-08, refetched every 30 s while the stop is open. */
+    arrivals: (stopId: string, limit: number) => ['stops', stopId, 'arrivals', limit] as const,
   },
   etl: {
     jobs: {
