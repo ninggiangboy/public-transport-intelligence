@@ -28,14 +28,18 @@ newest_build() {
   exit 1
 }
 
+# Writes to a temporary file and renames it at the end, so that an interrupted download is not taken for a finished
+# one by the next run.
 extract() {
-  local source=$1
+  local source=$1 partial="$TILES.partial"
+  rm -f "$partial"
   if command -v pmtiles >/dev/null 2>&1; then
-    pmtiles extract "$source" "$TILES" --bbox="$BBOX" --maxzoom="$MAX_ZOOM"
+    pmtiles extract "$source" "$partial" --bbox="$BBOX" --maxzoom="$MAX_ZOOM"
   else
     docker run --rm -v "$PWD:/out" -w /out protomaps/go-pmtiles:v1.31.2 \
-      extract "$source" "$TILES" --bbox="$BBOX" --maxzoom="$MAX_ZOOM"
+      extract "$source" "$partial" --bbox="$BBOX" --maxzoom="$MAX_ZOOM"
   fi
+  mv "$partial" "$TILES"
 }
 
 if [ -f "$TILES" ]; then
