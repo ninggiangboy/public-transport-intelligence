@@ -8,7 +8,7 @@ import { SeverityBadge } from '@/components/SeverityBadge';
 import { toneClasses } from '@/components/tone';
 import { Button } from '@/components/ui/button';
 import { BunchingBody, DisruptionBody, OpsBody, TicketingBody } from '@/features/alerts/components/AlertBodies';
-import { alertVisual, linkAction, summaryLine, typeLabel, type Alert } from '@/features/alerts/model';
+import { alertVisual, linkAction, summaryLine, typeLabel, type Alert } from '@/lib/alert-display';
 import { useAcknowledge } from '@/features/alerts/use-acknowledge';
 import { en } from '@/i18n/en';
 import { useBusinessClock } from '@/lib/business-clock';

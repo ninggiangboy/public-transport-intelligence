@@ -57,7 +57,8 @@ const budgets = [
     })(),
   },
   { name: '/map chunk (MapLibre, pmtiles)', limit: 330 * KB, keys: routeExtra('map.tsx') },
-  { name: 'ECharts chunk', limit: 160 * KB, keys: libraryExtra(/echarts/i) },
+  // 200 KB rather than the 160 KB first planned: ECharts 6 needs 165 KB for a bare line chart (DR-106).
+  { name: 'ECharts chunk', limit: 200 * KB, keys: libraryExtra(/echarts/i) },
   { name: 'CodeMirror chunk', limit: 130 * KB, keys: libraryExtra(/codemirror/i) },
 ];
 

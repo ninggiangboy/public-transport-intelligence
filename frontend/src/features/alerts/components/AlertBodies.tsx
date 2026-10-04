@@ -18,7 +18,7 @@ import { PanelSkeleton } from '@/components/PanelSkeleton';
 import { SeverityBadge } from '@/components/SeverityBadge';
 import type { ToneOrAccent } from '@/components/tone';
 import { CompareBar, Section, StatRow } from '@/features/alerts/components/detail-parts';
-import { alertmanagerPart, formatGap, type Alert } from '@/features/alerts/model';
+import { alertmanagerPart, formatGap, type Alert } from '@/lib/alert-display';
 import {
   bunchingDetailQuery,
   disruptionDetailQuery,

@@ -410,6 +410,8 @@ export const designSystemCopy = {
 
   sparkline: { empty: 'No data' },
 
+  chart: { time: 'Time' },
+
   lineStrip: {
     segment: (from: string, to: string, delay: string) => `${from} to ${to}: ${delay}`,
     state: { passed: 'Passed', current: 'Current stop', upcoming: 'Upcoming' },

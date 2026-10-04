@@ -181,7 +181,7 @@ Breakpoint dùng mặc định của Tailwind (`sm` 640, `md` 768, `lg` 1024, `x
 | LCP của `/stops/$stopId`, Moto G Power, 4G mô phỏng | < 2,5 s (NFR-12) | Lighthouse CI nightly (DOC-44 §10) |
 | JS tải ban đầu (gzip) của `/stops/$stopId` | ≤ 200 KB | `scripts/check-bundle.mjs` đọc `dist/.vite/manifest.json`, chạy trong CI frontend |
 | Chunk `/map` (gồm MapLibre, `pmtiles`) | ≤ 330 KB gzip | như trên |
-| Chunk ECharts (dùng chung cho scorecard, jobs, ticketing) | ≤ 160 KB gzip | như trên |
+| Chunk ECharts (dùng chung cho overview, scorecard, jobs, ticketing) | ≤ 200 KB gzip (DR-106) | như trên |
 | Chunk CodeMirror (chỉ tải khi mở trình sửa payload DLQ) | ≤ 130 KB gzip | như trên |
 | Cuộn bảng DLQ 10.000 dòng | Không có long task > 100 ms | Playwright trace (DOC-44 §10) |
 | Cập nhật bản đồ 1.200 xe mỗi giây | ≥ 50 fps trên laptop demo | Performance panel, kiểm tay ở P5-06 |

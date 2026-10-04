@@ -1,7 +1,7 @@
 import type { QueryClient } from '@tanstack/react-query';
 
 import { keys } from '@/api/keys';
-import type { Alert } from '@/features/alerts/model';
+import type { Alert } from '@/lib/alert-display';
 import { mapPages } from '@/realtime/cache-shapes';
 
 // Optimistic changes to every cached alert list (the feed pages and the sidebar badge), in the shapes the real-time

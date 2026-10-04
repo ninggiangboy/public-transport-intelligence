@@ -22,7 +22,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { dropAlert } from '@/features/alerts/cache';
 import { AlertDetail } from '@/features/alerts/components/AlertDetail';
-import { alertVisual, isUnread, summaryLine, type Alert } from '@/features/alerts/model';
+import { alertVisual, isUnread, summaryLine, type Alert } from '@/lib/alert-display';
 import { alertBadgeQuery, alertListQuery, routesQuery, type AlertFilters } from '@/features/alerts/queries';
 import { ALERT_TYPES, AUDIENCES, WINDOWS, type AlertsSearch, type AlertState } from '@/features/alerts/search';
 import { useQueryClient } from '@tanstack/react-query';

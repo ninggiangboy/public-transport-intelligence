@@ -5,7 +5,7 @@ import type { ToneOrAccent } from '@/components/tone';
 import { en } from '@/i18n/en';
 import { formatDelaySeconds, formatPercentWhole } from '@/lib/format';
 
-// What the alert feed shows of one alert (DOC-36 screens/alert-feed §4, §6.1). `body` is per type (DOC-23 §10.1, and
+// How an alert reads in lists (the alert feed and the Overview's "Needs attention"; DOC-36 screens/alert-feed §4). `body` is per type (DOC-23 §10.1, and
 // the Alertmanager payload for DLQ_SEVERE, FEED_STALE, INFRA); every field is read defensively, since anonymous
 // callers get a reduced body (DOC-32 E-20).
 

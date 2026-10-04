@@ -1,0 +1,71 @@
+// Copy of the Overview screen (DOC-36 screens/overview §8). en.ts spreads it.
+
+export const overviewCopy = {
+  overview: {
+    title: 'Network overview',
+    agency: 'Metro Transit',
+    crumb: 'Overview',
+    live: (weekday: string, date: string, time: string) => `Live · ${weekday}, ${date} · ${time}`,
+    period: { label: 'Period', '1d': 'Yesterday', '7d': '7 days', '30d': '30 days' },
+    openMap: 'Open live map',
+    kpi: {
+      vehicles: 'Vehicles in service',
+      onRoutes: (n: number, count: string) => `on ${count} ${n === 1 ? 'route' : 'routes'}`,
+      otp: 'On-time performance',
+      points: (d: string) => `${d} pts`,
+      vsPrevious: 'vs previous period',
+      alerts: 'Active alerts',
+      bySeverity: (h: number, m: number, l: number) => `${h} high · ${m} medium · ${l} low`,
+      deadLetters: 'Dead letters',
+      lastHour: (n: string) => `+${n} in the last hour`,
+    },
+    pulse: {
+      title: 'Network pulse',
+      subtitle: 'Every vehicle, coloured by schedule deviation',
+      legend: { 'on-time': 'On time', late: 'Late', 'very-late': 'Very late', bunching: 'Bunching' },
+      route: (route: string, vehicles: number) => `Route ${route}: ${vehicles} vehicles`,
+      empty: 'No vehicles in service right now',
+    },
+    attention: {
+      title: 'Needs attention',
+      all: 'All alerts',
+      meta: (summary: string, age: string) => (summary ? `${summary} · ${age}` : age),
+      emptyTitle: 'Nothing needs attention',
+      emptyBody: 'Open alerts will show up here.',
+    },
+    otpChart: {
+      title: 'On-time by day',
+      current: 'This period',
+      previous: 'Previous period',
+      yLabel: 'On time',
+      caption: (from: string, to: string, otp: string) =>
+        `Network on-time performance per day from ${from} to ${to}; ${otp} over the period.`,
+      emptyTitle: 'No on-time data yet',
+      emptyBody: 'Scores are computed each night for the previous day.',
+    },
+    watch: {
+      title: 'Routes to watch',
+      scorecard: 'Scorecard',
+    },
+    pipeline: {
+      title: 'Data pipeline',
+      details: 'Details',
+      vehicles: 'Vehicle positions',
+      tripUpdates: 'Trip updates',
+      sales: 'Ticket sales',
+      batch: 'Batch jobs',
+      gtfsRate: (rate: string) => `GTFS-rt · ${rate} msg/s`,
+      rate: (rate: string) => `${rate} msg/s`,
+      noData: (age: string) => `No data for ${age}`,
+      failed: (n: number) => `${n} failed in the last 24 h`,
+      allSucceeded: 'All succeeded',
+    },
+    panels: {
+      vehicles: 'vehicles',
+      otp: 'on-time performance',
+      alerts: 'alerts',
+      deadLetters: 'dead letters',
+      pipeline: 'the data pipeline',
+    },
+  },
+} as const;

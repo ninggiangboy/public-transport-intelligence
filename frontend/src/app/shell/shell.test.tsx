@@ -251,7 +251,7 @@ describe('footer', () => {
 describe('search (⌘K)', () => {
   it('AC-9 finds route 18 and opens the map filtered to it', async () => {
     const { router } = await renderRoute('/overview', { as: 'viewer' });
-    await screen.findByRole('heading', { level: 1, name: en.nav.items.overview });
+    await screen.findByRole('heading', { level: 1, name: en.overview.title });
     await userEvent.keyboard('{Meta>}k{/Meta}');
     const input = await screen.findByPlaceholderText(en.search.placeholder);
     await userEvent.type(input, '18');

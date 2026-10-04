@@ -1,5 +1,6 @@
 import { alertsCopy } from '@/i18n/alerts';
 import { designSystemCopy } from '@/i18n/design-system';
+import { overviewCopy } from '@/i18n/overview';
 import { shellCopy } from '@/i18n/shell';
 import { stopsCopy } from '@/i18n/stops';
 
@@ -27,4 +28,6 @@ export const en = {
   ...stopsCopy,
   // The alert feed and the alert labels of DOC-37 §3.3 (P5-12); see alerts.ts.
   ...alertsCopy,
+  // The Overview screen (P5-16); see overview.ts.
+  ...overviewCopy,
 } as const;

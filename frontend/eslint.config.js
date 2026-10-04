@@ -15,6 +15,7 @@ const FEATURES = [
   'stops',
   'scorecard',
   'alerts',
+  'overview',
   'ops-jobs',
   'ops-dlq',
   'ops-replay',

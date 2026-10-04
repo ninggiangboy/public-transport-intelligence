@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  addDays,
   formatDate,
   formatDateRange,
   formatDateTime,
@@ -19,6 +20,7 @@ import {
   relativeRefreshMs,
   toLocalInput,
   zoneAbbreviation,
+  zonedDate,
   zonedWeekdayHour,
 } from '@/lib/time';
 
@@ -163,5 +165,18 @@ describe('zonedWeekdayHour', () => {
   it('names ISO weekdays', () => {
     expect(formatWeekdayLong(1)).toBe('Monday');
     expect(formatWeekdayLong(7)).toBe('Sunday');
+  });
+});
+
+describe('service dates', () => {
+  it('reads the date in the agency zone', () => {
+    expect(zonedDate('2026-09-30T03:00:00Z', 'America/Chicago')).toBe('2026-09-29');
+    expect(zonedDate('2026-09-30T06:00:00Z', 'America/Chicago')).toBe('2026-09-30');
+  });
+
+  it('moves calendar dates across months and years', () => {
+    expect(addDays('2026-09-29', -1)).toBe('2026-09-28');
+    expect(addDays('2026-10-01', -1)).toBe('2026-09-30');
+    expect(addDays('2026-12-31', 1)).toBe('2027-01-01');
   });
 });

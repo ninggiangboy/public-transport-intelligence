@@ -1,13 +1,21 @@
 import { createFileRoute } from '@tanstack/react-router';
+import { z } from 'zod/mini';
 
-import { PlaceholderPage } from '@/app/shell/PlaceholderPage';
-import { en } from '@/i18n/en';
+import { RequireRole } from '@/app/guards';
+import { OverviewPage } from '@/features/overview/components/OverviewPage';
+import { PERIODS } from '@/features/overview/model';
 
-// The shell routes this page already (P5-04); its screen replaces the placeholder later in phase 5.
+// The viewer's start page (DOC-36 screens/overview): `period` applies to the on-time blocks only.
 export const Route = createFileRoute('/overview')({
+  validateSearch: z.object({ period: z.catch(z.optional(z.enum(PERIODS)), undefined) }),
   component: Overview,
 });
 
 function Overview() {
-  return <PlaceholderPage title={en.nav.items.overview} role="viewer" />;
+  const { period } = Route.useSearch();
+  return (
+    <RequireRole role="viewer">
+      <OverviewPage period={period ?? '1d'} />
+    </RequireRole>
+  );
 }

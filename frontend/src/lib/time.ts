@@ -118,6 +118,20 @@ export function formatWeekday(index: number) {
   return formatter('UTC', { weekday: 'short' }).format(Date.UTC(2024, 0, 1 + index));
 }
 
+/** The calendar date ("2026-09-29") of an instant in a zone: the service date of the agency (DOC-34 §8). */
+export function zonedDate(at: Instant, timeZone = browserTimeZone()): string {
+  // en-CA formats as YYYY-MM-DD.
+  return new Intl.DateTimeFormat('en-CA', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(
+    toMillis(at),
+  );
+}
+
+/** `date` ("2026-09-29") moved by `days` (negative for earlier), as a plain calendar date. */
+export function addDays(date: string, days: number): string {
+  const [year = 0, month = 1, day = 1] = date.split('-').map(Number);
+  return new Date(Date.UTC(year, month - 1, day + days)).toISOString().slice(0, 10);
+}
+
 /** "Monday" … "Sunday" for an ISO day of week 1 (Monday) … 7. */
 export function formatWeekdayLong(isoDay: number) {
   return formatter('UTC', { weekday: 'long' }).format(Date.UTC(2024, 0, isoDay));
