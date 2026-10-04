@@ -24,7 +24,7 @@ import {
   stopDetailQuery,
 } from '@/features/stops/queries';
 import type { StopDetailSearch } from '@/features/stops/search';
-import { rememberRecent, storageWorks, useStopLists } from '@/features/stops/stop-lists';
+import { rememberRecent, storageWorks, useStopLists } from '@/lib/stop-lists';
 import { en } from '@/i18n/en';
 import { useDocumentTitle } from '@/lib/browser';
 import { useBusinessClock } from '@/lib/business-clock';

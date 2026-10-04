@@ -1,18 +1,16 @@
 import { createFileRoute } from '@tanstack/react-router';
 
-import { PlaceholderPage } from '@/app/shell/PlaceholderPage';
-import { en } from '@/i18n/en';
+import { LiveMapPage } from '@/features/map/components/LiveMapPage';
+import { mapSearch } from '@/features/map/search';
 
-// The shell routes this page already (P5-04); its screen replaces the placeholder later in phase 5.
+// The live map (DOC-36 screens/live-map): everyone sees vehicles, routes and public disruptions; viewers add the
+// bunching overlay and dispatch suggestions. MapLibre comes with this route's chunk only (DOC-34 §7).
 export const Route = createFileRoute('/map')({
+  validateSearch: mapSearch,
   staticData: { fullBleed: true },
   component: LiveMap,
 });
 
 function LiveMap() {
-  return (
-    <div className="px-4 py-5 md:px-7 md:py-6">
-      <PlaceholderPage title={en.nav.items.map} />
-    </div>
-  );
+  return <LiveMapPage search={Route.useSearch()} />;
 }

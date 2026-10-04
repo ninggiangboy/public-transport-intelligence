@@ -163,6 +163,18 @@
       background-color: transparent;
     }
   }
+
+  /* "Ping" around the selected vehicle and the open disruption on the map (DOC-35 §4.4). */
+  @keyframes pti-ping {
+    from {
+      transform: scale(1);
+      opacity: 0.55;
+    }
+    to {
+      transform: scale(2.4);
+      opacity: 0;
+    }
+  }
 }
 
 @utility animate-shimmer {
@@ -173,6 +185,10 @@
 
 @utility animate-highlight {
   animation: pti-highlight 2s var(--ease-out) 1 forwards;
+}
+
+@utility animate-map-ping {
+  animation: pti-ping 1.8s var(--ease-out) infinite;
 }
 
 /* prefers-reduced-motion: no transitions or animations; spinners stand still (DOC-35 §4.4, DS-09). */

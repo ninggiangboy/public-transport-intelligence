@@ -149,6 +149,9 @@ export const alertsCopy = {
     ackFailed: "Couldn't acknowledge the alert",
     feedbackSaved: 'Feedback saved',
     feedbackFailed: "Couldn't save the feedback",
+    /** The state of a dispatch suggestion: "Accepted by Linh Tran · 4:14 PM". */
+    feedbackBy: (feedback: string, name: string, time?: string) =>
+      time ? `${feedback} by ${name} · ${time}` : `${feedback} by ${name}`,
     empty: {
       openTitle: 'No open alerts',
       openBody: 'Alerts appear here when delays, bunching or data problems are detected.',

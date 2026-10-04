@@ -44,8 +44,8 @@ describe('navigation by role (DOC-34 §4.1)', () => {
     expect(navLabels()).toEqual([en.nav.items.map, en.nav.items.stops, en.nav.items.alerts]);
     expect(primaryNav().queryByRole('heading', { name: en.nav.groups.operations })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: en.account.signIn })).toBeInTheDocument();
-    // Anonymous never calls the ops endpoints behind the counts.
-    expect(requested.filter((path) => path.includes('/etl/') || path.includes('/insights/'))).toEqual([]);
+    // Anonymous never calls the ops endpoints behind the counts (the map itself asks for public disruptions).
+    expect(requested.filter((path) => path.includes('/etl/') || path.includes('/insights/ticketing'))).toEqual([]);
     expect(requested).not.toContain('/api/v1/me');
   });
 

@@ -25,6 +25,9 @@ vi.mock('@/components/charts/echarts', () => ({
   initChart: () => ({ setOption: () => undefined, resize: () => undefined, dispose: () => undefined }),
 }));
 
+// jsdom has no WebGL either: the live map draws on a double that records its layers (src/test/map.tsx).
+vi.mock('@/features/map/components/MapCanvas', () => import('@/test/map'));
+
 beforeAll(() => {
   server.listen({ onUnhandledRequest: 'error' });
 });

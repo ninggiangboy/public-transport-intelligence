@@ -26,6 +26,10 @@ secrets: ## Create .env with generated secrets and render deploy/compose/.genera
 .env:
 	@echo ".env is missing; run 'make secrets' first" >&2; exit 1
 
+.PHONY: tiles
+tiles: ## Download the offline base map of the live map into deploy/tiles/ (about 97 MB, once; ADR-0021) [BUILD=<YYYYMMDD>]
+	@deploy/tiles/fetch.sh
+
 .PHONY: images
 images: .env ## Build every image: Jib for the Java apps, Dockerfiles through compose
 	cd backend && ./gradlew --quiet jibDockerBuild

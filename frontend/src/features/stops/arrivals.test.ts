@@ -9,7 +9,7 @@ import {
   visibleArrivals,
   type Arrival,
 } from '@/features/stops/arrivals';
-import { withStop } from '@/features/stops/stop-lists';
+import { withStop } from '@/lib/stop-lists';
 
 const [base] = listStopArrivals.examples.arrivals.items;
 if (!base) throw new Error('example has no arrival');

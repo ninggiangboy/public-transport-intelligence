@@ -1,0 +1,14 @@
+/* MapLibre's popup in the tokens of the theme (DOC-35 §4.3); loaded with the /map chunk. */
+.pti-map-popup .maplibregl-popup-content {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--popover);
+  color: var(--popover-foreground);
+  box-shadow: var(--shadow-md);
+  padding: 10px 12px;
+  font: inherit;
+}
+
+.pti-map-popup.maplibregl-popup-anchor-bottom .maplibregl-popup-tip {
+  border-top-color: var(--popover);
+}

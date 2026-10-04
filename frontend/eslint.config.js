@@ -121,6 +121,7 @@ export default tseslint.config(
     files: [
       'src/components/ui/**',
       'src/routes/**',
+      'src/test/**',
       'src/app/theme-provider.tsx',
       'src/app/auth.tsx',
       'src/app/env-context.tsx',

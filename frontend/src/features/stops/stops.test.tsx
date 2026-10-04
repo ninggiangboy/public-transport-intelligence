@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 import { getDisruptionEpisode, getStop, listStopArrivals } from '@/api/generated/examples';
 import type { ResponseBody } from '@/api/types';
-import { RECENT_KEY, SAVED_KEY } from '@/features/stops/stop-lists';
+import { RECENT_KEY, SAVED_KEY } from '@/lib/stop-lists';
 import { en } from '@/i18n/en';
 import { mswPath, respond, respondProblem } from '@/test/handlers';
 import { renderRoute } from '@/test/render';

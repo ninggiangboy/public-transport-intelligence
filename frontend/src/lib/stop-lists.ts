@@ -2,8 +2,8 @@ import { useCallback, useState } from 'react';
 
 import { readStored, writeStored } from '@/lib/browser';
 
-// "Saved stops" and "Recent stops" in localStorage (DOC-36 screens/stop-detail §4). Storage may be missing or full; a
-// failure only loses the list.
+// "Saved stops" and "Recent stops" in localStorage (DOC-36 screens/stop-detail §4, shown again in the mobile sheet of
+// screens/live-map §4.2). Storage may be missing or full; a failure only loses the list.
 
 export interface StopRef {
   stopId: string;

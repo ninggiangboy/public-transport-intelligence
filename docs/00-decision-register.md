@@ -64,6 +64,7 @@ Tài liệu gốc mô tả tốt *cái gì* và *vì sao*, nhưng còn nhiều c
 | 2026-09-30 | Owner | **Không dùng Redis:** SSE fan-out qua Kafka, cache và rate limit theo pod, khóa và idempotency trên PostgreSQL. Ghi rõ dấu hiệu cần xem lại và phương án không cần Redis cần thử trước | DR-103 (mới), ADR-0031 (mới) |
 | 2026-09-30 | Owner | **Clean Architecture cho backend Java:** code mới từ P4 (`analytics`, `api`, `triage-worker`) chia tầng `domain`/`application`/`adapter`/`config`, domain và application là Java thuần, ArchUnit fail build. Code P1–P3 giữ nguyên, bị freeze bằng ArchUnit, refactor ở Phase R sau M6 và trước P3-10 | DR-104 (mới), ADR-0032 (mới), DOC-49 (mới), master plan §4, §5 |
 | 2026-10-04 | Claude (Owner ủy quyền) | **Ngân sách JS ban đầu (P5):** `zod/mini`; bỏ `react-oidc-context`, tải `oidc-client-ts` bằng `import()`; tải lười controller SSE, Toaster, menu tài khoản, sheet mobile; asset nén sẵn `gzip -9` với `gzip_static`; `check-bundle` trong CI | DR-105 (mới), DR-46, ADR-0020, DOC-11, DOC-34 §7, §9 |
+| 2026-10-04 | Owner | **Ngân sách chunk `/map` (P5-06):** 360 KB thay vì 330 KB, vì riêng MapLibre 6 đã khoảng 297 KB ở gzip -9; panel chi tiết và chế độ danh sách tải lười, `MapCanvas` vẫn nằm trong chunk được đo | DR-107 (mới), DOC-34 §7 |
 
 ---
 
@@ -622,6 +623,12 @@ Tài liệu gốc mô tả tốt *cái gì* và *vì sao*, nhưng còn nhiều c
 - **Vấn đề:** ECharts 6 theo module đo được (gzip -9): biểu đồ đường tối thiểu 165 KB, thêm cột 172 KB, thêm heatmap và visualMap 186 KB, đủ danh sách DOC-35 §7 209 KB. ECharts 5 là 151 KB và 177 KB. Ngân sách 160 KB không chứa nổi biểu đồ của scorecard ở cả hai bản.
 - **Quyết định:** Giữ ECharts 6 (DR-53), nâng ngân sách chunk ECharts lên 200 KB. `src/components/charts/echarts.ts` chỉ đăng ký module đang dùng; màn cần thêm (heatmap ở P5-08) tự thêm. Legend vẽ bằng HTML nên không cần `LegendComponent`. Chunk này chỉ tải ở màn của nhân viên, không ảnh hưởng ngân sách 200 KB của stop detail.
 - **Ghi chú:** Sau P5-16, JS ban đầu của `/stops/$stopId` lên 197,6 KB vì `en.ts` gộp chuỗi của mọi màn. Chuỗi của từng màn (trừ khung, component dùng chung và stop detail) giờ nằm ở file riêng trong `src/i18n/` (`alerts.ts`, `overview.ts`, như `catalog.ts`) và được màn đó import trực tiếp, nên tải cùng chunk của màn; `en.ts` không spread chúng. JS ban đầu còn 194,7 KB. Đòn bẩy kế tiếp: tách nhãn trạng thái ops khỏi `design-system.ts`, tải lười sidebar desktop trên mobile.
+- **Ghi vào:** DOC-34 §7, `scripts/check-bundle.mjs`.
+
+### DR-107 · Ngân sách chunk `/map` 360 KB — **Chốt** (P5-06; sửa DOC-34 §7)
+- **Vấn đề:** Đo bằng gzip -9 như `scripts/check-bundle.mjs`, riêng MapLibre 6 (`maplibre-gl.mjs` cùng `maplibre-gl-shared.mjs`) là 296,4 KB ở 6.11.2 và 299,0 KB ở 6.12.0; `pmtiles` 4.5 thêm 5,5 KB, `@protomaps/basemaps` 5.7 thêm 6,8 KB. Con số 289,5 KB của S-05 cho cả ba thư viện không lặp lại được ở mức nén này. Ngân sách 330 KB chỉ còn khoảng 19 KB cho mọi thứ khác của màn. Sau P5-06, chunk `/map` là 347,9 KB, dù panel chi tiết và chế độ danh sách đã tải lười.
+- **Quyết định:** Giữ MapLibre 6 (DR-82), nâng ngân sách chunk `/map` lên 360 KB. Không đưa `MapCanvas` vào `import()` riêng chỉ để qua ngân sách: làm vậy thì phép đo không còn tính MapLibre. Phần màn hình mà lần vẽ đầu không cần vẫn tải bằng `import()`: nội dung panel chi tiết (`PanelContent`) khi chọn đối tượng đầu tiên, `VehicleList` khi `view=list`.
+- **Hệ quả:** Còn khoảng 12 KB cho các việc sau ở màn bản đồ (P5-14, bản đồ nhỏ ở stop detail dùng chung `MapCanvas` nhưng nằm ở chunk của route đó). Đòn bẩy kế tiếp nếu cần: tải lười popover chọn tuyến và danh sách gián đoạn, kết quả của "Search the map".
 - **Ghi vào:** DOC-34 §7, `scripts/check-bundle.mjs`.
 
 ---

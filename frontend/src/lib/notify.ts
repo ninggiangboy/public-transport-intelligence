@@ -22,6 +22,9 @@ export const notify = {
   success(text: string, options?: ExternalToast) {
     void ready.then((toast) => toast.success(text, options));
   },
+  warning(text: string, options?: ExternalToast) {
+    void ready.then((toast) => toast.warning(text, options));
+  },
   error(text: string, options?: ExternalToast) {
     void ready.then((toast) => toast.error(text, options));
   },

@@ -29,6 +29,8 @@ interface RouteSelectProps {
   /** Only routes of these GTFS types are offered. */
   routeTypes?: number[];
   placeholder?: string;
+  /** Fixed text of the trigger ("+ Route") when the selection is shown elsewhere, as chips. */
+  triggerText?: string;
 }
 
 function displayName(route: RouteOption): string {
@@ -44,6 +46,7 @@ export function RouteSelect({
   max = 20,
   routeTypes,
   placeholder = en.route.select.none,
+  triggerText,
 }: RouteSelectProps) {
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(false);
@@ -87,13 +90,14 @@ export function RouteSelect({
     >
       <PopoverTrigger asChild>
         <FilterChip
-          active={selected.length > 0}
+          active={triggerText === undefined && selected.length > 0}
           text={
-            selected.length === 0
+            triggerText ??
+            (selected.length === 0
               ? placeholder
               : selected.length <= 3
                 ? selected.map(displayName).join(', ')
-                : en.route.select.selected(selected.length)
+                : en.route.select.selected(selected.length))
           }
           aria-label={en.route.select.label}
         />

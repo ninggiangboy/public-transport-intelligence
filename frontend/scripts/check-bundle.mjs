@@ -56,7 +56,8 @@ const budgets = [
       return extra === undefined ? undefined : [...entry, ...extra];
     })(),
   },
-  { name: '/map chunk (MapLibre, pmtiles)', limit: 330 * KB, keys: routeExtra('map.tsx') },
+  // 360 KB rather than the 330 KB first planned: MapLibre 6 alone is about 297 KB at gzip -9 (DR-107).
+  { name: '/map chunk (MapLibre, pmtiles)', limit: 360 * KB, keys: routeExtra('map.tsx') },
   // 200 KB rather than the 160 KB first planned: ECharts 6 needs 165 KB for a bare line chart (DR-106).
   { name: 'ECharts chunk', limit: 200 * KB, keys: libraryExtra(/echarts/i) },
   { name: 'CodeMirror chunk', limit: 130 * KB, keys: libraryExtra(/codemirror/i) },

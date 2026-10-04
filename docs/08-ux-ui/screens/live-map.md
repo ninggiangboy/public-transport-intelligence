@@ -149,7 +149,9 @@ Delay vs normal  [▬▬▬▬▬▬▬▬▬▬▬▬▬|▬▬]  normal 1m 01s
 | Gián đoạn đang diễn ra | E-12 `?status=OPEN&routeId=…&limit=50` | `['insights', 'disruption', { status: 'OPEN', routeIds }]` | `disruption.*`, `alert.retracted` → invalidate |
 | Chi tiết gián đoạn | E-13 | `['insights', 'disruption', 'detail', id]` | như trên |
 | Chi tiết bunching + gợi ý | E-11 | `['insights', 'bunching', 'detail', id]` | `bunching.closed`, `dispatch.suggested` → invalidate |
-| Tên trạm hiện tại của xe (khi tuyến chưa được chọn) | E-07 | `['stops', stopId, 'detail']` | khi mở panel |
+| Trạm của chiều xe đang chạy (Trip progress, tên trạm hiện tại) | E-02 của tuyến của xe | `['routes', routeId, 'detail']` | `staleTime: Infinity`; tải khi mở panel nếu tuyến chưa được chọn |
+| Trạm của tuyến (lớp `stops`, "Transfer to …") | E-06 `?routeId=…&limit=500` | `['stops', 'route', routeId]` | `staleTime` 1 giờ |
+| Alert gián đoạn/bunching đang mở (toast, "Open alert") | E-20 `?state=open&type=DISRUPTION,BUNCHING&routeId=…` | `['alerts', 'list', {…}]` | `alert.*` vá cache như mọi danh sách alert; id mới xuất hiện sau lần tải đầu là toast (DOC-26 §8.4) |
 | Kênh SSE | E-70 `channels=vehicles,alerts&routeId=…` | — | Không chọn tuyến thì không gửi `routeId` |
 
 - E-05 không có `delaySeconds` mới trong `vehicles.batch`; panel xe hiện độ trễ từ snapshot, và refetch E-05 khi mở panel để có số mới.

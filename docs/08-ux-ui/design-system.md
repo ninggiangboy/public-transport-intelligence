@@ -461,7 +461,7 @@ Quy ước ở §7.
 
 ### 5.8 Bản đồ
 
-Component ở `features/map/`, dùng chung `MapCanvas` (bọc `react-map-gl/maplibre`) cho Live map và bản đồ nhỏ ở Stop detail. Xem §6.
+Component ở `features/map/`, dùng chung `MapCanvas` (bọc `@vis.gl/react-maplibre`, phần maplibre của `react-map-gl`, DR-82) cho Live map và bản đồ nhỏ ở Stop detail. Màn hình chỉ làm việc với bản đồ qua `MapHandle` (`features/map/handle.ts`), nên test component thay `MapCanvas` bằng bản giả (`src/test/map.tsx`; jsdom không có WebGL). Xem §6.
 
 - **Panel nổi** (`MapFloatPanel`): nền `--card` 94% có `backdrop-filter: blur(12px)`, viền `--border`, bo `--radius-xl`, bóng `--shadow-md`; đặt cách mép bản đồ 16 px.
 - **Cụm điều khiển** (`MapControls`): cột nút 34 × 34 px chung một khung bo 10 px (zoom in, zoom out, locate, legend).
@@ -505,7 +505,7 @@ interface CalloutProps { tone: Tone | 'primary' | 'bunching'; icon?: React.React
 
 ### 6.1 Nền
 
-- Style `offline` (PMTiles) hoặc `online` theo `env.js` (ADR-0021). Style `offline` dựng lúc chạy bằng `@protomaps/basemaps` (`frontend/src/features/map/baseStyle.ts`) từ flavor `light` (theme sáng) và `black` (theme tối), rồi ghi đè màu nền đất, nước, công viên, khối nhà, đường, viền đường, nhãn bằng token §3.6 để bản đồ có tông ấm nhạt thay vì xám thuần. Đổi theme gọi `map.setStyle` với style của theme mới rồi thêm lại các lớp dữ liệu.
+- Style `offline` (PMTiles) hoặc `online` theo `env.js` (ADR-0021). Style `offline` dựng lúc chạy bằng `@protomaps/basemaps` (`frontend/src/features/map/baseStyle.ts`) từ flavor `grayscale` (theme sáng) và `black` (theme tối), hai flavor trung tính có sẵn nên không ghi đè màu (DR-82). Token §3.6 dùng cho nền trơn khi thiếu tile. Đổi theme gọi `map.setStyle` với style của theme mới rồi thêm lại các lớp dữ liệu (`features/map/scene.ts`).
 - Nền gần như không bão hòa, nên màu tuyến và màu độ trễ nổi bật. Nhãn đường và địa danh bằng tiếng Anh (`lang: "en"`).
 - Camera mặc định: fit bbox `-93.730, 44.707, -92.806, 45.330` (S-05), `minZoom` 9, `maxZoom` 18, `maxBounds` = bbox nới 10%.
 - Attribution luôn hiện: "© OpenStreetMap contributors · Protomaps".

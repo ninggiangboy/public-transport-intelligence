@@ -10,7 +10,7 @@ import { PanelSkeleton } from '@/components/PanelSkeleton';
 import { RouteBadge } from '@/components/RouteBadge';
 import { Button } from '@/components/ui/button';
 import { routesQuery, stopSearchQuery } from '@/features/stops/queries';
-import { rememberRecent, useStopLists, type StopRef } from '@/features/stops/stop-lists';
+import { rememberRecent, useStopLists, type StopRef } from '@/lib/stop-lists';
 import { en } from '@/i18n/en';
 
 type RouteItem = components['schemas']['RouteItemResponse'];
