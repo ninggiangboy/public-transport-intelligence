@@ -92,3 +92,5 @@ it and starts it in the compose `core` profile on http://localhost:8080.
 chunks of DOC-34 §7 from `dist/.vite/manifest.json`; CI runs it after the build. What the first paint does not need is
 loaded with `import()`: the OIDC client, the event stream controller, the Toaster (raise toasts with `notify` from
 `src/lib/notify.ts`), the account menu, the mobile sheets and the search dialog (DR-105). Zod schemas use `zod/mini`.
+A screen's copy lives in its own file under `src/i18n/` and is imported by the screen, not spread into `en`, so it loads
+with the screen's chunk (DR-106).

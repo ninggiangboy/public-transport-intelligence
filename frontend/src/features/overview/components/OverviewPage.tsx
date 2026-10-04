@@ -41,6 +41,8 @@ import {
   routesQuery,
 } from '@/features/overview/queries';
 import { en } from '@/i18n/en';
+import { alertsCopy } from '@/i18n/alerts';
+import { overviewCopy } from '@/i18n/overview';
 import { alertVisual, summaryLine } from '@/lib/alert-display';
 import { useDocumentTitle } from '@/lib/browser';
 import { useBusinessClock } from '@/lib/business-clock';
@@ -123,7 +125,11 @@ function LiveLine() {
           live ? 'bg-tone-success-solid ring-tone-success-bg' : 'bg-tone-warning-solid ring-tone-warning-bg',
         )}
       />
-      {en.overview.live(weekday, formatDate(now, clock.timezone), formatTime(now, { timeZone: clock.timezone }))}
+      {overviewCopy.overview.live(
+        weekday,
+        formatDate(now, clock.timezone),
+        formatTime(now, { timeZone: clock.timezone }),
+      )}
     </span>
   );
 }
@@ -156,11 +162,15 @@ function AttentionRow({ alert, fresh, route }: { alert: Alert; fresh: boolean; r
                 size="sm"
               />
             ) : null}
-            <span className="truncate">{en.overview.attention.meta(summaryLine(alert) ?? '', age)}</span>
+            <span className="truncate">{overviewCopy.overview.attention.meta(summaryLine(alert) ?? '', age)}</span>
           </span>
         </span>
         <span title={en.severity[alert.severity as 0 | 1 | 2]}>
-          <ToneBadge tone={tone} size="sm" label={en.alerts.severityShort[alert.severity] ?? String(alert.severity)} />
+          <ToneBadge
+            tone={tone}
+            size="sm"
+            label={alertsCopy.alerts.severityShort[alert.severity] ?? String(alert.severity)}
+          />
         </span>
       </AppLink>
     </li>
@@ -192,7 +202,12 @@ function NeedsAttention({ alerts, routes }: { alerts: Alert[]; routes: Map<strin
     };
   }, [fresh]);
   if (top.length === 0)
-    return <EmptyState title={en.overview.attention.emptyTitle} description={en.overview.attention.emptyBody} />;
+    return (
+      <EmptyState
+        title={overviewCopy.overview.attention.emptyTitle}
+        description={overviewCopy.overview.attention.emptyBody}
+      />
+    );
   return (
     <ul className="-mx-2 flex flex-col">
       {top.map((alert) => (
@@ -240,7 +255,7 @@ function PipelineRow({
 
 /** /overview: is the network fine? (DOC-36 screens/overview). Every block has its own query and error state. */
 export function OverviewPage({ period }: { period: Period }) {
-  useDocumentTitle(en.overview.crumb);
+  useDocumentTitle(overviewCopy.overview.crumb);
   const navigate = useNavigate({ from: '/overview' });
   const clock = useBusinessClock();
   const { data: freshness } = useFreshness();
@@ -298,7 +313,7 @@ export function OverviewPage({ period }: { period: Period }) {
     const fresh = source(name);
     if (fresh?.stale) {
       return {
-        value: en.overview.pipeline.noData(
+        value: overviewCopy.overview.pipeline.noData(
           fresh.ageSeconds === undefined ? '—' : formatDuration(fresh.ageSeconds * 1000),
         ),
         warning: true,
@@ -308,7 +323,7 @@ export function OverviewPage({ period }: { period: Period }) {
     const rateText = rate === undefined ? '—' : formatCount(Math.round(rate));
     const age = fresh?.ageSeconds === undefined ? '' : ` · ${formatDuration(fresh.ageSeconds * 1000)}`;
     return {
-      value: `${gtfs ? en.overview.pipeline.gtfsRate(rateText) : en.overview.pipeline.rate(rateText)}${age}`,
+      value: `${gtfs ? overviewCopy.overview.pipeline.gtfsRate(rateText) : overviewCopy.overview.pipeline.rate(rateText)}${age}`,
       warning: false,
     };
   };
@@ -318,15 +333,15 @@ export function OverviewPage({ period }: { period: Period }) {
   return (
     <div className="flex flex-col gap-4">
       <PageHeader
-        crumbs={[{ label: en.overview.agency }, { label: en.overview.crumb }]}
-        title={en.overview.title}
+        crumbs={[{ label: overviewCopy.overview.agency }, { label: overviewCopy.overview.crumb }]}
+        title={overviewCopy.overview.title}
         subtitle={<LiveLine />}
         actions={
           <>
             <SegmentedControl
-              label={en.overview.period.label}
+              label={overviewCopy.overview.period.label}
               value={period}
-              options={PERIODS.map((value) => ({ value, label: en.overview.period[value] }))}
+              options={PERIODS.map((value) => ({ value, label: overviewCopy.overview.period[value] }))}
               onChange={(value) => {
                 void navigate({ search: value === '1d' ? {} : { period: value }, replace: true });
               }}
@@ -334,7 +349,7 @@ export function OverviewPage({ period }: { period: Period }) {
             <Button asChild>
               <Link to="/map">
                 <MapIcon aria-hidden="true" />
-                {en.overview.openMap}
+                {overviewCopy.overview.openMap}
               </Link>
             </Button>
           </>
@@ -344,33 +359,33 @@ export function OverviewPage({ period }: { period: Period }) {
       <div className="grid grid-cols-2 gap-3.5 xl:grid-cols-4">
         {vehicles.data ? (
           <KpiCard
-            label={en.overview.kpi.vehicles}
+            label={overviewCopy.overview.kpi.vehicles}
             value={formatCount(vehicles.data.data.count)}
-            hint={en.overview.kpi.onRoutes(routeCount, formatCount(routeCount))}
+            hint={overviewCopy.overview.kpi.onRoutes(routeCount, formatCount(routeCount))}
             href={HREF.map}
           />
         ) : vehicles.isError ? (
           <ErrorState
             error={vehicles.error}
             variant="block"
-            panel={en.overview.panels.vehicles}
+            panel={overviewCopy.overview.panels.vehicles}
             onRetry={() => void vehicles.refetch()}
           />
         ) : (
-          <KpiSkeleton label={en.overview.kpi.vehicles} />
+          <KpiSkeleton label={overviewCopy.overview.kpi.vehicles} />
         )}
         {current.data ? (
           <KpiCard
-            label={en.overview.kpi.otp}
+            label={overviewCopy.overview.kpi.otp}
             value={otpNow === undefined ? en.kv.empty : formatPercent(otpNow / 100)}
             delta={
               delta === undefined
                 ? undefined
                 : {
-                    value: en.overview.kpi.points(Math.abs(delta).toFixed(1)),
+                    value: overviewCopy.overview.kpi.points(Math.abs(delta).toFixed(1)),
                     direction: Math.abs(delta) < 0.05 ? 'flat' : delta > 0 ? 'up' : 'down',
                     good: 'up',
-                    caption: en.overview.kpi.vsPrevious,
+                    caption: overviewCopy.overview.kpi.vsPrevious,
                   }
             }
             href={HREF.scorecard}
@@ -379,52 +394,52 @@ export function OverviewPage({ period }: { period: Period }) {
           <ErrorState
             error={current.error}
             variant="block"
-            panel={en.overview.panels.otp}
+            panel={overviewCopy.overview.panels.otp}
             onRetry={() => void current.refetch()}
           />
         ) : (
-          <KpiSkeleton label={en.overview.kpi.otp} />
+          <KpiSkeleton label={overviewCopy.overview.kpi.otp} />
         )}
         {alerts.data ? (
           <KpiCard
-            label={en.overview.kpi.alerts}
+            label={overviewCopy.overview.kpi.alerts}
             value={formatCount(openAlerts.length)}
-            hint={en.overview.kpi.bySeverity(bySeverity(2), bySeverity(1), bySeverity(0))}
+            hint={overviewCopy.overview.kpi.bySeverity(bySeverity(2), bySeverity(1), bySeverity(0))}
             href={HREF.alerts}
           />
         ) : alerts.isError ? (
           <ErrorState
             error={alerts.error}
             variant="block"
-            panel={en.overview.panels.alerts}
+            panel={overviewCopy.overview.panels.alerts}
             onRetry={() => void alerts.refetch()}
           />
         ) : (
-          <KpiSkeleton label={en.overview.kpi.alerts} />
+          <KpiSkeleton label={overviewCopy.overview.kpi.alerts} />
         )}
         {dlq.data ? (
           <KpiCard
-            label={en.overview.kpi.deadLetters}
+            label={overviewCopy.overview.kpi.deadLetters}
             value={formatCount(dlq.data.data.open)}
-            hint={en.overview.kpi.lastHour(formatCount(dlq.data.data.createdLastHour))}
+            hint={overviewCopy.overview.kpi.lastHour(formatCount(dlq.data.data.createdLastHour))}
             href={HREF.deadLetters}
           />
         ) : dlq.isError ? (
           <ErrorState
             error={dlq.error}
             variant="block"
-            panel={en.overview.panels.deadLetters}
+            panel={overviewCopy.overview.panels.deadLetters}
             onRetry={() => void dlq.refetch()}
           />
         ) : (
-          <KpiSkeleton label={en.overview.kpi.deadLetters} />
+          <KpiSkeleton label={overviewCopy.overview.kpi.deadLetters} />
         )}
       </div>
 
       <div className="grid gap-3.5 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
         <Panel
-          title={en.overview.pulse.title}
-          action={<span className="text-xs text-muted-foreground">{en.overview.pulse.subtitle}</span>}
+          title={overviewCopy.overview.pulse.title}
+          action={<span className="text-xs text-muted-foreground">{overviewCopy.overview.pulse.subtitle}</span>}
         >
           {vehicles.isPending ? (
             <PanelSkeleton variant="list" rows={6} />
@@ -432,20 +447,20 @@ export function OverviewPage({ period }: { period: Period }) {
             <ErrorState
               error={vehicles.error}
               variant="block"
-              panel={en.overview.panels.vehicles}
+              panel={overviewCopy.overview.panels.vehicles}
               onRetry={() => void vehicles.refetch()}
             />
           ) : pulse.length === 0 ? (
-            <EmptyState title={en.overview.pulse.empty} />
+            <EmptyState title={overviewCopy.overview.pulse.empty} />
           ) : (
             <NetworkPulse routeIds={pulse} vehicles={liveVehicles} routes={routeById} disruptedStops={disruptedStops} />
           )}
         </Panel>
         <Panel
-          title={en.overview.attention.title}
+          title={overviewCopy.overview.attention.title}
           action={
             <AppLink href={HREF.alerts} className="text-sm text-primary hover:underline">
-              {en.overview.attention.all}
+              {overviewCopy.overview.attention.all}
             </AppLink>
           }
         >
@@ -455,7 +470,7 @@ export function OverviewPage({ period }: { period: Period }) {
             <ErrorState
               error={alerts.error}
               variant="block"
-              panel={en.overview.panels.alerts}
+              panel={overviewCopy.overview.panels.alerts}
               onRetry={() => void alerts.refetch()}
             />
           ) : (
@@ -465,27 +480,34 @@ export function OverviewPage({ period }: { period: Period }) {
       </div>
 
       <div className="grid gap-3.5 xl:grid-cols-3">
-        <Panel title={en.overview.otpChart.title}>
+        <Panel title={overviewCopy.overview.otpChart.title}>
           {chartCurrent.isPending ? (
             <PanelSkeleton variant="chart" />
           ) : chartCurrent.isError && !chartCurrent.data ? (
             <ErrorState
               error={chartCurrent.error}
               variant="block"
-              panel={en.overview.panels.otp}
+              panel={overviewCopy.overview.panels.otp}
               onRetry={() => void chartCurrent.refetch()}
             />
           ) : days.length === 0 ? (
-            <EmptyState title={en.overview.otpChart.emptyTitle} description={en.overview.otpChart.emptyBody} />
+            <EmptyState
+              title={overviewCopy.overview.otpChart.emptyTitle}
+              description={overviewCopy.overview.otpChart.emptyBody}
+            />
           ) : (
             <TimeSeriesChart
               series={[
-                { name: en.overview.otpChart.current, color: CURRENT_SERIES_COLOR, points: days },
-                { name: en.overview.otpChart.previous, dashed: true, points: chartSeries(chartPrevious, chartShift) },
+                { name: overviewCopy.overview.otpChart.current, color: CURRENT_SERIES_COLOR, points: days },
+                {
+                  name: overviewCopy.overview.otpChart.previous,
+                  dashed: true,
+                  points: chartSeries(chartPrevious, chartShift),
+                },
               ]}
-              yLabel={en.overview.otpChart.yLabel}
+              yLabel={overviewCopy.overview.otpChart.yLabel}
               yRange={{ max: 100 }}
-              caption={en.overview.otpChart.caption(
+              caption={overviewCopy.overview.otpChart.caption(
                 ranges.chart.from,
                 ranges.chart.to,
                 otpNow === undefined ? en.kv.empty : formatPercent(otpNow / 100),
@@ -496,10 +518,10 @@ export function OverviewPage({ period }: { period: Period }) {
           )}
         </Panel>
         <Panel
-          title={en.overview.watch.title}
+          title={overviewCopy.overview.watch.title}
           action={
             <AppLink href={HREF.scorecard} className="text-sm text-primary hover:underline">
-              {en.overview.watch.scorecard}
+              {overviewCopy.overview.watch.scorecard}
             </AppLink>
           }
         >
@@ -509,11 +531,14 @@ export function OverviewPage({ period }: { period: Period }) {
             <ErrorState
               error={current.error}
               variant="block"
-              panel={en.overview.panels.otp}
+              panel={overviewCopy.overview.panels.otp}
               onRetry={() => void current.refetch()}
             />
           ) : watch.length === 0 ? (
-            <EmptyState title={en.overview.otpChart.emptyTitle} description={en.overview.otpChart.emptyBody} />
+            <EmptyState
+              title={overviewCopy.overview.otpChart.emptyTitle}
+              description={overviewCopy.overview.otpChart.emptyBody}
+            />
           ) : (
             <ul className="-mx-2 flex flex-col">
               {watch.map((item) => {
@@ -553,10 +578,10 @@ export function OverviewPage({ period }: { period: Period }) {
           )}
         </Panel>
         <Panel
-          title={en.overview.pipeline.title}
+          title={overviewCopy.overview.pipeline.title}
           action={
             <AppLink href={HREF.pipeline} className="text-sm text-primary hover:underline">
-              {en.overview.pipeline.details}
+              {overviewCopy.overview.pipeline.details}
             </AppLink>
           }
         >
@@ -564,23 +589,23 @@ export function OverviewPage({ period }: { period: Period }) {
             <ErrorState
               error={throughput.error}
               variant="block"
-              panel={en.overview.panels.pipeline}
+              panel={overviewCopy.overview.panels.pipeline}
               onRetry={() => void throughput.refetch()}
             />
           ) : (
             <ul className="-mx-2 flex flex-col">
               <PipelineRow
-                label={en.overview.pipeline.vehicles}
+                label={overviewCopy.overview.pipeline.vehicles}
                 href={HREF.streams}
                 {...pipelineValue('GTFS_RT_VEHICLE_POSITION', true)}
               />
               <PipelineRow
-                label={en.overview.pipeline.tripUpdates}
+                label={overviewCopy.overview.pipeline.tripUpdates}
                 href={HREF.streams}
                 {...pipelineValue('GTFS_RT_TRIP_UPDATE', true)}
               />
               <PipelineRow
-                label={en.overview.pipeline.sales}
+                label={overviewCopy.overview.pipeline.sales}
                 href={HREF.streams}
                 {...pipelineValue('TICKETING_SALES', false)}
               />
@@ -589,12 +614,14 @@ export function OverviewPage({ period }: { period: Period }) {
                   href={HREF.batchJobs}
                   className="flex items-center justify-between gap-3 rounded-md px-2 py-2 text-sm hover:bg-surface"
                 >
-                  <span className="font-medium">{en.overview.pipeline.batch}</span>
+                  <span className="font-medium">{overviewCopy.overview.pipeline.batch}</span>
                   {failed === undefined ? (
                     <Skeleton className="h-3 w-20" />
                   ) : (
                     <span className={cn('text-xs', failed > 0 ? toneClasses('danger').text : 'text-muted-foreground')}>
-                      {failed > 0 ? en.overview.pipeline.failed(failed) : en.overview.pipeline.allSucceeded}
+                      {failed > 0
+                        ? overviewCopy.overview.pipeline.failed(failed)
+                        : overviewCopy.overview.pipeline.allSucceeded}
                     </span>
                   )}
                 </AppLink>

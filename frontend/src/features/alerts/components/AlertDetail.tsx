@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { BunchingBody, DisruptionBody, OpsBody, TicketingBody } from '@/features/alerts/components/AlertBodies';
 import { alertVisual, linkAction, summaryLine, typeLabel, type Alert } from '@/lib/alert-display';
 import { useAcknowledge } from '@/features/alerts/use-acknowledge';
-import { en } from '@/i18n/en';
+import { alertsCopy } from '@/i18n/alerts';
 import { useBusinessClock } from '@/lib/business-clock';
 import { actorName, actorOf } from '@/lib/format';
 import { formatTime } from '@/lib/time';
@@ -45,7 +45,7 @@ function Started({ alert }: { alert: Alert }) {
   const age = useRelative(start.at, start.axis);
   return (
     <>
-      {en.alerts.summary.started(
+      {alertsCopy.alerts.summary.started(
         typeLabel(alert.type),
         formatTime(start.at, { timeZone: clock.timezone, showZone: false }),
         age,
@@ -74,7 +74,7 @@ export function AlertDetail({ alert, access, route, onGone, onBack }: AlertDetai
       <header className="flex flex-col gap-3 border-b border-border px-5 pt-5 pb-4 md:flex-row md:items-start md:justify-between md:px-7">
         <div className="flex min-w-0 gap-3.5">
           {onBack ? (
-            <Button variant="ghost" size="icon-sm" aria-label={en.alerts.actions.back} onClick={onBack}>
+            <Button variant="ghost" size="icon-sm" aria-label={alertsCopy.alerts.actions.back} onClick={onBack}>
               <ArrowLeft aria-hidden="true" />
             </Button>
           ) : null}
@@ -87,7 +87,7 @@ export function AlertDetail({ alert, access, route, onGone, onBack }: AlertDetai
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2 text-label text-muted-foreground">
               <SeverityBadge severity={alert.severity as 0 | 1 | 2} />
-              <span title={staff ? (en.audience[alert.audience] ?? alert.audience) : undefined}>
+              <span title={staff ? (alertsCopy.audience[alert.audience] ?? alert.audience) : undefined}>
                 <Started alert={alert} />
               </span>
             </div>
@@ -132,7 +132,9 @@ export function AlertDetail({ alert, access, route, onGone, onBack }: AlertDetai
               )}
             >
               <Check className="size-4" aria-hidden="true" />
-              {byYou ? en.alerts.acknowledgedByYou : en.alerts.acknowledgedBy(actorName(alert.acknowledgedBy ?? ''))}
+              {byYou
+                ? alertsCopy.alerts.acknowledgedByYou
+                : alertsCopy.alerts.acknowledgedBy(actorName(alert.acknowledgedBy ?? ''))}
             </span>
           ) : operator ? (
             <Button
@@ -141,10 +143,10 @@ export function AlertDetail({ alert, access, route, onGone, onBack }: AlertDetai
                 acknowledge.mutate(alert.id);
               }}
             >
-              {en.alerts.actions.acknowledge}
+              {alertsCopy.alerts.actions.acknowledge}
             </Button>
           ) : null}
-          <CopyButton value={permalink} label={en.alerts.actions.copyLink} />
+          <CopyButton value={permalink} label={alertsCopy.alerts.actions.copyLink} />
         </div>
       </header>
       <div className="flex flex-col gap-4 px-5 py-5 md:px-7">

@@ -1,10 +1,11 @@
-import { alertsCopy } from '@/i18n/alerts';
 import { designSystemCopy } from '@/i18n/design-system';
-import { overviewCopy } from '@/i18n/overview';
 import { shellCopy } from '@/i18n/shell';
 import { stopsCopy } from '@/i18n/stops';
 
 // Every user-visible string of the app (DR-48, DOC-37). ESLint rejects JSX string literals anywhere else.
+// This object ships with the first paint, so it holds the strings of the shell, the shared components and the stop
+// page. The copy of other screens lives next to it in src/i18n/ (alerts.ts, overview.ts, catalog.ts) and is imported
+// by those screens, so it loads with their chunk (DOC-34 §7, DR-105).
 export const en = {
   app: {
     name: 'Public Transport Intelligence',
@@ -26,8 +27,4 @@ export const en = {
   ...shellCopy,
   // Find a stop and stop detail (P5-07); see stops.ts.
   ...stopsCopy,
-  // The alert feed and the alert labels of DOC-37 §3.3 (P5-12); see alerts.ts.
-  ...alertsCopy,
-  // The Overview screen (P5-16); see overview.ts.
-  ...overviewCopy,
 } as const;

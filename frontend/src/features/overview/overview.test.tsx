@@ -14,6 +14,7 @@ import {
   routesToWatch,
 } from '@/features/overview/model';
 import { en } from '@/i18n/en';
+import { overviewCopy } from '@/i18n/overview';
 import { mswPath, respond } from '@/test/handlers';
 import { renderRoute } from '@/test/render';
 import { server } from '@/test/server';
@@ -75,16 +76,20 @@ describe('Overview page', () => {
     await waitFor(() => {
       expect(router.state.location.pathname).toBe('/overview');
     });
-    expect(await screen.findByRole('heading', { level: 1, name: en.overview.title })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { level: 1, name: overviewCopy.overview.title })).toBeInTheDocument();
 
-    const vehicles = await screen.findByRole('link', { name: new RegExp(en.overview.kpi.vehicles) });
-    expect(vehicles).toHaveTextContent(en.overview.kpi.onRoutes(1, '1'));
-    expect(await screen.findByRole('link', { name: new RegExp(en.overview.kpi.otp) })).toHaveTextContent('78.4%');
-    expect(await screen.findByRole('link', { name: new RegExp(en.overview.kpi.alerts) })).toHaveTextContent(
-      en.overview.kpi.bySeverity(0, 1, 0),
+    const vehicles = await screen.findByRole('link', { name: new RegExp(overviewCopy.overview.kpi.vehicles) });
+    expect(vehicles).toHaveTextContent(overviewCopy.overview.kpi.onRoutes(1, '1'));
+    expect(await screen.findByRole('link', { name: new RegExp(overviewCopy.overview.kpi.otp) })).toHaveTextContent(
+      '78.4%',
+    );
+    expect(await screen.findByRole('link', { name: new RegExp(overviewCopy.overview.kpi.alerts) })).toHaveTextContent(
+      overviewCopy.overview.kpi.bySeverity(0, 1, 0),
     );
     expect(
-      await within(screen.getByRole('main')).findByRole('link', { name: new RegExp(en.overview.kpi.deadLetters) }),
+      await within(screen.getByRole('main')).findByRole('link', {
+        name: new RegExp(overviewCopy.overview.kpi.deadLetters),
+      }),
     ).toHaveTextContent('214');
   });
 
@@ -94,12 +99,12 @@ describe('Overview page', () => {
       [otpItem('18', 700, 1000), otpItem('21', 700, 1000)],
     );
     await renderRoute('/overview?period=7d', { as: 'viewer' });
-    const kpi = await screen.findByRole('link', { name: new RegExp(en.overview.kpi.otp) });
+    const kpi = await screen.findByRole('link', { name: new RegExp(overviewCopy.overview.kpi.otp) });
     // (600 + 900) / 2000 = 75 %, against 70 %: up 5 points.
     await waitFor(() => {
       expect(kpi).toHaveTextContent('75.0%');
     });
-    expect(kpi).toHaveTextContent(en.overview.kpi.points('5.0'));
+    expect(kpi).toHaveTextContent(overviewCopy.overview.kpi.points('5.0'));
     const ranges = otpRequests.map((url) => [url.searchParams.get('fromDate'), url.searchParams.get('toDate')]);
     // businessNow of the examples is Sep 29: the period ends on Sep 28.
     expect(ranges).toContainEqual(['2026-09-22', '2026-09-28']);
@@ -109,7 +114,7 @@ describe('Overview page', () => {
   it('lists the routes to watch, lowest on-time first, linking to the scorecard', async () => {
     serveOtp([otpItem('18', 900, 1000), otpItem('21', 600, 1000)], []);
     await renderRoute('/overview', { as: 'viewer' });
-    const card = within(await screen.findByRole('region', { name: en.overview.watch.title }));
+    const card = within(await screen.findByRole('region', { name: overviewCopy.overview.watch.title }));
     const rows = await card.findAllByRole('link', { name: /%/ });
     expect(rows[0]).toHaveAttribute('href', '/scorecard?route=21');
     expect(rows[0]).toHaveTextContent('60.0%');
@@ -138,27 +143,27 @@ describe('Overview page', () => {
       ),
     );
     await renderRoute('/overview', { as: 'viewer' });
-    const card = within(await screen.findByRole('region', { name: en.overview.pipeline.title }));
-    const sales = await card.findByText(en.overview.pipeline.noData('18 min'));
+    const card = within(await screen.findByRole('region', { name: overviewCopy.overview.pipeline.title }));
+    const sales = await card.findByText(overviewCopy.overview.pipeline.noData('18 min'));
     expect(sales).toHaveClass('text-tone-warning-fg');
-    expect(card.getByRole('link', { name: new RegExp(en.overview.pipeline.vehicles) })).not.toHaveTextContent(
+    expect(card.getByRole('link', { name: new RegExp(overviewCopy.overview.pipeline.vehicles) })).not.toHaveTextContent(
       /No data/,
     );
-    expect(await card.findByText(en.overview.pipeline.failed(1))).toBeInTheDocument();
+    expect(await card.findByText(overviewCopy.overview.pipeline.failed(1))).toBeInTheDocument();
   });
 
   it('says nothing needs attention when no alert is open', async () => {
     serveOtp([route18], [route18]);
     server.use(respond('get', '/api/v1/alerts', { items: [] }));
     await renderRoute('/overview', { as: 'viewer' });
-    expect(await screen.findByText(en.overview.attention.emptyTitle)).toBeInTheDocument();
+    expect(await screen.findByText(overviewCopy.overview.attention.emptyTitle)).toBeInTheDocument();
   });
 
   it('shows route 18 in the network pulse with a link to the live map', async () => {
     serveOtp([route18], [route18]);
     await renderRoute('/overview', { as: 'viewer' });
-    const pulse = within(await screen.findByRole('region', { name: en.overview.pulse.title }));
-    expect(await pulse.findByRole('link', { name: en.overview.pulse.route('18', 1) })).toHaveAttribute(
+    const pulse = within(await screen.findByRole('region', { name: overviewCopy.overview.pulse.title }));
+    expect(await pulse.findByRole('link', { name: overviewCopy.overview.pulse.route('18', 1) })).toHaveAttribute(
       'href',
       '/map?route=18',
     );
@@ -170,11 +175,11 @@ describe('Overview page', () => {
       [route18],
     );
     const { router } = await renderRoute('/overview', { as: 'viewer' });
-    await userEvent.click(await screen.findByRole('radio', { name: en.overview.period['30d'] }));
+    await userEvent.click(await screen.findByRole('radio', { name: overviewCopy.overview.period['30d'] }));
     await waitFor(() => {
       expect(router.state.location.href).toBe('/overview?period=30d');
     });
-    const chart = within(await screen.findByRole('region', { name: en.overview.otpChart.title }));
+    const chart = within(await screen.findByRole('region', { name: overviewCopy.overview.otpChart.title }));
     await userEvent.click(await chart.findByRole('button', { name: en.common.viewAsTable }));
     expect(chart.getByRole('table')).toHaveTextContent('75.0%');
   });

@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { getFreshness, listAlerts, listRoutes, listRuntimeFlags } from '@/api/generated/examples';
 import { en } from '@/i18n/en';
+import { overviewCopy } from '@/i18n/overview';
 import { mswPath, respond, respondProblem } from '@/test/handlers';
 import { renderRoute } from '@/test/render';
 import { server } from '@/test/server';
@@ -251,7 +252,7 @@ describe('footer', () => {
 describe('search (⌘K)', () => {
   it('AC-9 finds route 18 and opens the map filtered to it', async () => {
     const { router } = await renderRoute('/overview', { as: 'viewer' });
-    await screen.findByRole('heading', { level: 1, name: en.overview.title });
+    await screen.findByRole('heading', { level: 1, name: overviewCopy.overview.title });
     await userEvent.keyboard('{Meta>}k{/Meta}');
     const input = await screen.findByPlaceholderText(en.search.placeholder);
     await userEvent.type(input, '18');

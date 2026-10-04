@@ -2,7 +2,7 @@ import { Activity, Bus, Database, Inbox, Server, Ticket, TriangleAlert, type Luc
 
 import type { components } from '@/api/generated/schema';
 import type { ToneOrAccent } from '@/components/tone';
-import { en } from '@/i18n/en';
+import { alertsCopy } from '@/i18n/alerts';
 import { formatDelaySeconds, formatPercentWhole } from '@/lib/format';
 
 // How an alert reads in lists (the alert feed and the Overview's "Needs attention"; DOC-36 screens/alert-feed §4). `body` is per type (DOC-23 §10.1, and
@@ -28,7 +28,7 @@ export function alertVisual(alert: Pick<Alert, 'type' | 'severity'>): { icon: Lu
 }
 
 export function typeLabel(type: string): string {
-  return en.alertType[type] ?? type;
+  return alertsCopy.alertType[type] ?? type;
 }
 
 function num(body: Record<string, unknown>, key: string): number | undefined {
@@ -68,7 +68,7 @@ export function summaryLine(alert: Alert): string | undefined {
       return (
         [
           delay === undefined ? undefined : formatDelaySeconds(delay),
-          stops ? en.alerts.summary.stopsAffected(stops) : undefined,
+          stops ? alertsCopy.alerts.summary.stopsAffected(stops) : undefined,
         ]
           .filter(Boolean)
           .join(' · ') || undefined
@@ -76,13 +76,13 @@ export function summaryLine(alert: Alert): string | undefined {
     }
     case 'BUNCHING': {
       const gap = num(body, 'gapSeconds');
-      return gap === undefined ? undefined : en.alerts.summary.gap(formatGap(gap));
+      return gap === undefined ? undefined : alertsCopy.alerts.summary.gap(formatGap(gap));
     }
     case 'TICKETING_ANOMALY': {
       const ratio = num(body, 'refundRatio');
       const salePoint = str(body, 'salePointId');
       return (
-        [salePoint, ratio === undefined ? undefined : en.alerts.summary.refunds(formatPercentWhole(ratio))]
+        [salePoint, ratio === undefined ? undefined : alertsCopy.alerts.summary.refunds(formatPercentWhole(ratio))]
           .filter(Boolean)
           .join(' · ') || undefined
       );
@@ -103,7 +103,7 @@ export interface LinkAction {
 export function linkAction(alert: Pick<Alert, 'type' | 'link'>): LinkAction | undefined {
   if (!alert.link) return undefined;
   const external = /^https?:\/\//.test(alert.link);
-  const actions = en.alerts.actions;
+  const actions = alertsCopy.alerts.actions;
   const label =
     alert.type === 'DISRUPTION' || alert.type === 'BUNCHING'
       ? actions.showOnMap

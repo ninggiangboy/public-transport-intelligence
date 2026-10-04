@@ -3,7 +3,7 @@ import { Sparkles } from 'lucide-react';
 import { Callout } from '@/components/Callout';
 import { ConfidenceChip } from '@/components/ConfidenceChip';
 import { Button } from '@/components/ui/button';
-import { en } from '@/i18n/en';
+import { alertsCopy } from '@/i18n/alerts';
 import { actorName } from '@/lib/format';
 
 export interface DispatchSuggestion {
@@ -28,8 +28,8 @@ interface DispatchSuggestionCardProps {
  * by the alert feed and the live map.
  */
 export function DispatchSuggestionCard({ suggestion, onFeedback, busy = false }: DispatchSuggestionCardProps) {
-  const labels = en.alerts.detailLabels;
-  const action = en.dispatchAction.full[suggestion.action] ?? suggestion.action;
+  const labels = alertsCopy.alerts.detailLabels;
+  const action = alertsCopy.dispatchAction.full[suggestion.action] ?? suggestion.action;
   const feedback = suggestion.operatorFeedback;
   return (
     <Callout tone="primary" icon={<Sparkles className="size-4" strokeWidth={1.75} />} title={labels.suggestedAction}>
@@ -43,8 +43,11 @@ export function DispatchSuggestionCard({ suggestion, onFeedback, busy = false }:
         {feedback ? (
           <span className="text-xs text-muted-foreground">
             {suggestion.feedbackBy
-              ? en.alerts.activity.feedback(en.operatorFeedback[feedback] ?? feedback, actorName(suggestion.feedbackBy))
-              : (en.operatorFeedback[feedback] ?? feedback)}
+              ? alertsCopy.alerts.activity.feedback(
+                  alertsCopy.operatorFeedback[feedback] ?? feedback,
+                  actorName(suggestion.feedbackBy),
+                )
+              : (alertsCopy.operatorFeedback[feedback] ?? feedback)}
           </span>
         ) : onFeedback ? (
           <span className="flex gap-2">
@@ -55,7 +58,7 @@ export function DispatchSuggestionCard({ suggestion, onFeedback, busy = false }:
                 onFeedback('accepted');
               }}
             >
-              {en.alerts.actions.accept}
+              {alertsCopy.alerts.actions.accept}
             </Button>
             <Button
               size="sm"
@@ -65,11 +68,11 @@ export function DispatchSuggestionCard({ suggestion, onFeedback, busy = false }:
                 onFeedback('ignored');
               }}
             >
-              {en.alerts.actions.dismiss}
+              {alertsCopy.alerts.actions.dismiss}
             </Button>
           </span>
         ) : (
-          <span className="text-xs text-muted-foreground">{en.operatorFeedback.none}</span>
+          <span className="text-xs text-muted-foreground">{alertsCopy.operatorFeedback.none}</span>
         )}
       </div>
       {suggestion.modelVersion ? (

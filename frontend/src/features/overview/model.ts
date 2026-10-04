@@ -7,8 +7,9 @@ type OtpItem = components['schemas']['Item'];
 type LiveVehicle = components['schemas']['LiveVehicleResponse'];
 type JobSummary = components['schemas']['JobSummaryResponse'];
 
-export type Period = '1d' | '7d' | '30d';
-export const PERIODS: readonly Period[] = ['1d', '7d', '30d'];
+import type { Period } from '@/features/overview/search';
+
+export { PERIODS, type Period } from '@/features/overview/search';
 const DAYS: Record<Period, number> = { '1d': 1, '7d': 7, '30d': 30 };
 
 export interface DateRange {

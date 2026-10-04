@@ -6,6 +6,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { getBunchingEpisode, getDisruptionEpisode, getTicketingAnomaly, listAlerts } from '@/api/generated/examples';
 import type { ResponseBody } from '@/api/types';
 import { en } from '@/i18n/en';
+import { alertsCopy } from '@/i18n/alerts';
 import { upsertAlert } from '@/realtime/handlers';
 import { mswPath, respond, respondProblem } from '@/test/handlers';
 import { renderRoute } from '@/test/render';
@@ -81,19 +82,19 @@ beforeEach(() => {
 });
 
 function listRegion() {
-  return within(screen.getByRole('region', { name: en.alerts.list }));
+  return within(screen.getByRole('region', { name: alertsCopy.alerts.list }));
 }
 
 describe('alert feed', () => {
   it('AC-1 shows anonymous users public alerts without audience filter, unacknowledged tab or ack', async () => {
     serveAlerts([disruption]);
     await renderRoute('/alerts');
-    expect(await screen.findByRole('heading', { level: 1, name: en.alerts.title })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { level: 1, name: alertsCopy.alerts.title })).toBeInTheDocument();
     expect(await listRegion().findByText(disruption.title)).toBeInTheDocument();
 
-    expect(screen.queryByRole('button', { name: en.alerts.filters.audience })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: alertsCopy.alerts.filters.audience })).not.toBeInTheDocument();
     expect(screen.queryByRole('tab', { name: /Unacknowledged/ })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: en.alerts.actions.acknowledge })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: alertsCopy.alerts.actions.acknowledge })).not.toBeInTheDocument();
     expect(alertRequests.every((url) => !url.searchParams.has('audience'))).toBe(true);
   });
 
@@ -107,12 +108,12 @@ describe('alert feed', () => {
     // E-13 example: 212.7 s now, 230.1 s peak, three stops, and the AI block for staff.
     expect(await within(detail).findByText('+3 min 33 s', { selector: 'dd' })).toBeInTheDocument();
     expect(within(detail).getByText('+3 min 50 s')).toBeInTheDocument();
-    expect(within(detail).getByText(en.alerts.detailLabels.causeNotClassified)).toBeInTheDocument();
-    expect(within(detail).getByRole('link', { name: en.alerts.actions.showOnMap })).toHaveAttribute(
+    expect(within(detail).getByText(alertsCopy.alerts.detailLabels.causeNotClassified)).toBeInTheDocument();
+    expect(within(detail).getByRole('link', { name: alertsCopy.alerts.actions.showOnMap })).toHaveAttribute(
       'href',
       disruption.link,
     );
-    expect(within(detail).getByText(en.alerts.activity.detected)).toBeInTheDocument();
+    expect(within(detail).getByText(alertsCopy.alerts.activity.detected)).toBeInTheDocument();
   });
 
   it('AC-3 acknowledges at once, without waiting for the server or a toast', async () => {
@@ -128,14 +129,14 @@ describe('alert feed', () => {
       }),
     );
     await renderRoute(`/alerts?alert=${disruption.id}`, { as: 'operator' });
-    const button = await screen.findByRole('button', { name: en.alerts.actions.acknowledge });
-    expect(listRegion().getByRole('img', { name: en.alerts.unread })).toBeInTheDocument();
+    const button = await screen.findByRole('button', { name: alertsCopy.alerts.actions.acknowledge });
+    expect(listRegion().getByRole('img', { name: alertsCopy.alerts.unread })).toBeInTheDocument();
 
     await userEvent.click(button);
-    expect(screen.getByText(en.alerts.acknowledgedByYou)).toBeInTheDocument();
-    expect(listRegion().queryByRole('img', { name: en.alerts.unread })).not.toBeInTheDocument();
+    expect(screen.getByText(alertsCopy.alerts.acknowledgedByYou)).toBeInTheDocument();
+    expect(listRegion().queryByRole('img', { name: alertsCopy.alerts.unread })).not.toBeInTheDocument();
     await waitFor(() => {
-      expect(screen.getByText(en.alerts.acknowledgedByYou)).toBeInTheDocument();
+      expect(screen.getByText(alertsCopy.alerts.acknowledgedByYou)).toBeInTheDocument();
     });
     expect(notify.success).not.toHaveBeenCalled();
   });
@@ -144,18 +145,18 @@ describe('alert feed', () => {
     serveAlerts([disruption]);
     server.use(respondProblem('post', '/api/v1/alerts/{id}/ack', 503, 'service-unavailable'));
     await renderRoute(`/alerts?alert=${disruption.id}`, { as: 'operator' });
-    await userEvent.click(await screen.findByRole('button', { name: en.alerts.actions.acknowledge }));
+    await userEvent.click(await screen.findByRole('button', { name: alertsCopy.alerts.actions.acknowledge }));
     await waitFor(() => {
-      expect(notify.error).toHaveBeenCalledWith(en.alerts.ackFailed);
+      expect(notify.error).toHaveBeenCalledWith(alertsCopy.alerts.ackFailed);
     });
-    expect(screen.getByRole('button', { name: en.alerts.actions.acknowledge })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: alertsCopy.alerts.actions.acknowledge })).toBeInTheDocument();
   });
 
   it('hides "Acknowledge" from viewers and shows who acknowledged', async () => {
     serveAlerts([{ ...disruption, acknowledgedAt: '2026-09-29T21:02:10Z', acknowledgedBy: 'user:dana' }]);
     await renderRoute(`/alerts?alert=${disruption.id}`, { as: 'viewer' });
-    expect(await screen.findByText(en.alerts.acknowledgedBy('dana'))).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: en.alerts.actions.acknowledge })).not.toBeInTheDocument();
+    expect(await screen.findByText(alertsCopy.alerts.acknowledgedBy('dana'))).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: alertsCopy.alerts.actions.acknowledge })).not.toBeInTheDocument();
     expect(within(screen.getByRole('main')).getByText(en.nav.readOnly)).toBeInTheDocument();
   });
 
@@ -173,14 +174,14 @@ describe('alert feed', () => {
     });
     expect(items[0]).toHaveTextContent(bunching.title);
     await waitFor(() => {
-      expect(screen.getByText(en.alerts.announce.one(bunching.title))).toBeInTheDocument();
+      expect(screen.getByText(alertsCopy.alerts.announce.one(bunching.title))).toBeInTheDocument();
     });
   });
 
   it('passes the filters of the URL to E-20 and offers to clear them when nothing matches', async () => {
     serveAlerts([]);
     const { router } = await renderRoute('/alerts?type=BUNCHING&severity=2&window=7d', { as: 'viewer' });
-    expect(await screen.findByText(en.alerts.empty.filteredTitle)).toBeInTheDocument();
+    expect(await screen.findByText(alertsCopy.alerts.empty.filteredTitle)).toBeInTheDocument();
     const url = alertRequests.find((request) => request.searchParams.get('state') === 'open');
     expect(url?.searchParams.getAll('type')).toEqual(['BUNCHING']);
     expect(url?.searchParams.getAll('severity')).toEqual(['2']);
@@ -194,7 +195,7 @@ describe('alert feed', () => {
   it('says there are no open alerts when the feed is empty', async () => {
     serveAlerts([]);
     await renderRoute('/alerts');
-    expect(await screen.findByText(en.alerts.empty.openTitle)).toBeInTheDocument();
+    expect(await screen.findByText(alertsCopy.alerts.empty.openTitle)).toBeInTheDocument();
   });
 
   it('switches the state with the tabs', async () => {
@@ -216,14 +217,14 @@ describe('alert feed', () => {
       expect(listRegion().queryByText(disruption.title)).not.toBeInTheDocument();
     });
     await waitFor(() => {
-      expect(screen.getByText(en.alerts.gone)).toBeInTheDocument();
+      expect(screen.getByText(alertsCopy.alerts.gone)).toBeInTheDocument();
     });
   });
 
   it('offers the last 7 days for an alert that is not in the list', async () => {
     serveAlerts([disruption]);
     const { router } = await renderRoute('/alerts?alert=elsewhere', { as: 'viewer' });
-    await userEvent.click(await screen.findByRole('button', { name: en.alerts.showLastWeek }));
+    await userEvent.click(await screen.findByRole('button', { name: alertsCopy.alerts.showLastWeek }));
     await waitFor(() => {
       expect(router.state.location.search).toMatchObject({ window: '7d', state: 'all', alert: 'elsewhere' });
     });
@@ -259,13 +260,13 @@ describe('alert detail by type', () => {
     );
     await renderRoute(`/alerts?alert=${bunching.id}`, { as: 'operator' });
     const detail = await screen.findByRole('article', { name: bunching.title });
-    expect(await within(detail).findByText(en.alerts.detailLabels.buses('1187', '1203'))).toBeInTheDocument();
-    expect(within(detail).getByText(en.dispatchAction.full.hold_follower ?? '')).toBeInTheDocument();
-    expect(within(detail).getByText(en.alerts.activity.suggestion('82%'))).toBeInTheDocument();
+    expect(await within(detail).findByText(alertsCopy.alerts.detailLabels.buses('1187', '1203'))).toBeInTheDocument();
+    expect(within(detail).getByText(alertsCopy.dispatchAction.full.hold_follower ?? '')).toBeInTheDocument();
+    expect(within(detail).getByText(alertsCopy.alerts.activity.suggestion('82%'))).toBeInTheDocument();
 
-    await userEvent.click(within(detail).getByRole('button', { name: en.alerts.actions.accept }));
+    await userEvent.click(within(detail).getByRole('button', { name: alertsCopy.alerts.actions.accept }));
     await waitFor(() => {
-      expect(notify.success).toHaveBeenCalledWith(en.alerts.feedbackSaved);
+      expect(notify.success).toHaveBeenCalledWith(alertsCopy.alerts.feedbackSaved);
     });
     expect(feedback).toEqual([{ feedback: 'accepted' }]);
   });
@@ -274,9 +275,9 @@ describe('alert detail by type', () => {
     serveAlerts([ticketing]);
     await renderRoute(`/alerts?alert=${ticketing.id}`, { as: 'viewer' });
     const detail = await screen.findByRole('article', { name: ticketing.title });
-    expect(await within(detail).findByText(en.alerts.detailLabels.refundRate)).toBeInTheDocument();
-    expect(within(detail).getByText(en.alerts.detailLabels.notClassified)).toBeInTheDocument();
-    expect(within(detail).getByRole('link', { name: en.alerts.actions.openTicketing })).toHaveAttribute(
+    expect(await within(detail).findByText(alertsCopy.alerts.detailLabels.refundRate)).toBeInTheDocument();
+    expect(within(detail).getByText(alertsCopy.alerts.detailLabels.notClassified)).toBeInTheDocument();
+    expect(within(detail).getByRole('link', { name: alertsCopy.alerts.actions.openTicketing })).toHaveAttribute(
       'href',
       ticketing.link,
     );
@@ -286,13 +287,13 @@ describe('alert detail by type', () => {
     serveAlerts([infra]);
     await renderRoute(`/alerts?alert=${infra.id}`, { as: 'viewer' });
     const detail = await screen.findByRole('article', { name: infra.title });
-    const runbook = within(detail).getByRole('link', { name: en.alerts.actions.openRunbook });
+    const runbook = within(detail).getByRole('link', { name: alertsCopy.alerts.actions.openRunbook });
     expect(runbook).toHaveAttribute('href', 'https://runbooks.example/kafka');
     expect(runbook).toHaveAttribute('target', '_blank');
     expect(runbook).toHaveAttribute('rel', expect.stringContaining('noopener'));
     expect(within(detail).getByText('Broker 1 is unreachable')).toBeInTheDocument();
     expect(within(detail).getByText('KafkaBrokerDown')).toBeInTheDocument();
-    expect(within(detail).getByRole('link', { name: en.alerts.actions.viewInGrafana })).toBeInTheDocument();
+    expect(within(detail).getByRole('link', { name: alertsCopy.alerts.actions.viewInGrafana })).toBeInTheDocument();
   });
 
   it('shows the AI analysis of a classified disruption to staff only', async () => {
@@ -308,8 +309,8 @@ describe('alert detail by type', () => {
     );
     await renderRoute(`/alerts?alert=${disruption.id}`, { as: 'viewer' });
     const detail = await screen.findByRole('article', { name: disruption.title });
-    expect(await within(detail).findByText(en.likelyCause.traffic ?? '')).toBeInTheDocument();
-    expect(within(detail).getByText(en.alerts.activity.classified('68%'))).toBeInTheDocument();
-    expect(within(detail).getByText(en.alerts.detailLabels.delayVsNormal)).toBeInTheDocument();
+    expect(await within(detail).findByText(alertsCopy.likelyCause.traffic ?? '')).toBeInTheDocument();
+    expect(within(detail).getByText(alertsCopy.alerts.activity.classified('68%'))).toBeInTheDocument();
+    expect(within(detail).getByText(alertsCopy.alerts.detailLabels.delayVsNormal)).toBeInTheDocument();
   });
 });

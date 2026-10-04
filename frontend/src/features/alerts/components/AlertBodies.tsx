@@ -25,7 +25,7 @@ import {
   routeDetailQuery,
   ticketingDetailQuery,
 } from '@/features/alerts/queries';
-import { en } from '@/i18n/en';
+import { alertsCopy } from '@/i18n/alerts';
 import { useBusinessClock } from '@/lib/business-clock';
 import {
   actorName,
@@ -41,7 +41,7 @@ import { useRelative, type TimeAxis } from '@/lib/use-now';
 
 type PatternStop = components['schemas']['PatternStopResponse'];
 
-const labels = en.alerts.detailLabels;
+const labels = alertsCopy.alerts.detailLabels;
 
 /** Keys of the activity rows. */
 const ROW = {
@@ -64,7 +64,7 @@ interface ActivityItem {
 
 /** "Detected automatically", "Acknowledged by …", "Resolved" plus what the type adds, newest first (§6.1 item 6). */
 function AlertActivity({ alert, extra = [] }: { alert: Alert; extra?: (ActivityItem | undefined)[] }) {
-  const copy = en.alerts.activity;
+  const copy = alertsCopy.alerts.activity;
   const items: (ActivityItem | undefined)[] = [
     { id: ROW.detected, text: copy.detected, at: alert.createdAt, axis: 'audit', tone: 'neutral' },
     alert.acknowledgedAt
@@ -94,7 +94,7 @@ function AlertActivity({ alert, extra = [] }: { alert: Alert; extra?: (ActivityI
 /** The detail of an alert whose record is gone (404 for the caller, FR-09.5); the list drops the row too. */
 function Gone({ onGone }: { onGone: () => void }) {
   useEffect(onGone, [onGone]);
-  return <EmptyState title={en.alerts.gone} />;
+  return <EmptyState title={alertsCopy.alerts.gone} />;
 }
 
 function isNotFound(error: unknown): boolean {
@@ -157,7 +157,7 @@ export function DisruptionBody({ alert, staff, onGone }: BodyProps) {
         ]}
       />
       {strip.length > 0 ? (
-        <Section title={labels.where} aside={en.alerts.summary.stops(affected.length, stops.length)}>
+        <Section title={labels.where} aside={alertsCopy.alerts.summary.stops(affected.length, stops.length)}>
           <LineStrip
             orientation="horizontal"
             color={color}
@@ -184,7 +184,7 @@ export function DisruptionBody({ alert, staff, onGone }: BodyProps) {
             <div className="flex flex-col gap-1.5">
               <p className="flex flex-wrap items-center gap-2 text-foreground">
                 <span>
-                  {labels.likelyCause}: <strong>{en.likelyCause[ai] ?? ai}</strong>
+                  {labels.likelyCause}: <strong>{alertsCopy.likelyCause[ai] ?? ai}</strong>
                 </span>
                 {episode.causeConfidence !== undefined ? <ConfidenceChip value={episode.causeConfidence} /> : null}
               </p>
@@ -204,7 +204,7 @@ export function DisruptionBody({ alert, staff, onGone }: BodyProps) {
           episode.enrichedAt && episode.causeConfidence !== undefined
             ? {
                 id: ROW.classified,
-                text: en.alerts.activity.classified(formatPercentWhole(episode.causeConfidence)),
+                text: alertsCopy.alerts.activity.classified(formatPercentWhole(episode.causeConfidence)),
                 at: episode.enrichedAt,
                 axis: 'audit',
                 tone: 'primary',
@@ -213,7 +213,9 @@ export function DisruptionBody({ alert, staff, onGone }: BodyProps) {
           episode.episodeEnd
             ? {
                 id: ROW.ended,
-                text: en.alerts.activity.ended(en.closeReason[episode.closeReason ?? ''] ?? episode.closeReason ?? ''),
+                text: alertsCopy.alerts.activity.ended(
+                  alertsCopy.closeReason[episode.closeReason ?? ''] ?? episode.closeReason ?? '',
+                ),
                 at: episode.episodeEnd,
                 axis: 'event',
               }
@@ -241,11 +243,11 @@ export function BunchingBody({ alert, operator, onGone }: BodyProps) {
         }),
       ),
     onSuccess: () => {
-      notify.success(en.alerts.feedbackSaved);
+      notify.success(alertsCopy.alerts.feedbackSaved);
       void queryClient.invalidateQueries({ queryKey: keys.insights.bunchingDetail(alert.refId ?? '') });
     },
     onError: () => {
-      notify.error(en.alerts.feedbackFailed);
+      notify.error(alertsCopy.alerts.feedbackFailed);
     },
   });
   if (query.isError && isNotFound(query.error)) return <Gone onGone={onGone} />;
@@ -306,7 +308,7 @@ export function BunchingBody({ alert, operator, onGone }: BodyProps) {
           suggestion
             ? {
                 id: ROW.suggestion,
-                text: en.alerts.activity.suggestion(formatPercentWhole(suggestion.actionConfidence)),
+                text: alertsCopy.alerts.activity.suggestion(formatPercentWhole(suggestion.actionConfidence)),
                 at: suggestion.createdAt,
                 axis: 'audit',
                 tone: 'primary',
@@ -315,8 +317,8 @@ export function BunchingBody({ alert, operator, onGone }: BodyProps) {
           suggestion?.feedbackAt && suggestion.operatorFeedback
             ? {
                 id: ROW.feedback,
-                text: en.alerts.activity.feedback(
-                  en.operatorFeedback[suggestion.operatorFeedback] ?? suggestion.operatorFeedback,
+                text: alertsCopy.alerts.activity.feedback(
+                  alertsCopy.operatorFeedback[suggestion.operatorFeedback] ?? suggestion.operatorFeedback,
                   actorName(suggestion.feedbackBy ?? ''),
                 ),
                 at: suggestion.feedbackAt,
@@ -326,7 +328,9 @@ export function BunchingBody({ alert, operator, onGone }: BodyProps) {
           episode.episodeEnd
             ? {
                 id: ROW.ended,
-                text: en.alerts.activity.ended(en.closeReason[episode.closeReason ?? ''] ?? episode.closeReason ?? ''),
+                text: alertsCopy.alerts.activity.ended(
+                  alertsCopy.closeReason[episode.closeReason ?? ''] ?? episode.closeReason ?? '',
+                ),
                 at: episode.episodeEnd,
                 axis: 'event',
               }
@@ -420,7 +424,7 @@ export function TicketingBody({ alert, onGone }: BodyProps) {
           <dl className="grid grid-cols-[auto_1fr] items-center gap-x-3 gap-y-1.5 text-foreground">
             <dt className="text-muted-foreground">{labels.category}</dt>
             <dd className="flex flex-wrap items-center gap-2">
-              {en.ticketingCategory[anomaly.category ?? ''] ?? anomaly.category}
+              {alertsCopy.ticketingCategory[anomaly.category ?? ''] ?? anomaly.category}
               {anomaly.categoryConfidence !== undefined ? <ConfidenceChip value={anomaly.categoryConfidence} /> : null}
             </dd>
             {anomaly.severity !== undefined ? (
@@ -486,7 +490,7 @@ export function OpsBody({ alert }: BodyProps) {
             rel="noopener noreferrer"
             className="inline-flex w-fit items-center gap-1 text-sm text-primary underline-offset-4 hover:underline"
           >
-            {en.alerts.actions.viewInGrafana}
+            {alertsCopy.alerts.actions.viewInGrafana}
             <ExternalLink className="size-3.5" aria-hidden="true" />
           </a>
         ) : null}

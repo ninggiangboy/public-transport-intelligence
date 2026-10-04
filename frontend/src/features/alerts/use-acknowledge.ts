@@ -2,7 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { api, write } from '@/api/client';
 import { dropAlert, patchAlert } from '@/features/alerts/cache';
-import { en } from '@/i18n/en';
+import { alertsCopy } from '@/i18n/alerts';
 import { actorOf } from '@/lib/format';
 import { notify } from '@/lib/notify';
 
@@ -31,7 +31,7 @@ export function useAcknowledge(username: string | undefined) {
         return;
       }
       context?.rollback();
-      notify.error(en.alerts.ackFailed);
+      notify.error(alertsCopy.alerts.ackFailed);
     },
     onSuccess: (alert, id) => {
       // The server keeps the first person who acknowledged it (E-21 is idempotent).

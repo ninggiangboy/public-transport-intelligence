@@ -27,6 +27,7 @@ import { alertBadgeQuery, alertListQuery, routesQuery, type AlertFilters } from 
 import { ALERT_TYPES, AUDIENCES, WINDOWS, type AlertsSearch, type AlertState } from '@/features/alerts/search';
 import { useQueryClient } from '@tanstack/react-query';
 import { en } from '@/i18n/en';
+import { alertsCopy } from '@/i18n/alerts';
 import { useDocumentTitle, useMediaQuery } from '@/lib/browser';
 import { cn } from '@/lib/utils';
 import { useRealtime } from '@/realtime/useRealtime';
@@ -107,7 +108,11 @@ function AlertItem({
               {alert.title}
             </span>
             {signedIn && isUnread(alert) ? (
-              <span role="img" aria-label={en.alerts.unread} className="size-[7px] shrink-0 rounded-full bg-primary" />
+              <span
+                role="img"
+                aria-label={alertsCopy.alerts.unread}
+                className="size-[7px] shrink-0 rounded-full bg-primary"
+              />
             ) : null}
           </span>
           {route || summary ? (
@@ -128,7 +133,7 @@ function AlertItem({
             <ToneBadge
               tone={severity}
               size="sm"
-              label={en.alerts.severityShort[alert.severity] ?? String(alert.severity)}
+              label={alertsCopy.alerts.severityShort[alert.severity] ?? String(alert.severity)}
             />
             <RelativeTime at={alert.createdAt} axis="audit" />
           </span>
@@ -153,7 +158,7 @@ function ListSkeleton() {
 
 /** The alert feed: list and detail side by side (DOC-36 screens/alert-feed). */
 export function AlertsPage({ search }: { search: AlertsSearch }) {
-  useDocumentTitle(en.alerts.title);
+  useDocumentTitle(alertsCopy.alerts.title);
   const navigate = useNavigate({ from: '/alerts' });
   const queryClient = useQueryClient();
   const access = useAccess();
@@ -233,7 +238,9 @@ export function AlertsPage({ search }: { search: AlertsSearch }) {
     if (queue.length === 0 || cooling) return;
     const timer = setTimeout(() => {
       setAnnouncement(
-        queue.length === 1 ? en.alerts.announce.one(queue[0] ?? '') : en.alerts.announce.many(queue.length),
+        queue.length === 1
+          ? alertsCopy.alerts.announce.one(queue[0] ?? '')
+          : alertsCopy.alerts.announce.many(queue.length),
       );
       setQueue([]);
       setCooling(true);
@@ -303,7 +310,7 @@ export function AlertsPage({ search }: { search: AlertsSearch }) {
   };
 
   const tabs = (
-    <div role="tablist" aria-label={en.alerts.filters.period} className="flex border-b border-border">
+    <div role="tablist" aria-label={alertsCopy.alerts.filters.period} className="flex border-b border-border">
       {STATE_TABS.filter((tab) => tab !== 'unacknowledged' || signedIn).map((tab) => {
         const active = state === tab;
         return (
@@ -321,7 +328,7 @@ export function AlertsPage({ search }: { search: AlertsSearch }) {
                 'text-foreground after:absolute after:inset-x-2 after:-bottom-px after:h-0.5 after:rounded-full after:bg-foreground',
             )}
           >
-            {en.alerts.tabs[tab]}
+            {alertsCopy.alerts.tabs[tab]}
             {tab === 'unacknowledged' && unacknowledged ? (
               <span
                 className={cn(
@@ -341,7 +348,7 @@ export function AlertsPage({ search }: { search: AlertsSearch }) {
   const filterBar = (
     <div className="flex flex-wrap items-center gap-1.5">
       <MultiSelectFilter
-        label={en.alerts.filters.severity}
+        label={alertsCopy.alerts.filters.severity}
         options={[2, 1, 0].map((value) => ({ value, label: en.severity[value as 0 | 1 | 2] }))}
         value={search.severity ?? []}
         onChange={(value) => {
@@ -349,8 +356,8 @@ export function AlertsPage({ search }: { search: AlertsSearch }) {
         }}
       />
       <MultiSelectFilter
-        label={en.alerts.filters.type}
-        options={ALERT_TYPES.map((value) => ({ value, label: en.alertType[value] ?? value }))}
+        label={alertsCopy.alerts.filters.type}
+        options={ALERT_TYPES.map((value) => ({ value, label: alertsCopy.alertType[value] ?? value }))}
         value={search.type ?? []}
         onChange={(value) => {
           setSearch({ type: value.length > 0 ? value : undefined });
@@ -358,8 +365,8 @@ export function AlertsPage({ search }: { search: AlertsSearch }) {
       />
       {staff ? (
         <MultiSelectFilter
-          label={en.alerts.filters.audience}
-          options={AUDIENCES.map((value) => ({ value, label: en.audience[value] ?? value }))}
+          label={alertsCopy.alerts.filters.audience}
+          options={AUDIENCES.map((value) => ({ value, label: alertsCopy.audience[value] ?? value }))}
           value={search.audience ?? []}
           onChange={(value) => {
             setSearch({ audience: value.length > 0 ? value : undefined });
@@ -370,7 +377,7 @@ export function AlertsPage({ search }: { search: AlertsSearch }) {
         <RouteSelect
           routes={routes.data?.data.items ?? []}
           value={search.route ?? []}
-          placeholder={en.alerts.filters.route}
+          placeholder={alertsCopy.alerts.filters.route}
           onChange={(value) => {
             setSearch({ route: value.length > 0 ? value : undefined });
           }}
@@ -378,9 +385,9 @@ export function AlertsPage({ search }: { search: AlertsSearch }) {
       </div>
       <SegmentedControl
         size="sm"
-        label={en.alerts.filters.period}
+        label={alertsCopy.alerts.filters.period}
         value={filters.window}
-        options={WINDOWS.map((value) => ({ value, label: en.alerts.filters.window[value] }))}
+        options={WINDOWS.map((value) => ({ value, label: alertsCopy.alerts.filters.window[value] }))}
         onChange={(value) => {
           setSearch({ window: value === '24h' ? undefined : value });
         }}
@@ -390,7 +397,7 @@ export function AlertsPage({ search }: { search: AlertsSearch }) {
 
   const listPanel = (
     <section
-      aria-label={en.alerts.list}
+      aria-label={alertsCopy.alerts.list}
       className="flex min-h-0 flex-col rounded-lg border border-border bg-card shadow-sm"
     >
       <p aria-live="polite" className="sr-only">
@@ -419,16 +426,25 @@ export function AlertsPage({ search }: { search: AlertsSearch }) {
         {list.isPending ? (
           <ListSkeleton />
         ) : list.isError && alerts.length === 0 ? (
-          <ErrorState error={list.error} variant="block" panel={en.alerts.panel} onRetry={() => void list.refetch()} />
+          <ErrorState
+            error={list.error}
+            variant="block"
+            panel={alertsCopy.alerts.panel}
+            onRetry={() => void list.refetch()}
+          />
         ) : alerts.length === 0 ? (
           filtered ? (
             <EmptyState
               icon={SearchX}
-              title={en.alerts.empty.filteredTitle}
+              title={alertsCopy.alerts.empty.filteredTitle}
               action={{ label: en.common.clearFilters, onClick: clearFilters }}
             />
           ) : (
-            <EmptyState icon={BellOff} title={en.alerts.empty.openTitle} description={en.alerts.empty.openBody} />
+            <EmptyState
+              icon={BellOff}
+              title={alertsCopy.alerts.empty.openTitle}
+              description={alertsCopy.alerts.empty.openBody}
+            />
           )
         ) : (
           <>
@@ -458,7 +474,7 @@ export function AlertsPage({ search }: { search: AlertsSearch }) {
                   disabled={list.isFetchingNextPage}
                   onClick={() => void list.fetchNextPage()}
                 >
-                  {en.alerts.actions.loadOlder}
+                  {alertsCopy.alerts.actions.loadOlder}
                 </Button>
               </div>
             ) : null}
@@ -470,7 +486,7 @@ export function AlertsPage({ search }: { search: AlertsSearch }) {
 
   const detail =
     search.alert && search.alert === goneId ? (
-      <EmptyState title={en.alerts.gone} />
+      <EmptyState title={alertsCopy.alerts.gone} />
     ) : selected ? (
       <AlertDetail
         key={selected.id}
@@ -491,9 +507,9 @@ export function AlertsPage({ search }: { search: AlertsSearch }) {
         <PanelSkeleton variant="detail" />
       ) : (
         <EmptyState
-          title={en.alerts.notInList}
+          title={alertsCopy.alerts.notInList}
           action={{
-            label: en.alerts.showLastWeek,
+            label: alertsCopy.alerts.showLastWeek,
             onClick: () => {
               setSearch({ window: '7d', state: 'all' });
             },
@@ -516,14 +532,16 @@ export function AlertsPage({ search }: { search: AlertsSearch }) {
 
   return (
     <div className="flex flex-col gap-4">
-      <PageHeader title={en.alerts.title} actions={readOnly} />
+      <PageHeader title={alertsCopy.alerts.title} actions={readOnly} />
       {tabs}
       {filterBar}
       {wide ? (
         <SplitView
           list={listPanel}
           detail={detail}
-          emptyDetail={list.isPending ? <PanelSkeleton variant="detail" /> : <EmptyState title={en.alerts.selectOne} />}
+          emptyDetail={
+            list.isPending ? <PanelSkeleton variant="detail" /> : <EmptyState title={alertsCopy.alerts.selectOne} />
+          }
         />
       ) : search.alert ? (
         <div className="rounded-lg border border-border bg-card shadow-sm">{detail}</div>

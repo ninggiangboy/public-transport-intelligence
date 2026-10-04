@@ -4,7 +4,7 @@ import { Link } from '@tanstack/react-router';
 import type { components } from '@/api/generated/schema';
 import { RouteBadge } from '@/components/RouteBadge';
 import { routeDetailQuery } from '@/features/overview/queries';
-import { en } from '@/i18n/en';
+import { overviewCopy } from '@/i18n/overview';
 import { parseHexColor, toCssRgb } from '@/lib/color';
 import { delayClass, type DelayClass } from '@/lib/delay';
 import { cn } from '@/lib/utils';
@@ -66,7 +66,7 @@ export function NetworkPulse({ routeIds, vehicles, routes, disruptedStops }: Net
               <Link
                 to="/map"
                 search={{ route: routeId } as never}
-                aria-label={en.overview.pulse.route(route?.displayName ?? routeId, onRoute.length)}
+                aria-label={overviewCopy.overview.pulse.route(route?.displayName ?? routeId, onRoute.length)}
                 className="grid grid-cols-[44px_minmax(0,1fr)] items-center gap-3 rounded-md px-1 py-1 hover:bg-surface"
               >
                 <RouteBadge
@@ -118,7 +118,7 @@ export function NetworkPulse({ routeIds, vehicles, routes, disruptedStops }: Net
         {LEGEND.map((entry) => (
           <li key={entry.key} className="inline-flex items-center gap-1.5">
             <span aria-hidden="true" className={cn('size-2.5 rounded-full', entry.className)} />
-            {en.overview.pulse.legend[entry.key]}
+            {overviewCopy.overview.pulse.legend[entry.key]}
           </li>
         ))}
       </ul>

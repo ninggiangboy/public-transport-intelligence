@@ -621,7 +621,7 @@ Tài liệu gốc mô tả tốt *cái gì* và *vì sao*, nhưng còn nhiều c
 ### DR-106 · Ngân sách chunk ECharts 200 KB — **Chốt** (P5; sửa DOC-34 §7)
 - **Vấn đề:** ECharts 6 theo module đo được (gzip -9): biểu đồ đường tối thiểu 165 KB, thêm cột 172 KB, thêm heatmap và visualMap 186 KB, đủ danh sách DOC-35 §7 209 KB. ECharts 5 là 151 KB và 177 KB. Ngân sách 160 KB không chứa nổi biểu đồ của scorecard ở cả hai bản.
 - **Quyết định:** Giữ ECharts 6 (DR-53), nâng ngân sách chunk ECharts lên 200 KB. `src/components/charts/echarts.ts` chỉ đăng ký module đang dùng; màn cần thêm (heatmap ở P5-08) tự thêm. Legend vẽ bằng HTML nên không cần `LegendComponent`. Chunk này chỉ tải ở màn của nhân viên, không ảnh hưởng ngân sách 200 KB của stop detail.
-- **Ghi chú:** JS ban đầu của `/stops/$stopId` là 197,6 KB sau P5-16 (rolldown chia nhỏ module dùng chung). Đòn bẩy kế tiếp: tải lười sidebar desktop trên mobile, bỏ Radix Tooltip khỏi khung.
+- **Ghi chú:** Sau P5-16, JS ban đầu của `/stops/$stopId` lên 197,6 KB vì `en.ts` gộp chuỗi của mọi màn. Chuỗi của từng màn (trừ khung, component dùng chung và stop detail) giờ nằm ở file riêng trong `src/i18n/` (`alerts.ts`, `overview.ts`, như `catalog.ts`) và được màn đó import trực tiếp, nên tải cùng chunk của màn; `en.ts` không spread chúng. JS ban đầu còn 194,7 KB. Đòn bẩy kế tiếp: tách nhãn trạng thái ops khỏi `design-system.ts`, tải lười sidebar desktop trên mobile.
 - **Ghi vào:** DOC-34 §7, `scripts/check-bundle.mjs`.
 
 ---
