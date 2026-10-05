@@ -1,6 +1,6 @@
 # Màn hình: Ops console — Pipeline (jobs) và batch lineage
 
-> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-36
+> Trạng thái: **Approved** · Cập nhật: 2026-10-05 · DOC-36
 > Phụ thuộc: DR-88, DOC-34, DOC-35 §5, §7, DOC-37 §3.3, §4, DOC-32 (E-30…E-37, E-52), DOC-33 §5.7, DOC-19 §2, DOC-28
 > Người dùng chính: P5-09
 
@@ -77,12 +77,12 @@ Drawer lần chạy (680 px):
 
 | Vùng | Component | Ghi chú |
 | --- | --- | --- |
-| Đầu trang | `PageHeader` | Dòng phụ tóm tắt: "All streaming stages healthy" (chấm `success`) hoặc "{n} stages need attention" (`warning`), cộng "· {n} batch job failed in the last 24 h" khi có. Nút "Grafana" (link dashboard pipeline, DOC-28 §7) và "Run a job" (operator, → `/ops/controls#run-job`) |
+| Đầu trang | `PageHeader` | Dòng phụ tóm tắt: "All streaming stages healthy" (chấm `success`) hoặc "{n} stages need attention" (`warning`; đếm Sources, etl-stream, Dead letters), cộng "· {n} batch job failed in the last 24 h" khi có. Nút "Grafana" (dashboard `pti-overview`, DOC-28 §7; URL từ `grafanaUrl` của `env.js`, rỗng thì ẩn, DR-109) và "Run a job" (operator, → `/ops/controls#run-job`) |
 | Sơ đồ chặng | `PipelineStages`: 5 thẻ nối bằng mũi tên có nhãn tốc độ; nét đứt chạy khi rate > 0 (DOC-35 §4.4) | §4.1 |
-| Throughput | `TimeSeriesChart` đường + vùng | Mặc định hai series "Read", "Written" cộng mọi nguồn; `SegmentedControl` đổi sang "By source" (cột chồng theo nguồn cho chỉ số đang chọn). Bucket 0 là khoảng trống, không nội suy. Tooltip: batches, failed batches, read, written, skipped, duplicate, p95 batch time. Khoảng theo `window` |
+| Throughput | `TimeSeriesChart` đường + vùng | Mặc định hai series "Read", "Written" cộng mọi nguồn; `SegmentedControl` "All sources" / "By source" đổi sang cột chồng theo nguồn cho chỉ số chọn ở `SegmentedControl` thứ hai ("Read", "Written", "Skipped"; DR-109). Bucket 0 là khoảng trống, không nội suy. Tooltip: batches, failed batches, read, written, skipped, duplicate, p95 batch time. Khoảng theo `window` |
 | Theo nguồn | `Card` + 4 dòng | Mỗi `source` stream: tên (DOC-37 §3.1), msg/s bucket cuối, tuổi dữ liệu (E-60, trục event) hoặc "No data for {age}" tông `warning`, skipped/duplicates trong khoảng |
 | Tab lần chạy | shadcn `Tabs`: "Job runs" (tất cả), "Batch" (`kind=BATCH_JOB`), "Streaming" (`kind=STREAM`), "Failed" (`status=FAILED`, kèm số) | Ghi `kind`/`status` lên URL; chip "Status", "Job" và chip khoảng thời gian cạnh tab |
-| Danh sách lần chạy | `DataTable` virtual (tối đa ~6.000 dòng khi 24 giờ), `useInfiniteQuery` trang 100 | Cột: "Status" (`StatusPill domain="job"`), "Job" (tên mono + "Run #{id}" hoặc "{listener} · {minute}"), "Trigger" ("Schedule", "Manual · {name}", "Replay · {name}", "Streaming"; từ `request`), "Started" (`Timestamp`), "Duration" (đang chạy thì tăng dần), "Read", "Written", "Skipped", "Duplicates" (stream) |
+| Danh sách lần chạy | `DataTable` (tối đa ~6.000 dòng khi 24 giờ), `useInfiniteQuery` trang 100 và "Load older runs"; virtualize khi `DataTable` có ở P5-10 (DR-109) | Cột: "Status" (`StatusPill domain="job"`), "Job" (tên mono + "Run #{id}" hoặc phút của stream), "Trigger" ("Schedule", "Manual · {name}", "Replay · {name}", "Streaming"; từ `request.requestedBy` của E-30), "Started" (`Timestamp`), "Duration" (đang chạy thì tăng dần), "Read", "Written", "Skipped", "Duplicates" (stream) |
 | Drawer | `DetailDrawer` 680 px | §6.1 |
 | Trang lineage | `KeyValueList`, `KpiCard`, `DataTable` DQ | §6.2 |
 
@@ -102,9 +102,10 @@ Bấm thẻ: "Sources" → cuộn tới "By source"; "etl-stream" → tab "Strea
 
 | Dữ liệu | Endpoint | Query key | Refetch / realtime |
 | --- | --- | --- | --- |
-| Sơ đồ chặng, throughput, theo nguồn | E-31 `?from&to&bucket` | `['etl', 'jobs', 'summary', { from, to, bucket }]` | **10 s** khi trang hiển thị (DOC-33 §5.7); `job.run` → invalidate (tối đa mỗi 10 s) |
+| Throughput, theo nguồn, số của tab "Failed" | E-31 `?from&to&bucket` | `['etl', 'jobs', 'summary', { window, bucket }]` (cửa sổ trượt) hoặc `{ from, to, bucket }` | **10 s** khi trang hiển thị (DOC-33 §5.7); `job.run` → invalidate (tối đa mỗi 10 s) |
+| Sơ đồ chặng | E-31 15 phút `1m`; E-31 24 giờ `1h` (Batch jobs, dòng phụ đầu trang) | `{ window: '15m', bucket: '1m' }` (chung với Overview), `{ window: '24h', bucket: '1h' }` (chung với sidebar) | Như trên (DR-109) |
 | DLQ, cờ, độ tươi | E-41, E-55, E-60 | như khung | Từ khung |
-| Danh sách | E-30 `?from&to&kind&status&name&limit=100` | `['etl', 'jobs', 'list', filters]` | SSE `job.run`: thay dòng theo `runId` trong trang đầu, chèn nếu mới và khớp bộ lọc (DOC-26 §9); dòng stream: refetch trang đầu mỗi 60 s |
+| Danh sách | E-30 `?from&to&kind&status&name&limit=100` | `['etl', 'jobs', 'list', filters]`; cửa sổ trượt mang `window`, không có `to` | SSE `job.run`: thay dòng theo `runId` trong trang đầu, chèn nếu mới và khớp bộ lọc (DOC-26 §9); dòng stream: lấy lại trang đầu mỗi 60 s và trộn lên các trang đã tải |
 | Chi tiết | E-32 | `['etl', 'job', runId]` | `job.run` cùng `runId` → invalidate (tối đa mỗi 2 s); lần chạy đang chạy: thêm poll 5 s khi SSE hỏng |
 | Yêu cầu restart/stop | E-35, E-36 → E-34 | mutation, rồi `['etl', 'job-request', id]` | Poll E-34 mỗi 2 s tới khi `RUNNING`, `DONE`, `REJECTED` hoặc `FAILED` (tối đa 60 s) |
 | Lineage | E-37 | `['etl', 'batch', batchId]` | Không refetch tự động; nút "Refresh" |

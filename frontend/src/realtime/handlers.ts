@@ -8,7 +8,7 @@ import type { Query, QueryClient, QueryKey } from '@tanstack/react-query';
 import { keys } from '@/api/keys';
 import type { components } from '@/api/generated/schema';
 import { bodyOf, isRecord, mapBody, mapPages } from '@/realtime/cache-shapes';
-import { INVALIDATE_THROTTLE_MS, VEHICLE_STALE_MS } from '@/realtime/config';
+import { INVALIDATE_THROTTLE_MS, JOB_SUMMARY_THROTTLE_MS, VEHICLE_STALE_MS } from '@/realtime/config';
 import type { EventOf, RealtimeEvent, VehiclePosition } from '@/realtime/schemas';
 import type { Channel } from '@/realtime/types';
 
@@ -353,15 +353,15 @@ export interface Handlers {
 /** Applies events to `queryClient`; invalidations that events would repeat are coalesced to one per 2 s (§9). */
 export function createHandlers(queryClient: QueryClient): Handlers {
   const pending = new Map<string, ReturnType<typeof setTimeout>>();
-  /** Runs `action` once, 2 s after the first call; calls in between join it. */
-  const coalesce = (key: string, action: () => void) => {
+  /** Runs `action` once, `delay` (2 s) after the first call; calls in between join it. */
+  const coalesce = (key: string, action: () => void, delay = INVALIDATE_THROTTLE_MS) => {
     if (pending.has(key)) return;
     pending.set(
       key,
       setTimeout(() => {
         pending.delete(key);
         action();
-      }, INVALIDATE_THROTTLE_MS),
+      }, delay),
     );
   };
   const invalidate = (queryKey: QueryKey) => {
@@ -411,6 +411,14 @@ export function createHandlers(queryClient: QueryClient): Handlers {
           coalesce(`job:${event.data.runId}`, () => {
             invalidate(keys.etl.job(event.data.runId));
           });
+          // The batch-job counts of E-31 (Pipeline, the sidebar dot): at most every 10 s (screens/ops-console-jobs §5).
+          coalesce(
+            'jobs:summary',
+            () => {
+              invalidate(keys.etl.jobs.summaryAll());
+            },
+            JOB_SUMMARY_THROTTLE_MS,
+          );
           break;
         case 'dlq.changed': {
           const change = event.data;

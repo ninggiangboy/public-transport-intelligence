@@ -362,6 +362,7 @@ interface SegmentedControlProps<V extends string> { options: { value: V; label: 
 - Bộ lọc hiển thị dạng **chip tròn** cao 28 px viền `--border-strong`; chip đang áp giá trị đổi thành nền `--foreground` chữ `--card` và ghi giá trị ("Severity: High"); chip "+ Sale point" viền đứt để thêm bộ lọc tùy chọn. `MultiSelectFilter` mở popover danh sách checkbox từ chip.
 - `DataTable`: tiêu đề cột trên dải `--surface` chữ 12 px/500 `--muted-foreground`; dòng hover nền `--surface`; dòng đang chọn nền `--primary-soft`; số canh phải.
 
+- `cn()` (`src/lib/utils.ts`) dạy tailwind-merge thang chữ của token (`text-label`, `text-nav`, `text-panel`, `text-page`, `text-kpi`, `text-display`), để cỡ chữ không bị coi là màu chữ (DR-109).
 - Cài đặt (P5-08, DR-108): `src/components/DataTable.tsx` trên `@tanstack/react-table` 9; cột viết bằng `columnHelper<T>()` của `src/components/data-table-columns.ts`, `meta.align: 'right'` cho cột số. Có thêm `dimmed` (dữ liệu cũ khi đang tải lại, P-3). Virtualize, `hasNextPage`/`fetchNextPage`, `newRowIds` và phím `j`/`k` thêm ở P5-10.
 - `DataTable` render `<table>` thật. Khi virtualize, `<tbody>` chỉ chứa dòng đang thấy, có `aria-rowcount` (tổng đã tải, cộng 1 nếu còn trang sau) và `aria-rowindex` trên từng dòng.
 - Cột id dùng `IdText` (8 ký tự đầu, mono, nút copy khi hover hoặc focus).
@@ -459,7 +460,7 @@ interface HeatmapChartProps {
 interface SparklineProps { points: number[]; label: string; tone?: Tone; area?: boolean }   // plain SVG, no ECharts
 ```
 
-Quy ước ở §7. Cài đặt (P5-08, DR-108): series của `TimeSeriesChart` có thể đặt `type` riêng và `secondary: true` để vẽ theo trục phải (`y2: { label, formatValue, range }`), ví dụ cột độ trễ cùng đường OTP; `minIntervalMs` đặt khoảng nhỏ nhất giữa nhãn trục thời gian (một ngày cho chuỗi theo ngày phục vụ). `HeatmapChart` tô ô qua `visualMap` piecewise ẩn với các khoảng của `src/components/charts/heat.ts`; ô không có dữ liệu để trống.
+Quy ước ở §7. Cài đặt (P5-09, DR-109): `TimeSeriesChart` có `tooltipExtra(t)` (dòng thêm dưới giá trị series), `onSelectRange(from, to)` (kéo chọn vùng trên plot, vùng chọn vẽ bằng HTML, không cần brush của ECharts) và `emptyText` (chữ đè lên plot vẫn giữ trục). Cài đặt (P5-08, DR-108): series của `TimeSeriesChart` có thể đặt `type` riêng và `secondary: true` để vẽ theo trục phải (`y2: { label, formatValue, range }`), ví dụ cột độ trễ cùng đường OTP; `minIntervalMs` đặt khoảng nhỏ nhất giữa nhãn trục thời gian (một ngày cho chuỗi theo ngày phục vụ). `HeatmapChart` tô ô qua `visualMap` piecewise ẩn với các khoảng của `src/components/charts/heat.ts`; ô không có dữ liệu để trống.
 
 ### 5.8 Bản đồ
 

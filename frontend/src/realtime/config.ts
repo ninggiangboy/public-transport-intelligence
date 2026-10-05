@@ -33,6 +33,9 @@ export const MAX_ROUTE_IDS = 20;
 /** Cache invalidations that would otherwise run on every event are coalesced to one per window (DOC-26 §9). */
 export const INVALIDATE_THROTTLE_MS = 2_000;
 
+/** `job.run` refreshes the job summaries (E-31) at most this often (screens/ops-console-jobs §5). */
+export const JOB_SUMMARY_THROTTLE_MS = 10_000;
+
 /** Vehicles older than `businessNow` by this much are hidden (DOC-33 §5.1). */
 export const VEHICLE_STALE_MS = 5 * 60_000;
 

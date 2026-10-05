@@ -20,7 +20,10 @@ final class JobResponses {
 
     private JobResponses() {}
 
-    /** One run of the list (E-30). A batch job has {@code batchIds} and {@code restartable}, a stream run {@code batchCount}. */
+    /**
+     * One run of the list (E-30). A batch job has {@code batchIds}, {@code restartable} and the {@code request} it came
+     * from (none when scheduled), a stream run {@code batchCount}.
+     */
     record JobRunResponse(
             String runId,
             String kind,
@@ -38,7 +41,8 @@ final class JobResponses {
             @Nullable Long jobExecutionId,
             @Nullable List<String> batchIds,
             @Nullable Integer batchCount,
-            @Nullable Boolean restartable) {
+            @Nullable Boolean restartable,
+            @Nullable RequestResponse request) {
 
         static JobRunResponse from(JobRun run) {
             boolean batchJob = run.isBatchJob();
@@ -59,7 +63,8 @@ final class JobResponses {
                     run.jobExecutionId(),
                     batchJob ? run.batchIds() : null,
                     batchJob ? null : run.batchCount(),
-                    run.restartable());
+                    run.restartable(),
+                    RequestResponse.from(run.request()));
         }
     }
 
@@ -116,10 +121,11 @@ final class JobResponses {
         }
     }
 
-    record RequestResponse(String type, String id) {
+    /** {@code requestedBy} is the actor ({@code user:operator}), as E-34 and E-52 give it. */
+    record RequestResponse(String type, String id, @Nullable String requestedBy) {
 
         static @Nullable RequestResponse from(@Nullable RequestRef ref) {
-            return ref == null ? null : new RequestResponse(ref.type(), ref.id().toString());
+            return ref == null ? null : new RequestResponse(ref.type(), ref.id().toString(), ref.requestedBy());
         }
     }
 

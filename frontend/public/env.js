@@ -6,4 +6,5 @@ window.__PTI_ENV__ = {
   keycloakClientId: 'pti-web',
   mapStyle: 'online',
   demoControl: true,
+  grafanaUrl: 'http://localhost:3000',
 };

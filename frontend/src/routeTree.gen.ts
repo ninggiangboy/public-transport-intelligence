@@ -26,6 +26,7 @@ import { Route as ScorecardIndexRouteImport } from './routes/scorecard/index'
 import { Route as ScorecardRouteIdRouteImport } from './routes/scorecard/$routeId'
 import { Route as StopsIndexRouteImport } from './routes/stops/index'
 import { Route as StopsStopIdRouteImport } from './routes/stops/$stopId'
+import { Route as OpsBatchesBatchIdRouteImport } from './routes/ops/batches/$batchId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -112,6 +113,11 @@ const StopsStopIdRoute = StopsStopIdRouteImport.update({
   path: '/stops/$stopId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const OpsBatchesBatchIdRoute = OpsBatchesBatchIdRouteImport.update({
+  id: '/ops/batches/$batchId',
+  path: '/ops/batches/$batchId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -131,6 +137,7 @@ export interface FileRoutesByFullPath {
   '/ops/': typeof OpsIndexRoute
   '/scorecard/': typeof ScorecardIndexRoute
   '/stops/': typeof StopsIndexRoute
+  '/ops/batches/$batchId': typeof OpsBatchesBatchIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -150,6 +157,7 @@ export interface FileRoutesByTo {
   '/ops': typeof OpsIndexRoute
   '/scorecard': typeof ScorecardIndexRoute
   '/stops': typeof StopsIndexRoute
+  '/ops/batches/$batchId': typeof OpsBatchesBatchIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -170,6 +178,7 @@ export interface FileRoutesById {
   '/ops/': typeof OpsIndexRoute
   '/scorecard/': typeof ScorecardIndexRoute
   '/stops/': typeof StopsIndexRoute
+  '/ops/batches/$batchId': typeof OpsBatchesBatchIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -191,6 +200,7 @@ export interface FileRouteTypes {
     | '/ops/'
     | '/scorecard/'
     | '/stops/'
+    | '/ops/batches/$batchId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -210,6 +220,7 @@ export interface FileRouteTypes {
     | '/ops'
     | '/scorecard'
     | '/stops'
+    | '/ops/batches/$batchId'
   id:
     | '__root__'
     | '/'
@@ -229,6 +240,7 @@ export interface FileRouteTypes {
     | '/ops/'
     | '/scorecard/'
     | '/stops/'
+    | '/ops/batches/$batchId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -249,6 +261,7 @@ export interface RootRouteChildren {
   OpsIndexRoute: typeof OpsIndexRoute
   ScorecardIndexRoute: typeof ScorecardIndexRoute
   StopsIndexRoute: typeof StopsIndexRoute
+  OpsBatchesBatchIdRoute: typeof OpsBatchesBatchIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -372,6 +385,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StopsStopIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/ops/batches/$batchId': {
+      id: '/ops/batches/$batchId'
+      path: '/ops/batches/$batchId'
+      fullPath: '/ops/batches/$batchId'
+      preLoaderRoute: typeof OpsBatchesBatchIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -393,6 +413,7 @@ const rootRouteChildren: RootRouteChildren = {
   OpsIndexRoute: OpsIndexRoute,
   ScorecardIndexRoute: ScorecardIndexRoute,
   StopsIndexRoute: StopsIndexRoute,
+  OpsBatchesBatchIdRoute: OpsBatchesBatchIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

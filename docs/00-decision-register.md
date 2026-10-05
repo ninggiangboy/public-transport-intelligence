@@ -66,6 +66,7 @@ Tài liệu gốc mô tả tốt *cái gì* và *vì sao*, nhưng còn nhiều c
 | 2026-10-04 | Claude (Owner ủy quyền) | **Ngân sách JS ban đầu (P5):** `zod/mini`; bỏ `react-oidc-context`, tải `oidc-client-ts` bằng `import()`; tải lười controller SSE, Toaster, menu tài khoản, sheet mobile; asset nén sẵn `gzip -9` với `gzip_static`; `check-bundle` trong CI | DR-105 (mới), DR-46, ADR-0020, DOC-11, DOC-34 §7, §9 |
 | 2026-10-04 | Owner | **Ngân sách chunk `/map` (P5-06):** 360 KB thay vì 330 KB, vì riêng MapLibre 6 đã khoảng 297 KB ở gzip -9; panel chi tiết và chế độ danh sách tải lười, `MapCanvas` vẫn nằm trong chunk được đo | DR-107 (mới), DOC-34 §7 |
 | 2026-10-05 | Claude (Owner ủy quyền) | **Route scorecard (P5-08):** lọc mode trên client từ một lần gọi E-14 cho mọi tuyến; heatmap ECharts cần `VisualMapPiecewiseComponent` (ẩn); hồ sơ trạm là bảng có thanh thay vì biểu đồ cột; `DataTable` trên TanStack Table 9 | DR-108 (mới), DOC-35 §5.3, §5.7, §7, screens/route-scorecard §4, §5 |
+| 2026-10-05 | Claude (Owner ủy quyền) | **Pipeline (P5-09):** E-30 và E-32 thêm `request.requestedBy` để có cột "Trigger"; `env.js` thêm `grafanaUrl`; danh sách lần chạy chưa virtualize (trang 100 + "Load older runs"); sơ đồ chặng đọc E-31 15 phút theo phút; `job.run` làm mới E-31 tối đa mỗi 10 s; kéo chọn vùng không cần `BrushComponent`; `cn()` biết thang chữ của token | DR-109 (mới), DOC-32 E-30, E-32, DOC-29 §3.5, DOC-35 §5.3, §5.7, screens/ops-console-jobs §4, §5 |
 
 ---
 
@@ -642,6 +643,20 @@ Tài liệu gốc mô tả tốt *cái gì* và *vì sao*, nhưng còn nhiều c
   5. Bỏ `containLabel`; mặc định `outerBoundsMode: 'auto'` của ECharts 6 đã giữ nhãn trục trong khung.
 - **Hệ quả:** Bảng xếp hạng đổi mode không gọi lại API. Drawer tuyến lấy 5 episode bằng key có `limit`, tách khỏi danh sách phân trang của tab "Disruptions". `TimeSeriesChart` có thêm series dạng cột kèm trục phải (`y2`, tab Delays kiểu "Daily") và `minIntervalMs` cho trục theo ngày.
 - **Ghi vào:** DOC-35 §5.3, §5.7, §7, screens/route-scorecard §4, §5, `src/components/charts/echarts.ts`.
+
+### DR-109 · Chi tiết khi làm Pipeline — **Chốt** (P5-09; sửa DOC-32 E-30, E-32, screens/ops-console-jobs §4, §5)
+- **Vấn đề:** (1) Cột "Trigger" của danh sách lần chạy ("Manual · {name}", "Replay · {name}") cần `request` và người gửi, nhưng E-30 không trả `request` và `request` của E-32 không có người gửi. (2) Nút "Grafana" cần URL Grafana mà trình duyệt mở được; `env.js` không có. (3) §4 ghi `DataTable` virtual, nhưng virtualize được hẹn ở P5-10 (DR-108). (4) Sơ đồ chặng dùng "bucket 1 phút cuối" và "failedBatches trong 5 phút", trong khi E-31 của biểu đồ theo `window` có thể là 5m hay 15m. (5) Micro-batch không phát `job.run` (DOC-33 §5.7), nên số đếm batch job của E-31 (sidebar, Overview) chỉ đổi theo refetch 60 s. (6) Kéo chọn vùng trên biểu đồ cần brush của ECharts, thêm cỡ chunk. (7) `cn()` (tailwind-merge) coi `text-kpi`, `text-label`… là màu chữ, nên `cn('text-kpi', 'text-tone-warning-fg')` mất cỡ chữ (lỗi có sẵn, lộ ra ở `KpiCard` có `tone`).
+- **Quyết định:**
+  1. E-30 thêm `request: { type, id, requestedBy }` cho batch job, tra như E-32 (replay trước, rồi job request không phải STOP) bằng `LEFT JOIN LATERAL` sau `LIMIT` trong `job_runs.sql`; `request` của E-32 thêm `requestedBy`. Không có `request` → "Schedule"; stream → "Streaming". Hai bảng request nhỏ (DOC-18), nên vẫn không cần index theo `job_execution_id`.
+  2. `env.js` có `grafanaUrl` từ `PTI_GRAFANA_URL` (compose: `http://localhost:3000`); rỗng thì ẩn nút. Nút mở dashboard `pti-overview`. Chỉ là link, không vào CSP.
+  3. Danh sách là `DataTable` thường với trang keyset 100 dòng và nút "Load older runs"; virtualize khi `DataTable` có nó ở P5-10. Dòng stream: trang đầu được lấy lại mỗi 60 s và trộn lên cache (`mergeHead`), không refetch mọi trang đã tải.
+  4. Sơ đồ chặng đọc E-31 15 phút theo `1m` (cùng key với Overview); thẻ "Batch jobs" và dòng phụ đầu trang đọc E-31 24 giờ theo `1h` (cùng key với chấm Pipeline của sidebar). Số cạnh tab "Failed" là `batchJobs.failed` của khoảng đang xem, khớp với danh sách. Cửa sổ trượt dùng key `{ window }` (không có `to`) để `job.run` chèn được lần chạy mới.
+  5. `job.run` làm mới mọi entry E-31 (`['etl','jobs','summary']`) tối đa mỗi 10 s (`JOB_SUMMARY_THROTTLE_MS`).
+  6. `TimeSeriesChart` có `onSelectRange` (kéo trên plot, đổi pixel sang thời gian bằng `convertFromPixel`, vẽ vùng chọn bằng HTML), `tooltipExtra` (dòng thêm trong tooltip: batches, failed, p95…) và `emptyText`. Không đăng ký thêm module ECharts; chunk vẫn 182,8 KB. Bàn phím chọn khoảng qua `TimeRangePicker`.
+  7. Throughput có `SegmentedControl` "All sources" / "By source"; ở "By source" thêm "Read" / "Written" / "Skipped" và vẽ cột chồng theo nguồn.
+  8. `cn()` dùng `extendTailwindMerge` với nhóm `font-size` gồm `label`, `nav`, `panel`, `page`, `kpi`, `display`.
+- **Hệ quả:** Màn có route `/ops/batches/$batchId`. JS ban đầu của `/stops/$stopId` từ 198,3 KB lên 199,5 KB (schema search của `/ops/jobs` nằm trong bảng route, cấu hình tailwind-merge, `grafanaUrl`), còn 0,5 KB trong ngân sách DR-105; màn kế tiếp cần đòn bẩy đã ghi ở DR-105. E2E-JOBS-02 chờ "Run a job" của Controls (P5-11).
+- **Ghi vào:** DOC-32 E-30, E-32, DOC-29 §3.5, DOC-35 §5.3, §5.7, screens/ops-console-jobs §4, §5, `src/lib/utils.ts`.
 
 ---
 

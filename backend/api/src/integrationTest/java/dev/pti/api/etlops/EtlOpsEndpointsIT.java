@@ -79,6 +79,8 @@ class EtlOpsEndpointsIT extends ApiIntegrationSupport {
                 "DELETE FROM ops.job_request",
                 "DELETE FROM ops.dead_letter",
                 "DELETE FROM ops.etl_stream_batch",
+                "DELETE FROM batch.batch_job_execution WHERE job_execution_id IN (990001, 990002)",
+                "DELETE FROM batch.batch_job_instance WHERE job_instance_id IN (990001, 990002)",
                 "UPDATE ops.runtime_flag SET value = 'false', updated_by = 'migration' WHERE key = 'etl.consumer.gtfs-rt.paused'");
     }
 
@@ -115,6 +117,19 @@ class EtlOpsEndpointsIT extends ApiIntegrationSupport {
         } catch (SQLException e) {
             throw new IllegalStateException(sql, e);
         }
+    }
+
+    /** A job execution started 10 minutes ago (job 990001) or 5 minutes ago (any other), straight into batch.*. */
+    private static void batchJob(long id, String name, String status) {
+        int minutesAgo = id == 990001 ? 10 : 5;
+        asOwner(
+                "INSERT INTO batch.batch_job_instance (job_instance_id, version, job_name, job_key) VALUES (%d, 0, '%s', '%d')"
+                        .formatted(id, name, id),
+                """
+                INSERT INTO batch.batch_job_execution (job_execution_id, version, job_instance_id, create_time, start_time,
+                  end_time, status, exit_code, exit_message, last_updated)
+                VALUES (%d, 1, %d, now() AT TIME ZONE 'UTC', (now() AT TIME ZONE 'UTC') - interval '%d minutes',
+                  (now() AT TIME ZONE 'UTC') - interval '1 minute', '%s', '%s', '', now() AT TIME ZONE 'UTC')""".formatted(id, id, minutesAgo, status, status));
     }
 
     private static void deadLetter(String status) {
@@ -353,9 +368,25 @@ class EtlOpsEndpointsIT extends ApiIntegrationSupport {
         assertThat(call(get("/api/v1/etl/jobs/job:999999").header("Authorization", viewer()))
                         .getStatus())
                 .isEqualTo(404);
-        assertThat(call(get("/api/v1/etl/jobs").param("kind", "BATCH_JOB").header("Authorization", viewer()))
-                        .getStatus())
-                .isEqualTo(200);
+        batchJob(990001, "OtpScorecardJob", "FAILED");
+        batchJob(990002, "PartitionMaintenanceJob", "COMPLETED");
+        asOwner("""
+                INSERT INTO ops.job_request (id, kind, job_name, requested_by, status, job_execution_id, started_at,
+                  finished_at)
+                VALUES ('%s', 'RUN', 'OtpScorecardJob', 'user:operator', 'DONE', 990001, now(), now())""".formatted(UUID.randomUUID()));
+        JsonNode jobs =
+                json(call(get("/api/v1/etl/jobs").param("kind", "BATCH_JOB").header("Authorization", viewer())), 200);
+        assertThat(jobs.path("items")).hasSize(2);
+        JsonNode manual = jobs.path("items").get(1);
+        assertThat(manual.path("runId").asString()).isEqualTo("job:990001");
+        assertThat(manual.path("request").path("type").asString()).isEqualTo("job");
+        assertThat(manual.path("request").path("requestedBy").asString()).isEqualTo("user:operator");
+        assertThat(jobs.path("items").get(0).has("request")).isFalse();
+        assertThat(json(call(get("/api/v1/etl/jobs/job:990001").header("Authorization", viewer())), 200)
+                        .path("request")
+                        .path("requestedBy")
+                        .asString())
+                .isEqualTo("user:operator");
         assertThat(call(get("/api/v1/etl/feeds").header("Authorization", viewer()))
                         .getStatus())
                 .isEqualTo(200);

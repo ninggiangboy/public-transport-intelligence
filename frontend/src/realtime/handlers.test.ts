@@ -344,6 +344,22 @@ describe('job.run', () => {
     vi.advanceTimersByTime(1);
     expect(stale(queryClient, keys.etl.job('job:1'))).toBe(true);
   });
+
+  it('refreshes every job summary at most every 10 s', () => {
+    vi.useFakeTimers();
+    const day = keys.etl.jobs.summary({ window: '24h', bucket: '1h' });
+    const fixed = keys.etl.jobs.summary({ from: 'a', to: 'b', bucket: '1m' });
+    queryClient.setQueryData(day, {});
+    queryClient.setQueryData(fixed, {});
+
+    handlers.apply(event('job.run', run('job:1')));
+    handlers.apply(event('job.run', run('job:2')));
+    vi.advanceTimersByTime(9_999);
+    expect(stale(queryClient, day)).toBe(false);
+    vi.advanceTimersByTime(1);
+    expect(stale(queryClient, day)).toBe(true);
+    expect(stale(queryClient, fixed)).toBe(true);
+  });
 });
 
 describe('dlq.changed', () => {

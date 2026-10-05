@@ -1,6 +1,6 @@
 # Tham chiếu cấu hình
 
-> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-29
+> Trạng thái: **Approved** · Cập nhật: 2026-10-05 · DOC-29
 > Phụ thuộc: [DR](../00-decision-register.md), [DOC-10](../03-architecture/quality-attributes.md), [DOC-13](../05-data/source-data.md), [DOC-15](../05-data/ops-and-insight-model.md), [DOC-17](../05-data/db-roles-and-grants.md)
 > Người dùng chính: mọi app, compose (DOC-39), Helm (DOC-40)
 
@@ -272,9 +272,10 @@ Frontend không có file cấu hình Spring. Entrypoint của image `pti-fronten
 | `PTI_MAP_STYLE` | `mapStyle` | `offline` | `offline` (PMTiles cục bộ `/tiles/`) \| `online` (OpenFreeMap, ADR-0021) |
 | `PTI_MAP_TILE_ORIGINS` | — (chỉ CSP) | rỗng | Origin tile thêm vào `connect-src`/`img-src` khi `online` |
 | `PTI_EXTRA_PROFILES` | `demoControl` | rỗng | Chứa `demo` → `demoControl: true` (hiện màn Demo control) |
+| `PTI_GRAFANA_URL` | `grafanaUrl` | rỗng | Grafana mà **trình duyệt** mở được (compose: `http://localhost:3000`), cho nút "Grafana" của Pipeline (dashboard `pti-overview`). Rỗng → ẩn nút. Chỉ là link, không vào CSP |
 | `PTI_API_UPSTREAM` | — (chỉ nginx) | `http://api:8080` | Đích của `proxy_pass` cho `/api/`. nginx phân giải tên mỗi request qua DNS của container (`resolver`), nên frontend khởi động được khi api chưa có và theo kịp container api được tạo lại |
 
-Dev server (`pnpm dev`) dùng `frontend/public/env.js` đã commit: `mapStyle: "online"`, `demoControl: true`, Keycloak `http://localhost:8180`.
+Dev server (`pnpm dev`) dùng `frontend/public/env.js` đã commit: `mapStyle: "online"`, `demoControl: true`, Keycloak `http://localhost:8180`, Grafana `http://localhost:3000`.
 
 ## 4. Cờ tức thời (`ops.runtime_flag`)
 

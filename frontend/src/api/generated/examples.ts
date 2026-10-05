@@ -428,6 +428,7 @@ export const getJobRun = {
       ],
       "request": {
         "id": "0192f5a0-1b2c-7d3e-8f4a-5b6c7d8e9f0a",
+        "requestedBy": "user:operator",
         "type": "replay"
       },
       "restartable": true,
@@ -1000,6 +1001,11 @@ export const listJobRuns = {
           "kind": "BATCH_JOB",
           "name": "RawZoneReplayJob",
           "readCount": 412000,
+          "request": {
+            "id": "0192f5a0-1b2c-7d3e-8f4a-5b6c7d8e9f0a",
+            "requestedBy": "user:operator",
+            "type": "replay"
+          },
           "restartable": true,
           "runId": "job:4127",
           "skipCount": 950,

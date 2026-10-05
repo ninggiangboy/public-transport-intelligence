@@ -175,6 +175,13 @@
       opacity: 0;
     }
   }
+
+  /* Dashes running along a Pipeline connector while records flow (DOC-35 §4.4, screens/ops-console-jobs §4). */
+  @keyframes pti-flow {
+    to {
+      background-position-x: 8px;
+    }
+  }
 }
 
 @utility animate-shimmer {
@@ -189,6 +196,10 @@
 
 @utility animate-map-ping {
   animation: pti-ping 1.8s var(--ease-out) infinite;
+}
+
+@utility animate-flow {
+  animation: pti-flow 0.8s linear infinite;
 }
 
 /* prefers-reduced-motion: no transitions or animations; spinners stand still (DOC-35 §4.4, DS-09). */

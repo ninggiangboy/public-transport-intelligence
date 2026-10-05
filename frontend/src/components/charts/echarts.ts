@@ -17,7 +17,7 @@ register([
   CanvasRenderer,
 ]);
 
-export type Chart = Pick<EChartsType, 'setOption' | 'resize' | 'dispose'>;
+export type Chart = Pick<EChartsType, 'setOption' | 'resize' | 'dispose' | 'convertFromPixel'>;
 
 export function initChart(element: HTMLElement): Chart {
   return init(element, undefined, { renderer: 'canvas' });

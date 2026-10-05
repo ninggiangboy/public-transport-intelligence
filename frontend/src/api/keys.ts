@@ -83,9 +83,15 @@ export const keys = {
       all: () => ['etl', 'jobs'] as const,
       list: (filters?: Filters) => ['etl', 'jobs', 'list', normalizeFilters(filters)] as const,
       summary: (filters?: Filters) => ['etl', 'jobs', 'summary', normalizeFilters(filters)] as const,
+      /** Prefix of every E-31 entry, whatever its period: `job.run` refreshes them at most every 10 s. */
+      summaryAll: () => ['etl', 'jobs', 'summary'] as const,
     },
     jobAll: () => ['etl', 'job'] as const,
     job: (runId: string) => ['etl', 'job', runId] as const,
+    /** E-34: a run, restart or stop request, polled until the batch service picks it up. */
+    jobRequest: (id: string) => ['etl', 'job-request', id] as const,
+    /** E-37: the lineage of one batch id. */
+    batch: (batchId: string) => ['etl', 'batch', batchId] as const,
     dlq: {
       all: () => ['etl', 'dlq'] as const,
       list: (filters?: Filters) => ['etl', 'dlq', 'list', normalizeFilters(filters)] as const,

@@ -12,6 +12,8 @@ const schema = z.object({
   keycloakClientId: z._default(nonEmpty, 'pti-web'),
   mapStyle: z._default(z.enum(['offline', 'online']), 'offline'),
   demoControl: z._default(z.boolean(), false),
+  /** Grafana as the browser reaches it, for the "Grafana" button of Pipeline; empty hides it. */
+  grafanaUrl: z._default(z.union([z.url({ protocol: /^https?$/ }), z.literal('')]), ''),
 });
 
 export type AppEnv = z.infer<typeof schema>;

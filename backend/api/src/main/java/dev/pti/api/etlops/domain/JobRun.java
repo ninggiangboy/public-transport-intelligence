@@ -7,7 +7,8 @@ import org.jspecify.annotations.Nullable;
 /**
  * One row of {@code ops.ops_job_run_v} (DOC-15 §5, DOC-32 E-30). A stream run has no exit code, no job execution and
  * no {@code restartable}; a batch job has no duplicate count. {@code batchIds} holds at most 20 ids, {@code
- * batchCount} all of them.
+ * batchCount} all of them. {@code request} is the replay or job request that started a batch job, as the list reads it
+ * (E-30); a scheduled job and a stream run have none.
  */
 public record JobRun(
         String runId,
@@ -25,7 +26,8 @@ public record JobRun(
         @Nullable Long jobExecutionId,
         List<String> batchIds,
         int batchCount,
-        @Nullable Boolean restartable) {
+        @Nullable Boolean restartable,
+        @Nullable RequestRef request) {
 
     public JobRun {
         batchIds = List.copyOf(batchIds);
@@ -48,6 +50,28 @@ public record JobRun(
                 jobExecutionId,
                 batchIds,
                 batchCount,
+                value,
+                request);
+    }
+
+    public JobRun withRequest(@Nullable RequestRef value) {
+        return new JobRun(
+                runId,
+                kind,
+                name,
+                status,
+                exitCode,
+                exitMessage,
+                startedAt,
+                endedAt,
+                readCount,
+                writeCount,
+                skipCount,
+                duplicateCount,
+                jobExecutionId,
+                batchIds,
+                batchCount,
+                restartable,
                 value);
     }
 

@@ -1,6 +1,6 @@
 # Danh mục endpoint API
 
-> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-32
+> Trạng thái: **Approved** · Cập nhật: 2026-10-05 · DOC-32
 >
 > Phụ thuộc: [DOC-31](api-guidelines.md) (quy ước chung), [DOC-33](sse-events.md), [DOC-26](../06-design/realtime-delivery.md), [DOC-27](../06-design/security.md), [DOC-14](../05-data/warehouse-model.md), [DOC-15](../05-data/ops-and-insight-model.md), [DOC-17](../05-data/db-roles-and-grants.md), [DOC-19](../06-design/batch-and-chunk-processing.md), [DOC-22](../06-design/dlq-and-replay.md), [DOC-23](../06-design/analytics.md), [DOC-30](../06-design/error-handling.md) §3, DR-39, DR-43, ADR-0013
 >
@@ -939,7 +939,8 @@ RETURNING *;
       "skipCount": 950,
       "jobExecutionId": 4127,
       "batchIds": ["0192f5a1-7c1e-7d3a-9b2c-4e5f6a7b8c9d"],
-      "restartable": true
+      "restartable": true,
+      "request": { "type": "replay", "id": "0192f5a0-1b2c-7d3e-8f4a-5b6c7d8e9f0a", "requestedBy": "user:operator" }
     },
     {
       "runId": "stream:gtfs-rt-vehicle-position:2026-09-29T21:18Z",
@@ -962,6 +963,7 @@ RETURNING *;
 
   - `restartable` (chỉ `BATCH_JOB`): `status ∈ {FAILED, STOPPED}` và job có "Restart được = Có" trong DOC-19 §2. Micro-batch không có `restartable` (UC-07 E1).
   - `batchIds` của `BATCH_JOB` tối đa 20 phần tử (xem đủ ở E-32). `STREAM` trả `batchCount` thay vì danh sách.
+  - `request` (chỉ `BATCH_JOB`, DR-109): `replay_request` hoặc `job_request` (không phải `STOP`) đã khởi động lần chạy, tra như E-32, kèm `requestedBy`; vắng mặt khi chạy theo lịch. Cột "Trigger" của Pipeline đọc nó.
 - **SQL** (`etl/job_runs.sql`):
 
 ```sql
@@ -978,7 +980,7 @@ ORDER BY started_at DESC, run_id DESC
 LIMIT :limit + 1
 ```
 
-  Điều kiện `started_at` được đẩy xuống cả hai nhánh `UNION ALL` của view: nhánh job dùng `batch_job_execution_start_idx`, nhánh stream dùng `etl_stream_batch_minute_idx` (DOC-15 §5). 24 giờ ≈ 1.440 phút × 4 listener ≈ 5.800 dòng stream.
+  Điều kiện `started_at` được đẩy xuống cả hai nhánh `UNION ALL` của view: nhánh job dùng `batch_job_execution_start_idx`, nhánh stream dùng `etl_stream_batch_minute_idx` (DOC-15 §5). 24 giờ ≈ 1.440 phút × 4 listener ≈ 5.800 dòng stream. `request` của mỗi batch job được tra sau `LIMIT` bằng `LEFT JOIN LATERAL` cùng câu với E-32 (`job_run_request.sql`), nên tối đa 100 lần tra theo trang trên hai bảng nhỏ.
 - **SSE:** `job.run` (kênh `jobs`).
 
 ### E-31 `GET /etl/jobs/summary` · `getJobSummary`
@@ -1068,7 +1070,7 @@ GROUP BY status;
       "executionContext": "{\"pti.replay.objectIndex\":112,\"pti.replay.lineOffset\":4000}"
     }
   ],
-  "request": { "type": "replay", "id": "0192f5a0-1b2c-7d3e-8f4a-5b6c7d8e9f0a" },
+  "request": { "type": "replay", "id": "0192f5a0-1b2c-7d3e-8f4a-5b6c7d8e9f0a", "requestedBy": "user:operator" },
   "links": {
     "trace": "http://localhost:3000/explore?…",
     "logs": "http://localhost:3000/explore?…"
@@ -1077,7 +1079,7 @@ GROUP BY status;
 ```
 
   - `executionContext` là chuỗi JSON đã cắt 2.500 ký tự (ExecutionContext dùng Jackson, DOC-19 §3.1). UI hiển thị nguyên văn.
-  - `request` cho biết lần chạy xuất phát từ `replay_request` hay `job_request` nào (tra theo `job_execution_id`), để UI nối tới E-52/E-34.
+  - `request` cho biết lần chạy xuất phát từ `replay_request` hay `job_request` nào (tra theo `job_execution_id`) và ai gửi (`requestedBy`, DR-109), để UI nối tới E-52/E-34.
   - `links`: URL Grafana Explore dựng từ `pti.api.links.grafana-url` (mặc định `http://localhost:3000`). `trace`: TraceQL `{ span.pti.batch_id = "<batchId đầu tiên>" }`; `logs`: LogQL `{service_name=~"etl.*"} | batch_id = "<…>"` trong khoảng `startedAt − 1m … endedAt + 1m` (DOC-28). Vắng mặt khi không có `batchId`.
 - **200** (`STREAM`): trường chung như E-30, thêm `batches` (≤ 120 phần tử) gồm `batchId`, `status`, `writeMode`, `instanceId`, `offsets`, `recordsRead/Written/Skipped/Duplicate`, `minEventTs`, `maxEventTs`, `startedAt`, `finishedAt`, `errorClass`, `errorMessage`, mỗi phần tử có `links`.
 - **SQL:** `ops_job_run_v` theo `run_id`; `ops.ops_job_step_v` và `ops.ops_job_execution_param_v` (view mới, DOC-15 §5) theo `job_execution_id`; `replay_request`/`job_request` theo `job_execution_id`; nhánh stream đọc `etl_stream_batch` theo `listener_id` và `date_bin(...) = :minute` (`etl_stream_batch_minute_idx`).

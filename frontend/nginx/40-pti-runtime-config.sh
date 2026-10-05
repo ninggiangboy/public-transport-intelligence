@@ -31,7 +31,8 @@ window.__PTI_ENV__ = {
   keycloakRealm: $(json "${PTI_KEYCLOAK_REALM:-pti}"),
   keycloakClientId: $(json "${PTI_KEYCLOAK_CLIENT_ID:-pti-web}"),
   mapStyle: $(json "$map_style"),
-  demoControl: $demo_control
+  demoControl: $demo_control,
+  grafanaUrl: $(json "${PTI_GRAFANA_URL:-}")
 };
 JS
 
@@ -59,4 +60,4 @@ export PTI_CSP PTI_CSP_SILENT PTI_API_UPSTREAM NGINX_LOCAL_RESOLVERS
 envsubst '${PTI_CSP} ${PTI_CSP_SILENT} ${PTI_API_UPSTREAM} ${NGINX_LOCAL_RESOLVERS}' \
   </etc/nginx/pti/default.conf.template >/etc/nginx/conf.d/default.conf
 
-echo "$0: env.js rendered (mapStyle=$map_style, demoControl=$demo_control, keycloak=${keycloak_url:-none})"
+echo "$0: env.js rendered (mapStyle=$map_style, demoControl=$demo_control, keycloak=${keycloak_url:-none}, grafana=${PTI_GRAFANA_URL:-none})"

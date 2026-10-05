@@ -1,13 +1,19 @@
 import { createFileRoute } from '@tanstack/react-router';
 
-import { PlaceholderPage } from '@/app/shell/PlaceholderPage';
-import { en } from '@/i18n/en';
+import { RequireRole } from '@/app/guards';
+import { PipelinePage } from '@/features/ops-jobs/components/PipelinePage';
+import { pipelineSearch } from '@/features/ops-jobs/search';
 
-// The shell routes this page already (P5-04); its screen replaces the placeholder later in phase 5.
+// Pipeline (DOC-36 screens/ops-console-jobs): the stages of the ETL, its throughput and every run, for viewers.
 export const Route = createFileRoute('/ops/jobs')({
+  validateSearch: pipelineSearch,
   component: Pipeline,
 });
 
 function Pipeline() {
-  return <PlaceholderPage title={en.nav.items.pipeline} group={en.nav.groups.operations} role="viewer" />;
+  return (
+    <RequireRole role="viewer">
+      <PipelinePage search={Route.useSearch()} />
+    </RequireRole>
+  );
 }

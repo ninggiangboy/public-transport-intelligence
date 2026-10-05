@@ -10,6 +10,7 @@ describe('readEnv (UX-07)', () => {
       keycloakClientId: 'pti-web',
       mapStyle: 'offline',
       demoControl: false,
+      grafanaUrl: '',
     });
   });
 
@@ -20,6 +21,7 @@ describe('readEnv (UX-07)', () => {
       keycloakClientId: 'pti-web',
       mapStyle: 'online',
       demoControl: true,
+      grafanaUrl: 'http://localhost:3000',
     };
     expect(readEnv(raw)).toEqual(raw);
   });

@@ -1272,6 +1272,7 @@ export interface components {
             name: string;
             /** Format: int64 */
             readCount: number;
+            request?: components["schemas"]["RequestResponse"];
             restartable?: boolean;
             runId: string;
             /** Format: int64 */
@@ -1492,6 +1493,7 @@ export interface components {
         };
         RequestResponse: {
             id: string;
+            requestedBy?: string;
             type: string;
         };
         ResolveBody: {

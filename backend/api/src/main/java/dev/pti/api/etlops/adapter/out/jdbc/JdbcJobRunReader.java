@@ -84,7 +84,7 @@ public final class JdbcJobRunReader implements JobRunReader {
                         .param("cursorTs", ResultSets.nullableTimestamp(cursorTs))
                         .param("cursorRunId", cursorRunId)
                         .param("limit", page.fetchSize())
-                        .query(JdbcJobRunReader::run)
+                        .query(JdbcJobRunReader::listed)
                         .list());
         return Page.of(page, found, run -> EtlRows.keys(Objects.requireNonNull(run.startedAt()), run.runId()));
     }
@@ -160,7 +160,8 @@ public final class JdbcJobRunReader implements JobRunReader {
                 REQUEST,
                 () -> jdbc.sql(REQUEST_SQL)
                         .param("jobExecutionId", jobExecutionId)
-                        .query((rs, row) -> new RequestRef(rs.getString("type"), rs.getObject("id", UUID.class)))
+                        .query((rs, row) -> new RequestRef(
+                                rs.getString("type"), rs.getObject("id", UUID.class), rs.getString("requested_by")))
                         .optional());
     }
 
@@ -247,6 +248,17 @@ public final class JdbcJobRunReader implements JobRunReader {
                 EtlRows.longValue(rs, "job_execution_id"),
                 EtlRows.uuidList(rs, "batch_ids"),
                 rs.getInt("batch_count"),
+                null,
                 null);
+    }
+
+    /** A row of job_runs.sql: the run and the request it came from. */
+    private static JobRun listed(ResultSet rs, int row) throws SQLException {
+        UUID requestId = rs.getObject("request_id", UUID.class);
+        return run(rs, row)
+                .withRequest(
+                        requestId == null
+                                ? null
+                                : new RequestRef(rs.getString("request_type"), requestId, rs.getString("request_by")));
     }
 }

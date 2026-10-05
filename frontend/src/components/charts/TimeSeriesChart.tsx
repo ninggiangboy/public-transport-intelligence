@@ -1,10 +1,11 @@
-import { useEffect, useId, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState, type PointerEvent } from 'react';
 
 import type { Chart } from '@/components/charts/echarts';
 import { resolveColor as resolve, useEcharts } from '@/components/charts/use-echarts';
 import { Button } from '@/components/ui/button';
 import { en } from '@/i18n/en';
 import { useReducedMotion } from '@/lib/use-reduced-motion';
+import { cn } from '@/lib/utils';
 
 export interface TimeSeries {
   name: string;
@@ -43,6 +44,25 @@ interface TimeSeriesChartProps {
   y2?: SecondaryAxis;
   /** The smallest gap between time-axis labels, e.g. one day for series by service date. */
   minIntervalMs?: number;
+  /** More lines of the tooltip at time `t`, under the series values: batches, p95… */
+  tooltipExtra?: (t: string) => { label: string; value: string }[];
+  /** Dragging across the plot picks a range (epoch ms); the picker of the screen is the keyboard way to do the same. */
+  onSelectRange?: (from: number, to: number) => void;
+  /** Over the plot, which keeps its axes: "No streaming activity in this period". */
+  emptyText?: string;
+}
+
+/** A drag shorter than this is a click. */
+const MIN_DRAG_PX = 8;
+
+const escapeHtml = (text: string) =>
+  text.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;');
+
+interface TooltipParam {
+  seriesName?: string;
+  marker?: unknown;
+  value?: unknown;
+  seriesIndex?: number;
 }
 
 /** Series with at most this many points mark each one. */
@@ -64,9 +84,14 @@ export function TimeSeriesChart({
   yRange,
   y2,
   minIntervalMs,
+  tooltipExtra,
+  onSelectRange,
+  emptyText,
 }: TimeSeriesChartProps) {
   const captionId = useId();
   const [asTable, setAsTable] = useState(false);
+  /** The dragged span in px from the left of the plot. */
+  const [drag, setDrag] = useState<{ start: number; end: number } | undefined>(undefined);
   const { container, chart, version } = useEcharts(!asTable);
   /** The instance that has been drawn once: only the first draw animates (DOC-35 §7). */
   const drawn = useRef<Chart | undefined>(undefined);
@@ -98,6 +123,29 @@ export function TimeSeriesChart({
           textStyle: { ...font, color: token('--popover-foreground') },
           valueFormatter: (value: unknown) => (typeof value === 'number' ? formatValue(value) : en.kv.empty),
           axisPointer: { label: { formatter: ({ value }: { value: unknown }) => formatTime(String(value)) } },
+          ...(tooltipExtra
+            ? {
+                formatter: (params: unknown) => {
+                  const list = (Array.isArray(params) ? params : [params]) as TooltipParam[];
+                  const first = list[0]?.value;
+                  const t = Array.isArray(first) ? String(first[0]) : '';
+                  const line = (marker: string, label: string, value: string) =>
+                    `<div style="display:flex;gap:12px;justify-content:space-between"><span>${marker}${escapeHtml(label)}</span><b>${escapeHtml(value)}</b></div>`;
+                  const values = list.map((p) => {
+                    const v = Array.isArray(p.value) ? (p.value[1] as unknown) : undefined;
+                    const s = series[p.seriesIndex ?? 0];
+                    const format = s?.secondary && y2 ? y2.formatValue : formatValue;
+                    return line(
+                      typeof p.marker === 'string' ? p.marker : '',
+                      p.seriesName ?? '',
+                      typeof v === 'number' ? format(v) : en.kv.empty,
+                    );
+                  });
+                  const extra = t ? tooltipExtra(t).map((row) => line('', row.label, row.value)) : [];
+                  return [`<div>${escapeHtml(t ? formatTime(t) : '')}</div>`, ...values, ...extra].join('');
+                },
+              }
+            : {}),
         },
         xAxis: {
           type: 'time',
@@ -150,6 +198,7 @@ export function TimeSeriesChart({
     yRange,
     y2,
     minIntervalMs,
+    tooltipExtra,
     reducedMotion,
     version,
     chart,
@@ -194,7 +243,54 @@ export function TimeSeriesChart({
           </table>
         </div>
       ) : (
-        <div ref={container} role="img" aria-label={caption} style={{ height }} className="w-full" />
+        <div
+          className={cn('relative', onSelectRange && 'cursor-crosshair select-none')}
+          {...(onSelectRange
+            ? {
+                onPointerDown: (event: PointerEvent<HTMLDivElement>) => {
+                  if (event.button !== 0) return;
+                  const x = event.clientX - event.currentTarget.getBoundingClientRect().left;
+                  event.currentTarget.setPointerCapture(event.pointerId);
+                  setDrag({ start: x, end: x });
+                },
+                onPointerMove: (event: PointerEvent<HTMLDivElement>) => {
+                  if (!drag) return;
+                  const x = event.clientX - event.currentTarget.getBoundingClientRect().left;
+                  setDrag({ start: drag.start, end: x });
+                },
+                onPointerUp: () => {
+                  const span = drag;
+                  setDrag(undefined);
+                  const instance = chart.current;
+                  if (!span || !instance || Math.abs(span.end - span.start) < MIN_DRAG_PX) return;
+                  const at = (x: number) => {
+                    const value: unknown = instance.convertFromPixel({ gridIndex: 0 }, [x, 0]);
+                    return Array.isArray(value) ? Number(value[0]) : Number.NaN;
+                  };
+                  const a = at(Math.min(span.start, span.end));
+                  const b = at(Math.max(span.start, span.end));
+                  if (Number.isFinite(a) && Number.isFinite(b) && a < b) onSelectRange(a, b);
+                },
+                onPointerCancel: () => {
+                  setDrag(undefined);
+                },
+              }
+            : {})}
+        >
+          <div ref={container} role="img" aria-label={caption} style={{ height }} className="w-full" />
+          {drag ? (
+            <span
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-y-3 border-x border-primary bg-primary/10"
+              style={{ left: Math.min(drag.start, drag.end), width: Math.abs(drag.end - drag.start) }}
+            />
+          ) : null}
+          {emptyText ? (
+            <p className="pointer-events-none absolute inset-0 flex items-center justify-center text-sm text-muted-foreground">
+              {emptyText}
+            </p>
+          ) : null}
+        </div>
       )}
       <div className="flex items-center justify-between gap-3">
         {series.length > 1 ? (

@@ -425,6 +425,8 @@ services:
       # Empty with the local PMTiles; the tile server's origin when PTI_MAP_STYLE=online (ADR-0021).
       PTI_MAP_TILE_ORIGINS: ${PTI_MAP_TILE_ORIGINS:-}
       PTI_EXTRA_PROFILES: ${PTI_EXTRA_PROFILES:-}
+      # The "Grafana" button of Pipeline (screens/ops-console-jobs §4); a link only, so not in the CSP.
+      PTI_GRAFANA_URL: http://localhost:${HOST_PORT_GRAFANA:-3000}
     volumes:
       - ../tiles:/usr/share/nginx/html/tiles:ro
     ports: ["127.0.0.1:${HOST_PORT_FRONTEND:-8080}:80"]
