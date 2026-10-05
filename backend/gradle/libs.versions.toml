@@ -12,14 +12,14 @@ shedlock = "7.10.1"
 resilience4j = "2.4.0"
 springdoc = "3.1.1"
 bucket4j = "8.20.0"
-json-schema-validator = "3.0.7"
+json-schema-validator = "3.0.8"
 json-canonicalization = "1.1"
 uuid-creator = "6.1.1"
 ulid-creator = "5.2.4"
 datasource-micrometer = "2.3.0"
 archunit = "1.5.1"
 mockwebserver = "5.5.0"
-typesafe-sdk = "0.2.0"
+typesafe-sdk = "0.3.0"
 
 [libraries]
 # BOMs
