@@ -8,12 +8,14 @@ interface PageHeaderProps {
   crumbs?: { label: string; href?: string }[];
   /** The page's one `h1`. */
   title: string;
+  /** Before the title, e.g. the route's badge on a route page. */
+  leading?: ReactNode;
   subtitle?: ReactNode;
   actions?: ReactNode;
 }
 
 /** Breadcrumb, h1 and a one-line subtitle on the left, page actions on the right (DOC-35 §5.9). */
-export function PageHeader({ crumbs, title, subtitle, actions }: PageHeaderProps) {
+export function PageHeader({ crumbs, title, leading, subtitle, actions }: PageHeaderProps) {
   return (
     <header className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
       <div className="min-w-0">
@@ -37,7 +39,14 @@ export function PageHeader({ crumbs, title, subtitle, actions }: PageHeaderProps
             </ol>
           </nav>
         ) : null}
-        <h1 className="text-page font-semibold tracking-title text-foreground">{title}</h1>
+        {leading ? (
+          <div className="flex items-center gap-3">
+            {leading}
+            <h1 className="min-w-0 text-page font-semibold tracking-title text-foreground">{title}</h1>
+          </div>
+        ) : (
+          <h1 className="text-page font-semibold tracking-title text-foreground">{title}</h1>
+        )}
         {subtitle ? <p className="mt-1 text-base text-muted-foreground">{subtitle}</p> : null}
       </div>
       {actions ? <div className="flex shrink-0 items-center gap-2">{actions}</div> : null}

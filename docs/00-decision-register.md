@@ -65,6 +65,7 @@ Tài liệu gốc mô tả tốt *cái gì* và *vì sao*, nhưng còn nhiều c
 | 2026-09-30 | Owner | **Clean Architecture cho backend Java:** code mới từ P4 (`analytics`, `api`, `triage-worker`) chia tầng `domain`/`application`/`adapter`/`config`, domain và application là Java thuần, ArchUnit fail build. Code P1–P3 giữ nguyên, bị freeze bằng ArchUnit, refactor ở Phase R sau M6 và trước P3-10 | DR-104 (mới), ADR-0032 (mới), DOC-49 (mới), master plan §4, §5 |
 | 2026-10-04 | Claude (Owner ủy quyền) | **Ngân sách JS ban đầu (P5):** `zod/mini`; bỏ `react-oidc-context`, tải `oidc-client-ts` bằng `import()`; tải lười controller SSE, Toaster, menu tài khoản, sheet mobile; asset nén sẵn `gzip -9` với `gzip_static`; `check-bundle` trong CI | DR-105 (mới), DR-46, ADR-0020, DOC-11, DOC-34 §7, §9 |
 | 2026-10-04 | Owner | **Ngân sách chunk `/map` (P5-06):** 360 KB thay vì 330 KB, vì riêng MapLibre 6 đã khoảng 297 KB ở gzip -9; panel chi tiết và chế độ danh sách tải lười, `MapCanvas` vẫn nằm trong chunk được đo | DR-107 (mới), DOC-34 §7 |
+| 2026-10-05 | Claude (Owner ủy quyền) | **Route scorecard (P5-08):** lọc mode trên client từ một lần gọi E-14 cho mọi tuyến; heatmap ECharts cần `VisualMapPiecewiseComponent` (ẩn); hồ sơ trạm là bảng có thanh thay vì biểu đồ cột; `DataTable` trên TanStack Table 9 | DR-108 (mới), DOC-35 §5.3, §5.7, §7, screens/route-scorecard §4, §5 |
 
 ---
 
@@ -630,6 +631,17 @@ Tài liệu gốc mô tả tốt *cái gì* và *vì sao*, nhưng còn nhiều c
 - **Quyết định:** Giữ MapLibre 6 (DR-82), nâng ngân sách chunk `/map` lên 360 KB. Không đưa `MapCanvas` vào `import()` riêng chỉ để qua ngân sách: làm vậy thì phép đo không còn tính MapLibre. Phần màn hình mà lần vẽ đầu không cần vẫn tải bằng `import()`: nội dung panel chi tiết (`PanelContent`) khi chọn đối tượng đầu tiên, `VehicleList` khi `view=list`.
 - **Hệ quả:** Còn khoảng 12 KB cho các việc sau ở màn bản đồ (P5-14, bản đồ nhỏ ở stop detail dùng chung `MapCanvas` nhưng nằm ở chunk của route đó). Đòn bẩy kế tiếp nếu cần: tải lười popover chọn tuyến và danh sách gián đoạn, kết quả của "Search the map".
 - **Ghi vào:** DOC-34 §7, `scripts/check-bundle.mjs`.
+
+### DR-108 · Chi tiết khi làm Route scorecard — **Chốt** (P5-08; sửa screens/route-scorecard §4, §5)
+- **Vấn đề:** (1) Bảng xếp hạng cần số tuyến của từng mode ("Bus {n}", "Rail {n}") cùng lúc với danh sách đã lọc; gọi E-14 với `routeType` thì mất số của mode kia. (2) `HeatmapChart` của ECharts 6 không vẽ nếu không có `visualMap` ("Heatmap must use with visualMap"). (3) Hồ sơ trạm theo thứ tự trạm không phải chuỗi thời gian, `TimeSeriesChart` chỉ có trục thời gian. (4) ADR-0020 chọn TanStack Table; bản hiện hành là 9.x, API khác 8.x (`useTable`, `tableFeatures`). (5) ECharts 6 bỏ qua `grid.containLabel` nếu không đăng ký `LegacyGridContainLabel`, và chỉ in cảnh báo.
+- **Quyết định:**
+  1. Một lần gọi E-14 cho mọi tuyến của khoảng (key `['insights', 'otp', { from, to }]`, dùng chung với Overview), lọc mode trên client theo `routeType` của E-01. `routeType` trên URL vẫn là danh sách loại GTFS (`3,11` bus, `0,1,2` rail). KPI, biểu đồ và CSV tính trên các tuyến đang lọc.
+  2. Đăng ký `VisualMapPiecewiseComponent`, `show: false`, các khoảng lấy từ `src/components/charts/heat.ts` (độ trễ: < 0, 0, 60, 120, 180, 300, ≥ 420 s; OTP ngược lại). Ô không có dữ liệu để trống. Chunk ECharts là 182,8 KB, trong ngân sách DR-106.
+  3. Tab "Stop profile" là một `DataTable` mỗi trạm một dòng: thanh trung bình có vạch p90 (cùng thang với drawer), số trung bình, p90 và `ConfidenceChip`. Trạm `NONE` không có thanh và số.
+  4. `DataTable` dùng `@tanstack/react-table` 9; định nghĩa cột (`columnHelper`, `DataTableColumn`) ở `src/components/data-table-columns.ts`. Virtualize (TanStack Virtual) thêm ở P5-10.
+  5. Bỏ `containLabel`; mặc định `outerBoundsMode: 'auto'` của ECharts 6 đã giữ nhãn trục trong khung.
+- **Hệ quả:** Bảng xếp hạng đổi mode không gọi lại API. Drawer tuyến lấy 5 episode bằng key có `limit`, tách khỏi danh sách phân trang của tab "Disruptions". `TimeSeriesChart` có thêm series dạng cột kèm trục phải (`y2`, tab Delays kiểu "Daily") và `minIntervalMs` cho trục theo ngày.
+- **Ghi vào:** DOC-35 §5.3, §5.7, §7, screens/route-scorecard §4, §5, `src/components/charts/echarts.ts`.
 
 ---
 

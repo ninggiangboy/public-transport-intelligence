@@ -80,6 +80,7 @@ function AlertItem({
   return (
     <li>
       <Link
+        from="/alerts"
         to="/alerts"
         search={(previous: AlertsSearch) => ({ ...previous, alert: alert.id })}
         aria-current={selected ? 'true' : undefined}

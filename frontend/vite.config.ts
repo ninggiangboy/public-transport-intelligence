@@ -62,6 +62,9 @@ export default defineConfig(({ mode }) => ({
     setupFiles: ['./src/test/setup.ts'],
     include: ['src/**/*.test.{ts,tsx}'],
     restoreMocks: true,
+    // Screen tests render the whole app through its routes (DOC-44 §10); the first one of a file also loads the
+    // lazily split route chunks, which takes several seconds when every file runs in parallel.
+    testTimeout: 15_000,
     coverage: {
       provider: 'v8',
       include: ['src/**/*.{ts,tsx}'],

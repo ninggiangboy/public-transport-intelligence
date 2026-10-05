@@ -87,3 +87,15 @@ export function useDocumentTitle(page: string | undefined) {
     document.title = page ? en.page.title(page) : en.app.name;
   }, [page]);
 }
+
+/** Saves `content` as a file named `fileName` through a temporary link (CSV exports, DOC-36 screens/route-scorecard). */
+export function downloadText(fileName: string, content: string, type = 'text/csv;charset=utf-8') {
+  const url = URL.createObjectURL(new Blob([content], { type }));
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = fileName;
+  document.body.append(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}

@@ -10,6 +10,8 @@ import { formatDuration } from '@/lib/format';
 import { useBusinessClock } from '@/lib/business-clock';
 import { formatDate, formatDateTime, fromLocalInput, presetSeconds, toLocalInput } from '@/lib/time';
 
+const DAY_MS = 86_400_000;
+
 export interface TimeRangeValue {
   /** A preset such as "1h"; when set, `from` and `to` are not. */
   window?: string;
@@ -25,11 +27,23 @@ interface TimeRangePickerProps {
   /** Mirrors the API limit of the endpoint (DOC-32). */
   maxRangeSeconds: number;
   granularity: 'minute' | 'date';
+  /** `date` only: the latest day that can be picked ("YYYY-MM-DD"), e.g. yesterday for nightly scores. */
+  maxDate?: string;
   onChange: (value: TimeRangeValue) => void;
 }
 
-/** Preset buttons plus a custom range in the agency's zone (DOC-35 §5.3). The range never exceeds `maxRangeSeconds`. */
-export function TimeRangePicker({ value, presets, maxRangeSeconds, granularity, onChange }: TimeRangePickerProps) {
+/**
+ * Preset buttons plus a custom range in the agency's zone (DOC-35 §5.3). The range never exceeds `maxRangeSeconds`.
+ * With `date` granularity both days are included, so one day is a valid range and 31 days fill 31 × 86,400 s.
+ */
+export function TimeRangePicker({
+  value,
+  presets,
+  maxRangeSeconds,
+  granularity,
+  maxDate,
+  onChange,
+}: TimeRangePickerProps) {
   const clock = useBusinessClock();
   const timeZone = clock.timezone;
   const inputType = granularity === 'date' ? 'date' : 'datetime-local';
@@ -46,6 +60,8 @@ export function TimeRangePicker({ value, presets, maxRangeSeconds, granularity, 
   };
   const toMs = (input: string) =>
     granularity === 'date' ? Date.parse(`${input}T00:00:00Z`) : fromLocalInput(input, timeZone);
+  /** The end of the range in ms: the end of the last day for `date`. */
+  const endMs = (input: string) => toMs(input) + (granularity === 'date' ? DAY_MS : 0);
 
   const openChange = (next: boolean) => {
     if (next) {
@@ -58,13 +74,15 @@ export function TimeRangePicker({ value, presets, maxRangeSeconds, granularity, 
 
   const apply = () => {
     const fromMs = from ? toMs(from) : Number.NaN;
-    const toMsValue = to ? toMs(to) : Number.NaN;
+    const toMsValue = to ? endMs(to) : Number.NaN;
     if (!from || !to) {
       setError(en.timeRange.required);
     } else if (Number.isNaN(fromMs) || Number.isNaN(toMsValue) || fromMs >= toMsValue) {
       setError(en.timeRange.invalid);
     } else if ((toMsValue - fromMs) / 1000 > maxRangeSeconds) {
       setError(en.timeRange.tooLong(formatDuration(maxRangeSeconds * 1000)));
+    } else if (granularity === 'date' && maxDate !== undefined && to > maxDate) {
+      setError(en.timeRange.latest(formatDate(`${maxDate}T12:00:00Z`, 'UTC')));
     } else {
       onChange(
         granularity === 'date'
@@ -86,15 +104,17 @@ export function TimeRangePicker({ value, presets, maxRangeSeconds, granularity, 
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <SegmentedControl
-        label={en.timeRange.label}
-        size="sm"
-        options={allowed.map((preset) => ({ value: preset, label: preset }))}
-        value={value.window ?? ''}
-        onChange={(window) => {
-          onChange({ window });
-        }}
-      />
+      {allowed.length > 0 ? (
+        <SegmentedControl
+          label={en.timeRange.label}
+          size="sm"
+          options={allowed.map((preset) => ({ value: preset, label: preset }))}
+          value={value.window ?? ''}
+          onChange={(window) => {
+            onChange({ window });
+          }}
+        />
+      ) : null}
       <Popover open={open} onOpenChange={openChange}>
         <PopoverTrigger asChild>
           <FilterChip active={custom} text={customText} />
@@ -108,6 +128,7 @@ export function TimeRangePicker({ value, presets, maxRangeSeconds, granularity, 
               <Input
                 id={fromId}
                 type={inputType}
+                max={granularity === 'date' ? maxDate : undefined}
                 value={from}
                 onChange={(event) => {
                   setFrom(event.target.value);
@@ -121,6 +142,7 @@ export function TimeRangePicker({ value, presets, maxRangeSeconds, granularity, 
               <Input
                 id={toId}
                 type={inputType}
+                max={granularity === 'date' ? maxDate : undefined}
                 value={to}
                 onChange={(event) => {
                   setTo(event.target.value);

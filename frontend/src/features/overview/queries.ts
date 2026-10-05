@@ -12,7 +12,7 @@ const MINUTE_MS = 60_000;
 
 export function otpQuery(range: DateRange) {
   return queryOptions({
-    queryKey: ['insights', 'otp', { from: range.from, to: range.to }] as const,
+    queryKey: keys.insights.otp({ from: range.from, to: range.to }),
     queryFn: () =>
       read(api.GET('/api/v1/insights/otp', { params: { query: { fromDate: range.from, toDate: range.to } } })),
     staleTime: FIVE_MINUTES,

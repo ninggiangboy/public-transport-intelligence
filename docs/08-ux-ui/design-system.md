@@ -1,6 +1,6 @@
 # Design system
 
-> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-35
+> Trạng thái: **Approved** · Cập nhật: 2026-10-05 · DOC-35
 > Phụ thuộc: DOC-34, DOC-15 (enum), DOC-23 §7.3 (mức tin cậy ETA), DOC-32, ADR-0020, ADR-0021, NFR-11, DR-88
 > Người dùng chính: P5-03 (token và component nền), P5-06…P5-14, người viết `screens/*`
 
@@ -362,6 +362,7 @@ interface SegmentedControlProps<V extends string> { options: { value: V; label: 
 - Bộ lọc hiển thị dạng **chip tròn** cao 28 px viền `--border-strong`; chip đang áp giá trị đổi thành nền `--foreground` chữ `--card` và ghi giá trị ("Severity: High"); chip "+ Sale point" viền đứt để thêm bộ lọc tùy chọn. `MultiSelectFilter` mở popover danh sách checkbox từ chip.
 - `DataTable`: tiêu đề cột trên dải `--surface` chữ 12 px/500 `--muted-foreground`; dòng hover nền `--surface`; dòng đang chọn nền `--primary-soft`; số canh phải.
 
+- Cài đặt (P5-08, DR-108): `src/components/DataTable.tsx` trên `@tanstack/react-table` 9; cột viết bằng `columnHelper<T>()` của `src/components/data-table-columns.ts`, `meta.align: 'right'` cho cột số. Có thêm `dimmed` (dữ liệu cũ khi đang tải lại, P-3). Virtualize, `hasNextPage`/`fetchNextPage`, `newRowIds` và phím `j`/`k` thêm ở P5-10.
 - `DataTable` render `<table>` thật. Khi virtualize, `<tbody>` chỉ chứa dòng đang thấy, có `aria-rowcount` (tổng đã tải, cộng 1 nếu còn trang sau) và `aria-rowindex` trên từng dòng.
 - Cột id dùng `IdText` (8 ký tự đầu, mono, nút copy khi hover hoặc focus).
 - Tiêu đề cột có thể sắp xếp chỉ khi API hỗ trợ; bảng keyset của DOC-32 không sắp xếp phía client.
@@ -452,12 +453,13 @@ interface HeatmapChartProps {
   cells: { row: number; col: number; value: number | null; count?: number }[];
   scale: 'delay' | 'otp';             // §3.5
   valueFormatter: (v: number) => string;
+  describe?: (cell) => string[];      // tooltip lines of a cell with data
   caption: string;
 }
 interface SparklineProps { points: number[]; label: string; tone?: Tone; area?: boolean }   // plain SVG, no ECharts
 ```
 
-Quy ước ở §7.
+Quy ước ở §7. Cài đặt (P5-08, DR-108): series của `TimeSeriesChart` có thể đặt `type` riêng và `secondary: true` để vẽ theo trục phải (`y2: { label, formatValue, range }`), ví dụ cột độ trễ cùng đường OTP; `minIntervalMs` đặt khoảng nhỏ nhất giữa nhãn trục thời gian (một ngày cho chuỗi theo ngày phục vụ). `HeatmapChart` tô ô qua `visualMap` piecewise ẩn với các khoảng của `src/components/charts/heat.ts`; ô không có dữ liệu để trống.
 
 ### 5.8 Bản đồ
 
@@ -535,7 +537,7 @@ Chú giải là panel nổi thu gọn được ở góc dưới trái (mở mặ
 
 ## 7. Quy ước biểu đồ
 
-- ECharts import theo module (`echarts/core` + `LineChart`, `BarChart`, `HeatmapChart`, `GridComponent`, `TooltipComponent`, `LegendComponent`, `VisualMapComponent`, `DataZoomComponent`, `CanvasRenderer`). Không import `echarts` đầy đủ.
+- ECharts import theo module (`echarts/core` + `LineChart`, `BarChart`, `HeatmapChart`, `GridComponent`, `TooltipComponent`, `LegendComponent`, `VisualMapComponent`, `DataZoomComponent`, `CanvasRenderer`). Không import `echarts` đầy đủ. `src/components/charts/echarts.ts` chỉ đăng ký module đang dùng: hiện là `LineChart`, `BarChart`, `HeatmapChart`, `GridComponent`, `TooltipComponent`, `VisualMapPiecewiseComponent`, `CanvasRenderer` (legend là HTML). Không đặt `grid.containLabel` (ECharts 6 bỏ qua nếu thiếu `LegacyGridContainLabel`; `outerBoundsMode: 'auto'` mặc định đã giữ nhãn trong khung, DR-108).
 - Hai theme `pti-light`, `pti-dark` đăng ký từ token: font Geist 12 px, nhãn trục `--muted-foreground`, lưới ngang `--border` nét đứt, không kẻ lưới dọc, tooltip nền `--popover` viền `--border` bóng `--shadow-md`.
 - Series chính vẽ đường 2 px có vùng tô bên dưới cùng màu độ mờ 8–12%; series so sánh ("Typical Sunday", "Expected range") là nét đứt `--muted-foreground` hoặc dải nền `--muted`. Ngưỡng ("Alert threshold", "On-time window") là đường đứt có nhãn nhỏ ở mép phải.
 - Trục thời gian: nhãn và tooltip định dạng bằng hàm của `src/lib/time.ts` theo múi giờ agency (ECharts không hỗ trợ múi giờ tùy ý). Tooltip ghi đủ ngày, giờ và viết tắt múi giờ.

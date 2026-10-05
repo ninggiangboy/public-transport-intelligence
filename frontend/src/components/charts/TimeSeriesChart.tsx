@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react';
 
 import type { Chart } from '@/components/charts/echarts';
+import { resolveColor as resolve, useEcharts } from '@/components/charts/use-echarts';
 import { Button } from '@/components/ui/button';
 import { en } from '@/i18n/en';
 import { useReducedMotion } from '@/lib/use-reduced-motion';
@@ -12,6 +13,17 @@ export interface TimeSeries {
   /** Comparison series ("Previous period"): dashed, no area (DOC-35 §7). */
   dashed?: boolean;
   points: { t: string; v: number | null }[];
+  /** Overrides the chart's `type` for this series: bars of delay under a line of on-time, say. */
+  type?: 'line' | 'bar';
+  /** Drawn against the second value axis (`y2`). */
+  secondary?: boolean;
+}
+
+/** A second value axis on the right, for series in another unit. */
+export interface SecondaryAxis {
+  label: string;
+  formatValue: (v: number) => string;
+  range?: { min?: number; max?: number };
 }
 
 interface TimeSeriesChartProps {
@@ -27,16 +39,14 @@ interface TimeSeriesChartProps {
   formatValue?: (v: number) => string;
   /** Fixes the value axis, e.g. 0–100 for percentages. */
   yRange?: { min?: number; max?: number };
+  /** For series marked `secondary`. */
+  y2?: SecondaryAxis;
+  /** The smallest gap between time-axis labels, e.g. one day for series by service date. */
+  minIntervalMs?: number;
 }
 
 /** Series with at most this many points mark each one. */
 const SYMBOLS_UP_TO = 40;
-
-/** Resolves `var(--token)` against the element, because the canvas cannot read CSS variables. */
-function resolve(element: HTMLElement, color: string): string {
-  const match = /^var\((--[\w-]+)\)$/.exec(color);
-  return match?.[1] ? getComputedStyle(element).getPropertyValue(match[1]).trim() || color : color;
-}
 
 /**
  * A time series on ECharts (DOC-35 §5.7, §7): 2 px lines with a light area, dashed comparison series, gaps for missing
@@ -52,49 +62,15 @@ export function TimeSeriesChart({
   formatTime,
   formatValue = (v) => String(v),
   yRange,
+  y2,
+  minIntervalMs,
 }: TimeSeriesChartProps) {
   const captionId = useId();
-  const container = useRef<HTMLDivElement>(null);
-  const chart = useRef<Chart | undefined>(undefined);
-  const drawn = useRef(false);
   const [asTable, setAsTable] = useState(false);
-  const [theme, setTheme] = useState(0);
+  const { container, chart, version } = useEcharts(!asTable);
+  /** The instance that has been drawn once: only the first draw animates (DOC-35 §7). */
+  const drawn = useRef<Chart | undefined>(undefined);
   const reducedMotion = useReducedMotion();
-
-  // The <html> class changes with the theme; the canvas then needs its colours again.
-  useEffect(() => {
-    const observer = new MutationObserver(() => {
-      setTheme((n) => n + 1);
-    });
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
-    return () => {
-      observer.disconnect();
-    };
-  }, []);
-
-  useEffect(() => {
-    const element = container.current;
-    if (!element || asTable) return;
-    let disposed = false;
-    let resize: ResizeObserver | undefined;
-    void import('@/components/charts/echarts').then(({ initChart }) => {
-      if (disposed) return;
-      const instance = initChart(element);
-      chart.current = instance;
-      resize = new ResizeObserver(() => {
-        instance.resize();
-      });
-      resize.observe(element);
-      setTheme((n) => n + 1);
-    });
-    return () => {
-      disposed = true;
-      resize?.disconnect();
-      chart.current?.dispose();
-      chart.current = undefined;
-      drawn.current = false;
-    };
-  }, [asTable]);
 
   useEffect(() => {
     const element = container.current;
@@ -102,20 +78,30 @@ export function TimeSeriesChart({
     if (!element || !instance) return;
     const token = (name: string) => resolve(element, `var(${name})`);
     const font = { fontFamily: getComputedStyle(element).fontFamily, fontSize: 12, color: token('--muted-foreground') };
+    const valueAxis = (name: string, format: (v: number) => string, min: number | undefined, max?: number) => ({
+      type: 'value',
+      name,
+      nameTextStyle: font,
+      min,
+      max,
+      axisLabel: { ...font, formatter: (value: number) => format(value) },
+      splitLine: { lineStyle: { color: token('--border'), type: 'dashed' } },
+    });
     instance.setOption(
       {
-        animation: !drawn.current && !reducedMotion,
-        grid: { left: 8, right: 12, top: 12, bottom: 8, containLabel: true },
+        animation: drawn.current !== instance && !reducedMotion,
+        grid: { left: 8, right: 12, top: 12, bottom: 8 },
         tooltip: {
           trigger: 'axis',
           backgroundColor: token('--popover'),
           borderColor: token('--border'),
           textStyle: { ...font, color: token('--popover-foreground') },
-          valueFormatter: (value: unknown) => (typeof value === 'number' ? formatValue(value) : '—'),
+          valueFormatter: (value: unknown) => (typeof value === 'number' ? formatValue(value) : en.kv.empty),
           axisPointer: { label: { formatter: ({ value }: { value: unknown }) => formatTime(String(value)) } },
         },
         xAxis: {
           type: 'time',
+          minInterval: minIntervalMs,
           axisLine: { lineStyle: { color: token('--border') } },
           axisTick: { show: false },
           axisLabel: {
@@ -125,35 +111,50 @@ export function TimeSeriesChart({
           },
           splitLine: { show: false },
         },
-        yAxis: {
-          type: 'value',
-          name: yLabel,
-          nameTextStyle: font,
-          min: yRange?.min ?? (type === 'bar' ? 0 : undefined),
-          max: yRange?.max,
-          axisLabel: { ...font, formatter: (value: number) => formatValue(value) },
-          splitLine: { lineStyle: { color: token('--border'), type: 'dashed' } },
-        },
+        yAxis: [
+          valueAxis(yLabel, formatValue, yRange?.min ?? (type === 'bar' ? 0 : undefined), yRange?.max),
+          ...(y2
+            ? [{ ...valueAxis(y2.label, y2.formatValue, y2.range?.min, y2.range?.max), splitLine: { show: false } }]
+            : []),
+        ],
         series: series.map((s) => {
           const color = resolve(element, s.color ?? (s.dashed ? 'var(--muted-foreground)' : 'var(--chart-1)'));
+          const seriesType = s.type ?? type;
+          const format = s.secondary && y2 ? y2.formatValue : formatValue;
           return {
             name: s.name,
-            type,
+            type: seriesType,
+            yAxisIndex: s.secondary && y2 ? 1 : 0,
             stack: stacked ? 'total' : undefined,
+            tooltip: { valueFormatter: (value: unknown) => (typeof value === 'number' ? format(value) : en.kv.empty) },
             // Sparse series (days of a period) show their points; a lone value would not draw a line at all.
             showSymbol: s.points.length <= SYMBOLS_UP_TO,
             connectNulls: false,
             data: s.points.map((p) => [p.t, p.v]),
             itemStyle: { color },
             lineStyle: { width: 2, type: s.dashed ? 'dashed' : 'solid', color },
-            areaStyle: type === 'line' && !s.dashed ? { color, opacity: 0.1 } : undefined,
+            areaStyle: seriesType === 'line' && !s.dashed && !s.secondary ? { color, opacity: 0.1 } : undefined,
           };
         }),
       },
       { notMerge: true },
     );
-    drawn.current = true;
-  }, [series, yLabel, stacked, type, formatTime, formatValue, yRange, reducedMotion, theme]);
+    drawn.current = instance;
+  }, [
+    series,
+    yLabel,
+    stacked,
+    type,
+    formatTime,
+    formatValue,
+    yRange,
+    y2,
+    minIntervalMs,
+    reducedMotion,
+    version,
+    chart,
+    container,
+  ]);
 
   const times = [...new Set(series.flatMap((s) => s.points.map((p) => p.t)))].sort();
   return (
@@ -180,9 +181,10 @@ export function TimeSeriesChart({
                   <td className="py-1 pr-3">{formatTime(t)}</td>
                   {series.map((s) => {
                     const value = s.points.find((p) => p.t === t)?.v;
+                    const format = s.secondary && y2 ? y2.formatValue : formatValue;
                     return (
                       <td key={s.name} className="py-1 pr-3 text-right">
-                        {value === null || value === undefined ? en.kv.empty : formatValue(value)}
+                        {value === null || value === undefined ? en.kv.empty : format(value)}
                       </td>
                     );
                   })}
@@ -199,14 +201,22 @@ export function TimeSeriesChart({
           <ul className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
             {series.map((s) => (
               <li key={s.name} className="inline-flex items-center gap-1.5">
-                <span
-                  aria-hidden="true"
-                  className="w-3.5 border-t-2"
-                  style={{
-                    borderColor: s.color ?? (s.dashed ? 'var(--muted-foreground)' : 'var(--chart-1)'),
-                    borderStyle: s.dashed ? 'dashed' : 'solid',
-                  }}
-                />
+                {(s.type ?? type) === 'bar' ? (
+                  <span
+                    aria-hidden="true"
+                    className="size-2.5 rounded-[2px]"
+                    style={{ backgroundColor: s.color ?? 'var(--chart-1)' }}
+                  />
+                ) : (
+                  <span
+                    aria-hidden="true"
+                    className="w-3.5 border-t-2"
+                    style={{
+                      borderColor: s.color ?? (s.dashed ? 'var(--muted-foreground)' : 'var(--chart-1)'),
+                      borderStyle: s.dashed ? 'dashed' : 'solid',
+                    }}
+                  />
+                )}
                 {s.name}
               </li>
             ))}

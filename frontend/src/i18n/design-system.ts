@@ -223,6 +223,7 @@ export const designSystemCopy = {
     },
     tooLong: (limit: string) => `The range can be at most ${limit}.`,
     invalid: 'The start must be before the end.',
+    latest: (date: string) => `The range can end on ${date} at the latest.`,
     required: 'Enter both times.',
   },
 
@@ -410,7 +411,13 @@ export const designSystemCopy = {
 
   sparkline: { empty: 'No data' },
 
-  chart: { time: 'Time' },
+  chart: {
+    time: 'Time',
+    /** The two ends of the heat legend, low to high (DOC-35 §7). */
+    heatLow: { delay: 'Less', otp: 'More on time' },
+    heatHigh: { delay: 'More late', otp: 'Less on time' },
+    noData: 'No data',
+  },
 
   lineStrip: {
     segment: (from: string, to: string, delay: string) => `${from} to ${to}: ${delay}`,

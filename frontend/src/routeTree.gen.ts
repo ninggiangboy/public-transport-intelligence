@@ -23,6 +23,7 @@ import { Route as OpsJobsRouteImport } from './routes/ops/jobs'
 import { Route as OpsReplayRouteImport } from './routes/ops/replay'
 import { Route as OpsTicketingRouteImport } from './routes/ops/ticketing'
 import { Route as ScorecardIndexRouteImport } from './routes/scorecard/index'
+import { Route as ScorecardRouteIdRouteImport } from './routes/scorecard/$routeId'
 import { Route as StopsIndexRouteImport } from './routes/stops/index'
 import { Route as StopsStopIdRouteImport } from './routes/stops/$stopId'
 
@@ -96,6 +97,11 @@ const ScorecardIndexRoute = ScorecardIndexRouteImport.update({
   path: '/scorecard/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ScorecardRouteIdRoute = ScorecardRouteIdRouteImport.update({
+  id: '/scorecard/$routeId',
+  path: '/scorecard/$routeId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const StopsIndexRoute = StopsIndexRouteImport.update({
   id: '/stops/',
   path: '/stops/',
@@ -120,6 +126,7 @@ export interface FileRoutesByFullPath {
   '/ops/jobs': typeof OpsJobsRoute
   '/ops/replay': typeof OpsReplayRoute
   '/ops/ticketing': typeof OpsTicketingRoute
+  '/scorecard/$routeId': typeof ScorecardRouteIdRoute
   '/stops/$stopId': typeof StopsStopIdRoute
   '/ops/': typeof OpsIndexRoute
   '/scorecard/': typeof ScorecardIndexRoute
@@ -138,6 +145,7 @@ export interface FileRoutesByTo {
   '/ops/jobs': typeof OpsJobsRoute
   '/ops/replay': typeof OpsReplayRoute
   '/ops/ticketing': typeof OpsTicketingRoute
+  '/scorecard/$routeId': typeof ScorecardRouteIdRoute
   '/stops/$stopId': typeof StopsStopIdRoute
   '/ops': typeof OpsIndexRoute
   '/scorecard': typeof ScorecardIndexRoute
@@ -157,6 +165,7 @@ export interface FileRoutesById {
   '/ops/jobs': typeof OpsJobsRoute
   '/ops/replay': typeof OpsReplayRoute
   '/ops/ticketing': typeof OpsTicketingRoute
+  '/scorecard/$routeId': typeof ScorecardRouteIdRoute
   '/stops/$stopId': typeof StopsStopIdRoute
   '/ops/': typeof OpsIndexRoute
   '/scorecard/': typeof ScorecardIndexRoute
@@ -177,6 +186,7 @@ export interface FileRouteTypes {
     | '/ops/jobs'
     | '/ops/replay'
     | '/ops/ticketing'
+    | '/scorecard/$routeId'
     | '/stops/$stopId'
     | '/ops/'
     | '/scorecard/'
@@ -195,6 +205,7 @@ export interface FileRouteTypes {
     | '/ops/jobs'
     | '/ops/replay'
     | '/ops/ticketing'
+    | '/scorecard/$routeId'
     | '/stops/$stopId'
     | '/ops'
     | '/scorecard'
@@ -213,6 +224,7 @@ export interface FileRouteTypes {
     | '/ops/jobs'
     | '/ops/replay'
     | '/ops/ticketing'
+    | '/scorecard/$routeId'
     | '/stops/$stopId'
     | '/ops/'
     | '/scorecard/'
@@ -232,6 +244,7 @@ export interface RootRouteChildren {
   OpsJobsRoute: typeof OpsJobsRoute
   OpsReplayRoute: typeof OpsReplayRoute
   OpsTicketingRoute: typeof OpsTicketingRoute
+  ScorecardRouteIdRoute: typeof ScorecardRouteIdRoute
   StopsStopIdRoute: typeof StopsStopIdRoute
   OpsIndexRoute: typeof OpsIndexRoute
   ScorecardIndexRoute: typeof ScorecardIndexRoute
@@ -338,6 +351,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ScorecardIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/scorecard/$routeId': {
+      id: '/scorecard/$routeId'
+      path: '/scorecard/$routeId'
+      fullPath: '/scorecard/$routeId'
+      preLoaderRoute: typeof ScorecardRouteIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/stops/': {
       id: '/stops/'
       path: '/stops'
@@ -368,6 +388,7 @@ const rootRouteChildren: RootRouteChildren = {
   OpsJobsRoute: OpsJobsRoute,
   OpsReplayRoute: OpsReplayRoute,
   OpsTicketingRoute: OpsTicketingRoute,
+  ScorecardRouteIdRoute: ScorecardRouteIdRoute,
   StopsStopIdRoute: StopsStopIdRoute,
   OpsIndexRoute: OpsIndexRoute,
   ScorecardIndexRoute: ScorecardIndexRoute,

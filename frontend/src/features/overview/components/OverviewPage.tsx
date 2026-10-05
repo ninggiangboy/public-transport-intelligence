@@ -21,9 +21,6 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { NetworkPulse } from '@/features/overview/components/NetworkPulse';
 import {
-  networkOtp,
-  otpByDay,
-  otpTone,
   PERIODS,
   periodRanges,
   pulseRoutes,
@@ -47,6 +44,7 @@ import { alertVisual, summaryLine } from '@/lib/alert-display';
 import { useDocumentTitle } from '@/lib/browser';
 import { useBusinessClock } from '@/lib/business-clock';
 import { formatCount, formatDuration, formatPercent } from '@/lib/format';
+import { networkOtp, otpByDay, otpTone } from '@/lib/otp';
 import { formatDate, formatServiceDate, formatTime, zonedDate } from '@/lib/time';
 import { useRelative } from '@/lib/use-now';
 import { cn } from '@/lib/utils';
@@ -61,6 +59,7 @@ const PULSE_EVERY_MS = 5_000;
 /** A new alert in "Needs attention" stays tinted this long (§6). */
 const HIGHLIGHT_MS = 2_000;
 const ATTENTION_ROWS = 4;
+const DAY_MS = 86_400_000;
 const CURRENT_SERIES_COLOR = 'var(--chart-1)';
 
 /** Where each block leads (screens/overview §4). */
@@ -513,6 +512,7 @@ export function OverviewPage({ period }: { period: Period }) {
                 otpNow === undefined ? en.kv.empty : formatPercent(otpNow / 100),
               )}
               formatTime={(t) => formatServiceDate(t.slice(0, 10))}
+              minIntervalMs={DAY_MS}
               formatValue={(v) => formatPercent(v / 100)}
             />
           )}

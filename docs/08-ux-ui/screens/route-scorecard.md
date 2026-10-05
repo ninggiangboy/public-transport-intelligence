@@ -1,6 +1,6 @@
 # Màn hình: Route scorecard và chi tiết tuyến
 
-> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-36
+> Trạng thái: **Approved** · Cập nhật: 2026-10-05 · DOC-36
 > Phụ thuộc: DR-88, DOC-34, DOC-35 §5.7, §7, DOC-37, DOC-32 (E-01, E-03, E-04, E-12, E-13, E-14), DOC-23 §6–8
 > Người dùng chính: P5-08
 
@@ -89,7 +89,7 @@ Chi tiết tuyến `/scorecard/$routeId`, tab "Delays" (cùng ngôn ngữ thị 
 | Ghi chú ngưỡng | dòng phụ của `PageHeader` | "On time means no more than {early} early or {late} late · data through {asOf}" từ `earlyToleranceSeconds`/`lateToleranceSeconds` và `X-Data-As-Of`; có `mixedTolerances` thì "The on-time window changed during this period." + tooltip `help.otpMixed` |
 | KPI | `KpiCard` × 4 | "System on-time" (sparkline OTP toàn mạng theo ngày), "Early", "Late", "Trips observed". Delta so với kỳ trước cùng độ dài ("vs previous week" / "vs previous month"); OTP lên là tốt, Early/Late xuống là tốt |
 | OTP theo ngày | `TimeSeriesChart` | Một đường cho mỗi nhóm mode có dữ liệu (theo `routeType`: "Bus" = 3, 11; "Rail" = 0, 1, 2), OTP có trọng số theo `observationCount` của `daily` |
-| Lọc mode | `SegmentedControl` "All routes {n}", "Bus {n}", "Rail {n}" | Ghi `routeType` lên URL; số là số tuyến có dữ liệu. Chỉ hiện nhóm có tuyến |
+| Lọc mode | `SegmentedControl` "All routes {n}", "Bus {n}", "Rail {n}" | Ghi `routeType` lên URL; số là số tuyến có dữ liệu. Chỉ hiện nhóm có tuyến. Lọc trên client theo `routeType` của E-01, từ cùng một lần gọi E-14 (DR-108) |
 | Bảng xếp hạng | `DataTable` (không virtual) | Cột: "#", "Route" (`RouteBadge` + `longName`), "On time" (số + thanh ngang tông < 70% `danger`, < 80% `warning`, còn lại `success`), "Trend" (`Sparkline` từ `daily`), "Early", "Late", "Observations", "Trips". Bấm dòng → drawer (`route=<id>`) |
 | Drawer tóm tắt | `DetailDrawer` 520 px | Đầu: `RouteBadge size="xl"`, `longName`, "{range} · {trips} trips observed". Ba số "On time", "Late", "Early". "Typical delay along the route": E-04 theo chiều (chọn được), thứ và giờ hiện tại; mỗi trạm một thanh (trung bình) có vạch p90, trạm `NONE` để trống. "Disruptions in this period": tối đa 5 episode (E-12), mỗi dòng "{start} – {end \| ongoing}", chiều, đỉnh trễ, nguyên nhân, `SeverityBadge` hoặc "Ended". Chân: "See route live" (`/map?route=<id>`), "Open route details" (`/scorecard/<id>` giữ `from`, `to`) |
 | Tab (trang chi tiết) | shadcn `Tabs` | Đổi tab là `push` |
@@ -97,7 +97,7 @@ Chi tiết tuyến `/scorecard/$routeId`, tab "Delays" (cùng ngôn ngữ thị 
 | Biểu đồ theo giờ | `TimeSeriesChart` (avg, median, p90) | `bucket=hour` |
 | Biểu đồ theo ngày | `TimeSeriesChart type="bar"` (avg) + đường OTP | `bucket=day` |
 | OTP theo ngày (chi tiết) | `TimeSeriesChart` | Từ `daily` của E-14 |
-| Hồ sơ trạm | `TimeSeriesChart type="bar"` theo thứ tự trạm + bảng | Mỗi trạm: trung bình, p90, `ConfidenceChip level sampleCount`; trạm `NONE` để trống |
+| Hồ sơ trạm | `DataTable` theo thứ tự trạm, mỗi dòng một thanh trung bình có vạch p90 (DR-108) | Mỗi trạm: trung bình, p90, `ConfidenceChip level sampleCount`; trạm `NONE` không có thanh và số |
 | Danh sách gián đoạn | `DataTable` | Cột: "Started", "Ended", "Direction", "Peak delay", "Peak z", "Cause", "Outcome"; dòng mở drawer |
 | Drawer gián đoạn | `DetailDrawer` | E-13 (viewer view) |
 
@@ -106,10 +106,10 @@ Chi tiết tuyến `/scorecard/$routeId`, tab "Delays" (cùng ngôn ngữ thị 
 | Dữ liệu | Endpoint | Query key | Refetch |
 | --- | --- | --- | --- |
 | Tuyến | E-01 | `['routes']` | như Live map |
-| Xếp hạng OTP | E-14 `?fromDate&toDate&routeType` | `['insights', 'otp', { from, to, routeTypes }]` | 5 phút (dữ liệu tổng hợp theo ngày) |
-| Kỳ trước (delta KPI) | E-14 với khoảng liền trước cùng độ dài | `['insights', 'otp', { from, to, routeTypes }]` | 5 phút |
+| Xếp hạng OTP | E-14 `?fromDate&toDate` (mọi tuyến; mode lọc trên client, DR-108) | `['insights', 'otp', { from, to }]` (chung với Overview) | 5 phút (dữ liệu tổng hợp theo ngày) |
+| Kỳ trước (delta KPI) | E-14 với khoảng liền trước cùng độ dài | `['insights', 'otp', { from, to }]` | 5 phút |
 | Drawer: hồ sơ trạm | E-04 `?directionId` (thứ, giờ mặc định) | `['routes', id, 'delay-profile', params]` | Khi mở drawer |
-| Drawer: gián đoạn | E-12 `?routeId&from&to&limit=5` | `['insights', 'disruption', { routeIds: [id], from, to }]` | Khi mở drawer |
+| Drawer: gián đoạn | E-12 `?routeId&from&to&limit=5` | `['insights', 'disruption', { routeIds: [id], from, to, limit: 5 }]` (khác key của danh sách phân trang) | Khi mở drawer |
 | OTP một tuyến | E-14 `?routeId=` | `['insights', 'otp', { from, to, routeIds: [id] }]` | 5 phút |
 | Độ trễ | E-03 `?from&to&bucket&directionId` | `['routes', id, 'delays', params]` | 5 phút |
 | Hồ sơ trạm | E-02 (tên chiều) + E-04 `?directionId&dayOfWeek&hourOfDay` | `['routes', id, 'delay-profile', params]` | 5 phút |

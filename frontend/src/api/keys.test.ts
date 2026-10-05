@@ -16,6 +16,17 @@ describe('query keys (DOC-26 §9)', () => {
     expect(keys.insights.dispatch()[1]).toBe('dispatch');
     expect(keys.insights.disruption()[1]).toBe('disruption');
     expect(keys.stops.detail('51420')).toEqual(['stops', '51420', 'detail']);
+    expect(keys.insights.otp({ to: '2026-09-28', from: '2026-09-22' })).toEqual([
+      'insights',
+      'otp',
+      { from: '2026-09-22', to: '2026-09-28' },
+    ]);
+    expect(keys.routes.delays('18', { bucket: 'day', directionId: undefined })).toEqual([
+      'routes',
+      '18',
+      'delays',
+      { bucket: 'day' },
+    ]);
   });
 
   it('gives equal filters one key', () => {

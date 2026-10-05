@@ -42,6 +42,8 @@ export const keys = {
     /** E-04: historical delay per stop of one direction, for a day of week and hour. */
     delayProfile: (routeId: string, params: Filters) =>
       ['routes', routeId, 'delay-profile', normalizeFilters(params)] as const,
+    /** E-03: observed delay of one route by hour, day or hour of the week. */
+    delays: (routeId: string, params: Filters) => ['routes', routeId, 'delays', normalizeFilters(params)] as const,
   },
   vehicles: {
     all: () => ['vehicles'] as const,
@@ -56,6 +58,8 @@ export const keys = {
     badge: () => ['alerts', 'badge'] as const,
   },
   insights: {
+    /** E-14: OTP by route over service dates `from`…`to`, optionally for some `routeIds`. */
+    otp: (filters: Filters) => ['insights', 'otp', normalizeFilters(filters)] as const,
     bunching: (filters?: Filters) => ['insights', 'bunching', normalizeFilters(filters)] as const,
     dispatch: (filters?: Filters) => ['insights', 'dispatch', normalizeFilters(filters)] as const,
     disruption: (filters?: Filters) => ['insights', 'disruption', normalizeFilters(filters)] as const,

@@ -20,9 +20,14 @@ if (!('scrollIntoView' in Element.prototype)) {
   Object.defineProperty(Element.prototype, 'scrollIntoView', { value: () => undefined, configurable: true });
 }
 
-// jsdom has no canvas: charts get an inert ECharts that records nothing (their table view is tested instead).
+// jsdom has no canvas: charts get an inert ECharts that records nothing (their table view is tested instead). Vitest
+// sometimes hands a later dynamic import of the chart module the real file, so ECharts itself is stubbed as well.
 vi.mock('@/components/charts/echarts', () => ({
   initChart: () => ({ setOption: () => undefined, resize: () => undefined, dispose: () => undefined }),
+}));
+vi.mock('echarts/core', () => ({
+  init: () => ({ setOption: () => undefined, resize: () => undefined, dispose: () => undefined }),
+  use: () => undefined,
 }));
 
 // jsdom has no WebGL either: the live map draws on a double that records its layers (src/test/map.tsx).

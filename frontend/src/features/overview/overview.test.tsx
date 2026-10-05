@@ -5,16 +5,10 @@ import { beforeEach, describe, expect, it } from 'vitest';
 
 import { getFreshness, getJobSummary, getOtpScorecard, listLiveVehicles } from '@/api/generated/examples';
 import type { ResponseBody } from '@/api/types';
-import {
-  networkOtp,
-  otpByDay,
-  periodRanges,
-  pulseRoutes,
-  ratesBySource,
-  routesToWatch,
-} from '@/features/overview/model';
+import { periodRanges, pulseRoutes, ratesBySource, routesToWatch } from '@/features/overview/model';
 import { en } from '@/i18n/en';
 import { overviewCopy } from '@/i18n/overview';
+import { networkOtp, otpByDay } from '@/lib/otp';
 import { mswPath, respond } from '@/test/handlers';
 import { renderRoute } from '@/test/render';
 import { server } from '@/test/server';

@@ -1,14 +1,20 @@
 import { createFileRoute } from '@tanstack/react-router';
 
-import { PlaceholderPage } from '@/app/shell/PlaceholderPage';
-import { en } from '@/i18n/en';
+import { RequireRole } from '@/app/guards';
+import { ScorecardPage } from '@/features/scorecard/components/ScorecardPage';
+import { scorecardSearch } from '@/features/scorecard/search';
 
-// The shell routes this page already (P5-04); its screen replaces the placeholder later in phase 5.
+// The route scorecard (DOC-36 screens/route-scorecard): daily aggregates, so no StaleBanner (DOC-37 §2.4).
 export const Route = createFileRoute('/scorecard/')({
+  validateSearch: scorecardSearch,
   staticData: { hideStaleBanner: true },
   component: Scorecard,
 });
 
 function Scorecard() {
-  return <PlaceholderPage title={en.nav.items.scorecard} group={en.nav.groups.analytics} role="viewer" />;
+  return (
+    <RequireRole role="viewer">
+      <ScorecardPage search={Route.useSearch()} />
+    </RequireRole>
+  );
 }
