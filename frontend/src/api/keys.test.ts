@@ -12,6 +12,8 @@ describe('query keys (DOC-26 §9)', () => {
     expect(keys.etl.dlq.list({ status: ['NEW'] })).toEqual(['etl', 'dlq', 'list', { status: ['NEW'] }]);
     expect(keys.etl.dlq.summary()).toEqual(['etl', 'dlq', 'summary']);
     expect(keys.etl.dlq.detail('d1')).toEqual(['etl', 'dlq', 'detail', 'd1']);
+    expect(keys.etl.dlq.actions({ actorType: 'auto' })).toEqual(['etl', 'dlq', 'actions', { actorType: 'auto' }]);
+    expect(keys.etl.replay('r1')).toEqual(['etl', 'replay', 'r1']);
     expect(keys.insights.bunching()).toEqual(['insights', 'bunching', {}]);
     expect(keys.insights.dispatch()[1]).toBe('dispatch');
     expect(keys.insights.disruption()[1]).toBe('disruption');

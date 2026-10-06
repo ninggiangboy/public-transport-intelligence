@@ -15,7 +15,10 @@ import { Duration } from '@/components/Duration';
 import { EmptyState } from '@/components/EmptyState';
 import { ErrorState } from '@/components/ErrorState';
 import { FreshnessIndicator } from '@/components/FreshnessIndicator';
+import { DataTable } from '@/components/DataTable';
+import { columnHelper } from '@/components/data-table-columns';
 import { IdText } from '@/components/IdText';
+import { JsonEditor } from '@/components/JsonEditor';
 import { JsonViewer } from '@/components/JsonViewer';
 import { KeyValueList } from '@/components/KeyValueList';
 import { KpiCard } from '@/components/KpiCard';
@@ -48,6 +51,7 @@ import {
   ROUTES,
   SAMPLE_JSON,
   SAMPLE_JSON_EDITED,
+  SAMPLE_ROWS,
   STATUS_DOMAINS,
   STOPS,
   TONES,
@@ -496,6 +500,17 @@ function ActionSpecimens() {
   );
 }
 
+const rowColumn = columnHelper<(typeof SAMPLE_ROWS)[number]>();
+const tableColumns = [
+  rowColumn.accessor('id', { header: sample.table.id, cell: (info) => <IdText id={info.getValue()} copy={false} /> }),
+  rowColumn.accessor('rule', {
+    header: sample.table.rule,
+    cell: (info) => <span className="font-mono">{info.getValue()}</span>,
+  }),
+  rowColumn.accessor('message', { header: sample.table.message, meta: { className: 'w-full max-w-0 truncate' } }),
+];
+const SAMPLE_EDITOR_TEXT = JSON.stringify(SAMPLE_JSON, null, 2);
+
 function DataSpecimens() {
   return (
     <>
@@ -554,10 +569,33 @@ function DataSpecimens() {
         </Row>
       </Specimen>
 
+      <Specimen name={NAMES.table}>
+        <div className="overflow-hidden rounded-lg border border-border bg-card">
+          <DataTable
+            columns={tableColumns}
+            data={SAMPLE_ROWS}
+            getRowId={(row) => row.id}
+            caption={sample.table.caption}
+            density="compact"
+            virtual={{ height: 240, rowHeight: 37 }}
+          />
+        </div>
+      </Specimen>
+
       <Specimen name={NAMES.json}>
         <JsonViewer value={SAMPLE_JSON} maxHeight={220} />
         <div className="mt-3">
           <JsonViewer value={SAMPLE_JSON_EDITED} compareTo={SAMPLE_JSON} maxHeight={260} />
+        </div>
+        <div className="mt-3">
+          <JsonEditor
+            value={SAMPLE_EDITOR_TEXT}
+            onChange={() => undefined}
+            errors={[{ pointer: '/vehicle/id', message: sample.table.error }]}
+            ariaLabel={sample.editorLabel}
+            fileName="vehicle_position.json"
+            height={200}
+          />
         </div>
       </Specimen>
     </>

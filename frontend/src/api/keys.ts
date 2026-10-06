@@ -98,7 +98,11 @@ export const keys = {
       listAll: () => ['etl', 'dlq', 'list'] as const,
       summary: () => ['etl', 'dlq', 'summary'] as const,
       detail: (id: string) => ['etl', 'dlq', 'detail', id] as const,
+      /** E-48: the action log; under `dlq`, so a dead-letter event refreshes it. */
+      actions: (filters?: Filters) => ['etl', 'dlq', 'actions', normalizeFilters(filters)] as const,
     },
+    /** E-52: one replay request, polled while it runs. */
+    replay: (id: string) => ['etl', 'replay', id] as const,
     flags: () => ['etl', 'flags'] as const,
     replays: (filters?: Filters) => ['etl', 'replays', normalizeFilters(filters)] as const,
   },

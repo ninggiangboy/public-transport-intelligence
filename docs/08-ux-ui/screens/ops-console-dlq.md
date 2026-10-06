@@ -1,6 +1,6 @@
 # Màn hình: Ops console — Dead letters
 
-> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-36
+> Trạng thái: **Approved** · Cập nhật: 2026-10-06 · DOC-36
 > Phụ thuộc: DR-88, DOC-34, DOC-35 §5.3, §5.6, DOC-37 §2.3, §2.7, §3, DOC-32 (E-40…E-48, E-52), DOC-33 §5.8, DOC-22 §1–3, DOC-15 §4.3, DOC-31 §8
 > Người dùng chính: P5-10
 
@@ -93,7 +93,7 @@ Dialog discard:
 | Danh sách | `SplitView` cột trái 400 px; `DataTable virtual` một cột ghép (giữ virtualization và `aria-rowcount`, DS-06) + `useInfiniteQuery` trang 200 | Mỗi mục: checkbox (operator), mã lỗi (`ruleId` hoặc tên ngắn của `errorClass`, mono) + thời điểm (có giây), "{source} · {shortId}", `errorMessage` 1 dòng (tooltip đầy đủ), chip AI (category + `ConfidenceChip`, hoặc "Unclassified"), icon `PencilLine` khi `hasEditedPayload`, `StatusPill` nhỏ khi trạng thái khác nhóm mặc định của tab |
 | Đếm | chữ phụ cuối danh sách | "{loaded} loaded" và "+" khi còn trang |
 | Thanh hàng loạt | thanh dính đáy cột danh sách khi có mục chọn | "{n} selected"; tab Review: "Replay selected" (chỉ mục `NEW`/`MANUAL`), "Discard selected"; tab Confirm: "Confirm replay" |
-| Tab Action log | `DataTable virtual` toàn chiều rộng (không có khung chi tiết cố định; bấm dòng mở chi tiết dead letter) | Cột: "Time", "Action", "Actor" (`auto` → "Auto-triage", `system:*` → tên dịch vụ, `user:*` → tên), "Confidence", "Dead letter" (`IdText`), "Source", "Current status", "Details" (tóm tắt: `reason`, `note`, `changed_paths`, `replay_request_id`) |
+| Tab Action log | `DataTable virtual` toàn chiều rộng (không có khung chi tiết cố định; bấm dòng mở chi tiết dead letter trong `DetailDrawer` 680 px, DR-110) | Cột: "Time", "Action", "Actor" (`auto` → "Auto-triage", `system:*` → tên dịch vụ, `user:*` → tên), "Confidence", "Dead letter" (`IdText`), "Source", "Current status", "Details" (tóm tắt: `reason`, `note`, `changed_paths`, `replay_request_id`) |
 | Khung chi tiết | cột phải | §6.1; chưa chọn → `EmptyState` "Select a record to see details" |
 | Trình sửa | `JsonEditor` (lazy) thay khối Payload | §6.2 |
 | Dialog | `ConfirmDialog` | Replay, Confirm replay; discard có lựa chọn lý do + ghi chú (§6); resolve có `reason` "Note" |
@@ -103,7 +103,7 @@ Dialog discard:
 | Dữ liệu | Endpoint | Query key | Refetch / realtime |
 | --- | --- | --- | --- |
 | Tóm tắt | E-41 | `['etl', 'dlq', 'summary']` | `dlq.changed` → invalidate (debounce 2 s); 60 s |
-| Danh sách | E-40 `?status&source&stage&category&severity&ruleId&from&to&limit=200` | `['etl', 'dlq', 'list', filters]` (infinite) | `CREATED`/`BULK_UPDATED` → refetch trang đầu (debounce 2 s); `UPDATED` → sửa `status` của dòng cùng `id` (DOC-26 §9) |
+| Danh sách | E-40 `?status&source&stage&category&severity&ruleId&from&to&limit=200` | `['etl', 'dlq', 'list', filters]` (infinite) | `CREATED`/`BULK_UPDATED` → danh sách stale, danh sách đang xem lấy lại trang đầu rồi trộn lên cache (debounce 2 s, DR-110); `UPDATED` → sửa `status` của dòng cùng `id` (DOC-26 §9) |
 | Hàng xác nhận | E-40 `?status=PENDING_CONFIRM&limit=200` | `['etl', 'dlq', 'list', { status: ['PENDING_CONFIRM'], … }]` | như trên |
 | Chi tiết | E-42 | `['etl', 'dlq', 'detail', id]` | `UPDATED` cùng `id` → invalidate |
 | Nhật ký | E-48 `?from&to&action&actorType&limit=200` | `['etl', 'dlq', 'actions', filters]` (infinite) | `dlq.changed` → refetch trang đầu (debounce 2 s) |
@@ -210,3 +210,11 @@ AC-1 đo ở component test DS-06 và Playwright trace trong nightly (DOC-44 §1
 ## 11. Câu hỏi còn mở
 
 Không có.
+
+## 12. Ghi chú cài đặt (P5-10, DR-110)
+
+- Search params đi qua route nguyên dạng; `DlqPage` tự `parse` bằng `src/features/dlq/search.ts` (giá trị sai bị bỏ như §2).
+- Mỗi lần mở một dialog Replay/Confirm sinh một `Idempotency-Key`; hàng loạt sinh một key cho mỗi dòng. Replay không bao giờ làm dialog báo lỗi: lỗi được hoàn tác và báo bằng toast; Discard và Resolve báo lỗi trong dialog.
+- Chip trạng thái trên dòng: hiện cho mọi trạng thái trừ `NEW` ở tab Review, luôn hiện ở Closed, không hiện ở Confirm.
+- Bấm "Cancel" khi trình sửa có thay đổi, bấm một dòng khác, phím `j`/`k` và đổi tab đều hỏi "Discard your changes?" khi trình sửa còn thay đổi.
+- Nhật ký (History) sắp mới nhất trên cùng; tác nhân hiển thị theo DOC-37 §3.1 (`system:<svc>` → "System (svc)").

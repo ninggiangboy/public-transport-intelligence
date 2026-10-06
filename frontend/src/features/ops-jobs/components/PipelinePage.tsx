@@ -33,7 +33,7 @@ import {
   recentSummaryQuery,
   summaryQuery,
 } from '@/features/ops-jobs/queries';
-import type { PipelineSearch } from '@/features/ops-jobs/search';
+import { pipelineSearch, type PipelineSearch } from '@/features/ops-jobs/search';
 import { useRunRequests } from '@/features/ops-jobs/use-run-requests';
 import { en } from '@/i18n/en';
 import { pipelineCopy } from '@/i18n/pipeline';
@@ -48,7 +48,7 @@ const copy = pipelineCopy.pipeline;
 const GRAFANA_DASHBOARD = '/d/pti-overview';
 
 /** /ops/jobs: is the pipeline moving, and which runs failed (DOC-36 screens/ops-console-jobs). */
-export function PipelinePage({ search }: { search: PipelineSearch }) {
+export function PipelinePage({ raw }: { raw: Record<string, unknown> }) {
   useDocumentTitle(copy.title);
   const navigate = useNavigate({ from: '/ops/jobs' });
   const access = useAccess();
@@ -58,6 +58,8 @@ export function PipelinePage({ search }: { search: PipelineSearch }) {
   const operator = access.role === 'operator';
   useRealtime({ channels: ['jobs', 'dlq'] });
 
+  // Bad values are dropped here, not in the route, so that the schema is not part of the first paint (DR-110).
+  const search = useMemo(() => pipelineSearch.parse(raw), [raw]);
   const period = resolvePeriod(search);
   const bucket = resolveBucket(search.bucket, period.spanMs);
   const summary = useQuery(summaryQuery(period, bucket));
@@ -69,7 +71,7 @@ export function PipelinePage({ search }: { search: PipelineSearch }) {
 
   const setSearch = useCallback(
     (change: Partial<PipelineSearch>, replace = true) => {
-      void navigate({ search: (prev: PipelineSearch) => ({ ...prev, ...change }), replace });
+      void navigate({ search: (prev) => ({ ...pipelineSearch.parse(prev), ...change }), replace });
     },
     [navigate],
   );

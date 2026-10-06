@@ -316,13 +316,14 @@ interface DataTableProps<T> {
   getRowId: (row: T) => string;
   selectedId?: string;                       // highlighted row (drawer open)
   onRowOpen?: (row: T) => void;              // click / Enter
-  virtual?: boolean;                         // TanStack Virtual; required for DLQ (≥ 10,000 rows)
+  virtual?: { height: number | string; rowHeight: number; overscan?: number };   // TanStack Virtual; required for DLQ (≥ 10,000 rows)
   hasNextPage?: boolean;
-  fetchNextPage?: () => void;                // called when the last 20 rows become visible
+  fetchNextPage?: () => void;                // called when the last 30 loaded rows become visible
   isFetchingNextPage?: boolean;
   isLoading?: boolean;                       // skeleton rows
   empty?: React.ReactNode;                   // EmptyState
-  newRowIds?: Set<string>;                   // 2 s highlight (P-5)
+  rowClassName?: (row: T) => string | undefined;   // e.g. dim a row that left its filter (P-5)
+  scrollToId?: string;                       // scrolls this row into view when it changes (j / k)
   caption: string;                           // visually hidden <caption>
   density?: 'compact' | 'comfortable';
 }
@@ -363,7 +364,8 @@ interface SegmentedControlProps<V extends string> { options: { value: V; label: 
 - `DataTable`: tiêu đề cột trên dải `--surface` chữ 12 px/500 `--muted-foreground`; dòng hover nền `--surface`; dòng đang chọn nền `--primary-soft`; số canh phải.
 
 - `cn()` (`src/lib/utils.ts`) dạy tailwind-merge thang chữ của token (`text-label`, `text-nav`, `text-panel`, `text-page`, `text-kpi`, `text-display`), để cỡ chữ không bị coi là màu chữ (DR-109).
-- Cài đặt (P5-08, DR-108): `src/components/DataTable.tsx` trên `@tanstack/react-table` 9; cột viết bằng `columnHelper<T>()` của `src/components/data-table-columns.ts`, `meta.align: 'right'` cho cột số. Có thêm `dimmed` (dữ liệu cũ khi đang tải lại, P-3). Virtualize, `hasNextPage`/`fetchNextPage`, `newRowIds` và phím `j`/`k` thêm ở P5-10.
+- Cài đặt (P5-08, DR-108): `src/components/DataTable.tsx` trên `@tanstack/react-table` 9; cột viết bằng `columnHelper<T>()` của `src/components/data-table-columns.ts`, `meta.align: 'right'` cho cột số. Có thêm `dimmed` (dữ liệu cũ khi đang tải lại, P-3). 
+- Cài đặt (P5-10, DR-110): `virtual={{ height, rowHeight, overscan? }}` virtualize bằng TanStack Virtual (hàng ước lượng rồi đo; hai hàng đệm `aria-hidden` ở đầu và cuối `<tbody>`; vùng cuộn là `role="region"` có tên, `tabIndex=0`), `hasNextPage`/`fetchNextPage`/`isFetchingNextPage` (gọi khi 30 dòng cuối đã tải hiện ra), `rowClassName` và `scrollToId`. `newRowIds` không có: Dead letters không tô dòng mới (AC-8). Phím `j`/`k` do trang xử lý.
 - `DataTable` render `<table>` thật. Khi virtualize, `<tbody>` chỉ chứa dòng đang thấy, có `aria-rowcount` (tổng đã tải, cộng 1 nếu còn trang sau) và `aria-rowindex` trên từng dòng.
 - Cột id dùng `IdText` (8 ký tự đầu, mono, nút copy khi hover hoặc focus).
 - Tiêu đề cột có thể sắp xếp chỉ khi API hỗ trợ; bảng keyset của DOC-32 không sắp xếp phía client.
@@ -430,12 +432,15 @@ interface JsonEditorProps {
   errors?: { pointer: string; message: string }[];   // from 422 invalid-payload `errors[]`
   readOnly?: boolean;
   height?: number;                                    // default 360
+  ariaLabel: string;                                  // name of the text area
+  fileName: string;                                   // name on the bar above the text
 }
 ```
 
 - `JsonViewer` và `JsonEditor` luôn là **khối code tối** ở cả hai theme (nền `#15161B`, viền `#23252C`, số dòng `#50545E`, bo 12 px) với thanh trên ghi tên file và nút "Copy". Có `compareTo` thì hiện diff theo dòng: dòng xóa nền đỏ 14% và dấu "−", dòng thêm nền xanh 16% và dấu "+" (dùng cho "Edited" so với "Original" ở Dead letters).
-- `JsonEditor` tải CodeMirror qua `React.lazy` (DOC-34 §7). Có lint JSON cú pháp phía client; lỗi schema từ server gắn vào dòng theo JSON Pointer (tìm vị trí khóa trong văn bản; không tìm được thì hiện ở danh sách dưới trình sửa).
+- `JsonEditor` tải CodeMirror bằng `import()` khi mở lần đầu (DOC-34 §7; không dùng `React.lazy` để "Retry" xin lại được khi chunk lỗi). Có lint JSON cú pháp phía client; lỗi schema từ server gắn vào dòng theo JSON Pointer (tìm vị trí khóa trong văn bản; không tìm được thì đánh dấu ở khóa cha gần nhất hoặc dòng đầu, và danh sách lỗi hiện dưới trình sửa).
 - Phím `Esc` trong trình sửa **không** đóng drawer (tránh mất bản sửa); có nút "Discard changes" riêng.
+- Cài đặt (P5-10, DR-110): `src/components/JsonEditor.tsx` và `src/components/codemirror-json.tsx` (phần CodeMirror; tên file là cách `check-bundle` nhận chunk, 111,8 KB trên 130 KB). Số dòng cũng là nội dung sinh ra như `JsonViewer`. Lỗi của API chỉ hiện khi văn bản chưa đổi. Trình sửa dùng được bằng bàn phím: nội dung có `tabindex=0` (axe `scrollable-region-focusable`).
 - Cài đặt (P5-03): bảng màu khối code là token `--code-*` trong `tokens.css` (không còn mã hex trong component, DS-11). Số dòng `#50545E` chỉ đạt 2,4:1 nên được vẽ bằng nội dung sinh ra (`::before` với `data-line`): đúng màu của prototype, không nằm trong văn bản được đọc, chọn, sao chép hay kiểm tương phản.
 
 ### 5.7 Biểu đồ
@@ -579,7 +584,7 @@ Mục tiêu **WCAG 2.2 AA** cho màn hành khách (NFR-11) và cùng tiêu chí,
 
 ## 10. Trang `/_ui`
 
-Route chỉ có trong bản build dev (`import.meta.env.DEV`) hoặc bản build đặt `VITE_PTI_UI_CATALOG=true` (build của `pnpm e2e`, để chạy axe); image `pti-frontend` không đặt biến này nên trả 404. URL là `/_ui` đúng nghĩa đen (file route `[_]ui.tsx`), đáp ứng P5-03. Bố cục như artifact "PTI Design System" (DR-88): trang bìa, bảng màu, thang chữ, rồi liệt kê mọi component ở §5 với mọi biến thể (mọi severity, mọi `(domain, status)`, mọi mức tin cậy, mọi lớp trễ, `ErrorState` cho từng slug của DOC-30, bảng 10.000 dòng giả), cạnh nhau ở hai theme. Playwright chạy axe trên trang này. Bảng 10.000 dòng giả (`DataTable`) và `JsonEditor` thuộc P5-10 nên chưa có trong trang.
+Route chỉ có trong bản build dev (`import.meta.env.DEV`) hoặc bản build đặt `VITE_PTI_UI_CATALOG=true` (build của `pnpm e2e`, để chạy axe); image `pti-frontend` không đặt biến này nên trả 404. URL là `/_ui` đúng nghĩa đen (file route `[_]ui.tsx`), đáp ứng P5-03. Bố cục như artifact "PTI Design System" (DR-88): trang bìa, bảng màu, thang chữ, rồi liệt kê mọi component ở §5 với mọi biến thể (mọi severity, mọi `(domain, status)`, mọi mức tin cậy, mọi lớp trễ, `ErrorState` cho từng slug của DOC-30, bảng 10.000 dòng giả), cạnh nhau ở hai theme. Playwright chạy axe trên trang này. Bảng 10.000 dòng giả (`DataTable` virtual) và `JsonEditor` (với một lỗi gắn vào dòng) có trong trang từ P5-10.
 
 ## 11. Test bắt buộc
 
@@ -591,7 +596,7 @@ Route chỉ có trong bản build dev (`import.meta.env.DEV`) hoặc bản build
 | DS-04 | Unit: lớp trễ tại −301, −300, 300, 301, 600, 601, `null` | `early`, `on-time`, `on-time`, `late`, `late`, `very-late`, `unknown` |
 | DS-05 | Unit: `RouteBadge` với `color=FFFF00`, `textColor=FFFFFF` | Chữ đổi sang đen (tương phản ≥ 4,5:1) |
 | DS-11 | Unit: đọc `tokens.css`; lint tìm mã hex trong `src/` | Mọi token ở §3 có giá trị ở cả `:root` và `.dark`; không có mã hex nào ngoài `tokens.css` và bảng màu code của `JsonViewer` |
-| DS-06 | Component: `DataTable` virtual 10.000 dòng, `j`/`k`/`Enter` | Chỉ ≤ 60 dòng trong DOM; `aria-rowindex` đúng; `Enter` gọi `onRowOpen` |
+| DS-06 | Component: `DataTable` virtual 10.000 dòng, `j`/`k`/`Enter` | Chỉ ≤ 60 dòng trong DOM; `aria-rowindex` đúng; `Enter` gọi `onRowOpen`; cuộn tới dòng của `scrollToId`; gọi `fetchNextPage` khi gần hết dòng đã tải (`src/components/data-table-virtual.test.tsx`; `j`/`k` ở test của màn Dead letters) |
 | DS-07 | Component: `ConfirmDialog` với `reason` min 3, `onConfirm` ném `ApiError` | Nút confirm disable khi lý do < 3 ký tự; lỗi hiện trong dialog, dialog không đóng |
 | DS-08 | Component: `JsonEditor` với `errors=[{pointer:'/payload/route_id'}]` | Dòng chứa khóa `route_id` có đánh dấu lỗi và thông điệp |
 | DS-09 | Component: `prefers-reduced-motion` | Không có class transition; `LoaderCircle` không có animation |

@@ -201,7 +201,7 @@ Nhãn là giá trị trong `en.ts` dưới `enum.<nhóm>.<giá trị>`. `StatusP
 | `stage` | `DESERIALIZE` "Deserialize" · `SCHEMA` "Schema check" · `BUSINESS` "Business rules" · `DEDUP` "Deduplication" · `LOAD` "Load" · `QUALITY` "Data quality" |
 | Hành động (`dlq_action_log.action`) | `TRIAGED` "Classified" · `TRIAGE_FAILED` "Classification failed" · `AUTO_REPLAY_SCHEDULED` "Auto-replay scheduled" · `CONFIRM_REQUESTED` "Sent for confirmation" · `CONFIRMED` "Confirmed" · `MANUAL_REQUIRED` "Sent to manual review" · `EDITED` "Payload edited" · `REPLAY_REQUESTED` "Replay requested" · `REPLAYED` "Replayed" · `REPLAY_FAILED` "Replay failed" · `DISCARDED` "Discarded" · `RESOLVED` "Resolved" |
 | Bộ lọc `actorType` | `auto` "Auto-triage" · `system` "System" · `user` "People" |
-| `ruleId` | Nguyên văn (`DQ-01`), tooltip là tên rule của DOC-16 (lấy từ `src/i18n/en.ts` `dq.<id>`, sinh từ bảng DOC-16 khi viết P5-10) |
+| `ruleId` | Nguyên văn (`DQ-01`), tooltip là tên rule của DOC-16 (`dq.<id>` ở `src/i18n/dlq.ts`, tải cùng màn Dead letters, DR-110) |
 
 ## 4. Định dạng
 
@@ -296,7 +296,7 @@ Trục event dùng `businessNow`, trục audit dùng đồng hồ máy (DOC-34 �
 | `help.dataIssue` | "Chance that this disruption is a data problem rather than a real delay: {percent}." |
 | `help.replayEstimate` | "Estimated from how many messages were processed in this range. Actual time depends on load." |
 | `help.replayRecordTime` | "Replay selects records by the time Kafka received them. Business time is shown for reference using the current simulated clock offset." |
-| `help.dlqAutoReplay` | "Auto-triage replays records it is confident are transient. Each action shows the confidence it used." |
+| `help.dlqAutoReplay` | "Auto-triage replays records it is confident are transient. Each action shows the confidence it used." (ở `src/i18n/dlq.ts` `autoReplayHelp`, DR-110) |
 | `help.simulatedClock` | "The simulator runs on a shifted clock so the schedule has buses in service. Times on this site follow that clock." |
 | `help.staleVehicle` | "Last position received {relative}. The bus may have moved." |
 | `help.freshness` | "Newest data included here." |

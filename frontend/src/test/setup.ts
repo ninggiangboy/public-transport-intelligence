@@ -33,6 +33,9 @@ vi.mock('echarts/core', () => ({
 // jsdom has no WebGL either: the live map draws on a double that records its layers (src/test/map.tsx).
 vi.mock('@/features/map/components/MapCanvas', () => import('@/test/map'));
 
+// Nor can it drive CodeMirror: the payload editor runs on a textarea (src/test/codemirror.tsx).
+vi.mock('@/components/codemirror-json', () => import('@/test/codemirror'));
+
 beforeAll(() => {
   server.listen({ onUnhandledRequest: 'error' });
 });

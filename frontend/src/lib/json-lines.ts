@@ -78,3 +78,42 @@ export function diffLines(original: string, edited: string): DiffLine[] {
   for (; j < b.length; j++) out.push({ kind: 'add', text: b[j] ?? '' });
   return out;
 }
+
+/**
+ * An error of the API names its field by a JSON Pointer (`/position/latitude`). Returns the 1-based line of that field in `text`
+ * pretty-printed with two spaces, or of the deepest parent found (DS-08).
+ */
+export function lineOfPointer(text: string, pointer: string): number {
+  const parts = pointer
+    .split('/')
+    .slice(1)
+    .map((part) => part.replaceAll('~1', '/').replaceAll('~0', '~'));
+  const lines = text.split('\n');
+  let line = 0;
+  let indent = 0;
+  for (const part of parts) {
+    const child = indent + 2;
+    const index = /^\d+$/.test(part) ? Number(part) : undefined;
+    const key = `${JSON.stringify(part)}:`;
+    let seen = -1;
+    let found = -1;
+    for (let at = line + 1; at < lines.length; at += 1) {
+      const current = lines[at] ?? '';
+      const depth = indentOf(current);
+      if (depth <= indent) break;
+      if (depth !== child) continue;
+      if (index === undefined ? current.trimStart().startsWith(key) : ++seen === index) {
+        found = at;
+        break;
+      }
+    }
+    if (found < 0) break;
+    line = found;
+    indent = child;
+  }
+  return line + 1;
+}
+
+function indentOf(line: string): number {
+  return line.length - line.trimStart().length;
+}

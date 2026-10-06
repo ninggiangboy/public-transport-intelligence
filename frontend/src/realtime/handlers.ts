@@ -429,11 +429,15 @@ export function createHandlers(queryClient: QueryClient): Handlers {
             });
             coalesce('dlq:summary', () => {
               invalidate(keys.etl.dlq.summary());
+              invalidate(keys.etl.dlq.actions());
             });
           } else {
             coalesce('dlq:lists', () => {
-              invalidate(keys.etl.dlq.listAll());
+              // The lists on screen load their first page only (features/dlq/heads.ts watches for this); the rest
+              // are stale for whoever opens them.
+              void queryClient.invalidateQueries({ queryKey: keys.etl.dlq.listAll(), refetchType: 'none' });
               invalidate(keys.etl.dlq.summary());
+              invalidate(keys.etl.dlq.actions());
             });
           }
           break;

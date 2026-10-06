@@ -29,6 +29,8 @@ interface TimeRangePickerProps {
   granularity: 'minute' | 'date';
   /** `date` only: the latest day that can be picked ("YYYY-MM-DD"), e.g. yesterday for nightly scores. */
   maxDate?: string;
+  /** For a range that may be absent ("Any time"): the chip's text without a range, and a way back to it. */
+  anyTime?: string;
   onChange: (value: TimeRangeValue) => void;
 }
 
@@ -42,6 +44,7 @@ export function TimeRangePicker({
   maxRangeSeconds,
   granularity,
   maxDate,
+  anyTime,
   onChange,
 }: TimeRangePickerProps) {
   const clock = useBusinessClock();
@@ -100,7 +103,7 @@ export function TimeRangePicker({
       ? granularity === 'date'
         ? `${formatDate(`${value.from}T12:00:00Z`, 'UTC')} – ${formatDate(`${value.to}T12:00:00Z`, 'UTC')}`
         : `${formatDateTime(value.from, { timeZone, showZone: false })} – ${formatDateTime(value.to, { timeZone })}`
-      : en.timeRange.custom;
+      : (anyTime ?? en.timeRange.custom);
 
   return (
     <div className="flex flex-wrap items-center gap-2">
@@ -157,6 +160,18 @@ export function TimeRangePicker({
             <Button size="sm" onClick={apply}>
               {en.timeRange.apply}
             </Button>
+            {anyTime && custom ? (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  onChange({});
+                  setOpen(false);
+                }}
+              >
+                {anyTime}
+              </Button>
+            ) : null}
           </div>
         </PopoverContent>
       </Popover>

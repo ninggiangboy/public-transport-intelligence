@@ -29,6 +29,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { en } from '@/i18n/en';
 import { alertsCopy } from '@/i18n/alerts';
 import { useDocumentTitle, useMediaQuery } from '@/lib/browser';
+import { isTyping } from '@/lib/keyboard';
 import { cn } from '@/lib/utils';
 import { useRealtime } from '@/realtime/useRealtime';
 
@@ -43,15 +44,6 @@ const FIND_PAGES = 3;
 const MAX_STREAM_ROUTES = 20;
 
 const STATE_TABS: AlertState[] = ['open', 'unacknowledged', 'all'];
-
-function isTyping(target: EventTarget | null): boolean {
-  if (!(target instanceof HTMLElement)) return false;
-  return (
-    target.isContentEditable ||
-    ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName) ||
-    target.closest('.cm-editor') !== null
-  );
-}
 
 interface RouteLook {
   displayName: string;

@@ -15,7 +15,13 @@ interface ConfirmDialogProps {
   /** States the consequence of confirming (DOC-34 P-7). */
   description: ReactNode;
   confirmLabel: string;
+  /** Default "Cancel"; "Keep editing" when the question is whether to leave a form. */
+  cancelLabel?: string;
   tone?: 'default' | 'danger';
+  /** Extra fields between the description and the reason, e.g. a choice of reasons (discard). */
+  children?: ReactNode;
+  /** False keeps the confirm button disabled until what `children` collects is complete. */
+  valid?: boolean;
   /** A free-text reason the operator must give (discard, resolve). */
   reason?: { label: string; min: number; max: number; placeholder?: string };
   /** The dialog stays open and shows the error when this rejects. */
@@ -29,7 +35,10 @@ export function ConfirmDialog({
   title,
   description,
   confirmLabel,
+  cancelLabel = en.common.cancel,
   tone = 'default',
+  children,
+  valid = true,
   reason,
   onConfirm,
   onOpenChange,
@@ -58,7 +67,7 @@ export function ConfirmDialog({
   };
 
   const confirm = async () => {
-    if (inFlight.current || !reasonValid) return;
+    if (inFlight.current || !reasonValid || !valid) return;
     inFlight.current = true;
     setPending(true);
     setFailed(false);
@@ -85,6 +94,7 @@ export function ConfirmDialog({
           <DialogDescription asChild>
             <div className="text-base text-muted-foreground">{description}</div>
           </DialogDescription>
+          {children}
           {reason ? (
             <div className="flex flex-col gap-1.5">
               <label htmlFor={reasonId} className="text-label font-medium text-foreground-2">
@@ -132,11 +142,11 @@ export function ConfirmDialog({
               change(false);
             }}
           >
-            {en.common.cancel}
+            {cancelLabel}
           </Button>
           <Button
             variant={tone === 'danger' ? 'destructive' : 'default'}
-            disabled={!reasonValid || pending}
+            disabled={!reasonValid || !valid || pending}
             aria-busy={pending}
             className={cn(pending && 'cursor-progress')}
             onClick={() => void confirm()}

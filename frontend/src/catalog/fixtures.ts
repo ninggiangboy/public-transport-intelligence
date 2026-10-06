@@ -65,6 +65,13 @@ export const SAMPLE_JSON = {
   stale: false,
 };
 
+/** 10,000 fake dead letters for the virtualised table: ids, rules and messages are made up (DS-06). */
+export const SAMPLE_ROWS = Array.from({ length: 10_000 }, (_, index) => ({
+  id: `0192f5a1-7c1e-7d3a-9b2c-${String(index).padStart(12, '0')}`,
+  rule: index % 4 === 0 ? 'DQ-03' : 'DQ-06',
+  message: `position.latitude of record ${index + 1} is outside the service area`,
+}));
+
 export const SAMPLE_JSON_EDITED = {
   ...SAMPLE_JSON,
   delaySeconds: 240,
@@ -185,7 +192,8 @@ export const NAMES = {
   errorState: 'ErrorState',
   actions: 'ConfirmDialog, DetailDrawer, toast',
   data: 'CopyButton, IdText, KeyValueList, KpiCard, Sparkline',
-  json: 'JsonViewer',
+  table: 'DataTable',
+  json: 'JsonViewer, JsonEditor',
   layout: 'PageHeader, Card, Callout, ActivityTimeline, SplitView',
   lineStrip: 'LineStrip',
 } as const;
