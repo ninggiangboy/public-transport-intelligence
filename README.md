@@ -9,7 +9,7 @@ then turns it into real-time alerts and performance insight for your operations 
 
 **[🌐 pti.nigb.dev](https://pti.nigb.dev/)**
 
-[Product tour](#product-tour) · [Why PTI](#why-pti) · [Who it's for](#who-its-for) · [Run it locally](#run-it-locally) · [FAQ](#faq)
+[Product tour](#product-tour) · [Why PTI](#why-pti) · [Architecture](#architecture) · [Experiments](#proven-by-breaking-it) · [Getting started](#getting-started) · [Roadmap](#roadmap)
 
 ![Java 25](https://img.shields.io/badge/Java-25-ED8B00?logo=openjdk&logoColor=white)
 ![Spring Boot 4](https://img.shields.io/badge/Spring_Boot-4-6DB33F?logo=springboot&logoColor=white)
@@ -148,25 +148,7 @@ From your feeds to live insight in four steps.
 | **3. Analyse in real time** | Bunching, disruptions, arrival predictions and on-time performance are computed as data arrives. | PostgreSQL · analytics |
 | **4. Act and recover** | Dispatchers work from the live map and alerts; data teams fix and replay from the ops console. | Dashboard · REST API · SSE |
 
-```mermaid
-flowchart LR
-    SIM[Your feeds<br/>or the source simulator] -->|GTFS-realtime| K[(Kafka)]
-    SIM -->|ticket sales| TDB[(Ticketing DB)]
-    TDB -->|Debezium CDC| K
-    GTFS[GTFS static feed] -->|batch job| ETL
-    K -->|S3 sink| RAW[(Raw archive<br/>S3 / SeaweedFS)]
-    K --> ETL[ETL<br/>validate, dedup, load]
-    RAW -->|replay| ETL
-    ETL -->|bad records| DLQ[(Dead letter queue)]
-    DLQ --> TRIAGE[AI triage]
-    ETL --> WH[(PostgreSQL warehouse)]
-    ETL --> AN[Analytics]
-    AN --> WH
-    WH --> API[API<br/>REST + SSE]
-    API --> UI[Dashboard]
-```
-
-Every reliability mechanism (idempotency, retry, dead letter queue, checkpoint) lives in the ETL layer, so everything downstream only reads data that has passed through it.
+The full data flow, the deployment units and the reliability design are under [Architecture](#architecture).
 
 ## Who it's for
 
@@ -179,6 +161,77 @@ Built for the people who keep a network moving.
 | 🛠️ **Data & IT teams**<br><sub>Data engineering, platform</sub> | Maintaining the pipelines behind transit reporting and spending too much time on reruns, duplicates and silent gaps. | A fault-tolerant pipeline with quarantine, replay, lineage and full observability. |
 | 🏙️ **Smart-city programmes & integrators**<br><sub>Solution partners</sub> | Delivering mobility platforms for cities and need a reliable transit data core that integrates through open standards. | A deployable platform with a documented REST API and a real-time event stream. |
 
+## Architecture
+
+At its core PTI is an **ETL pipeline** built to answer one question:
+
+> How do you design an ETL pipeline that handles heterogeneous data (batch and near real-time) and stays correct when things fail: no data loss, no duplicates, automatic recovery?
+
+The answer is effectively-once delivery, fault isolation, a dead letter queue and replay across both streaming and batch processing, backed by a set of measurable experiments.
+
+```mermaid
+flowchart TD
+    SIM[Source simulator] -->|GTFS-realtime| K[(Kafka)]
+    SIM -->|ticket sales| TDB[(Ticketing DB)]
+    TDB -->|Debezium CDC| K
+    GTFS[GTFS static feed] -->|batch job| ETL
+    K -->|S3 sink| RAW[(Raw zone<br/>S3 / SeaweedFS)]
+    K --> ETL[ETL<br/>validate, dedup, load]
+    RAW -->|replay| ETL
+    ETL -->|bad records| DLQ[(Dead letter queue)]
+    DLQ --> TRIAGE[AI triage worker]
+    ETL --> WH[(PostgreSQL warehouse)]
+    ETL --> AN[Analytics]
+    AN --> WH
+    WH --> API[Backend API<br/>REST + SSE]
+    API --> UI[Dashboard]
+```
+
+All reliability mechanisms (idempotency, retry, DLQ, checkpoint) live in the ETL layer. Downstream layers only read data that has passed through it.
+
+Real transit systems are not connected. A **source simulator** plays that role, replaying a real GTFS feed with controllable scenarios (bunching, disruption, malformed data, duplicates, ticketing anomalies). Everything from Kafka onward is real infrastructure.
+
+### What it does
+
+| Area | Capability |
+| --- | --- |
+| Ingestion | GTFS static (batch), GTFS-realtime (Kafka) and ticketing (CDC with Debezium) |
+| Data quality | Schema and business rule validation; bad records go to a dead letter queue without stopping the batch |
+| Correctness | Deduplication by business key and upsert, with Kafka offsets committed only after the database transaction commits |
+| Recovery | Checkpoint and restart, DLQ replay, and a full warehouse rebuild from the raw zone |
+| Analytics | Bus bunching and service disruption (near real-time), ETA prediction and on-time performance (scheduled), ticketing anomalies |
+| AI triage | Classifies DLQ records and anomalies, auto-resolves them within confidence thresholds, and suggests dispatch actions |
+| Dashboard | Live vehicle map, alert feed, route scorecard, stop detail and an ops console for jobs, DLQ and replay |
+| Observability | Metrics, traces and logs correlated by `batch_id`, with Grafana dashboards and alerting |
+
+### Deployment units
+
+| Unit | Role |
+| --- | --- |
+| `etl` (profile `stream`) | Spring Kafka batch listeners, near real-time analytics, UI event publishing |
+| `etl` (profile `batch`) | Spring Batch jobs: GTFS static load, replay, scheduled analytics |
+| `triage-worker` | Asynchronous AI triage of DLQ records and anomalies |
+| `api` | REST and Server-Sent Events, the only entry point for the frontend |
+| `source-simulator` | Generates GTFS-realtime events and ticketing transactions |
+| `db` | Flyway migration runner |
+
+Inside each Java module, code follows Clean Architecture: feature packages, each split into `domain`, `application`, `adapter` and `config`, with the dependency rule enforced by ArchUnit. New modules follow it from the start; the P1–P3 modules are refactored in phase R. See [docs/03-architecture/clean-architecture.md](docs/03-architecture/clean-architecture.md).
+
+### Tech stack
+
+| Layer | Technology |
+| --- | --- |
+| Backend | Java 25, Spring Boot 4, Spring Batch, Spring Kafka, Spring Security, Flyway, Gradle |
+| Streaming | Apache Kafka (KRaft), Kafka Connect, Debezium, S3 sink connector |
+| Storage | PostgreSQL (star schema warehouse), SeaweedFS (S3-compatible raw zone) |
+| Frontend | React 19, TypeScript, Vite, TanStack Router/Query, Tailwind CSS, shadcn/ui, MapLibre GL with offline PMTiles, ECharts |
+| Auth | Keycloak (OAuth2 resource server) |
+| Observability | Micrometer, OpenTelemetry, Prometheus, Grafana, Tempo, Loki, Alertmanager |
+| Deployment | Docker Compose (dev and demo), Kubernetes on k3d with Helm, Strimzi, CloudNativePG, KEDA, Chaos Mesh |
+| Experiments | Python, Toxiproxy |
+
+Pinned versions and the versioning policy are in [docs/03-architecture/tech-stack-and-versions.md](docs/03-architecture/tech-stack-and-versions.md).
+
 ## Proven by breaking it
 
 PTI's correctness is verified by measurement, not by assertion. A Python experiment runner with Toxiproxy injects failures into the running stack and checks that nothing was lost or duplicated.
@@ -188,17 +241,15 @@ PTI's correctness is verified by measurement, not by assertion. A Python experim
 | EXP-01 | Crash recovery (`kill -9` mid-chunk) | Zero loss, zero duplicates |
 | EXP-02 | Message redelivery | Zero duplicates |
 | EXP-03 | Fault isolation at 1/5/20% bad records | 100% of valid records loaded |
-| EXP-04 | Warehouse rebuild from the raw archive | Checksums match for every table |
+| EXP-04 | Warehouse rebuild from the raw zone | Checksums match for every table |
 | EXP-05 | End-to-end latency under baseline load | p95 < 10 s |
 | EXP-06 | AI triage versus a rule-based baseline | Automation rate at ≥ 95% precision |
-| EXP-07 | Autoscaling at 10× load on Kubernetes | p95 < 10 s |
+| EXP-07 | Autoscaling at 10× load on k3d | p95 < 10 s |
 | EXP-08 | Chaos: pod, broker, database primary and external service failures | Self-healing, zero loss, zero duplicates |
 
-The 30-minute smoke run of EXP-01…05 passed on 2026-09-30 ([results](docs/00-master-plan.md#phase-3-thực-nghiệm-độ-tin-cậy-và-observability)) and again with analytics enabled on 2026-10-02 ([results](docs/00-master-plan.md#phase-4-analytics-và-api)): a killed consumer, redelivered messages, 5% bad records, a load ramp to 10× and a warehouse rebuild from the raw archive lose and duplicate nothing. The full runs, with 10–30 repetitions each, follow after phase 6. Protocols are in [docs/10-testing/experiments/](docs/10-testing/experiments/).
+The 30-minute smoke run of EXP-01…05 passed on 2026-09-30 ([results](docs/00-master-plan.md#phase-3-thực-nghiệm-độ-tin-cậy-và-observability)) and again with analytics enabled on 2026-10-02 ([results](docs/00-master-plan.md#phase-4-analytics-và-api)): a killed consumer, redelivered messages, 5% bad records, a load ramp to 10× and a warehouse rebuild from the raw zone lose and duplicate nothing. The full runs, with 10–30 repetitions each, follow after phase 6. Protocols are in [docs/10-testing/experiments/](docs/10-testing/experiments/).
 
-## Run it locally
-
-The whole platform runs on one machine with Docker. Real transit systems are not connected, so a **source simulator** plays that role: it replays a real GTFS feed with controllable scenarios (bunching, disruption, malformed data, duplicates, ticketing anomalies). Everything from Kafka onward is real infrastructure.
+## Getting started
 
 ```bash
 mise install     # Java 25, Node 24, pnpm, Python, uv and Kubernetes tooling
@@ -209,11 +260,6 @@ make sim-start   # the simulator starts paused; this makes it publish
 ```
 
 On the first start `etl-batch` loads the pinned GTFS feed (about a minute); `etl-stream` turns ready once that feed is active. Then `make sim-status`, `make tail-gtfs.vehicle_positions`, `make connectors` and `make s3-ls` show the data moving, and `make psql-wh Q='select count(*) from dw.fact_vehicle_position'` shows it arriving in the warehouse; `make sim-stop` pauses it again. The ETL health is on `localhost:9082/actuator/health/sources` (stream) and `localhost:9083/actuator/health` (batch). The feed runs on Chicago time, so between 02:00 and 04:30 there (afternoon in Vietnam) no vehicles are in service: run `make clock-offset AT=16:30 && make up` first. `make help` lists every target.
-
-<details>
-<summary><b>API, observability, backups and experiments</b></summary>
-
-<br>
 
 The API is on `localhost:8081` ([endpoints](docs/07-api/api-endpoints.md)). Public endpoints need no token, for example `curl localhost:8081/api/v1/vehicles/live`; `make token ROLE=viewer` (or `ROLE=operator`) prints a token of a demo user for the others: `curl -H "Authorization: Bearer $(make -s token ROLE=viewer)" localhost:8081/api/v1/etl/jobs`. `curl -N 'localhost:8081/api/v1/stream?channels=vehicles,alerts'` shows the real-time events ([SSE events](docs/07-api/sse-events.md)).
 
@@ -226,40 +272,11 @@ make up-exp
 cd experiments && uv run pti-exp env check && uv run pti-exp smoke
 ```
 
-Results land in `experiments/results/smoke/<series>/`.
-
-</details>
+Results land in `experiments/results/smoke/<series>/`. Protocols and the full runs are described in [docs/10-testing/experiments/](docs/10-testing/experiments/).
 
 Requirements: 16 GB RAM (12 GB allocated to the Docker VM with every profile enabled), 8 CPU cores and about 80 GB of free disk. See [docs/09-operations/local-dev.md](docs/09-operations/local-dev.md).
 
-## Under the hood
-
-| Layer | Technology |
-| --- | --- |
-| Backend | Java 25, Spring Boot 4, Spring Batch, Spring Kafka, Spring Security, Flyway, Gradle |
-| Streaming | Apache Kafka (KRaft), Kafka Connect, Debezium, S3 sink connector |
-| Storage | PostgreSQL (star schema warehouse), SeaweedFS (S3-compatible raw archive) |
-| Frontend | React 19, TypeScript, Vite, TanStack Router/Query, Tailwind CSS, shadcn/ui, MapLibre GL with offline PMTiles, ECharts |
-| Auth | Keycloak (OAuth2 resource server) |
-| Observability | Micrometer, OpenTelemetry, Prometheus, Grafana, Tempo, Loki, Alertmanager |
-| Deployment | Docker Compose (dev and demo), Kubernetes on k3d with Helm, Strimzi, CloudNativePG, KEDA, Chaos Mesh |
-| Experiments | Python, Toxiproxy |
-
-<details>
-<summary><b>Deployment units, code structure and repository layout</b></summary>
-
-<br>
-
-| Unit | Role |
-| --- | --- |
-| `etl` (profile `stream`) | Spring Kafka batch listeners, near real-time analytics, UI event publishing |
-| `etl` (profile `batch`) | Spring Batch jobs: GTFS static load, replay, scheduled analytics |
-| `triage-worker` | Asynchronous AI triage of DLQ records and anomalies |
-| `api` | REST and Server-Sent Events, the only entry point for the frontend |
-| `source-simulator` | Generates GTFS-realtime events and ticketing transactions |
-| `db` | Flyway migration runner |
-
-Delivery is effectively-once: deduplication by business key and upsert, with Kafka offsets committed only after the database transaction commits. Inside each Java module, code follows Clean Architecture: feature packages, each split into `domain`, `application`, `adapter` and `config`, with the dependency rule enforced by ArchUnit (see [docs/03-architecture/clean-architecture.md](docs/03-architecture/clean-architecture.md)). Pinned versions and the versioning policy are in [docs/03-architecture/tech-stack-and-versions.md](docs/03-architecture/tech-stack-and-versions.md).
+## Repository layout
 
 ```
 .
@@ -284,22 +301,22 @@ Delivery is effectively-once: deduplication by business key and upsert, with Kaf
 
 The documentation is written in Vietnamese. Everything else (code, UI, logs, API messages, commits) is in English. Start with [docs/README.md](docs/README.md). The layout is explained in [ADR-0030](docs/04-adr/0030-monorepo-layout.md), and the contribution rules in [CONTRIBUTING.md](CONTRIBUTING.md).
 
-</details>
-
 ## Roadmap
 
-| Phase | Scope | Status |
-| --- | --- | --- |
-| P0 | Specification, decisions, spikes | ✅ Done |
-| P1 | Infrastructure and data sources: events reach Kafka; CDC and raw archive running | ✅ Done (2026-09-29) |
-| P2 | Core ETL: data in the warehouse; `kill -9` causes no loss or duplicates | ✅ Done (2026-09-29) |
-| P3 | Reliability experiments and observability: smoke run of EXP-01…05, Grafana, alerts | ✅ Done (2026-09-30) |
-| P4 | Analytics and API: real insights over REST and SSE | ✅ Done (2026-10-02) |
-| P5 | Dashboard: overview, live map, stops, alerts, scorecard, pipeline and dead letters | 🚧 In progress |
-| P6 | AI triage: triage, auto-replay, suggestions in the UI | Planned |
-| R | Clean Architecture refactor of the P1–P3 code | Planned |
-| P7 | Kubernetes and fault tolerance: full EXP-01…05 runs, autoscaling, self-healing, EXP-07/08 | Planned |
-| P8 | Polish | Planned |
+**Status:** phases 0–4 are complete. One command starts the local stack: the simulator publishes GTFS-realtime and writes ticket sales that Debezium captures, `etl-batch` loads the GTFS feed, and `etl-stream` writes every source into the warehouse exactly once, with a dead letter queue, replay from the raw zone and post-write data quality checks. Analytics detect bunching and disruptions within seconds, and the API serves everything over REST secured by Keycloak plus server-sent events. Phase 5 (the dashboard) is in progress.
+
+| Phase | Scope | Milestone | Status |
+| --- | --- | --- | --- |
+| P0 | Specification, decisions, spikes | Decisions settled, core documents approved | ✅ Done |
+| P1 | Infrastructure and data sources | `make up` works; events reach Kafka; CDC and raw zone running | ✅ Done (2026-09-29) |
+| P2 | Core ETL (Spring Batch + Spring Kafka) | Data in the warehouse; `kill -9` causes no loss or duplicates | ✅ Done (2026-09-29) |
+| P3 | Reliability experiments and observability | Experiment runner and a 30-minute smoke run of EXP-01…05; Grafana; alerts | ✅ Done (2026-09-30) |
+| P4 | Analytics and API | Real insights over REST and SSE | ✅ Done (2026-10-02) |
+| P5 | Dashboard | Full real-time UI | 🚧 In progress |
+| P6 | AI triage | Triage, auto-replay, suggestions in the UI | Planned |
+| R | Clean Architecture refactor of the P1–P3 code | Frozen ArchUnit violations reach zero; fault-injection tests and the smoke run still pass | Planned |
+| P7 | Kubernetes and fault tolerance | Full EXP-01…05 runs first (P3-10); autoscaling and self-healing; EXP-07/08 results | Planned |
+| P8 | Polish | Ready for the final defense | Planned |
 
 The full plan, with every task and its acceptance criteria, is in [docs/00-master-plan.md](docs/00-master-plan.md).
 
