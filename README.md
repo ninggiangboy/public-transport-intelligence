@@ -7,7 +7,9 @@
 PTI unifies schedules, live vehicle positions and ticketing into one reliable data platform,
 then turns it into real-time alerts and performance insight for your operations team.
 
-[Product tour](#product-tour) · [Why PTI](#why-pti) · [Who it's for](#who-its-for) · [Try PTI](#try-pti) · [Run it locally](#run-it-locally) · [FAQ](#faq)
+**[🌐 pti.nigb.dev](https://pti.nigb.dev/)**
+
+[Product tour](#product-tour) · [Why PTI](#why-pti) · [Who it's for](#who-its-for) · [Run it locally](#run-it-locally) · [FAQ](#faq)
 
 ![Java 25](https://img.shields.io/badge/Java-25-ED8B00?logo=openjdk&logoColor=white)
 ![Spring Boot 4](https://img.shields.io/badge/Spring_Boot-4-6DB33F?logo=springboot&logoColor=white)
@@ -177,21 +179,6 @@ Built for the people who keep a network moving.
 | 🛠️ **Data & IT teams**<br><sub>Data engineering, platform</sub> | Maintaining the pipelines behind transit reporting and spending too much time on reruns, duplicates and silent gaps. | A fault-tolerant pipeline with quarantine, replay, lineage and full observability. |
 | 🏙️ **Smart-city programmes & integrators**<br><sub>Solution partners</sub> | Delivering mobility platforms for cities and need a reliable transit data core that integrates through open standards. | A deployable platform with a documented REST API and a real-time event stream. |
 
-## Try PTI
-
-Start small and see results on your own network. Every option begins with a short call to understand your network and data.
-
-| **Live demo** | **Trial on your data** ⭐ | **Pilot & deployment** |
-| --- | --- | --- |
-| Free · 30-minute call | Free trial · hosted by NIGB | Custom · per network |
-| Guided tour of every screen | Your network, stops and timetable loaded | On-premise or private cloud install |
-| Live failure and recovery demonstration | Live map and alerts from your real-time feed | Integration with AVL, ticketing and SSO |
-| Q&A with the engineering team | On-time scorecard for your routes | Custom alerts, KPIs and reports |
-| | Onboarding session for your team | Support and service-level agreement |
-| [**Book a demo →**](mailto:contact@portfolio.nigb.dev?subject=PTI%20%E2%80%94%20Live%20demo) | [**Request a trial →**](mailto:contact@portfolio.nigb.dev?subject=PTI%20%E2%80%94%20Trial%20on%20our%20data) | [**Talk to us →**](mailto:contact@portfolio.nigb.dev?subject=PTI%20%E2%80%94%20Pilot%20%2F%20deployment) |
-
-Tell us a little about your network (who you are, your role, roughly how many vehicles you run and what you would like to solve) at **[contact@portfolio.nigb.dev](mailto:contact@portfolio.nigb.dev)**, and we'll reply with a time for a demo or the next steps for a trial. The product landing page lives in [`landing/`](landing/index.html).
-
 ## Proven by breaking it
 
 PTI's correctness is verified by measurement, not by assertion. A Python experiment runner with Toxiproxy injects failures into the running stack and checks that nothing was lost or duplicated.
@@ -333,7 +320,7 @@ No. PTI reads from the systems you already run through open standards and change
 <details>
 <summary><b>Where is PTI hosted, and who owns the data?</b></summary>
 
-Trials can be hosted by NIGB. Production deployments run on-premise or in your private cloud, so your data stays in your environment and remains yours.
+PTI is self-hosted: it runs on-premise or in your private cloud, so your data stays in your environment and remains yours.
 </details>
 
 <details>
@@ -358,5 +345,5 @@ Screenshots and the demo environment use the Metro Transit / Metropolitan Counci
 
 <div align="center">
 <br>
-<b>PTI by NIGB</b> · © 2026 NIGB · <a href="mailto:contact@portfolio.nigb.dev">contact@portfolio.nigb.dev</a>
+<a href="https://pti.nigb.dev/"><b>pti.nigb.dev</b></a>
 </div>
