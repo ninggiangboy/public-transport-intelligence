@@ -1,6 +1,6 @@
 # Danh mục tính năng
 
-> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-05
+> Trạng thái: **Approved** · Cập nhật: 2026-10-11 · DOC-05
 > Phụ thuộc: [DOC-03](requirements.md), [DOC-04](use-cases.md), [Master plan §4–5](../00-master-plan.md), [DR](../00-decision-register.md)
 
 ## 0. Quy ước
@@ -118,6 +118,7 @@
 | F-UI-07 | Alert feed | Danh sách alert theo audience, toast, ack | FR-11.5 | UC-03, 04, 05 | P5 | M | — | F-OPS-03 | — |
 | F-UI-08 | Demo scenarios và trạng thái lỗi | Màn điều khiển kịch bản (profile `demo`); stale banner, trạng thái lỗi và rỗng trên mọi màn hình | FR-11.6, FR-11.7 | UC-16 | P5 | S (demo) / M (trạng thái) | profile `demo` | F-SIM-03 | — |
 | F-UI-09 | Overview mạng lưới | Trang mặc định của viewer: KPI, network pulse, alert cần chú ý, OTP theo ngày, tuyến cần theo dõi, tình trạng pipeline (DR-88) | FR-11.8 | UC-03, 06, 07 | P5 | S | — | F-UI-01, F-UI-03 | — |
+| F-UI-10 | Live map 3D | `view=3d` trên desktop: toà nhà từ lớp `buildings` của PMTiles, mô hình xe buýt và tàu, xe chạy mượt giữa các fix (ước tính dọc shape), camera Free/Follow/Chase, lối lui (DR-111) | FR-11.9 | UC-01, UC-04 | P5 | S | — | F-UI-01 | 0 |
 
 ## 10. SIM: simulator
 
@@ -144,6 +145,7 @@
 
 | Bước | Cắt | Tính năng bị ảnh hưởng |
 | --- | --- | --- |
+| 0 | Live map 3D (DR-111, master plan §4.3) | F-UI-10; Live map chỉ còn 2D |
 | 1 | Gợi ý điều phối | F-AI-05; phần gợi ý trong F-UI-01 |
 | 2 | EXP-06 | Không cắt tính năng nào; chỉ bỏ thực nghiệm |
 | 3 | Bất thường ticketing | F-ANL-05, F-AI-03; phần ticketing trong F-UI-06 |

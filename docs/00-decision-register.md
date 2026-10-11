@@ -1,6 +1,6 @@
 # Sổ quyết định mở (Decision Register)
 
-> Trạng thái tài liệu: **Approved**, toàn bộ DR đã chốt ngày 2026-09-26 · Cập nhật: 2026-09-30 · Nguồn: phân tích `public-transport-intelligence.md` (gọi tắt là **SDD gốc**)
+> Trạng thái tài liệu: **Approved**, toàn bộ DR đã chốt ngày 2026-09-26 · Cập nhật: 2026-10-11 · Nguồn: phân tích `public-transport-intelligence.md` (gọi tắt là **SDD gốc**)
 
 Tài liệu gốc mô tả tốt *cái gì* và *vì sao*, nhưng còn nhiều chỗ chưa trả lời *chính xác như thế nào*. Nếu không chốt trước, người triển khai sẽ phải dừng lại hỏi hoặc tự đoán, và đoán sai ở tầng dữ liệu thì rất tốn công sửa. Sổ này liệt kê từng khoảng trống, mỗi mục kèm **một phương án đề xuất** để có thể duyệt nhanh.
 
@@ -68,6 +68,7 @@ Tài liệu gốc mô tả tốt *cái gì* và *vì sao*, nhưng còn nhiều c
 | 2026-10-05 | Claude (Owner ủy quyền) | **Route scorecard (P5-08):** lọc mode trên client từ một lần gọi E-14 cho mọi tuyến; heatmap ECharts cần `VisualMapPiecewiseComponent` (ẩn); hồ sơ trạm là bảng có thanh thay vì biểu đồ cột; `DataTable` trên TanStack Table 9 | DR-108 (mới), DOC-35 §5.3, §5.7, §7, screens/route-scorecard §4, §5 |
 | 2026-10-05 | Claude (Owner ủy quyền) | **Pipeline (P5-09):** E-30 và E-32 thêm `request.requestedBy` để có cột "Trigger"; `env.js` thêm `grafanaUrl`; danh sách lần chạy chưa virtualize (trang 100 + "Load older runs"); sơ đồ chặng đọc E-31 15 phút theo phút; `job.run` làm mới E-31 tối đa mỗi 10 s; kéo chọn vùng không cần `BrushComponent`; `cn()` biết thang chữ của token | DR-109 (mới), DOC-32 E-30, E-32, DOC-29 §3.5, DOC-35 §5.3, §5.7, screens/ops-console-jobs §4, §5 |
 | 2026-10-06 | Claude (Owner ủy quyền) | **Dead letters (P5-10):** `DataTable` virtual bằng TanStack Virtual; `JsonEditor` bằng CodeMirror 6 tải bằng `import()`; làm mới danh sách khi `dlq.changed` chỉ lấy trang đầu rồi trộn; search params của `/ops/dlq` và `/ops/jobs` được màn hình kiểm tra thay vì route (giữ JS ban đầu dưới 200 KB); `ConfirmDialog` có `children`, `valid`, `cancelLabel`; Action log mở chi tiết trong drawer | DR-110 (mới), DR-109, DOC-35 §5.3, §5.6, §10, DOC-37 §3.5, §5, screens/ops-console-dlq §4, §5 |
+| 2026-10-11 | Owner | **Live map 3D:** thêm `view=3d` (desktop) với toà nhà nổi khối từ lớp `buildings` của PMTiles hiện có; xe trong 3D chạy mượt giữa các fix GPS (ước tính dọc shape, hòa fix trong 1 s, không chạy lùi); camera Free/Follow/Chase; lối lui khi thiếu WebGL 2, khi chậm và với reduced motion. Cách vẽ xe (custom layer hay deck.gl) chốt sau spike S-07 | DR-111 (mới), screens/live-map, DOC-34 §5.2, DOC-35 §6.4, FR-11.9, F-UI-10, master plan P5-17, P5-18 |
 
 ---
 
@@ -673,6 +674,28 @@ Tài liệu gốc mô tả tốt *cái gì* và *vì sao*, nhưng còn nhiều c
 - **Hệ quả:** AC-1 được kiểm bằng component test của `DataTable` (10.000 dòng, ≤ 60 dòng DOM) và đo tay trên bản build: cuộn 400 sự kiện wheel không có long task trên 50 ms, tối đa 24 dòng trong DOM (trên bản dev có nhiều long task vì React dev). E2E-DLQ-02, -03 gieo dữ liệu bằng token `pti-smoke` (password grant) qua `/sim/scenarios/bad-data` và cần compose; E2E-DLQ-04 chờ triage-worker (P6). Danh sách lần chạy của Pipeline vẫn chưa virtualize (DR-109 mục 3); `DataTable` đã sẵn sàng cho việc đó.
 - **Ghi vào:** DOC-35 §5.3, §5.6, §10, §11, DOC-37 §3.5, §5, screens/ops-console-dlq §4, §5, §6, `src/components/DataTable.tsx`, `src/components/JsonEditor.tsx`, `src/features/dlq/`.
 
+### DR-111 · Live map: chế độ xem 3D — **Chốt** (thiết kế; cách vẽ xe chốt sau S-07)
+- **Vấn đề:** Owner muốn thêm chế độ xem 3D cho Live map, vẫn cập nhật real-time và xe di chuyển mượt. Bản 2D áp vị trí mới ngay, không nội suy (DOC-35 §6.2). Xe chỉ có fix mới mỗi 10–30 s nên nhảy cóc, và khi camera nghiêng thì cú nhảy càng lộ. Cần chốt: chế độ nằm ở đâu trên URL, dữ liệu toà nhà lấy từ đâu, xe đi thế nào giữa hai fix, camera, và lối lui khi máy không đủ sức.
+- **Dữ liệu toà nhà đã có:** lớp `buildings` của Protomaps (dựng từ OSM) có `height` (tag `height`, hoặc `building:levels × 3 + 2` m) và `min_height` (phần `building:part`), ở zoom 11–15. File `make tiles` cắt tới zoom 15 nên đã chứa lớp này; zoom 14 trở xuống chiều cao bị làm tròn 5–20 m. Nhà không có tag thì không có `height`. MapLibre 6 dựng khối bằng `fill-extrusion`, nghiêng tới 85° và có `sky`. OpenFreeMap (style `online` khi dev) có `render_height`.
+- **Các phương án vẽ xe:** (1) `fill-extrusion` cho từng xe và `setData` mỗi khung hình: không thêm thư viện, nhưng đẩy GeoJSON qua worker mỗi khung hình với 600 xe khó giữ 60 fps; (2) custom layer WebGL của MapLibre, nội suy trên GPU: không thêm thư viện, tốn công viết; (3) deck.gl `MapboxOverlay` (`SimpleMeshLayer` hoặc `ScenegraphLayer` với mô hình glTF, transition có sẵn): làm nhanh, chunk nặng hơn.
+- **Quyết định:**
+  - **URL và nơi đặt:** `view` thêm giá trị `3d` (`map`, `3d`, `list`), đổi bằng `replace`. Nút `2D | 3D` ở góc trên phải vùng bản đồ, cạnh panel chi tiết. `c` thành `lon,lat,zoom[,bearing,pitch]`; 2D chỉ ghi ba số đầu và bỏ qua hai số cuối. Chỉ desktop (≥ 1024 px): nhỏ hơn thì không có nút, `view=3d` hiện như `map`.
+  - **Toà nhà:** `fill-extrusion` từ lớp `buildings` sẵn có, `height` thiếu thì mặc định 8 m. Không thêm nguồn dữ liệu, file bản đồ không lớn thêm. Ẩn dưới zoom 13. Có công tắc "Buildings" trong chú giải.
+  - **Chuyển động (chỉ 3D; 2D giữ DOC-35 §6.2):**
+    1. Fix được chiếu lên shape của chuyến (E-02); heading lấy theo hướng đường, không theo `bearing` của GPS.
+    2. Mỗi khung hình, xe tiến dọc shape theo `speedMps` của fix gần nhất. Ngừng ước tính sau 20 s không có fix, và khi `currentStatus = STOPPED_AT` (giữ tại trạm).
+    3. Fix mới phía trước được hòa vào trong 1 s. Fix mới phía sau vị trí đang vẽ: xe đứng yên tới khi ước tính từ fix mới vượt qua, **không bao giờ chạy lùi**.
+    4. Lệch hơn 150 m, hoặc đổi `tripId`: mờ đi rồi hiện lại tại fix (150 ms), không trượt ngang bản đồ.
+    5. Chưa có shape (tuyến chưa tải E-02) hoặc xe lệch shape quá 50 m: ước tính thẳng theo `bearing` và `speedMps`, cùng các luật 2–4.
+    6. Panel xe ghi rõ vị trí là ước tính và tuổi của fix cuối; công tắc "Last GPS fix" hiện điểm fix thật.
+  - **Camera:** ba chế độ trong panel xe: Free, Follow (giữ xe ở giữa), Chase (sau xe, hướng đi chỉ lên). Kéo bản đồ thì về Free. Nghiêng 0–70°, mặc định 58° khi vào 3D; xoay và nghiêng bằng chuột phải, Ctrl + kéo, Shift + phím mũi tên (MapLibre), và các nút "Tilt", "Rotate", la bàn.
+  - **Xe:** mô hình nhỏ: xe buýt có thân, dải kính, bánh, đèn pha, đèn hậu, cửa bên phải; tàu (`routeType` 0, 1, 2) hai toa nối bằng đoạn nối mềm và cần lấy điện. Thân tô theo "Colour vehicles by". Nhãn tuyến là đĩa tròn luôn quay về camera.
+  - **Lối lui:** không có WebGL 2 thì nút 3D bị disable kèm tooltip. Dưới 30 fps liên tục 5 s thì tắt toà nhà và báo toast. Reduced motion: không ước tính, không easing, xe đổi chỗ theo từng fix (mờ 150 ms), camera cắt thay vì bay. Tab bị ẩn thì dừng vòng vẽ.
+  - **Ngân sách:** mã riêng của 3D (lớp xe, camera, nội suy) tải bằng `import()` khi vào `view=3d`, không nằm trong chunk `/map` (DR-107). Ngân sách chunk 3D đặt sau S-07.
+  - **Spike S-07 (P5-17)** chọn giữa phương án (2) và (3): đo fps với 600 xe ở pitch 60° trên máy dev, tỉ lệ toà nhà có `height` trong bbox, kích thước chunk ở gzip -9. Kết quả ghi vào một ADR mới.
+- **Hệ quả:** Không đổi API, không thêm endpoint. Ở 3D, khi zoom ≥ 14, màn tải E-02 của các tuyến có xe trong khung nhìn (tối đa 20 tuyến, key và `staleTime` như cũ) để có shape. Prototype nằm trên canvas "PTI Screen Designs" (artboard "Live map — 3D" và "Live map — 3D motion & fallbacks"), ngoài repo như DR-88; các con số ở trên là đề xuất trên prototype, S-07 và P5-18 có thể chỉnh và ghi lại ở đây.
+- **Ghi vào:** screens/live-map (§2–§11), DOC-34 §5.2, DOC-35 §6.2, §6.4, DOC-03 FR-11.9, DOC-05 F-UI-10, master plan P5-17, P5-18.
+
 ---
 
 ## H. Vận hành, hạ tầng, thực nghiệm
@@ -1032,7 +1055,7 @@ Tài liệu gốc mô tả tốt *cái gì* và *vì sao*, nhưng còn nhiều c
 | Chặn P2 | DR-07, 13, 14, 15, 16, 18, 21, 22, 23, 24, 25, 62, 63, 65, 69, 70, 80, 83, 84 | Quyết định ngữ nghĩa đúng đắn của pipeline |
 | Chặn P3 | DR-27, 28, 50, 57, 58, 71 | Thiếu thì không đo được thực nghiệm |
 | Chặn P4 | DR-12, 17, 19, 20, 29–35, 39–45, 103, 104 | Analytics và API |
-| Chặn P5 | DR-46–49, 82, 88 | Frontend |
+| Chặn P5 | DR-46–49, 82, 88, 111 | Frontend |
 | Chặn P6 | DR-36, 37, 38, 60, 72, 73, 74 | AI triage |
 | Chặn P7 | DR-54, 55, 56, 75, 76 | Kubernetes |
 | Chặn P8 | DR-77, 78, 79, 87 | Demo, demo console, runbook k3d, báo cáo |

@@ -1,7 +1,7 @@
 # Màn hình: Live map
 
-> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-36
-> Phụ thuộc: DR-88, DOC-34, DOC-35 §5.8–5.9, §6, DOC-37, DOC-32 (E-01, E-02, E-05, E-07, E-11, E-12, E-13, E-18), DOC-33 §5.1–5.6, DOC-26 §8–9, ADR-0021
+> Trạng thái: **Approved** · Cập nhật: 2026-10-11 (thêm chế độ 3D, DR-111) · DOC-36
+> Phụ thuộc: DR-88, DR-111, DOC-34, DOC-35 §5.8–5.9, §6, DOC-37, DOC-32 (E-01, E-02, E-05, E-07, E-11, E-12, E-13, E-18), DOC-33 §5.1–5.6, DOC-26 §8–9, ADR-0021
 > Người dùng chính: P5-06
 
 ## 1. Persona, use case, quyền
@@ -18,6 +18,8 @@
 - `bunching` với anonymous bị bỏ qua (không có dữ liệu overlay).
 - Chọn xe, cặp bunching hay gián đoạn đều là `push`, nên nút Back đóng panel.
 - `colour` (`delay` \| `route` \| `crowding`) đổi bằng `replace`; không ghi khi là `delay`.
+- `view` (`map` \| `3d` \| `list`) đổi bằng `replace`; không ghi khi là `map`. `3d` chỉ có trên desktop (≥ 1024 px) có WebGL 2; ngoài điều kiện đó `view=3d` hiện như `map` và URL không bị sửa (DR-111).
+- Ở `view=3d`, `c` là `lon,lat,zoom,bearing,pitch` (hai số cuối là số nguyên độ). Ở 2D, `c` chỉ ghi `lon,lat,zoom` và bỏ qua hai số cuối nếu có.
 
 ## 3. Wireframe
 
@@ -104,6 +106,32 @@ Delay vs normal  [▬▬▬▬▬▬▬▬▬▬▬▬▬|▬▬]  normal 1m 01s
 [Open alert]
 ```
 
+### 3.1 Chế độ 3D (`view=3d`, desktop, DR-111)
+
+Prototype: canvas "PTI Screen Designs", artboard "Live map — 3D" (có tương tác: xe chạy, camera, chọn xe) và "Live map — 3D motion & fallbacks" (luật chuyển động, camera, lối lui). Hai artboard nằm ngoài repo như DR-88.
+
+Bố cục giữ nguyên 2D: panel điều khiển, pill tóm tắt, chú giải, panel chi tiết. Khác biệt: bản đồ nghiêng (mặc định 58°) có toà nhà nổi khối và sương ở chân trời; xe là mô hình nhỏ có nhãn tuyến dạng đĩa đứng trên que; cụm điều khiển camera thay "Locate vehicles"/"List view"; panel xe có thêm khối "Camera".
+
+```text
+┌ sidebar ┬──────────────────────────────────────────────────────────────────────────────┐
+│         │ ┌ Search the map ─────────────────┐              [2D|3D]  ┌ Vehicle ──── × ┐│
+│         │ │ [18] [21] [+ Route]             │   ▓▓ ▓ ▓▓▓ (sương)    │ [18] Nicollet  ││
+│         │ │ Colour vehicles by [Delay|…]    │  ▓▓█ ▓██ ▓  ▓█        │ Bus 1742 · NB  ││
+│         │ └─────────────────────────────────┘    ⑱      ㉑          │ +3 min Bunching││
+│         │ (● 598 vehicles · Updated 1 s ago)    ╿  ▄▄  ╿            │ Speed Next Occ.││
+│         │                                      ▄▆▄  ⑱  ▄▆▄          │ ⌖ Position est-││
+│         │                                         ◎▄▆▄  (đang chọn) │ imated · last  ││
+│         │                                     ╱  ┊bunching┊  ╲      │ fix 6 s ago    ││
+│         │                                   ╱ ░░░ disruption ░░  ╲  │ Camera         ││
+│         │ ┌ Legend ──────────── ˄ ┐       ╱                       ╲ │ [Free|Follow|  ││
+│         │ │● Early …  ● Very late │                          [▲ 58°▼]│  Chase]        ││
+│         │ │◉ Bunching ! Disruption│                          [⊙][↺][↻]│ Trip progress  ││
+│         │ │Buildings        [on ] │                          [+][−]   │ …              ││
+│         │ │Last GPS fix     [off] │                                   │[Stop details]  ││
+│         │ └───────────────────────┘                                   └────────────────┘│
+└─────────┴──────────────────────────────────────────────────────────────────────────────┘
+```
+
 ## 4. Vùng và component
 
 | Vùng | Component | Ghi chú |
@@ -115,6 +143,9 @@ Delay vs normal  [▬▬▬▬▬▬▬▬▬▬▬▬▬|▬▬]  normal 1m 01s
 | Điều khiển bản đồ (phải) | `MapControls` | "Zoom in", "Zoom out", "Locate vehicles" (fit mọi xe đang lọc), "List view" (`view=list`). Vùng chạm 44 px trên mobile |
 | Panel chi tiết (phải) | `MapFloatPanel` rộng 380 px, cao theo nội dung (tối đa hết chiều cao trừ 16 px lề) | Nội dung theo đối tượng chọn: `VehiclePanel`, `BunchingPanel`, `DisruptionPanel` (§4.1). Không có gì được chọn thì không hiện |
 | Chế độ danh sách | `VehicleList` | Thay bản đồ khi `view=list` |
+| Nút chế độ (trên phải, cạnh panel chi tiết) | `MapViewSwitch` | Segmented "2D" \| "3D", là link đổi `view`; chỉ desktop. Không có WebGL 2: "3D" disabled kèm tooltip (§8) |
+| Điều khiển camera (phải, chỉ 3D) | `CameraControls` | Ba cụm: "Tilt up"/"Tilt down" kèm số độ; la bàn ("Reset bearing to north", kim xoay theo bearing), "Rotate left"/"Rotate right" (±20°); "Zoom in"/"Zoom out". Thay "Locate vehicles" và "List view" của 2D |
+| Lớp 3D | `Map3DLayers` (tải bằng `import()` khi vào `view=3d`) | Toà nhà, xe 3D, nhãn đĩa, vòng chọn, bunching, gián đoạn, điểm fix cuối (DOC-35 §6.4) |
 | Bottom sheet (mobile) | `BottomSheet` 3 nấc | §4.2 |
 | Toast gián đoạn/bunching | `sonner` | §6 |
 
@@ -138,6 +169,13 @@ Delay vs normal  [▬▬▬▬▬▬▬▬▬▬▬▬▬|▬▬]  normal 1m 01s
 - "Nearby stops": xin quyền vị trí khi người dùng bấm chip "Nearby" (không hỏi tự động). Có vị trí → E-06 `bbox` quanh vị trí (≈ 400 m), sắp theo khoảng cách, tối đa 5 trạm; mỗi trạm: tên, khoảng cách ("120 m"), tối đa 3 giờ đến gần nhất dạng `RouteBadge` + "{n} min" (E-08 `limit=3`), dải cảnh báo nếu trạm có gián đoạn. Không có quyền vị trí → danh sách "Saved" và "Recent stops" (`localStorage`, `screens/stop-detail.md`).
 - Chip trên đỉnh: "Nearby", các tuyến đã chọn (`RouteBadge` + tên ngắn), "Saved".
 
+### 4.3 Khác biệt ở chế độ 3D
+
+- **`VehiclePanel`** thêm, ngay dưới hàng ba số: dòng "Position estimated between GPS fixes · last fix {n} s ago" (icon ghim, `--muted-foreground`; `n` là tuổi của fix cuối theo `businessNow`). Nút "Follow"/"Stop following" của 2D được thay bằng khối **"Camera"**: `SegmentedControl` "Free", "Follow", "Chase" và một dòng mô tả chế độ đang chọn (§8). Mọi phần khác giữ nguyên.
+- **Chú giải** thêm hai dòng có `Switch`: "Buildings" (bật mặc định) và "Last GPS fix" (tắt mặc định). Hai lựa chọn này lưu ở `localStorage` (`pti.map3d.layers`), không lên URL.
+- **Chuyển động:** vị trí xe vẽ là ước tính giữa hai fix theo DOC-35 §6.4; panel, danh sách và chú giải vẫn dùng số từ dữ liệu. Camera "Follow"/"Chase" bám vị trí đang vẽ.
+- Bunching, gián đoạn, chọn xe, toast và phân quyền giống 2D; chỉ cách vẽ khác (DOC-35 §6.4).
+
 ## 5. Dữ liệu
 
 | Dữ liệu | Endpoint | Query key | Refetch / realtime |
@@ -153,6 +191,8 @@ Delay vs normal  [▬▬▬▬▬▬▬▬▬▬▬▬▬|▬▬]  normal 1m 01s
 | Trạm của tuyến (lớp `stops`, "Transfer to …") | E-06 `?routeId=…&limit=500` | `['stops', 'route', routeId]` | `staleTime` 1 giờ |
 | Alert gián đoạn/bunching đang mở (toast, "Open alert") | E-20 `?state=open&type=DISRUPTION,BUNCHING&routeId=…` | `['alerts', 'list', {…}]` | `alert.*` vá cache như mọi danh sách alert; id mới xuất hiện sau lần tải đầu là toast (DOC-26 §8.4) |
 | Kênh SSE | E-70 `channels=vehicles,alerts&routeId=…` | — | Không chọn tuyến thì không gửi `routeId` |
+| Toà nhà (3D) | Lớp `buildings` của PMTiles (ADR-0021), không qua API | — | Tĩnh; `height` thiếu thì 8 m (DR-111) |
+| Shape để nội suy (3D) | E-02 của các tuyến có xe trong khung nhìn, chỉ khi zoom ≥ 14, tối đa 20 tuyến | `['routes', routeId, 'detail']` | `staleTime: Infinity`; tuyến chưa có shape thì ước tính theo `bearing` |
 
 - E-05 không có `delaySeconds` mới trong `vehicles.batch`; panel xe hiện độ trễ từ snapshot, và refetch E-05 khi mở panel để có số mới.
 - `businessNow` lấy từ `heartbeat` (DOC-33 §5.10) để làm mờ xe cũ hơn 90 s và ẩn xe cũ hơn 5 phút.
@@ -178,6 +218,13 @@ Delay vs normal  [▬▬▬▬▬▬▬▬▬▬▬▬▬|▬▬]  normal 1m 01s
 | Kéo tay nắm bottom sheet (mobile) | Chuyển nấc 96 px / 50% / 90%; bàn phím: nút tay nắm có `aria-label` "Resize panel", `Enter` chuyển nấc kế | — |
 | Chip "Nearby" (mobile) | Xin quyền vị trí, tải "Nearby stops" | Từ chối → "Location is off. Showing saved and recent stops." |
 | Phím mũi tên / `+` / `−` khi bản đồ có focus | Pan / zoom (MapLibre) | — |
+| "3D" (`MapViewSwitch`) | `view=3d` (`replace`); camera bay tới pitch 58° trong 600 ms, giữ tâm, zoom, bearing; tải `Map3DLayers` lần đầu (pill tóm tắt ghi "Loading 3D…" khi đang tải) | Không có WebGL 2: nút disabled. Tải chunk lỗi: toast "Couldn't load the 3D view." + "Retry", vẫn ở 2D |
+| "2D" | Bỏ `view`; camera về pitch 0, bearing 0 trong 600 ms; xe về cách vẽ 2D | — |
+| Kéo chuột phải, Ctrl + kéo, Shift + phím mũi tên (3D) | Xoay và nghiêng; nghiêng trong 0–70°. Thả chuột thì cập nhật `c` như `moveend` | — |
+| "Tilt up"/"Tilt down", "Rotate left"/"Rotate right", la bàn (3D) | ±10° nghiêng, ±20° xoay, la bàn đưa bearing về 0; đang "Chase" thì chuyển "Free" trước | — |
+| "Camera" → "Free" / "Follow" / "Chase" (3D) | Free: camera đứng yên. Follow: tâm camera bám xe mỗi khung hình. Chase: sau xe, pitch 64°, hướng đi chỉ lên. Kéo bản đồ → "Free" | Xe biến mất khi đang Follow/Chase → "Free" tại chỗ, panel như 2D |
+| Công tắc "Buildings" / "Last GPS fix" (3D) | Bật/tắt lớp toà nhà / điểm fix cuối của mọi xe | — |
+| Khung hình < 30 fps liên tục 5 s (3D) | Tắt toà nhà, toast "3D was running slowly, so buildings are off." + "Turn back on" | — |
 
 ## 7. Trạng thái
 
@@ -188,6 +235,10 @@ Delay vs normal  [▬▬▬▬▬▬▬▬▬▬▬▬▬|▬▬]  normal 1m 01s
 | Error | E-05 lỗi lần đầu: pill tóm tắt tông `danger` "Couldn't load vehicles" + "Retry"; đã có dữ liệu: giữ xe cũ, pill chuyển dạng inline (DOC-37 §2.3) |
 | Stale | `StaleBanner` toàn cục; xe cũ hơn 90 s mờ đi (DOC-35 §6.2) |
 | Không có quyền | Không áp dụng; `bunching=<id>` với anonymous bị bỏ qua |
+| 3D không dùng được | Không có WebGL 2: nút "3D" disabled, tooltip "3D needs a browser with WebGL 2."; màn < 1024 px: không có nút; `view=3d` hiện như 2D |
+| 3D chậm | Như §6: tắt toà nhà và toast; công tắc "Buildings" về tắt |
+| Reduced motion (3D) | Không ước tính, không easing: xe đổi chỗ theo từng fix (mờ 150 ms); camera cắt thay vì bay; "Follow"/"Chase" nhảy theo fix |
+| Tab bị ẩn (3D) | Dừng vòng vẽ; quay lại thì xe nhảy tới vị trí ước tính hiện tại |
 
 ## 8. Microcopy
 
@@ -209,6 +260,7 @@ Delay vs normal  [▬▬▬▬▬▬▬▬▬▬▬▬▬|▬▬]  normal 1m 01s
 | Chú giải | "Legend" · chế độ Delay: "Early", "On time", "Late (5–10 min)", "Very late (10+ min)", "No delay data" (ngưỡng DOC-35 §3.4) · chế độ Crowding: nhãn `occupancyStatus` (DOC-37 §3.2) · "Bunching", "Disruption", "Last seen over 90 s ago", "Group of vehicles" |
 | Bản đồ nền thiếu | "Base map unavailable. Run `make tiles` to download it." |
 | Danh sách | Tiêu đề cột "Route", "Bus", "Destination", "Next stop", "Delay", "Updated"; nhóm: "Route {route} · {n} vehicles" |
+| Chế độ 3D | `aria-label` "Map view" · "2D", "3D" · tooltip "3D needs a browser with WebGL 2." · "Loading 3D…" · "Couldn't load the 3D view." + "Retry" · `aria-label` "Tilt up", "Tilt down", "Reset bearing to north", "Rotate left", "Rotate right" · "{n}°" · "Camera" · "Free", "Follow", "Chase" · "Drag to pan. Right-drag or Ctrl + drag to rotate and tilt." · "Keeps {vehicle} in the centre as it moves. Dragging the map switches back to Free." · "Rides behind {vehicle} with the direction of travel pointing up." (`{vehicle}` = "bus {label}" hoặc "train {label}") · "Position estimated between GPS fixes · last fix {n} s ago" · chú giải "Buildings", "Last GPS fix" · toast "3D was running slowly, so buildings are off." + "Turn back on" · `aria-label` bản đồ "3D vehicle map" · đĩa nhãn: "{Bus|Train} {label}, route {route}, {delay}" · thẻ xe chọn "{Bus|Train} {label}" / "{delay} · {n} mph" |
 
 ## 9. Tiêu chí nghiệm thu
 
@@ -223,6 +275,12 @@ Delay vs normal  [▬▬▬▬▬▬▬▬▬▬▬▬▬|▬▬]  normal 1m 01s
 - **AC-9** Given `view=list`, Then mọi thông tin của panel xe có trong bảng, điều khiển được bằng bàn phím, axe không có vi phạm nghiêm trọng.
 - **AC-10** Given `colour=route`, Then xe tô theo màu tuyến, chú giải liệt kê các tuyến đang hiện kèm số xe; copy URL sang tab khác cho cùng chế độ.
 - **AC-11** Given bấm một xe, Then "Trip progress" có trạm kế tiếp đúng `currentStopSequence` của E-05 và giờ "Arriving …" theo `stopArrivalAt`.
+- **AC-12** Given desktop có WebGL 2, When bấm "3D", Then URL có `view=3d`, bản đồ nghiêng 58° với toà nhà nổi khối trong ≤ 1 s và xe vẫn cập nhật; F5 giữ chế độ và camera (`c` có bearing, pitch).
+- **AC-13** Given `view=3d` và xe nhận fix mỗi 10–30 s, Then marker di chuyển liên tục giữa các fix, không lùi dọc tuyến, và không nhảy quá 5 px giữa hai khung hình liên tiếp trừ khi fix lệch hơn 150 m (khi đó mờ đi rồi hiện lại).
+- **AC-14** Given chọn một xe và "Follow", Then xe nằm giữa khung nhìn khi di chuyển; kéo bản đồ → khối Camera chuyển "Free".
+- **AC-15** Given `prefers-reduced-motion: reduce` và `view=3d`, Then marker chỉ đổi chỗ khi có fix, camera không bay.
+- **AC-16** Given trình duyệt không có WebGL 2, hoặc màn hình < 1024 px, Then nút "3D" disabled hoặc không có, và mở `view=3d` cho bản đồ 2D.
+- **AC-17** Given 600 xe, `view=3d`, pitch 60° trên máy dev (cấu hình máy ghi trong ADR của S-07), Then trung bình ≥ 50 fps trong 30 s; nếu dưới 30 fps liên tục 5 s thì toà nhà tắt và toast hiện.
 
 ## 10. Ca kiểm thử E2E
 
@@ -232,7 +290,12 @@ Delay vs normal  [▬▬▬▬▬▬▬▬▬▬▬▬▬|▬▬]  normal 1m 01s
 | E2E-MAP-02 | `POST /sim/scenarios/bunching` trên tuyến có nhiều xe; đăng nhập `operator`; chờ toast bunching → "Show on map" → panel; (từ P6) "Accept" | AC-4, AC-5 (phần gợi ý từ P6; P5 kiểm "No suggestion available") |
 | E2E-MAP-03 | Playwright `route.abort` cho `/api/v1/stream`; đo vị trí một xe qua 12 s | AC-7 |
 | E2E-MAP-04 | Anonymous mở `/map`; `POST /sim/scenarios/disruption` trên tuyến 18; chờ toast; bấm "Show" | AC-8 |
+| E2E-MAP-05 | Mở `/map`, bấm "3D"; kiểm URL, reload; chọn xe, "Follow", kéo bản đồ → "Free"; axe | AC-12, AC-14 |
+| E2E-MAP-06 | `view=3d`; đọc vị trí màn hình của một xe qua hook test mỗi khung hình trong 30 s; với `reducedMotion: 'reduce'` lặp lại | AC-13, AC-15 |
+| E2E-MAP-07 | Chromium với `--disable-webgl2` (hoặc viewport 800 px) mở `/map?view=3d` | AC-16 |
+
+AC-17 đo tay trên bản build (Performance panel của Chrome) ở S-07 và khi xong P5-18; kết quả ghi vào ADR của S-07.
 
 ## 11. Câu hỏi còn mở
 
-Không có.
+- Cách vẽ xe 3D (custom layer của MapLibre hay deck.gl) chốt sau spike S-07 (P5-17, DR-111). Các ngưỡng chuyển động (1 s, 20 s, 150 m, 50 m) là đề xuất từ prototype; S-07 và P5-18 có thể chỉnh.

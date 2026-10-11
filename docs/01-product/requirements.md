@@ -1,6 +1,6 @@
 # Yêu cầu
 
-> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-03
+> Trạng thái: **Approved** · Cập nhật: 2026-10-11 · DOC-03
 > Phụ thuộc: SDD gốc §3, [DR](../00-decision-register.md), [Glossary](../02-glossary.md), [DOC-01](vision-and-scope.md)
 
 ## 0. Quy ước
@@ -131,6 +131,7 @@
 | FR-11.6 | Không màn hình nào bị trắng khi API hoặc SSE lỗi; có stale banner | Tắt API → mọi màn hình hiện trạng thái lỗi hoặc dữ liệu cũ kèm thời điểm | M | E2E |
 | FR-11.7 | Demo control (chỉ ở profile `demo`) | `screens/demo-control.md` | S | E2E |
 | FR-11.8 | Overview mạng lưới cho viewer: KPI, alert cần chú ý, tuyến kém, tình trạng pipeline, mỗi khối dẫn sang màn chuyên trách (DR-88) | `screens/overview.md` | S | E2E |
+| FR-11.9 | Live map có chế độ 3D trên desktop: toà nhà nổi khối, xe di chuyển mượt giữa các lần cập nhật vị trí, camera Free/Follow/Chase, có lối lui khi thiếu WebGL 2, khi chậm và với reduced motion (DR-111) | `screens/live-map.md` AC-12…AC-17 | S | E2E, đo tay fps |
 
 ### FR-12 · Replay
 

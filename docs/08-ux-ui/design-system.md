@@ -1,7 +1,7 @@
 # Design system
 
-> Trạng thái: **Approved** · Cập nhật: 2026-10-05 · DOC-35
-> Phụ thuộc: DOC-34, DOC-15 (enum), DOC-23 §7.3 (mức tin cậy ETA), DOC-32, ADR-0020, ADR-0021, NFR-11, DR-88
+> Trạng thái: **Approved** · Cập nhật: 2026-10-11 · DOC-35
+> Phụ thuộc: DOC-34, DOC-15 (enum), DOC-23 §7.3 (mức tin cậy ETA), DOC-32, ADR-0020, ADR-0021, NFR-11, DR-88, DR-111
 > Người dùng chính: P5-03 (token và component nền), P5-06…P5-14, người viết `screens/*`
 
 ## 1. Mục đích và phạm vi
@@ -533,13 +533,63 @@ interface CalloutProps { tone: Tone | 'primary' | 'bunching'; icon?: React.React
 | `vehicle-labels` | Xe | Zoom ≥ 14: nhãn tuyến (`displayName`) cạnh icon, chữ 11 px có halo |
 
 - **Xe cũ:** `eventTimestamp` cũ hơn 90 s so với `businessNow` → độ mờ 0,4 và tooltip "Last seen 2 min ago". Cũ hơn 5 phút → ẩn (DOC-33 §5.1).
-- **Chuyển động:** vị trí mới áp ngay (không nội suy) để khớp dữ liệu; gom mọi thay đổi trong một khung hình thành một lần `setData` (DOC-34 §7).
+- **Chuyển động:** ở 2D, vị trí mới áp ngay (không nội suy) để khớp dữ liệu; gom mọi thay đổi trong một khung hình thành một lần `setData` (DOC-34 §7). Chế độ 3D ước tính vị trí giữa hai fix theo §6.4.
 - **Tô nổi khi chọn cặp bunching** (`bunching=<id>` trên URL): camera fit hai xe với padding 120 px, các xe khác độ mờ 0,5.
 - Lớp `vehicles` dùng `symbol` với icon SDF đăng ký lúc tải style (`map.addImage(..., { sdf: true })`) để đổi màu bằng `icon-color`, không tạo ảnh cho từng màu.
 
 ### 6.3 Chú giải
 
 Chú giải là panel nổi thu gọn được ở góc dưới trái (mở mặc định trên desktop, đóng trên mobile; nút "Legend" bật/tắt), liệt kê theo chế độ màu đang chọn: năm lớp trễ, hoặc các tuyến đang hiện, hoặc các mức đông; thêm cặp bunching (chỉ viewer), gián đoạn/trạm bị ảnh hưởng, xe cũ, cụm xe. Mỗi dòng có **số xe hiện tại** của lớp đó (đếm phía client từ dữ liệu đang vẽ). Chú giải là bảng HTML, đọc được bằng screen reader.
+
+### 6.4 Chế độ 3D (DR-111)
+
+Chỉ desktop, `view=3d` (`screens/live-map.md` §3.1). Mã của chế độ này tải bằng `import()` khi bật, không nằm trong chunk `/map` (DR-107). Kỹ thuật vẽ xe (custom layer của MapLibre hay deck.gl) chốt sau S-07; phần dưới là yêu cầu hình ảnh và hành vi, không phụ thuộc kỹ thuật đó.
+
+**Camera và nền**
+
+- Pitch mặc định 58° khi vào 3D, giới hạn 0–70° (`maxPitch` 70). Bearing tự do. Vào/ra 3D bay trong 600 ms (reduced motion: cắt).
+- `sky` của MapLibre: chân trời hòa vào `--background` của theme (sương trong khoảng 15% trên cùng của khung nhìn), để phần xa không có mép cứng.
+- Bản đồ nền và các lớp 2D phẳng (tuyến, trạm, gián đoạn, cụm) giữ như §6.2, nằm trên mặt đất.
+
+**Toà nhà**
+
+- Lớp `buildings-3d`: `fill-extrusion` từ source-layer `buildings` của PMTiles; `fill-extrusion-height` = `coalesce(height, 8)`, `fill-extrusion-base` = `coalesce(min_height, 0)`; `fill-extrusion-vertical-gradient: true`.
+- Màu: theme sáng `#E6E3DA`, theme tối `#2A2D35`; độ mờ 0,9. Ánh sáng (`light`) chiếu từ tây nam để mặt tường sáng tối khác nhau.
+- Hiện từ zoom 13 (độ mờ nội suy 13 → 14 từ 0 tới 0,9). Công tắc "Buildings" tắt cả lớp.
+
+**Xe**
+
+| Phần | Hiển thị |
+| --- | --- |
+| Thân xe buýt | Mô hình nhỏ (dài khoảng 2,7 lần rộng), phóng đại theo zoom để thân dài ít nhất 24 px trên màn hình. Thân và mái màu theo "Colour vehicles by" (§6.2); mái có viền trắng 1 px; dải kính `#1C2430` quanh thân có cột cùng màu thân; viền chân đen; bánh `#1E2026`; đèn pha `#FFF4CF`, đèn hậu `--delay-very-late`; bảng tuyến hổ phách `#F4B740` trên kính trước; hai cửa ở bên phải theo hướng chạy |
+| Tàu (`routeType` 0, 1, 2) | Dài gấp đôi xe buýt, hai toa nối bằng đoạn nối mềm `#3A3D45`, ba cụm bánh, cần lấy điện trên mái; cao hơn xe buýt một chút |
+| Bóng | Bóng mềm dưới thân, lệch nhẹ về đông nam |
+| Hướng | Theo hướng của shape tại vị trí đang vẽ, quay mượt trong 300 ms; chưa có shape thì theo `bearing` |
+| Nhãn | Đĩa tròn 24 px màu thân xe, viền trắng 2 px, số tuyến trắng 9,5 px đậm, đứng trên que 1,5 px cao 22 px từ mái; luôn quay về camera. Là phần tử bấm được để chọn xe, có `aria-label` (screens/live-map §8) |
+| Xe đang chọn | Đĩa 30 px viền 3 px kèm vòng `--primary`; que `--primary` 2,5 px; vòng trên mặt đất `--primary` 2,5 px có "ping" (§4.4); thẻ tối cạnh đĩa: "{Bus\|Train} {label}" và "{delay} · {n} mph" |
+| Xe cũ | Như 2D: cũ hơn 90 s thì độ mờ 0,4 và **ngừng ước tính**; cũ hơn 5 phút thì ẩn |
+
+**Lớp phủ trong 3D**
+
+- **Bunching:** viên thuốc nét đứt `--bunching` 2 px, nền `--bunching` 8%, nằm trên mặt đất, bao hai xe và di chuyển theo vị trí đang vẽ của cặp. Không vẽ `bunching-links` riêng.
+- **Gián đoạn:** ngoài lớp phẳng của §6.2, hai vách trong suốt cao khoảng 3 tầng chạy dọc hai bên đoạn đường bị ảnh hưởng, màu `--tone-danger-solid` từ 45% ở chân xuống 0 ở đỉnh, mép chân 2 px đậm.
+- **Last GPS fix** (công tắc, tắt mặc định): vòng tròn nét đứt bán kính 7 px `--foreground-2` nền trắng 70% và chấm 2 px tại vị trí fix cuối của mỗi xe.
+
+**Chuyển động (chỉ 3D)**
+
+| Tình huống | Hành vi |
+| --- | --- |
+| Giữa hai fix | Mỗi khung hình, tiến dọc shape của chuyến (E-02) theo `speedMps` của fix gần nhất |
+| Không có fix 20 s, hoặc `currentStatus = STOPPED_AT` | Ngừng ước tính, đứng yên (tại trạm nếu `STOPPED_AT`) |
+| Fix mới ở phía trước vị trí đang vẽ | Hòa vào trong 1 s (ease-out), rồi ước tính tiếp từ fix mới |
+| Fix mới ở phía sau | Đứng yên tới khi ước tính từ fix mới vượt qua vị trí đang vẽ; không bao giờ chạy lùi |
+| Lệch hơn 150 m, hoặc đổi `tripId` | Mờ đi rồi hiện lại tại fix (150 ms), không trượt |
+| Chưa có shape hoặc lệch shape quá 50 m | Ước tính thẳng theo `bearing` và `speedMps`, cùng các luật trên |
+| Reduced motion | Không ước tính, không easing: đổi chỗ theo từng fix, mờ 150 ms |
+| Tab bị ẩn | Dừng vòng vẽ; khi quay lại nhảy tới vị trí ước tính hiện tại |
+
+- Vòng vẽ chỉ chạy khi `view=3d` và tab hiện. Vị trí cập nhật trên GPU mỗi khung hình; dữ liệu xe (E-05, `vehicles.batch`) chỉ được đẩy vào lớp khi đổi, không mỗi khung hình.
+- Mục tiêu: trung bình ≥ 50 fps với 600 xe ở pitch 60° trên máy dev. Dưới 30 fps liên tục 5 s thì tắt toà nhà và báo toast (`screens/live-map.md` §6).
 
 ## 7. Quy ước biểu đồ
 

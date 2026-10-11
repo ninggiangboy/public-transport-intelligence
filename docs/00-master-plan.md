@@ -1,6 +1,6 @@
 # Master Plan: xây dựng Public Transport Intelligence từ đầu đến cuối
 
-> Trạng thái: **Approved v1.0** · Cập nhật: 2026-09-30 · Đi kèm: [00-decision-register.md](00-decision-register.md) · Nguồn: `public-transport-intelligence.md` (**SDD gốc**)
+> Trạng thái: **Approved v1.0** · Cập nhật: 2026-10-11 · Đi kèm: [00-decision-register.md](00-decision-register.md) · Nguồn: `public-transport-intelligence.md` (**SDD gốc**)
 
 Tài liệu này là bản hướng dẫn tổng. Nó gồm:
 
@@ -392,7 +392,7 @@ P3 và P4 có thể chạy song song nếu có hai người. Nếu chỉ một n
 
 > **Đã chốt: làm đầy đủ phạm vi.** Thứ tự dưới đây chỉ là phương án dự phòng, dùng khi một milestone trễ quá 50% so với ước lượng.
 
-Demo console (P8-08; demo quay về terminal và Grafana theo DOC-46) → Phase R (code P1–P3 giữ kiến trúc cũ và store freeze; luật cho code mới vẫn giữ, DR-104) → gợi ý điều phối (P6-07) → EXP-06 (P6-11) → ticketing anomaly (P6-05) → OTP (P4-06) → Kubernetes (P7; khi đó EXP-08 chạy trên compose bằng `docker kill`/`docker pause` và Toxiproxy). **P1–P3 không được cắt**, kể cả đợt chạy đầy đủ P3-10. Luật Clean Architecture cho code mới (P4-18) cũng không được cắt.
+Live map 3D (P5-17, P5-18; Live map giữ 2D, DR-111) → Demo console (P8-08; demo quay về terminal và Grafana theo DOC-46) → Phase R (code P1–P3 giữ kiến trúc cũ và store freeze; luật cho code mới vẫn giữ, DR-104) → gợi ý điều phối (P6-07) → EXP-06 (P6-11) → ticketing anomaly (P6-05) → OTP (P4-06) → Kubernetes (P7; khi đó EXP-08 chạy trên compose bằng `docker kill`/`docker pause` và Toxiproxy). **P1–P3 không được cắt**, kể cả đợt chạy đầy đủ P3-10. Luật Clean Architecture cho code mới (P4-18) cũng không được cắt.
 
 ---
 
@@ -606,6 +606,8 @@ Số đo chậm hơn M3 chủ yếu vì analytics chạy trên `pg-warehouse` sa
 | P5-14 | Trạng thái loading/empty/error/stale cho mọi màn hình; kiểm tra a11y (axe) | Không màn hình nào bị trắng khi API chết | P5-06…13, P5-16 | DOC-37 |
 | P5-15 | Image Nginx (static, cấu hình runtime qua `env.js`, serve PMTiles), đưa vào compose | `make up` → mở `http://localhost:8080` | P5-01 | DOC-39 |
 | P5-16 | Overview: KPI mạng lưới, network pulse, alert cần chú ý, OTP theo ngày, tuyến cần theo dõi, tình trạng pipeline | Như trên | P5-04, P5-05 | screens/overview |
+| P5-17 | **S-07 Spike 3D cho Live map** (DR-111): `fill-extrusion` lớp `buildings` trên file `make tiles` thật; 600 xe giả lập ở pitch 60° vẽ bằng (a) custom layer của MapLibre và (b) deck.gl `MapboxOverlay`, cùng luật nội suy của DOC-35 §6.4; đo fps trung bình và thấp nhất trong 30 s, kích thước chunk (gzip -9), tỉ lệ toà nhà có `height` trong bbox | `spikes/s07-map-3d/` và ADR mới chọn (a) hoặc (b) kèm ngân sách chunk 3D; DR-111 cập nhật các ngưỡng nếu đổi | P5-06 | DR-111, DOC-35 §6.4 |
+| P5-18 | Live map chế độ 3D: `MapViewSwitch`, `view=3d` và `c` có bearing/pitch, toà nhà, lớp xe 3D theo kết quả S-07, nội suy và luật chuyển động, `CameraControls`, khối "Camera" và dòng vị trí ước tính trong panel xe, công tắc "Buildings"/"Last GPS fix", lối lui (WebGL 2, fps thấp, reduced motion), tải bằng `import()` | Đạt AC-12…AC-17 và E2E-MAP-05…07 trong screens/live-map; `pnpm check:bundle` qua (chunk `/map` không đổi) | P5-17 | screens/live-map, DOC-35 §6.4 |
 
 **Tiêu chí thoát (M5):** chạy được bước 1–6 của kịch bản demo trên UI (bước 2 và 4 tạm chưa có phần AI).
 

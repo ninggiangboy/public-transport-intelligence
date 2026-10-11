@@ -1,6 +1,6 @@
 # Nguyên tắc UX và kiến trúc thông tin
 
-> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-34
+> Trạng thái: **Approved** · Cập nhật: 2026-10-11 · DOC-34
 > Phụ thuộc: DOC-02, DOC-03 (FR-11, NFR-11, NFR-12), DOC-04, DOC-26 §8–9, DOC-27 §3, DOC-31, DOC-32, DOC-33, ADR-0020, ADR-0021, DR-88
 > Người dùng chính: P5-01…P5-15; người viết DOC-35, DOC-36, DOC-37
 
@@ -130,7 +130,7 @@ Phím tắt (trừ `⌘K`) không hoạt động khi focus đang ở ô nhập l
 | --- | --- | --- | --- |
 | `/` | — | mọi người | Chuyển (`replace`) tới `/overview` nếu đã đăng nhập với role viewer trở lên, ngược lại `/map` |
 | `/overview` | `overview.md` | viewer | `period` (`1d` \| `7d` \| `30d` · `1d`; chỉ áp cho khối OTP) |
-| `/map` | `live-map.md` | mọi người | `route` (list routeId, ≤ 20 · tất cả) · `vehicle` (vehicleId đang chọn) · `bunching` (episode id, viewer) · `disruption` (episode id) · `c` (`lon,lat,zoom`, 4 chữ số thập phân · vùng của feed) · `view` (`map` \| `list` · `map`) · `colour` (`delay` \| `route` \| `crowding` · `delay`) |
+| `/map` | `live-map.md` | mọi người | `route` (list routeId, ≤ 20 · tất cả) · `vehicle` (vehicleId đang chọn) · `bunching` (episode id, viewer) · `disruption` (episode id) · `c` (`lon,lat,zoom`, 4 chữ số thập phân; `view=3d` thêm `,bearing,pitch` là số nguyên độ · vùng của feed) · `view` (`map` \| `3d` \| `list` · `map`; `3d` chỉ desktop có WebGL 2, DR-111) · `colour` (`delay` \| `route` \| `crowding` · `delay`) |
 | `/stops` | `stop-detail.md` §Tìm trạm | mọi người | `q` (2–100 ký tự) |
 | `/stops/$stopId` | `stop-detail.md` | mọi người | — |
 | `/alerts` | `alert-feed.md` | mọi người | `state` (`open` \| `unacknowledged` \| `all` · `open`) · `audience` (list) · `type` (list) · `severity` (list 0–2) · `route` (list) · `window` (`24h` \| `7d` · `24h`) · `alert` (id, mở khung chi tiết) |
