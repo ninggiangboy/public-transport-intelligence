@@ -1,0 +1,13 @@
+// The PTI landing page on Cloudflare Workers static assets.
+// Deploy from the repository root: npx wrangler deploy -c deploy/landing/wrangler.jsonc
+{
+  "name": "pti-landing",
+  "compatibility_date": "2026-10-06",
+  "assets": {
+    "directory": "../../landing"
+  },
+  "routes": [
+    { "pattern": "pti.nigb.dev", "custom_domain": true }
+  ],
+  "workers_dev": true
+}

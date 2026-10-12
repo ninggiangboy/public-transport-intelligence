@@ -48,3 +48,6 @@ frontend/public/tiles
 
 # Claude Code worktrees
 .claude/worktrees/
+
+# Cloudflare wrangler cache
+.wrangler/
