@@ -66,10 +66,10 @@ Prototype (DR-88): [Ops — Ticketing anomalies](assets/ops-console-ticketing.ht
 | Vùng | Component | Ghi chú |
 | --- | --- | --- |
 | Đầu trang | `PageHeader` + `SegmentedControl` `window` ("6 h", "24 h", "7 days") | Dòng phụ: câu giải thích + "As of {time}" từ `X-Data-As-Of` |
-| Thông báo nguồn | `SourceStaleNotice source="TICKETING_SALES"` dạng `Callout warning` | Khi E-60 `TICKETING_SALES.stale` (DOC-37 §2.4). Nút "Check source" → `/ops/jobs?kind=STREAM` |
-| Biểu đồ | `TimeSeriesChart type="bar" stacked` | "Anomalies over time": số bất thường theo giờ (theo `detectedAt`), chồng theo `trigger`. Dựng từ các phần tử E-15 trong khoảng (tải đủ trang, tối đa 500; vượt thì ghi "Showing the latest 500"). Nguồn ticketing stale thì vùng cuối có nhãn "No data · {age}" |
+| Thông báo nguồn | `Callout warning` của màn (câu của §8; `SourceStaleNotice` dùng chung không có nút, DR-112) | Khi E-60 `TICKETING_SALES.stale` (DOC-37 §2.4). Nút "Check source" → `/ops/jobs?kind=STREAM` |
+| Biểu đồ | `TimeSeriesChart type="bar" stacked` | "Anomalies over time": số bất thường theo giờ (theo `detectedAt`), chồng theo `trigger`. Dựng từ các phần tử E-15 trong khoảng (tải đủ trang, tối đa 500; vượt thì ghi "Showing the latest 500"). Nguồn ticketing stale thì đầu thẻ có nhãn "No data · {age}" (`TimeSeriesChart` không tô vùng, DR-112). Cột theo giờ UTC, cùng bộ lọc với bảng |
 | Bộ lọc | Chip `MultiSelectFilter` "Category", "Severity", `Select` "Trigger", chip viền đứt "+ Sale point" (`Combobox`) | Gợi ý sale point = các `salePointId`/`salePointName` đã tải; vẫn gõ id tự do được |
-| Bảng | `SplitView` (bảng bên trái, khung chi tiết 400 px bên phải); `DataTable` + infinite (trang 100), dòng hai tầng | Cột: "Detected" (`Timestamp`), "Sale point" (`salePointName` + id mono; `RouteBadge sm` nếu có `routeId`), "Trigger", "Signal" ("refund {ratio}" và/hoặc "z {z}"), "AI category" (+ `ConfidenceChip`), "Severity" (`SeverityBadge` + `ConfidenceChip`). Chưa phân loại → chip `neutral` "Unclassified" (FR-09.7) |
+| Bảng | `SplitView` (bảng bên trái, khung chi tiết 400 px bên phải); `DataTable` + infinite (trang 100, nút "Load more"; trang đầu chốt `from`/`to` cho các trang sau), dòng hai tầng | Cột: "Detected" (`Timestamp`), "Sale point" (`salePointName` + id mono; `RouteBadge sm` nếu có `routeId`), "Trigger", "Signal" ("refund {ratio}" và/hoặc "z {z}"), "AI category" (+ `ConfidenceChip`), "Severity" (`SeverityBadge` + `ConfidenceChip`). Chưa phân loại → chip `neutral` "Unclassified" (FR-09.7) |
 | Khung chi tiết | cột phải | §6.1; chưa chọn → `EmptyState` "Select an anomaly to see details" |
 
 ## 5. Dữ liệu
@@ -115,7 +115,7 @@ Prototype (DR-88): [Ops — Ticketing anomalies](assets/ops-console-ticketing.ht
 | Empty | "No ticketing anomalies in this period" · "Anomalies are checked every 5 minutes on 15-minute windows." |
 | Empty (có lọc) | "No anomalies match these filters" + "Clear filters" |
 | Error | DOC-37 §2.3, §2.6 |
-| Stale | `SourceStaleNotice` (ticketing); `StaleBanner` toàn cục vẫn theo GTFS-rt |
+| Stale | Thông báo nguồn (ticketing); `StaleBanner` toàn cục vẫn theo GTFS-rt |
 | Không có quyền | DOC-37 §2.5 |
 
 ## 8. Microcopy

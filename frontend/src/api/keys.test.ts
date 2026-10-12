@@ -14,6 +14,21 @@ describe('query keys (DOC-26 §9)', () => {
     expect(keys.etl.dlq.detail('d1')).toEqual(['etl', 'dlq', 'detail', 'd1']);
     expect(keys.etl.dlq.actions({ actorType: 'auto' })).toEqual(['etl', 'dlq', 'actions', { actorType: 'auto' }]);
     expect(keys.etl.replay('r1')).toEqual(['etl', 'replay', 'r1']);
+    expect(keys.etl.replayEstimate({ source: 'TICKETING_SALES', fromTs: 'a', toTs: 'b' })).toEqual([
+      'etl',
+      'replay',
+      'estimate',
+      { fromTs: 'a', source: 'TICKETING_SALES', toTs: 'b' },
+    ]);
+    expect(keys.etl.replays({ kind: 'RAW_RANGE' })).toEqual(['etl', 'replays', { kind: 'RAW_RANGE' }]);
+    expect(keys.etl.feeds()).toEqual(['etl', 'feeds']);
+    expect(keys.insights.ticketingList({ trigger: 'VOLUME' })).toEqual([
+      'insights',
+      'ticketing',
+      'list',
+      { trigger: 'VOLUME' },
+    ]);
+    expect(keys.insights.ticketingDetail('t1').slice(0, 2)).toEqual(keys.insights.ticketingAll());
     expect(keys.insights.bunching()).toEqual(['insights', 'bunching', {}]);
     expect(keys.insights.dispatch()[1]).toBe('dispatch');
     expect(keys.insights.disruption()[1]).toBe('disruption');

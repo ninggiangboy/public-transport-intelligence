@@ -23,6 +23,9 @@ function mswWorker(): Plugin {
   };
 }
 
+/** Route chunks of /ops/* (src/routes/ops/) and of the /_ui catalogue, named after their route file. */
+const NO_PRELOAD_CHUNK = /(^|\/)(jobs|dlq|replay|controls|ticketing|demo|_batchId|___ui)-[\w-]{8}\.js$/;
+
 // DOC-34 §9; the dev server proxies /api to the api on the host so that requests stay same-origin (DOC-27 §5.2).
 export default defineConfig(({ mode }) => ({
   plugins: [
@@ -55,6 +58,13 @@ export default defineConfig(({ mode }) => ({
       },
     },
     target: 'es2023',
+    // The preload lists of lazy routes live in the entry chunk (__vite__mapDeps), so every route costs first-paint bytes.
+    // The ops console screens (desktop, for staff) and the developer catalogue fetch their shared chunks when their own
+    // chunk asks for them instead (one more round trip on the first visit), which keeps the stop page under its budget
+    // (DR-105, DR-112).
+    modulePreload: {
+      resolveDependencies: (filename, deps) => (NO_PRELOAD_CHUNK.test(filename) ? [] : deps),
+    },
   },
   test: {
     environment: 'jsdom',

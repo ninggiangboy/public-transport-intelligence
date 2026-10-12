@@ -1,13 +1,20 @@
 import { createFileRoute } from '@tanstack/react-router';
 
-import { PlaceholderPage } from '@/app/shell/PlaceholderPage';
-import { en } from '@/i18n/en';
+import { RequireRole } from '@/app/guards';
+import { TicketingPage } from '@/features/ticketing/components/TicketingPage';
 
-// The shell routes this page already (P5-04); its screen replaces the placeholder later in phase 5.
+// Ticketing anomalies (DOC-36 screens/ops-console-ticketing), read-only for viewers. The search params pass through
+// untouched: the screen validates them (features/ticketing/search.ts), because a schema written here ships with the
+// first paint (DR-105, DR-110).
 export const Route = createFileRoute('/ops/ticketing')({
+  validateSearch: (search: Record<string, unknown>) => search,
   component: Ticketing,
 });
 
 function Ticketing() {
-  return <PlaceholderPage title={en.nav.items.ticketing} group={en.nav.groups.operations} role="viewer" />;
+  return (
+    <RequireRole role="viewer">
+      <TicketingPage raw={Route.useSearch()} />
+    </RequireRole>
+  );
 }

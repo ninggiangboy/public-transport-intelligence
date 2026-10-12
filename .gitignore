@@ -20,6 +20,8 @@ dist/
 coverage/
 playwright-report/
 test-results/
+# stackStart of the late Playwright project (e2e/global-setup.ts)
+frontend/e2e/.state.json
 .lighthouseci/
 
 # Python

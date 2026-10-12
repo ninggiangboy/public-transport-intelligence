@@ -83,13 +83,13 @@ Drawer (520 px):
 | Vùng | Component | Ghi chú |
 | --- | --- | --- |
 | Đầu trang | `PageHeader` | Tiêu đề "Replay from the raw zone" + một câu giải thích. Tab "History" có badge "{n} running" khi có replay `PENDING`/`RUNNING` |
-| Form | react-hook-form + zod, ba thẻ đánh số ①②③ | Schema `rawReplayForm` trong `src/features/ops/replay/schema.ts` |
+| Form | state React + zod/mini (DR-112), ba thẻ đánh số ①②③ | Schema `rawReplayForm(now)` trong `src/features/replay/schema.ts`; kiểm lại theo giờ thật mỗi 30 s |
 | ① Nguồn | Nhóm thẻ radio (`RadioGroup` hiển thị dạng thẻ) | 4 nguồn của DOC-22 §4.1 (nhãn DOC-37 §3), mỗi thẻ có topic (mono) và "{n} / 24 h" (tổng `read` của nguồn trong 24 giờ, E-31). `GTFS_STATIC` không có; ghi chú "To reload a GTFS schedule, run GtfsStaticLoadJob from Controls." (link `/ops/controls#run-job`) |
-| ② Khoảng | Chip preset + `TimeRangePicker granularity="minute"` | Presets "Last hour", "Last 24 hours", "Yesterday" (theo giờ agency). Biểu đồ cột nhỏ "Processed per hour · last 24 h" (E-31 `bucket=1h` của nguồn đang chọn), tô đậm phần giao với khoảng đã chọn; khoảng nằm ngoài 24 giờ thì không tô. Dòng phụ khoảng event time ước tính = khoảng record + `clockOffset` của E-60, tooltip `help.replayRecordTime` |
+| ② Khoảng | Chip preset + hai ô "From", "To" (`datetime-local` theo giờ agency, kèm tên múi giờ; không dùng `TimeRangePicker`, vì lỗi phải nằm dưới từng ô, DR-112) | Presets "Last hour", "Last 24 hours" (kết thúc ở now − 10 phút, làm tròn phút), "Yesterday" (ngày lịch agency trước hôm nay). Biểu đồ cột nhỏ "Processed per hour · last 24 h" (E-31 `bucket=1h` của nguồn đang chọn), tô đậm phần giao với khoảng đã chọn; khoảng nằm ngoài 24 giờ thì không tô. Dòng phụ khoảng event time ước tính = khoảng record + `clockOffset` của E-60, tooltip `help.replayRecordTime` |
 | ③ Tùy chọn | `Switch` + mô tả | "Recompute analytics for this period", mặc định bật |
 | Ước lượng | thẻ dính bên phải (320 px): số lớn "≈ {messages}", `KeyValueList` (Source, Range, Duration, Raw zone coverage, Then recompute) + `Callout warning` cho từng `warnings[]` | Tự tải lại khi form hợp lệ và thay đổi (debounce 500 ms) |
 | Nút | `Button` primary "Start replay" trong thẻ ước lượng | Disable khi form sai, đang gửi, hoặc E-53 báo đang có replay cùng nguồn |
-| Lịch sử | `DataTable` + infinite (trang 50) | Cột: "Status" (`StatusPill domain="replay"`), "Kind", "Source", "Range" (record time; `DLQ_RECORD` → `IdText` của dead letter), "Progress" (`Progress` + "{read} / {estimate}" khi đang chạy; "{written} written" khi xong; lỗi thì `message` rút gọn), "Recompute", "Requested" ("{name} · {time}") |
+| Lịch sử | `DataTable` + infinite (trang 50) | Cột: "Status" (`StatusPill domain="replay"`), "Kind", "Source", "Range" (record time; `DLQ_RECORD` → `IdText` của dead letter), "Progress" (`Progress` + "{read} / {estimate}" khi đang chạy, mỗi dòng đang chạy poll E-52 5 s vì E-51 không có `progress`; khi xong "Took {duration}", vì E-51 không có `stats` (DR-112); lỗi thì `message` rút gọn), "Recompute", "Requested" ("{name} · {time}") |
 | Drawer | `DetailDrawer` 520 px | §6.1 |
 
 Kiểm tra phía client (lặp lại quy tắc của API để phản hồi ngay; API vẫn là nơi quyết định):

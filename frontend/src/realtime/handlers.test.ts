@@ -296,6 +296,26 @@ describe('alerts', () => {
     });
     expect(newestAlertCreatedAt(queryClient)).toBe('2026-09-29T22:00:00Z');
   });
+
+  it('refreshes the ticketing list and the classified anomaly (screens/ops-console-ticketing §5)', () => {
+    vi.useFakeTimers();
+    const list = keys.insights.ticketingList({ trigger: 'VOLUME' });
+    const detail = keys.insights.ticketingDetail('t1');
+    const other = keys.insights.ticketingDetail('t2');
+    for (const key of [list, detail, other, keys.insights.ticketingBadge()]) queryClient.setQueryData(key, {});
+
+    handlers.apply(event('alert.created', record('a1', { type: 'TICKETING_ANOMALY', refId: 't1' })));
+    expect(stale(queryClient, keys.insights.ticketingBadge())).toBe(true);
+    expect(stale(queryClient, list)).toBe(false);
+    vi.advanceTimersByTime(2_000);
+    expect(stale(queryClient, list)).toBe(true);
+    expect(stale(queryClient, detail)).toBe(false);
+
+    handlers.apply(event('alert.updated', record('a1', { type: 'TICKETING_ANOMALY', refId: 't1' })));
+    vi.advanceTimersByTime(2_000);
+    expect(stale(queryClient, detail)).toBe(true);
+    expect(stale(queryClient, other)).toBe(false);
+  });
 });
 
 describe('job.run', () => {

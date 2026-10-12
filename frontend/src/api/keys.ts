@@ -67,6 +67,10 @@ export const keys = {
     disruptionDetail: (id: string) => ['insights', 'disruption', 'detail', id] as const,
     /** E-11: a bunching episode with its dispatch suggestion. */
     bunchingDetail: (id: string) => ['insights', 'bunching', 'detail', id] as const,
+    /** Prefix of every ticketing entry: list, detail and the sidebar count. */
+    ticketingAll: () => ['insights', 'ticketing'] as const,
+    /** E-15 by pages of 100; `TICKETING_ANOMALY` alert events refetch it. */
+    ticketingList: (filters?: Filters) => ['insights', 'ticketing', 'list', normalizeFilters(filters)] as const,
     /** E-16: a ticketing anomaly with its summary. */
     ticketingDetail: (id: string) => ['insights', 'ticketing', 'detail', id] as const,
     /** Ticketing anomalies of the last 24 hours behind the sidebar count. */
@@ -103,7 +107,11 @@ export const keys = {
     },
     /** E-52: one replay request, polled while it runs. */
     replay: (id: string) => ['etl', 'replay', id] as const,
+    /** E-53: the work a raw zone replay would do, for one source and range. */
+    replayEstimate: (params: Filters) => ['etl', 'replay', 'estimate', normalizeFilters(params)] as const,
     flags: () => ['etl', 'flags'] as const,
+    /** E-38: the GTFS static feed versions, newest first. */
+    feeds: () => ['etl', 'feeds'] as const,
     replays: (filters?: Filters) => ['etl', 'replays', normalizeFilters(filters)] as const,
   },
 } as const;

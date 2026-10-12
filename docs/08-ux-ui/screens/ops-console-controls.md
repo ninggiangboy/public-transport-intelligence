@@ -63,8 +63,8 @@ Prototype (DR-88): [Ops — Controls](assets/ops-console-controls.html).
 | Callout pause | `Callout tone="warning"` trong hàng đang pause | "Paused by {name} {relative}." + hệ quả; quá 1 giờ thêm chip "Paused for {duration}" |
 | Thẻ "AI features" | `Card` + `FlagRow` × 5 (`triage.*`) | Mỗi hàng: nhãn (§8), một câu mô tả việc tính năng làm, `Switch`; tắt quá 1 giờ → chip `warning` "Off for {duration}" (theo `updatedAt`, trục audit); "Changed by {name} · {relative}" |
 | Thẻ "Schedule feed" | `Card` | Feed `ACTIVE`: icon, "{publisherFeedVersion}", `StatusPill domain="feed"`, "Valid {from} – {to} · loaded {time} by run #{id}" (link), "{e} errors · {w} warnings" (`errors > 0` tông `danger`). Khối "Load the next feed" (operator): ô "GTFS zip URL" + nút "Load feed" = chạy `GtfsStaticLoadJob` với `sourceUri` (§6.1). Dưới cùng là bảng "History" (≤ 50 dòng): "ID", "Status", "Version", "Publisher", "Valid", "Loaded", "Activated", "Checks", "Run" |
-| Thẻ "Run a job" | react-hook-form + zod, form động theo job | §6.1 |
-| Yêu cầu gần đây | danh sách ≤ 5 trong thẻ "Run a job" | Các yêu cầu tạo trong phiên (Zustand store), mỗi dòng theo dõi E-34 |
+| Thẻ "Run a job" | state React, form động theo job; luật kiểm ở `src/features/controls/model.ts` (DR-112) | §6.1 |
+| Yêu cầu gần đây | danh sách ≤ 5 trong thẻ "Run a job" | Các yêu cầu tạo trong phiên (store của module, `src/features/controls/requests-store.ts`, DR-112), mỗi dòng theo dõi E-34 |
 
 ## 5. Dữ liệu
 
@@ -75,7 +75,7 @@ Prototype (DR-88): [Ops — Controls](assets/ops-console-controls.html).
 | Sự kiện mới nhất | E-60 | `['system', 'freshness']` | Từ khung (15 s) |
 | Feed | E-38 | `['etl', 'feeds']` | 60 s; invalidate khi yêu cầu `GtfsStaticLoadJob` chuyển `DONE` |
 | Chạy job | E-33 | mutation | — |
-| Theo dõi yêu cầu | E-34 | `['etl', 'job-request', id]` | 2 s tới khi `RUNNING`/`DONE`/`REJECTED`/`FAILED`; sau `RUNNING` chuyển sang theo dõi E-32 qua link |
+| Theo dõi yêu cầu | E-34 | `['etl', 'job-request', id]` | 2 s khi `PENDING`, 10 s khi `RUNNING`, dừng ở `DONE`/`REJECTED`/`FAILED` (DR-112); dòng có link tới E-32 khi có `runId` |
 
 ## 6. Tương tác
 
@@ -87,14 +87,14 @@ Prototype (DR-88): [Ops — Controls](assets/ops-console-controls.html).
 | Bật cờ `triage.*` | Không hỏi → E-57 → toast "{feature} turned on" | Như trên |
 | Người khác đổi cờ | Lần refetch kế tiếp (≤ 30 s) cập nhật switch và dòng "Paused by {name}" | — |
 | Chọn job | Form tham số đổi theo §6.1; giá trị cũ bị xóa | — |
-| "Run job" | `ConfirmDialog` "Run {job}?" với mô tả hệ quả (§8) và bảng tóm tắt tham số → E-33 (`Idempotency-Key` sinh khi mở dialog) → dòng mới trong "Recent requests" với `StatusPill domain="jobRequest"`; toast "Request sent" + "View run" (bật khi có `runId`) | 400 → lỗi gắn theo trường (`errors[].field`); 422 `job-not-allowed` → dải lỗi với `detail` |
+| "Run job" | `ConfirmDialog` "Run {job}?" với mô tả hệ quả (§8) và bảng tóm tắt tham số → E-33 (`Idempotency-Key` sinh khi mở dialog) → dòng mới trong "Recent requests" với `StatusPill domain="jobRequest"`; toast "Request sent" (202 của E-33 chưa có `runId`, nên link "Run #…" nằm ở dòng yêu cầu, DR-112) | 400 → lỗi gắn theo trường (`errors[].field`); 422 `job-not-allowed` → dải lỗi với `detail` |
 | Yêu cầu chuyển `REJECTED`/`FAILED` | Dòng hiện `message`; toast `danger` "{job} request was rejected: {message}" | — |
 | Bấm "Run #…" ở bảng feed hoặc yêu cầu | `/ops/jobs?run=<runId>` | — |
 | "Load feed" | Như "Run job" với `GtfsStaticLoadJob` và `sourceUri` đã nhập; dòng yêu cầu hiện trong "Recent requests" | URI sai scheme → lỗi dưới ô "Use an https, s3 or file URI." |
 
 ### 6.1 Form "Run a job"
 
-Danh sách job = danh sách cho phép của E-33 (hằng số trong `src/features/ops/controls/jobs.ts`, cùng thứ tự). Kiểm tra phía client lặp lại quy tắc của E-33; ngày giờ tính theo `businessNow` của E-60.
+Danh sách job = danh sách cho phép của E-33 (hằng số trong `src/features/controls/jobs.ts`, cùng thứ tự). Kiểm tra phía client lặp lại quy tắc của E-33; ngày giờ tính theo `businessNow` của E-60.
 
 | Job | Trường | Kiểm tra phía client |
 | --- | --- | --- |
@@ -131,7 +131,7 @@ Mỗi job có một dòng mô tả dưới ô chọn (§8). `AnalyticsRecomputeJ
 | Listener | "Last processed {relative}" · "latest event {relative}" · "No batches in the last 15 min" |
 | Xác nhận pause | "Pause the {group} consumer?" (`group`: "GTFS-realtime", "ticketing") · "New messages stay in Kafka and are processed when you resume. Live data will go stale after about 2 minutes." · nút "Pause" |
 | Xác nhận tắt triage | "Turn off {feature}?" · `triage.dlq.enabled`: "New dead letters will wait in New until you turn it back on." · `triage.auto-replay.enabled`: "Dead letters will need a manual replay or confirmation." · `triage.ticketing.enabled`: "New ticketing anomalies will show as Unclassified." · `triage.disruption.enabled`: "Disruptions won't get a likely cause or data-issue check, so all stay visible to riders." · `triage.dispatch.enabled`: "Bunching episodes won't get a suggested action." · nút "Turn off" |
-| Phản hồi | "Consumer paused. Takes effect within 5 seconds." · "Consumer resumed" · "{feature} turned off" · "{feature} turned on" · "Request sent" + "View run" · "{job} request was rejected: {message}" |
+| Phản hồi | "Consumer paused. Takes effect within 5 seconds." · "Consumer resumed" · "{feature} turned off" · "{feature} turned on" · "Request sent" · "{job} request was rejected: {message}" |
 | Bảng feed | "ID", "Status", "Version", "Publisher", "Valid", "Loaded", "Activated", "Checks", "Run" · "{e} errors, {w} warnings" |
 | Form job | "Job" · "Run job" · "Run {job}?" · mô tả: `GtfsStaticLoadJob` "Download, validate and activate a GTFS schedule." · `EtaAggregationJob` "Rebuild typical delays for one hour." · `OtpScorecardJob` "Recompute on-time performance for the selected days." · `AnalyticsRecomputeJob` "Re-run bunching, disruption and ticketing detection for a period." · `PartitionMaintenanceJob` "Create upcoming partitions and drop expired ones." |
 | Trường | "Source URI" · "Allow reactivating an older feed" · "Hour" · "Recompute even if already done" · "Service dates" · "Detectors" · "From" · "To" · "Times are business time (simulated clock)." |

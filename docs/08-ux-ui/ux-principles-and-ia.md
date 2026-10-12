@@ -190,6 +190,7 @@ Breakpoint dùng mặc định của Tailwind (`sm` 640, `md` 768, `lg` 1024, `x
 Kỹ thuật bắt buộc:
 
 - Code-split theo route (`lazy` route của TanStack Router). Màn hành khách không import ECharts, CodeMirror, TanStack Table.
+- Danh sách preload của mọi route lazy nằm trong chunk entry (`__vite__mapDeps`), nên mỗi route tốn byte của lần vẽ đầu. Route `/ops/*` và `/_ui` không có danh sách preload (`build.modulePreload.resolveDependencies` trong `vite.config.ts`): chunk dùng chung của chúng tải khi chunk route yêu cầu, thêm một round trip ở lần mở đầu (DR-112). Chunk màn hình không import hook router chưa có trong gói ban đầu (ví dụ `useRouterState`): rolldown tách nó thành chunk riêng của lần vẽ đầu.
 - Thứ lần vẽ đầu không cần thì tải bằng `import()`: client OIDC, controller SSE, Toaster, menu tài khoản, sheet mobile, hộp tìm kiếm (DR-105). Image nén sẵn asset bằng `gzip -9` và nginx dùng `gzip_static`; `scripts/check-bundle.mjs` đo cùng mức nén đó.
 - Font tự host (`@fontsource-variable/geist`, `@fontsource-variable/geist-mono`), subset `latin`, `font-display: swap`, preload Geist (DOC-35 §4.1). Không gọi Google Fonts.
 - Stop detail render được ngay từ E-07 + E-08 mà không đợi `/me` hay SSE.

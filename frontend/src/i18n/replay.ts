@@ -1,0 +1,148 @@
+// Copy of Replay from the raw zone (DOC-36 screens/ops-console-replay §8) and the replay labels of DOC-37 §3.4, §5.
+// Loaded with the screen's chunk, not with the first paint (DR-105).
+
+export const replayCopy = {
+  title: 'Replay',
+  crumb: 'Replay',
+  heading: 'Replay from the raw zone',
+  subtitle: 'Re-run stored messages through the pipeline after a fix, an outage or a schema change.',
+  running: (n: number) => `${n} running`,
+  readOnly: 'Read-only',
+  readOnlyHelp: 'Starting a replay requires the operator role.',
+  tabs: { label: 'Replay', new: 'New replay', history: 'History' },
+  kind: { RAW_RANGE: 'Time range', DLQ_RECORD: 'Dead letter' } as Partial<Record<string, string>>,
+  yes: 'Yes',
+  no: 'No',
+
+  form: {
+    label: 'New replay',
+    what: 'What to replay',
+    perDay: (n: string) => `${n} / 24 h`,
+    gtfsLink: 'run GtfsStaticLoadJob from Controls',
+    gtfsBefore: 'To reload a GTFS schedule, ',
+    gtfsAfter: '.',
+    range: 'Record time range',
+    presets: { lastHour: 'Last hour', last24h: 'Last 24 hours', yesterday: 'Yesterday' },
+    presetsLabel: 'Presets',
+    from: 'From',
+    to: 'To',
+    perHour: 'Processed per hour · last 24 h',
+    perHourBar: (hour: string, n: string, selected: boolean) =>
+      `${hour}: ${n} processed${selected ? ', in the selected range' : ''}`,
+    businessTime: (from: string, to: string, offset: string) =>
+      `Matches business time ${from} → ${to} (offset ${offset}).`,
+    options: 'Options',
+    recompute: 'Recompute analytics for this period',
+    recomputeHelp: 'Re-runs bunching, disruption and ticketing detection for the replayed period.',
+    start: 'Start replay',
+  },
+
+  errors: {
+    order: 'End must be after start.',
+    maxRange: 'Max range is 7 days.',
+    settle: 'End must be at least 10 minutes ago, so all raw files are written.',
+    maxAge: 'Start must be within the last 29 days.',
+  },
+
+  estimate: {
+    title: 'Estimated work',
+    messages: (n: string) => `≈ ${n}`,
+    messagesUnit: 'messages',
+    source: 'Source',
+    range: 'Range',
+    duration: 'Duration',
+    coverage: 'Raw zone coverage',
+    recompute: 'Then recompute',
+    about: (duration: string) => `about ${duration}`,
+    unavailable: 'No estimate available',
+    failed: "Couldn't estimate this replay.",
+    pending: 'Pick a source and a valid range to see the estimate.',
+    viewRunning: 'View running replay',
+  },
+
+  dialog: {
+    title: (source: string, from: string, to: string) => `Replay ${source} from ${from} to ${to}?`,
+    body: (messages: string) => `About ${messages} messages will be reprocessed. Newer data is never overwritten.`,
+    bodyUnknown: 'The stored messages of this range will be reprocessed. Newer data is never overwritten.',
+    recompute: 'Analytics for this period will be recomputed.',
+    confirm: 'Start replay',
+    conflictTitle: 'A replay is already running',
+    conflictBody: 'Only one replay per source can run at a time.',
+    viewRunning: 'View running replay',
+  },
+
+  feedback: {
+    sent: 'Request sent',
+    view: 'View replay',
+  },
+
+  history: {
+    label: 'Replay history',
+    caption: (n: number) => `Replays of the last 7 days, ${n} shown`,
+    kind: 'Kind',
+    status: 'Status',
+    columns: {
+      status: 'Status',
+      kind: 'Kind',
+      source: 'Source',
+      range: 'Range',
+      progress: 'Progress',
+      recompute: 'Recompute',
+      requested: 'Requested',
+    },
+    progress: (read: string, estimate: string) => `${read} / ${estimate}`,
+    read: (n: string) => `${n} read`,
+    written: (n: string) => `${n} written`,
+    took: (duration: string) => `Took ${duration}`,
+    requested: (name: string, time: string) => `${name} · ${time}`,
+    loadOlder: 'Load older replays',
+    empty: 'No replays in the last 7 days',
+    emptyBody: 'Replays you start appear here.',
+  },
+
+  drawer: {
+    panel: 'this replay',
+    title: (id: string) => `Replay ${id}`,
+    copyId: 'Copy replay ID',
+    requested: (name: string, time: string) => `Requested by ${name} · ${time}`,
+    recompute: (value: string) => `Recompute analytics: ${value}`,
+    step: (step: string) => `Step: ${step}`,
+    progressLabel: 'Replay progress',
+    of: (read: string, estimate: string) => `${read} of ~${estimate}`,
+    read: (read: string) => `${read} read`,
+    counts: (written: string, skipped: string) => `Written ${written} · Skipped ${skipped}`,
+    /** Followed by the relative time of the last counter update. */
+    updated: ' · updated ',
+    finished: (time: string, duration: string) => `Finished ${time} · ${duration}`,
+    stats: 'Statistics',
+    statsCaption: 'Replay statistics',
+    stat: {
+      objects: 'Objects',
+      linesRead: 'Lines read',
+      filtered: 'Outside range',
+      processed: 'Processed',
+      written: 'Written',
+      duplicate: 'Duplicates',
+      skipped: 'Skipped',
+      dlqInserted: 'New dead letters',
+      dlqUpdated: 'Updated dead letters',
+      dlqResolved: 'Resolved dead letters',
+      eventTime: 'Event time range',
+    },
+    detector: (detector: string, scopes: string, upserted: string, deleted: string) =>
+      `${detector}: ${scopes} scopes, ${upserted} updated, ${deleted} removed`,
+    deadLetter: (id: string) => `Dead letter ${id}`,
+    run: (id: string) => `Run #${id}`,
+    restart: 'Restart run',
+    replayAgain: 'Replay again',
+    viewResolved: 'View resolved dead letters',
+    gone: 'This replay no longer exists.',
+  },
+
+  help: {
+    recordTime:
+      'Replay selects records by the time Kafka received them. Business time is shown for reference using the current simulated clock offset.',
+    estimate: 'Estimated from how many messages were processed in this range. Actual time depends on load.',
+    label: 'About this',
+  },
+} as const;

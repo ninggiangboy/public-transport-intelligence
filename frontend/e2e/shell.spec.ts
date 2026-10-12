@@ -117,6 +117,6 @@ test.describe('signing in (Keycloak)', () => {
     expect(stored).not.toContain('access_token');
   });
 
-  // Turning the pause flag on and off goes through the Controls screen, which P5-11 builds.
-  test.fixme('E2E-SHELL-03 banner and "Paused" follow the pause flag', () => undefined);
+  // E2E-SHELL-03 leaves live data stale for minutes: it runs in the `late` project with E2E-CTRL-01
+  // (e2e/late/ops-console-controls.spec.ts).
 });

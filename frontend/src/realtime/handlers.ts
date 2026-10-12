@@ -322,6 +322,7 @@ const CHANNEL_KEYS: Record<Channel, readonly QueryKey[]> = {
     ['insights', 'bunching'],
     ['insights', 'dispatch'],
     ['insights', 'disruption'],
+    keys.insights.ticketingAll(),
     keys.vehicles.liveAll(),
   ],
   jobs: [keys.etl.jobs.all(), keys.etl.jobAll()],
@@ -396,12 +397,29 @@ export function createHandlers(queryClient: QueryClient): Handlers {
           break;
         case 'alert.created':
           upsertAlert(queryClient, toAlertResponse(event.data), 'created');
-          // The sidebar counts ticketing anomalies from their own endpoint (screens/shell-and-navigation §5).
-          if (event.data.type === 'TICKETING_ANOMALY') invalidate(keys.insights.ticketingBadge());
+          // The sidebar counts ticketing anomalies from their own endpoint (screens/shell-and-navigation §5), and the
+          // Ticketing list takes the new anomaly from E-15 (screens/ops-console-ticketing §5).
+          if (event.data.type === 'TICKETING_ANOMALY') {
+            invalidate(keys.insights.ticketingBadge());
+            coalesce('ticketing:list', () => {
+              invalidate(keys.insights.ticketingList().slice(0, 3));
+            });
+          }
           break;
-        case 'alert.updated':
+        case 'alert.updated': {
           upsertAlert(queryClient, toAlertResponse(event.data), 'updated');
+          // Triage has just classified the anomaly: its row and its detail change in place (AC-2).
+          const refId = event.data.refId;
+          if (event.data.type === 'TICKETING_ANOMALY' && refId) {
+            coalesce('ticketing:list', () => {
+              invalidate(keys.insights.ticketingList().slice(0, 3));
+            });
+            coalesce(`ticketing:detail:${refId}`, () => {
+              invalidate(keys.insights.ticketingDetail(refId));
+            });
+          }
           break;
+        }
         case 'alert.retracted':
           removeAlert(queryClient, event.data.id);
           invalidateStopDetails(queryClient, event.routeId ?? event.data.routeId);

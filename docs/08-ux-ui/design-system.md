@@ -412,12 +412,15 @@ interface KpiCardProps {
 }
 interface DetailDrawerProps { title: React.ReactNode; open: boolean; onClose: () => void; width?: 520 | 680; footer?: React.ReactNode; children: React.ReactNode }
 /** List + detail side by side inside the page (Alerts, Dead letters, Ticketing). Detail is driven by the URL id param. */
-interface SplitViewProps { list: React.ReactNode; detail: React.ReactNode | null; listWidth?: number /* default 400 */; emptyDetail: React.ReactNode }
+interface SplitViewProps { list: React.ReactNode; detail: React.ReactNode | null; listWidth?: number /* default 400 */; detailWidth?: number /* fixed detail column, list takes the rest (Ticketing 400) */; emptyDetail: React.ReactNode }
+/** On/off control (role="switch", aria-checked): runtime flags on Controls. */
+interface SwitchProps { checked: boolean; onCheckedChange: (checked: boolean) => void; disabled?: boolean }
 interface RequireRoleProps { role: 'viewer' | 'operator'; fallback?: React.ReactNode; children: React.ReactNode }
 ```
 
 - `KpiCard` thay cho `StatCard` cũ: thẻ trắng bo 12 px, nhãn 12,5 px `--muted-foreground`, số 28 px/600; delta xanh khi đi đúng hướng `good`, đỏ khi ngược, xám khi phẳng.
 - `DetailDrawer` trượt từ phải, bóng `--shadow-lg`, header có tiêu đề + badge trạng thái, footer dải `--surface` chứa nút. `SplitView` dùng cho màn hình mà người dùng duyệt nhiều bản ghi liên tiếp (DOC-34 §4.2).
+- `Switch` (`src/components/ui/switch.tsx`, P5-11, DR-112): nút `role="switch"` cao 20 px, rộng 36 px, nền `--primary` khi bật, `--border-strong` khi tắt; không dùng Radix (thêm một gói cho một nút). Nhãn trạng thái ("Running"/"Paused") đặt cạnh switch, không thay cho tên truy cập.
 - `ConfirmDialog` rộng 440 px, bo 14 px, nền overlay tối 30% có blur 2 px; nút xác nhận thao tác nguy hiểm dùng `--destructive`.
 - Toast dùng `sonner` (component toast của shadcn/ui), dạng thẻ trắng bo 12 px có icon tông ở trái: thành công 4 s, lỗi 8 s và có `traceId`; tối đa 3 toast cùng lúc; `role="status"` (thành công) hoặc `role="alert"` (lỗi).
 - Nút thao tác đang chạy hiện spinner và bị disable; không có nút nào gửi hai request khi bấm hai lần.

@@ -1,14 +1,19 @@
 import { createFileRoute } from '@tanstack/react-router';
 
-import { PlaceholderPage } from '@/app/shell/PlaceholderPage';
-import { en } from '@/i18n/en';
+import { RequireRole } from '@/app/guards';
+import { ControlsPage } from '@/features/controls/components/ControlsPage';
 
-// The shell routes this page already (P5-04); its screen replaces the placeholder later in phase 5.
+// Controls (DOC-36 screens/ops-console-controls): runtime flags, the schedule feed and "Run a job". Viewers see every
+// block; the switches and forms act for operators only. The page shows no StaleBanner (DOC-37 §2.4).
 export const Route = createFileRoute('/ops/controls')({
   staticData: { hideStaleBanner: true },
   component: Controls,
 });
 
 function Controls() {
-  return <PlaceholderPage title={en.nav.items.controls} group={en.nav.groups.operations} role="viewer" />;
+  return (
+    <RequireRole role="viewer">
+      <ControlsPage />
+    </RequireRole>
+  );
 }

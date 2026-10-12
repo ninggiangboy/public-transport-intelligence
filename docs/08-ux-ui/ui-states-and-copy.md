@@ -103,7 +103,7 @@ Slug riêng của simulator (qua E-90) nằm ở `screens/demo-control.md`.
 - Banner có `role="status"`, không có nút đóng (tự biến mất khi điều kiện hết). Chỉ hiện ở trang có dữ liệu realtime hoặc event time (mọi trang trừ Scorecard, Controls).
 - `RealtimeStatusDot` (thẻ "Live feed" ở chân sidebar và thanh trên mobile): "Live" (`success`) · "Reconnecting…" (`warning`) · "Polling" (`neutral`) · "Offline" (`neutral`); chữ phụ lần lượt "updated {relative}", "attempt {n}", "every {interval} s", "last update {relative}". Tooltip: "Receiving live updates." / "Trying to reconnect to live updates." / "Live updates unavailable. Refreshing every {interval} s." / "You're offline."
 - `FreshnessIndicator` quá `staleAfterSeconds`: chấm và chữ chuyển `warning`, nhãn "Stale" + "last update {relative}".
-- Nguồn ticketing stale (`TICKETING_SALES.stale`) chỉ hiện trên màn Ticketing bằng `SourceStaleNotice`: "No ticket sales received for {age}. Anomaly detection may be behind."
+- Nguồn ticketing stale (`TICKETING_SALES.stale`) chỉ hiện trên màn Ticketing, dạng `Callout warning`: "No ticket sales received for {age}." · "Detection resumes when data arrives again." + nút "Check source" (screens/ops-console-ticketing §8, DR-112).
 
 ### 2.5 Không có quyền
 
