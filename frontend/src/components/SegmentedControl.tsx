@@ -8,6 +8,7 @@ interface SegmentedControlProps<V extends string> {
   size?: 'sm' | 'md';
   /** Accessible name of the group. */
   label: string;
+  disabled?: boolean;
 }
 
 /** Two to four mutually exclusive options: period, colour mode, direction. A radio group with arrow-key navigation. */
@@ -17,12 +18,14 @@ export function SegmentedControl<V extends string>({
   onChange,
   size = 'md',
   label,
+  disabled = false,
 }: SegmentedControlProps<V>) {
   return (
     <RadioGroup
       aria-label={label}
       value={value}
       orientation="horizontal"
+      disabled={disabled}
       onValueChange={(next) => {
         onChange(next as V);
       }}
@@ -34,7 +37,7 @@ export function SegmentedControl<V extends string>({
           value={option.value}
           className={cn(
             'rounded-[7px] px-3 text-label font-medium whitespace-nowrap text-muted-foreground motion-safe:transition-colors',
-            'hover:text-foreground data-[state=checked]:bg-card data-[state=checked]:text-foreground data-[state=checked]:shadow-xs',
+            'hover:text-foreground disabled:cursor-not-allowed disabled:opacity-60 data-[state=checked]:bg-card data-[state=checked]:text-foreground data-[state=checked]:shadow-xs',
           )}
         >
           {option.label}

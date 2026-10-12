@@ -351,13 +351,14 @@ interface RouteSelectProps {
   max?: number;                                // default 20 (API limit)
   routeTypes?: number[];
   placeholder?: string;
+  label?: string;                              // accessible name; default "Routes" (DR-113)
 }
 
 /** "3 new alerts · show" pill shown above a list when realtime rows are held back (P-5). */
 interface NewItemsPillProps { count: number; onShow: () => void }
 
-/** Two to four mutually exclusive options (period, colour mode, direction). Renders role="radiogroup". */
-interface SegmentedControlProps<V extends string> { options: { value: V; label: string }[]; value: V; onChange: (v: V) => void; size?: 'sm' | 'md'; label: string }
+/** Mutually exclusive options (period, colour mode, direction, Demo "Speed"). Renders role="radiogroup". */
+interface SegmentedControlProps<V extends string> { options: { value: V; label: string }[]; value: V; onChange: (v: V) => void; size?: 'sm' | 'md'; label: string; disabled?: boolean }
 ```
 
 - Bộ lọc hiển thị dạng **chip tròn** cao 28 px viền `--border-strong`; chip đang áp giá trị đổi thành nền `--foreground` chữ `--card` và ghi giá trị ("Severity: High"); chip "+ Sale point" viền đứt để thêm bộ lọc tùy chọn. `MultiSelectFilter` mở popover danh sách checkbox từ chip.

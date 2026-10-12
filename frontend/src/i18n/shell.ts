@@ -123,10 +123,4 @@ export const shellCopy = {
     attribution: 'Data: Metro Transit GTFS (public domain). Map: © OpenStreetMap contributors · Protomaps.',
     simulatedClock: (when: string) => `Simulated clock: ${when}`,
   },
-
-  /** Pages whose screen lands in a later task of phase 5; the shell routes them already. */
-  placeholder: {
-    title: 'Coming soon',
-    body: 'This screen is part of the dashboard and arrives in a later build.',
-  },
 } as const;

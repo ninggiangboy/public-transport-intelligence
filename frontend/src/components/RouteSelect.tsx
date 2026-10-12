@@ -31,6 +31,8 @@ interface RouteSelectProps {
   placeholder?: string;
   /** Fixed text of the trigger ("+ Route") when the selection is shown elsewhere, as chips. */
   triggerText?: string;
+  /** Accessible name of the trigger and the list, when a form names the field. Default "Routes". */
+  label?: string;
 }
 
 function displayName(route: RouteOption): string {
@@ -47,6 +49,7 @@ export function RouteSelect({
   routeTypes,
   placeholder = en.route.select.none,
   triggerText,
+  label = en.route.select.label,
 }: RouteSelectProps) {
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(false);
@@ -99,10 +102,10 @@ export function RouteSelect({
                 ? selected.map(displayName).join(', ')
                 : en.route.select.selected(selected.length))
           }
-          aria-label={en.route.select.label}
+          aria-label={label}
         />
       </PopoverTrigger>
-      <PopoverContent aria-label={en.route.select.label} className="w-72">
+      <PopoverContent aria-label={label} className="w-72">
         <label htmlFor={searchId} className="sr-only">
           {en.route.select.placeholder}
         </label>

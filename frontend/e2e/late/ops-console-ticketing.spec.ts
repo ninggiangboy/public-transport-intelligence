@@ -31,7 +31,7 @@ async function startScenario(page: Page, name: 'ticket-spike' | 'refund-burst', 
   });
   expect(token.ok()).toBe(true);
   const { access_token: accessToken } = (await token.json()) as { access_token: string };
-  const started = await page.request.post(`/sim/scenarios/${name}`, {
+  const started = await page.request.post(`/api/v1/sim/scenarios/${name}`, {
     headers: { Authorization: `Bearer ${accessToken}` },
     data: body,
   });

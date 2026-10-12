@@ -88,12 +88,21 @@ function origin(): string {
   return globalThis.location.origin;
 }
 
-export const api = createClient<paths>({
-  baseUrl: origin(),
-  // Looked up on every call instead of once at import, so that a fetch installed later (MSW in tests) is used.
-  fetch: (request) => globalThis.fetch(request),
-});
-api.use(idempotencyMiddleware, authMiddleware);
+/**
+ * A client for `P` with the token, the renewal and the Idempotency-Key of {@link api}. Besides `api`, the simulator
+ * proxy (E-90) has one, typed by hand in src/api/sim.ts: it is not in openapi.json (DOC-32 §11).
+ */
+export function createApiClient<P extends object>() {
+  const client = createClient<P>({
+    baseUrl: origin(),
+    // Looked up on every call instead of once at import, so that a fetch installed later (MSW in tests) is used.
+    fetch: (request) => globalThis.fetch(request),
+  });
+  client.use(idempotencyMiddleware, authMiddleware);
+  return client;
+}
+
+export const api = createApiClient<paths>();
 
 /** Result of a read: the body plus `X-Data-As-Of` for the FreshnessIndicator (P-1, DOC-31 §7.3). */
 export interface WithAsOf<T> {

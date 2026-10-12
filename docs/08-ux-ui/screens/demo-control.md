@@ -1,6 +1,6 @@
 # Màn hình: Demo control
 
-> Trạng thái: **Approved** · Cập nhật: 2026-09-28 · DOC-36
+> Trạng thái: **Approved** · Cập nhật: 2026-10-12 (DR-113) · DOC-36
 > Phụ thuộc: DR-88, DOC-34, DOC-35, DOC-37 §2.3, DOC-32 E-90, DOC-25 §3, §6.5, §7–8, DOC-30 §3
 > Người dùng chính: P5-13
 
@@ -66,20 +66,20 @@ Dialog bắt đầu (form sinh từ catalog, §6.1):
 | --- | --- | --- |
 | Đầu trang | `PageHeader` + `DropdownMenu` "Stop all" | "Stop all" liệt kê tên kịch bản đang có lần chạy → `DELETE /sim/scenarios/{name}` |
 | Dải "Simulator" | `Card` một hàng, các ô ngăn bằng vạch | Từ `GET /sim/status`: trạng thái ("Running" / "Paused" khi cả hai hệ số là 0), "Business time" (`businessNow` + thời gian trôi, DOC-34 §8) kèm offset, "Service dates" ở tooltip ("{realDate} → feed {feedDate}"), "Vehicles", "GTFS-rt {n} msg/s", "Ticketing {n} sales/s" |
-| Tốc độ | `SegmentedControl` "Speed": "Paused" (0), "0.5×", "1×", "2×", "5×", "10×", "…" | Chọn một mức → `PUT /sim/rate` với cả `gtfsRt` và `ticketing`. "…" mở popover "Custom rate" với hai ô số riêng "GTFS-rt", "Ticketing" (0,1–20) + "Apply". Hai hệ số khác nhau thì segmented hiện "Custom". Disable kèm tooltip khi có `load-ramp` đang chạy |
-| Kịch bản đang chạy | `ScenarioRunCard` × N (mới nhất trên) | "Running · started {time} by {requester}", `RouteBadge` khi có `routeId`, "{title} · {target}", tóm tắt tham số một dòng, vòng tiến độ theo `startedAt`–`plannedEndAt` + "{mm:ss} left", "What happened" (§4.1), nút "Watch on map"/"Open dead letters"/"Open ticketing"/"Open pipeline" (theo kịch bản, như toast §6) và "Stop" |
-| Thư viện kịch bản | `ScenarioCard` × N theo thứ tự catalog, lưới 4 cột ≥ 1440 px, 2 cột nhỏ hơn | Hình minh họa nhỏ vẽ bằng SVG theo tên kịch bản (motif `LineStrip`: hai xe sát nhau, đoạn tuyến đỏ, payload lỗi, cột bán vé tăng vọt…; kịch bản lạ dùng hình chung), `title`, `description`, chip tham số chính với giá trị mặc định, nút "Start scenario" hoặc badge "Running" khi đã có lần chạy cho mục tiêu mặc định |
+| Tốc độ | `SegmentedControl` "Speed": "Paused" (0), "0.5×", "1×", "2×", "5×", "10×", cạnh đó nút "…" (`aria-label` "Custom rate…") | Chọn một mức → `PUT /sim/rate` với cả `gtfsRt` và `ticketing`. "…" mở popover "Custom rate" với hai ô số riêng "GTFS-rt", "Ticketing" (0 hoặc 0,1–20, lỗi "Must be 0 or between 0.1 and 20." dưới ô) + "Apply". Hai hệ số khác nhau hoặc không trùng mức nào thì segmented có thêm mục "Custom" đang chọn (DR-113). Disable cả hai kèm tooltip khi có `load-ramp` đang chạy |
+| Kịch bản đang chạy | `ScenarioRunCard` × N (mới nhất trên) | Thẻ hiện khi lịch sử ghi `RUNNING` và `runningScenarios` của status có lần chạy đó (status 2 s biết lần chạy kết thúc sớm hơn lịch sử 5 s). Chấm màu progress + "Running · started {time} by {requester}" (không thêm badge "Running"), `RouteBadge` khi có `routeId`, "{title} · {target}", tóm tắt tham số một dòng, vòng tiến độ theo `startedAt`–`plannedEndAt` + "{mm:ss} left", "What happened" (§4.1), nút "Watch on map"/"Open dead letters"/"Open ticketing"/"Open pipeline" (theo kịch bản, như toast §6) và "Stop" |
+| Thư viện kịch bản | `ScenarioCard` × N theo thứ tự catalog, lưới 4 cột ≥ 1440 px, 2 cột nhỏ hơn | Hình minh họa nhỏ vẽ bằng SVG theo tên kịch bản (motif `LineStrip`: hai xe sát nhau, đoạn tuyến đỏ, payload lỗi, cột bán vé tăng vọt…; kịch bản lạ dùng hình chung), `title`, `description`, chip tham số chính với giá trị mặc định, nút "Start scenario" hoặc badge "Running" khi đã có lần chạy cho mục tiêu mặc định: kịch bản `SINGLE` có lần chạy bất kỳ; `PER_TARGET` có lần chạy trên `routeId`/`salePointId` mặc định (kịch bản không có mục tiêu mặc định, như `bunching`, luôn có nút) |
 | Dialog bắt đầu | `Dialog` với form sinh từ catalog | §6.1 |
 | Lịch sử | `DataTable` (≤ 100 dòng) | Cột: "Scenario", "Status" (`StatusPill domain="scenarioRun"`), "Started", "Ended", "Requested by", "Parameters" (tóm tắt 1 dòng, tooltip JSON) |
 | Drawer lần chạy | `DetailDrawer` 520 px | `GET /sim/scenario-runs/{runId}`: tham số đầy đủ (`JsonViewer`), `progress` khi đang chạy, thời gian, người yêu cầu; nút "Stop", "Run again" |
 
 ### 4.1 "What happened"
 
-Danh sách hệ quả quan sát được từ lúc lần chạy bắt đầu, để người xem thấy nền tảng phản ứng (DOC-46): alert mới (E-20 `since=startedAt`, lọc `routeId` hoặc `salePointId` của lần chạy) với tiêu đề và "{duration} after start"; với bunching, gợi ý điều phối khi có ("Suggested action ready ({percent})", E-17 `bunchingId`); với bad-data, "+{n} dead letters" (chênh lệch `open` của E-41 so với lúc bắt đầu). Tối đa 3 dòng; chưa có gì thì "Waiting for the platform to react…".
+Danh sách hệ quả quan sát được từ lúc lần chạy bắt đầu, để người xem thấy nền tảng phản ứng (DOC-46): alert mới (E-20 `since=startedAt`, lọc `routeId` và `type` của kịch bản; E-20 không lọc được điểm bán nên lần chạy có `salePointId` đọc alert `TICKETING_ANOMALY` và giữ alert có `body.salePointId` trùng hoặc không ghi điểm bán; alert có `createdAt` trước `startedAt` bị bỏ) với tiêu đề và "{duration} after start"; với bunching, gợi ý điều phối khi có ("Suggested action ready ({percent})", E-17 `bunchingId` = `refId` của alert); với bad-data và late-delivery, "+{n} dead letters" (chênh lệch `open` của E-41 so với lúc bắt đầu: số đếm ngay trước `POST` khi lần chạy được bắt đầu từ tab này, nếu không thì lần đầu tab thấy lần chạy). Tối đa 3 dòng; chưa có gì thì "Waiting for the platform to react…". Kịch bản không có luật nào ở trên (duplicates, load-ramp) không có khối này (DR-113).
 
 ## 5. Dữ liệu
 
-Mọi request đi qua proxy `/api/v1/sim/**` (E-90). Schema zod viết tay trong `src/api/sim.ts` (không có trong `openapi.json` công khai).
+Mọi request đi qua proxy `/api/v1/sim/**` (E-90). Schema zod viết tay trong `src/api/sim.ts` (không có trong `openapi.json` công khai); client là `createApiClient<SimPaths>()` với path gõ tay, cùng middleware token và gia hạn phiên của `api` (DR-113).
 
 | Dữ liệu | Endpoint | Query key | Refetch |
 | --- | --- | --- | --- |
@@ -132,16 +132,16 @@ Mỗi `params[]` sinh một trường theo `type`:
 
 | `type` | Trường | Giá trị gửi |
 | --- | --- | --- |
-| `STRING` | `Input`; có `suggestions` thì `Combobox` gợi ý (vẫn gõ tự do được) | chuỗi |
+| `STRING` | `Input`; có `suggestions` thì gợi ý bằng `<datalist>` (vẫn gõ tự do được, DR-113) | chuỗi |
 | `INT`, `DOUBLE` | `Input type="number"` với `min`/`max`, bước 1 hoặc 0,01 | số |
 | `BOOLEAN` | `Switch` | boolean |
-| `DURATION` | Ô số + đơn vị ("sec", "min", "h") | ISO-8601 (`PT20M`) |
+| `DURATION` | Ô số + đơn vị ("sec", "min", "h"); số lẻ được ("1.5" h) | ISO-8601 theo giây nguyên (`PT20M`, `PT1H30M`) |
 | `ENUM` | `Select` với `options`; `nullable` thêm lựa chọn "Any" | chuỗi hoặc số theo `options`; "Any" → `null` |
-| `ENUM_LIST` | Nhóm `Checkbox` theo `options` | mảng |
+| `ENUM_LIST` | Nhóm `Checkbox` theo `options`; bỏ hết → "Pick at least one." | mảng |
 | `DOUBLE_LIST` | Ô văn bản "1, 2, 5, 10" | mảng số |
 | `ROUTE` | `RouteSelect` một tuyến (E-01) | `routeId` |
 
-- zod schema dựng lúc chạy từ catalog: `required`, `min`, `max`, `nullable`, `options`. Trường không `required` và để trống thì **không** gửi (simulator dùng mặc định).
+- zod schema dựng lúc chạy từ catalog (`scenarioForm`, `src/features/demo/model.ts`): `required`, `min`, `max`, `nullable`, `options`. Trường không `required` và để trống thì **không** gửi (simulator dùng mặc định). Trường `required` còn trống chỉ làm nút bị disable, không báo lỗi (DR-112 §2). Lỗi hiện ngay khi gõ: "Enter a number.", "Enter a whole number.", "Must be at least {min}.", "Must be at most {max}." (khoảng thời gian viết bằng chữ, "1 min"), "Pick at least one.", "Enter numbers separated by commas.".
 - Giá trị mặc định điền sẵn từ `default`. Nhãn trường là `label` của catalog (tiếng Anh, do simulator cung cấp); mô tả thẻ là `description`.
 - Nút "Reset" trả form về mặc định.
 - `load-ramp` hiện thêm dòng "Total duration {duration}" tính từ `steps`, `stepDuration`, `rampDown` (DOC-25 §7.8).
@@ -168,9 +168,11 @@ Mỗi `params[]` sinh một trường theo `type`:
 | Đang chạy | "Running · started {time} by {requester}" · "{mm:ss} left" · "What happened" · "{duration} after start" · "Suggested action ready ({percent})" · "+{n} dead letters" · "Waiting for the platform to react…" · "Watch on map" · "Stop" · "Stop all" · "No scenarios running" |
 | Thư viện | "Scenarios" · "Each scenario stops by itself when its duration ends." · "Start scenario" · "Running" |
 | Dialog bắt đầu | "Start {title}?" · "Stops by itself after {duration}." · "Reset" · "Cancel" · "Start scenario" · "Any" · "Total duration {duration}" · đơn vị "sec", "min", "h" |
+| Form | "Pick a route" · "Enter a number." · "Enter a whole number." · "Must be at least {min}." · "Must be at most {max}." · "Pick at least one." · "Enter numbers separated by commas." · "Pick one of the options." |
 | Lịch sử | "History" · cột "Scenario", "Status", "Started", "Ended", "Requested by", "Parameters" · "No scenario runs yet" |
 | Drawer | "Scenario run {id}" · "Parameters" · "Progress" · "Requested by {requester}" · "Run again" |
-| Dialog | "Stop sending {stream} data?" · "Live data will go stale in about 2 minutes. Set the rate back to resume." · "Stop all {title} runs?" · "{n} runs will stop now." |
+| Dialog | "Stop sending {stream} data?" ({stream}: "GTFS-rt", "ticketing", "GTFS-rt and ticketing") · "Live data will go stale in about 2 minutes. Set the rate back to resume." · nút "Stop sending" · "Stop all {title} runs?" · "{n} runs will stop now." ("1 run will stop now.") · nút "Stop all" |
+| Speed | "Custom rate…" (nhãn của nút "…") · "Must be 0 or between 0.1 and 20." |
 | Phản hồi | "Rate updated" · "{title} started" · "{title} stopped" · "Watch on map" · "Open dead letters" · "Open ticketing" · "Open pipeline" |
 | Lỗi | "Rate is controlled by the running load ramp. Stop it first." · "{title} is already running for this target." · "No suitable buses on this route right now. Try another route or direction." · "This scenario isn't available." · "This run no longer exists." |
 | Không bật | "Demo control is not enabled on this server." · "Start the stack with the demo profile to use this page." |

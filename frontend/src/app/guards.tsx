@@ -2,7 +2,6 @@ import { useNavigate } from '@tanstack/react-router';
 import type { ReactNode } from 'react';
 
 import { hasRole, useAccess, type Role } from '@/app/access';
-import { useEnv } from '@/app/env-context';
 import { useSession } from '@/app/session';
 import { ErrorState } from '@/components/ErrorState';
 import { NoAccessState } from '@/components/NoAccessState';
@@ -29,11 +28,4 @@ export function RequireRole({ role, children }: { role: Role; children: ReactNod
       onGoToOverview={access.role ? () => void navigate({ to: '/overview' }) : undefined}
     />
   );
-}
-
-/** Demo control: operators, and only when `env.js` turns it on (DOC-34 §10). */
-export function RequireDemo({ children, fallback }: { children: ReactNode; fallback: ReactNode }) {
-  const appEnv = useEnv();
-  if (!appEnv.demoControl) return fallback;
-  return <RequireRole role="operator">{children}</RequireRole>;
 }

@@ -320,7 +320,7 @@ window.__PTI_ENV__ = {
 - `src/env.ts` validate bằng zod; thiếu hoặc sai → dùng mặc định an toàn (anonymous, `offline`, `demoControl: false`) và log `console.warn`.
 - `index.html` nạp `<script src="/env.js"></script>` trước bundle chính. nginx trả `env.js` với `Cache-Control: no-store`.
 - Dev: `frontend/public/env.js` (commit vào repo) có `mapStyle: "online"` và `demoControl: true`; sửa tay khi cần.
-- `demoControl` chỉ quyết định **hiện** mục "Demo". Nếu server không bật profile `demo` thì E-90 trả 404 và màn Demo hiện trạng thái "Demo control is not enabled on this server." (screens/demo-control).
+- `demoControl` quyết định **hiện** mục "Demo". Nếu server không bật profile `demo` thì E-90 trả 404 và màn Demo hiện trạng thái "Demo control is not enabled on this server." (screens/demo-control); operator mở thẳng `/ops/demo` khi `demoControl = false` cũng thấy trạng thái đó, và màn không gọi E-90 (DR-113).
 
 Bảng biến và giá trị mặc định ở DOC-29 §3.5 và DOC-39.
 

@@ -4,6 +4,7 @@ import { http, HttpResponse } from 'msw';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { getFreshness, listAlerts, listRoutes, listRuntimeFlags } from '@/api/generated/examples';
+import { demoCopy } from '@/i18n/demo';
 import { en } from '@/i18n/en';
 import { overviewCopy } from '@/i18n/overview';
 import { mswPath, respond, respondProblem } from '@/test/handlers';
@@ -154,9 +155,9 @@ describe('pages that need a role (DOC-37 §2.5)', () => {
     expect(screen.getByRole('button', { name: en.states.noAccess.goToOverview })).toBeInTheDocument();
   });
 
-  it('answers 404 for Demo when demoControl is off', async () => {
+  it('tells an operator Demo is not enabled when demoControl is off (screens/demo-control AC-6)', async () => {
     await renderRoute('/ops/demo', { as: 'operator', env: { demoControl: false } });
-    expect(await screen.findByRole('heading', { level: 1, name: en.notFound.title })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: demoCopy.notEnabled })).toBeInTheDocument();
   });
 
   it('says sign-in is not available on a deployment without Keycloak', async () => {

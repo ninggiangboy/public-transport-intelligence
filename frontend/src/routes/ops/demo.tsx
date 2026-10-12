@@ -1,19 +1,20 @@
 import { createFileRoute } from '@tanstack/react-router';
 
-import { RequireDemo } from '@/app/guards';
-import { NotFoundPage } from '@/app/shell/NotFoundPage';
-import { PlaceholderPage } from '@/app/shell/PlaceholderPage';
-import { en } from '@/i18n/en';
+import { RequireRole } from '@/app/guards';
+import { DemoPage } from '@/features/demo/components/DemoPage';
 
-// Operators only, and only when env.js sets demoControl (DOC-34 §10); P5-13 builds the screen.
+// Demo control (DOC-36 screens/demo-control): operators only. Without `demoControl` in env.js the page says the demo
+// profile is off rather than calling the proxy (§1, AC-6). The search params pass through untouched: the screen
+// validates them (features/demo/search.ts), so that the schema is not part of the first paint (DR-105, DR-110).
 export const Route = createFileRoute('/ops/demo')({
+  validateSearch: (search: Record<string, unknown>) => search,
   component: Demo,
 });
 
 function Demo() {
   return (
-    <RequireDemo fallback={<NotFoundPage />}>
-      <PlaceholderPage title={en.nav.items.demo} group={en.nav.groups.operations} role="operator" />
-    </RequireDemo>
+    <RequireRole role="operator">
+      <DemoPage raw={Route.useSearch()} />
+    </RequireRole>
   );
 }

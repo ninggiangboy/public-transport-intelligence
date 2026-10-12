@@ -114,4 +114,15 @@ export const keys = {
     feeds: () => ['etl', 'feeds'] as const,
     replays: (filters?: Filters) => ['etl', 'replays', normalizeFilters(filters)] as const,
   },
+  /** The simulator behind the proxy E-90 (Demo control, DOC-36 screens/demo-control §5). */
+  sim: {
+    all: () => ['sim'] as const,
+    /** `GET /sim/status`, every 2 s while the page shows. */
+    status: () => ['sim', 'status'] as const,
+    /** `GET /sim/scenarios`: the catalog, for the session. */
+    scenarios: () => ['sim', 'scenarios'] as const,
+    /** `GET /sim/scenario-runs`: the history, newest first. */
+    runs: () => ['sim', 'runs'] as const,
+    run: (runId: string) => ['sim', 'run', runId] as const,
+  },
 } as const;

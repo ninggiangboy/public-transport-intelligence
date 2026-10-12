@@ -44,6 +44,9 @@ describe('query keys (DOC-26 §9)', () => {
       'delays',
       { bucket: 'day' },
     ]);
+    expect(keys.sim.status().slice(0, 1)).toEqual(keys.sim.all());
+    expect(keys.sim.runs()).toEqual(['sim', 'runs']);
+    expect(keys.sim.run('r1')).toEqual(['sim', 'run', 'r1']);
   });
 
   it('gives equal filters one key', () => {

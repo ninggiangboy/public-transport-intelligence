@@ -41,7 +41,7 @@ async function injectBadData(page: Page, kinds: string[]) {
   });
   expect(token.ok()).toBe(true);
   const { access_token: accessToken } = (await token.json()) as { access_token: string };
-  const started = await page.request.post('/sim/scenarios/bad-data', {
+  const started = await page.request.post('/api/v1/sim/scenarios/bad-data', {
     headers: { Authorization: `Bearer ${accessToken}` },
     data: { ratio: 0.01, kinds, entityTypes: ['VEHICLE_POSITION'], duration: 'PT1M' },
   });
