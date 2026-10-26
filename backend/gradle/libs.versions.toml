@@ -2,7 +2,7 @@
 [versions]
 spring-boot = "4.1.1"
 spring-cloud-aws = "4.1.1"
-spotless = "8.10.3"
+spotless = "8.10.4"
 spotbugs-plugin = "6.5.12"
 spotbugs = "4.10.4"
 checkstyle = "14.3.0"
@@ -11,15 +11,15 @@ jib = "3.5.4"
 shedlock = "7.10.1"
 resilience4j = "2.4.0"
 springdoc = "3.1.1"
-bucket4j = "8.20.0"
-json-schema-validator = "3.0.7"
+bucket4j = "8.21.0"
+json-schema-validator = "3.0.8"
 json-canonicalization = "1.1"
 uuid-creator = "6.1.1"
 ulid-creator = "5.2.4"
 datasource-micrometer = "2.3.0"
 archunit = "1.5.1"
-mockwebserver = "5.5.0"
-typesafe-sdk = "0.2.0"
+mockwebserver = "5.5.1"
+typesafe-sdk = "0.4.0"
 
 [libraries]
 # BOMs
