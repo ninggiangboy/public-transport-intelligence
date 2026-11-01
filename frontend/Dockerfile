@@ -15,7 +15,7 @@ RUN pnpm build && rm -rf dist/.vite \
   && find dist/assets -type f \( -name '*.js' -o -name '*.css' -o -name '*.svg' -o -name '*.json' \) \
     -exec gzip -9 -k -n {} +
 
-FROM nginx:1.31.0-alpine@sha256:2f07d83bf561b506400dc183b1b2003803e39efbd22451f848adaba14d28c7c7
+FROM nginx:1.31.8-alpine@sha256:785835ea65db4bba6f021acc0f3be91b0fef76a53fe41f8588c6698d2aed0606
 # The entrypoint exports the container's DNS servers as NGINX_LOCAL_RESOLVERS for the resolver directive, and sizes
 # worker_processes to the CPU quota: one worker per host core would not fit the 32 MB of DOC-39.
 ENV NGINX_ENTRYPOINT_LOCAL_RESOLVERS=1 NGINX_ENTRYPOINT_WORKER_PROCESSES_AUTOTUNE=1
