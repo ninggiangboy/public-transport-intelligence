@@ -1,0 +1,8 @@
+site/tiles
+node_modules/
+chrome/
+vite/dist/
+measure-results.json
+measure-stress-results.json
+height-results.json
+pnpm-lock.yaml

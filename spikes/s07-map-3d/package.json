@@ -1,0 +1,16 @@
+{
+  "name": "s07-tooling",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "node motion.check.mjs",
+    "height": "node bbox-height.mjs",
+    "measure": "node measure.mjs"
+  },
+  "devDependencies": {
+    "@mapbox/vector-tile": "2.0.4",
+    "pbf": "4.0.1",
+    "playwright-core": "1.56.1",
+    "pmtiles": "4.5.0"
+  }
+}
