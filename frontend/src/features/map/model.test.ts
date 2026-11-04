@@ -20,7 +20,7 @@ import {
   type PatternStop,
   type RouteItem,
 } from '@/features/map/model';
-import { mapSearch } from '@/features/map/search';
+import { formatCamera, mapSearch, parseCamera } from '@/features/map/search';
 
 const NOW = Date.parse('2026-09-29T21:20:00Z');
 /** A CSS colour from a GTFS colour; written so that DS-11 finds no hex literal here. */
@@ -225,6 +225,22 @@ describe('search params of /map (DOC-34 §5.2)', () => {
   it('reads the camera that the URL parser split at its commas, with 4 decimals', () => {
     expect(mapSearch.parse({ c: ['-93.265', '44.97781234', '12'] }).c).toBe('-93.2650,44.9778,12.0000');
     expect(mapSearch.parse({ c: '-93.265,44.9778,12' }).c).toBe('-93.2650,44.9778,12.0000');
+  });
+
+  it('keeps a 3D camera with whole-degree bearing and pitch, and drops a half-written one (DR-111)', () => {
+    expect(mapSearch.parse({ c: '-93.265,44.9778,15.5,-32.4,58.2' }).c).toBe('-93.2650,44.9778,15.5000,-32,58');
+    expect(mapSearch.parse({ c: '-93.265,44.9778,15.5,10' }).c).toBeUndefined();
+    expect(mapSearch.parse({ c: '-93.265,44.9778,15.5,10,90' }).c).toBeUndefined();
+    expect(mapSearch.parse({ view: '3d' }).view).toBe('3d');
+    expect(parseCamera('-93.2650,44.9778,15.5000,-32,58')).toEqual({
+      lon: -93.265,
+      lat: 44.9778,
+      zoom: 15.5,
+      bearing: -32,
+      pitch: 58,
+    });
+    expect(parseCamera('-93.2650,44.9778,12.0000')).toEqual({ lon: -93.265, lat: 44.9778, zoom: 12 });
+    expect(formatCamera({ lon: 1, lat: 2, zoom: 3 })).toBe('1.0000,2.0000,3.0000');
   });
 
   it('drops bad values instead of failing', () => {

@@ -10,6 +10,7 @@ import { PanelSkeleton } from '@/components/PanelSkeleton';
 import { RouteBadge } from '@/components/RouteBadge';
 import { ToneBadge } from '@/components/ToneBadge';
 import { Button } from '@/components/ui/button';
+import { CameraBlock, EstimateRow } from '@/features/map/components/CameraBlock';
 import { Metric, Metrics, PanelFooter, PanelNotice, PanelSection } from '@/features/map/components/panel-parts';
 import {
   DELAY_TONE,
@@ -25,7 +26,10 @@ import {
 } from '@/features/map/model';
 import { bunchingDetailQuery, liveVehiclesQuery, routeDetailQuery, routeStopsQuery } from '@/features/map/queries';
 import { useDispatchFeedback } from '@/features/map/use-dispatch-feedback';
+// eslint-disable-next-line import-x/no-restricted-paths -- the 3D view's type-only contract, read by the map's panel (DR-111).
+import type { CameraMode } from '@/features/map3d/api';
 import { mapCopy } from '@/i18n/map';
+import { map3dCopy } from '@/i18n/map3d';
 import { useBusinessClock } from '@/lib/business-clock';
 import { delayClass } from '@/lib/delay';
 import { formatDuration, formatEta, formatPassengerDelay, formatSpeed } from '@/lib/format';
@@ -33,6 +37,13 @@ import { formatTime } from '@/lib/time';
 import { useAxisNow, useRelative } from '@/lib/use-now';
 
 const copy = mapCopy.map.vehicle;
+
+/** The 3D view's camera state, handed to the panel when `view=3d` (screens/live-map §4.3). */
+export interface View3d {
+  mode: CameraMode;
+  onMode: (mode: CameraMode) => void;
+  fixAgeSeconds: number | undefined;
+}
 
 interface VehiclePanelProps {
   vehicleId: string;
@@ -42,10 +53,20 @@ interface VehiclePanelProps {
   operator: boolean;
   following: boolean;
   onFollow: (follow: boolean) => void;
+  view3d?: View3d;
 }
 
 /** The selected bus (screens/live-map §4.1 `VehiclePanel`). */
-export function VehiclePanel({ vehicleId, routeIds, routes, staff, operator, following, onFollow }: VehiclePanelProps) {
+export function VehiclePanel({
+  vehicleId,
+  routeIds,
+  routes,
+  staff,
+  operator,
+  following,
+  onFollow,
+  view3d,
+}: VehiclePanelProps) {
   const queryClient = useQueryClient();
   const live = liveVehiclesQuery(routeIds);
   const vehicles = useQuery({
@@ -80,6 +101,7 @@ export function VehiclePanel({ vehicleId, routeIds, routes, staff, operator, fol
       operator={operator}
       following={following}
       onFollow={onFollow}
+      view3d={view3d}
     />
   );
 }
@@ -92,6 +114,7 @@ function VehicleDetail({
   operator,
   following,
   onFollow,
+  view3d,
 }: Omit<VehiclePanelProps, 'vehicleId' | 'routeIds'> & { vehicle: LiveVehicle; partnerLabel?: string }) {
   const clock = useBusinessClock();
   const now = useAxisNow(vehicle.eventTimestamp, 'event');
@@ -103,6 +126,8 @@ function VehicleDetail({
   const stops = orderedStops(direction);
   const progress = tripProgress(vehicle, stops);
   const label = vehicle.label ?? vehicle.vehicleId;
+  // Route types 0, 1 and 2 (tram, subway, rail) are drawn and named as a train (DR-111).
+  const vehicleName = map3dCopy.map3d.vehicle(route !== undefined && route.routeType <= 2, label);
   const cls = delayClass(vehicle.delaySeconds);
   const occupancy = occupancyLabel(vehicle.occupancyStatus);
   const overlay = staff ? vehicle.bunching : undefined;
@@ -163,6 +188,8 @@ function VehicleDetail({
           <Metric label={copy.occupancy} value={<span className="text-[13.5px]">{occupancy}</span>} />
         ) : null}
       </Metrics>
+      {view3d?.fixAgeSeconds !== undefined ? <EstimateRow fixAgeSeconds={view3d.fixAgeSeconds} /> : null}
+      {view3d ? <CameraBlock mode={view3d.mode} onMode={view3d.onMode} vehicle={vehicleName} /> : null}
       <PanelSection
         title={copy.tripProgress}
         aside={
@@ -218,17 +245,19 @@ function VehicleDetail({
         </PanelSection>
       ) : null}
       <PanelFooter>
-        <Button
-          variant={following ? 'default' : 'outline'}
-          size="sm"
-          aria-pressed={following}
-          onClick={() => {
-            onFollow(!following);
-          }}
-        >
-          <Crosshair aria-hidden="true" />
-          {following ? copy.stopFollowing : copy.follow}
-        </Button>
+        {view3d ? null : (
+          <Button
+            variant={following ? 'default' : 'outline'}
+            size="sm"
+            aria-pressed={following}
+            onClick={() => {
+              onFollow(!following);
+            }}
+          >
+            <Crosshair aria-hidden="true" />
+            {following ? copy.stopFollowing : copy.follow}
+          </Button>
+        )}
         <Button variant="outline" size="sm" asChild>
           <Link to="/stops/$stopId" params={{ stopId: vehicle.stopId }}>
             <MapPin aria-hidden="true" />

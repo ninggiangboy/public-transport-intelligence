@@ -172,7 +172,7 @@ Bố cục giữ nguyên 2D: panel điều khiển, pill tóm tắt, chú giải
 ### 4.3 Khác biệt ở chế độ 3D
 
 - **`VehiclePanel`** thêm, ngay dưới hàng ba số: dòng "Position estimated between GPS fixes · last fix {n} s ago" (icon ghim, `--muted-foreground`; `n` là tuổi của fix cuối theo `businessNow`). Nút "Follow"/"Stop following" của 2D được thay bằng khối **"Camera"**: `SegmentedControl` "Free", "Follow", "Chase" và một dòng mô tả chế độ đang chọn (§8). Mọi phần khác giữ nguyên.
-- **Chú giải** thêm hai dòng có `Switch`: "Buildings" (bật mặc định) và "Last GPS fix" (tắt mặc định). Hai lựa chọn này lưu ở `localStorage` (`pti.map3d.layers`), không lên URL.
+- **Chú giải** thêm hai dòng có `Switch`: "Buildings" (bật mặc định) và "Last GPS fix" (tắt mặc định; vòng nét liền cộng một chấm, DR-114). Hai lựa chọn này lưu ở `localStorage` (`pti.map3d.layers`), không lên URL.
 - **Chuyển động:** vị trí xe vẽ là ước tính giữa hai fix theo DOC-35 §6.4; panel, danh sách và chú giải vẫn dùng số từ dữ liệu. Camera "Follow"/"Chase" bám vị trí đang vẽ.
 - Bunching, gián đoạn, chọn xe, toast và phân quyền giống 2D; chỉ cách vẽ khác (DOC-35 §6.4).
 

@@ -8,14 +8,20 @@ import type { ResponseBody } from '@/api/types';
 import { alertsCopy } from '@/i18n/alerts';
 import { en } from '@/i18n/en';
 import { mapCopy } from '@/i18n/map';
+import { map3dCopy } from '@/i18n/map3d';
 import { toAlertResponse, upsertAlert } from '@/realtime/handlers';
 import { mswPath, respond, respondProblem } from '@/test/handlers';
-import { featureIds, mapDouble, resetMapDouble } from '@/test/map';
+import { emit3d, featureIds, map3dDouble, mapDouble, resetMapDouble } from '@/test/map';
+import { mockMatchMedia, REDUCED_MOTION_QUERY } from '@/test/media';
 import { renderRoute } from '@/test/render';
 import { server } from '@/test/server';
 
 const notify = vi.hoisted(() => ({ message: vi.fn(), success: vi.fn(), error: vi.fn(), warning: vi.fn() }));
 vi.mock('@/lib/notify', () => ({ notify, toasterReady: vi.fn() }));
+
+// WebGL 2 support decides whether "3D" is enabled (DR-111); the double lets a test turn it off.
+const webgl = vi.hoisted(() => ({ supported: true }));
+vi.mock('@/features/map/webgl', () => ({ supportsWebGL2: () => webgl.supported }));
 
 type Vehicle = ResponseBody<'/api/v1/vehicles/live', 'get', 200>['items'][number];
 type Episode = ResponseBody<'/api/v1/insights/bunching/{id}', 'get', 200>;
@@ -106,6 +112,7 @@ function serveBunching(episode: Partial<Episode> = {}) {
 
 beforeEach(() => {
   vehicleRequests = [];
+  webgl.supported = true;
   server.use(
     respond('get', '/api/v1/routes', routes),
     respond('get', '/api/v1/routes/{routeId}', routeDetail),
@@ -470,5 +477,165 @@ describe('live map', () => {
       'href',
       '/stops/51418',
     );
+  });
+
+  describe('3D view', () => {
+    const LG_QUERY = '(min-width: 1024px)';
+    let media: ReturnType<typeof mockMatchMedia>;
+
+    beforeEach(() => {
+      // A wide desktop: the switch shows and `view=3d` really enters 3D (DR-111). `XL` stays wide so the shell keeps
+      // its expanded sidebar, like the missing-matchMedia fallback the other tests rely on.
+      media = mockMatchMedia({
+        '(min-width: 768px)': true,
+        [LG_QUERY]: true,
+        '(min-width: 1280px)': true,
+      });
+    });
+
+    it('AC-12 clicking "3D" writes view=3d and enters at pitch 58', async () => {
+      const { router } = await renderRoute('/map');
+      await waitFor(() => {
+        expect(featureIds('vehicles')).toHaveLength(3);
+      });
+      await userEvent.click(await screen.findByRole('radio', { name: copy.view3d.three }));
+      await waitFor(() => {
+        expect(router.state.location.search).toEqual({ view: '3d' });
+      });
+      await waitFor(() => {
+        expect(mapDouble.enter3d).toHaveBeenCalledTimes(1);
+      });
+      const options = mapDouble.enter3d.mock.calls.at(0)?.[0];
+      expect(options?.pitch).toBe(58);
+      expect(options?.reducedMotion).toBe(false);
+      expect(typeof options?.clock()).toBe('number');
+      expect(map3dDouble.events).toBeDefined();
+    });
+
+    it('AC-12 restores the pitch and bearing of `c` on a reload', async () => {
+      await renderRoute('/map?view=3d&c=-93.2650,44.9778,13.0000,-32,52');
+      await waitFor(() => {
+        expect(mapDouble.enter3d).toHaveBeenCalled();
+      });
+      expect(mapDouble.enter3d.mock.calls.at(0)?.[0].pitch).toBe(52);
+      // The bearing reaches the map through the camera of the URL.
+      expect(mapDouble.initialCamera).toBe('-93.2650,44.9778,13.0000,-32,52');
+    });
+
+    it('AC-12 writes five camera numbers in 3D (three in 2D)', async () => {
+      const { router } = await renderRoute('/map?view=3d');
+      await waitFor(() => {
+        expect(mapDouble.moveEnd).toBeDefined();
+      });
+      mapDouble.moveEnd?.({ lon: -93.265, lat: 44.97781, zoom: 13, bearing: -32, pitch: 52 });
+      await waitFor(() => {
+        // The router splits the comma value into parts; five of them is the 3D camera (three in 2D).
+        expect(router.state.location.search).toEqual({
+          view: '3d',
+          c: ['-93.2650', '44.9778', '13.0000', '-32', '52'],
+        });
+      });
+    });
+
+    it('AC-16 disables "3D" without WebGL 2 and leaves `view=3d` as the 2D map', async () => {
+      webgl.supported = false;
+      const { router } = await renderRoute('/map?view=3d');
+      const three = await screen.findByRole('radio', { name: copy.view3d.three });
+      expect(three).toBeDisabled();
+      const trigger = three.parentElement;
+      expect(trigger).not.toBeNull();
+      trigger?.focus();
+      expect(await screen.findByRole('tooltip')).toHaveTextContent(copy.view3d.webgl);
+      expect(mapDouble.enter3d).not.toHaveBeenCalled();
+      expect(router.state.location.search).toEqual({ view: '3d' });
+    });
+
+    it('AC-16 has no 3D switch under 1024 px', async () => {
+      media.set(LG_QUERY, false);
+      await renderRoute('/map');
+      await waitFor(() => {
+        expect(featureIds('vehicles')).toHaveLength(3);
+      });
+      expect(screen.queryByRole('radio', { name: copy.view3d.three })).not.toBeInTheDocument();
+    });
+
+    it('AC-16 raises a Retry toast when the 3D chunk fails, and Retry enters again', async () => {
+      mapDouble.reject3d = true;
+      const { router } = await renderRoute('/map?view=3d');
+      await waitFor(() => {
+        expect(notify.error).toHaveBeenCalledWith(copy.view3d.failed, expect.anything());
+      });
+      // Still the 2D map, and the URL is not edited.
+      expect(router.state.location.search).toEqual({ view: '3d' });
+      const options = notify.error.mock.calls.at(0)?.[1] as { action: { label: string; onClick: () => void } };
+      expect(options.action.label).toBe(copy.view3d.retry);
+      const before = mapDouble.enter3d.mock.calls.length;
+      mapDouble.reject3d = false;
+      options.action.onClick();
+      await waitFor(() => {
+        expect(mapDouble.enter3d.mock.calls.length).toBeGreaterThan(before);
+      });
+    });
+
+    it('AC-17 the slow toast turns the buildings back on', async () => {
+      await renderRoute('/map?view=3d');
+      await waitFor(() => {
+        expect(map3dDouble.events).toBeDefined();
+      });
+      emit3d.slow();
+      await waitFor(() => {
+        expect(notify.warning).toHaveBeenCalledWith(copy.view3d.slow.message, expect.anything());
+      });
+      const options = notify.warning.mock.calls.at(0)?.[1] as { action: { label: string; onClick: () => void } };
+      expect(options.action.label).toBe(copy.view3d.slow.turnBackOn);
+      options.action.onClick();
+      await waitFor(() => {
+        expect(map3dDouble.api.setLayers).toHaveBeenCalledWith({ buildings: true, lastFix: false });
+      });
+    });
+
+    it('AC-14 the 3D panel has the Camera block, no Follow button, and Follow drives the controller', async () => {
+      await renderRoute('/map?view=3d&vehicle=1203');
+      const vehiclePanel = await panel(copy.panel.kind.vehicle);
+      await vehiclePanel.findByRole('heading', {
+        name: 'Nicollet Av - Nicollet Mall - 1st Av to Downtown Minneapolis',
+      });
+      expect(vehiclePanel.queryByRole('button', { name: copy.vehicle.follow })).not.toBeInTheDocument();
+      await userEvent.click(vehiclePanel.getByRole('radio', { name: map3dCopy.map3d.camera.follow }));
+      await waitFor(() => {
+        expect(map3dDouble.api.setCameraMode).toHaveBeenCalledWith('follow', '1203');
+      });
+      // Dragging the map (or the controller settling on Free) flips the control back.
+      emit3d.cameraMode('free');
+      await waitFor(() => {
+        expect(vehiclePanel.getByRole('radio', { name: map3dCopy.map3d.camera.free })).toHaveAttribute(
+          'aria-checked',
+          'true',
+        );
+      });
+    });
+
+    it('leaving 3D disposes the controller', async () => {
+      const { router } = await renderRoute('/map?view=3d');
+      await waitFor(() => {
+        expect(map3dDouble.events).toBeDefined();
+      });
+      await userEvent.click(await screen.findByRole('radio', { name: copy.view3d.two }));
+      await waitFor(() => {
+        expect(map3dDouble.api.dispose).toHaveBeenCalled();
+      });
+      await waitFor(() => {
+        expect(router.state.location.search).toEqual({});
+      });
+    });
+
+    it('passes the reduced-motion preference into the controller', async () => {
+      media.set(REDUCED_MOTION_QUERY, true);
+      await renderRoute('/map?view=3d');
+      await waitFor(() => {
+        expect(mapDouble.enter3d).toHaveBeenCalled();
+      });
+      expect(mapDouble.enter3d.mock.calls.at(0)?.[0].reducedMotion).toBe(true);
+    });
   });
 });

@@ -18,6 +18,8 @@ import { FEED_BOUNDS, MAX_BOUNDS } from '@/features/map/model';
 import { readPalette, usePalette } from '@/features/map/palette';
 import { INTERACTIVE_LAYERS, MapScene } from '@/features/map/scene';
 import { parseCamera, type Camera } from '@/features/map/search';
+// eslint-disable-next-line import-x/no-restricted-paths -- the 3D view's type-only contract (DR-111).
+import type { Map3dApi } from '@/features/map3d/api';
 import { mapCopy } from '@/i18n/map';
 import { useReducedMotion } from '@/lib/use-reduced-motion';
 
@@ -58,6 +60,9 @@ export function MapCanvas({ initialCamera, onReady, onMoveEnd, onUserMove, onPic
   const [cursor, setCursor] = useState<string>();
   const ref = useRef<MapRef>(null);
   const scene = useRef<MapScene>(undefined);
+  // The live 3D controller while `view=3d`; its presence is what routes clicks and the cursor through the picker.
+  const api3d = useRef<Map3dApi | undefined>(undefined);
+  const hoverFrame = useRef(0);
 
   installProtocol();
 
@@ -103,9 +108,38 @@ export function MapCanvas({ initialCamera, onReady, onMoveEnd, onUserMove, onPic
       },
       camera: () => {
         const center = map.getCenter();
-        return { lon: center.lng, lat: center.lat, zoom: map.getZoom() };
+        return {
+          lon: center.lng,
+          lat: center.lat,
+          zoom: map.getZoom(),
+          bearing: map.getBearing(),
+          pitch: map.getPitch(),
+        };
       },
       clusterZoom: (clusterId) => current.clusterZoom(clusterId),
+      enter3d: async (options, events) => {
+        // The controller owns everything 3D; it is reached only through this dynamic import (DR-107, ADR-0033).
+        // eslint-disable-next-line import-x/no-restricted-paths -- the 3D controller is loaded on demand only.
+        const { enter3d } = await import('@/features/map3d/controller');
+        const api = enter3d(map, options, events);
+        api3d.current = api;
+        // E2E-MAP-06 reads vehicle positions on screen; the canvas has no DOM for them. Opt-in per browser profile.
+        if (localStorage.getItem('pti.e2e') === '1') Object.assign(window, { __pti3d: api });
+        const canvas = map.getCanvas();
+        canvas.setAttribute('aria-label', copy.view3d.canvasLabel);
+        const dispose = api.dispose;
+        api.dispose = () => {
+          dispose();
+          api3d.current = undefined;
+          Reflect.deleteProperty(window, '__pti3d');
+          canvas.setAttribute('aria-label', copy.canvasLabel);
+        };
+        return api;
+      },
+      viewBounds: () => {
+        const bounds = map.getBounds();
+        return [bounds.getWest(), bounds.getSouth(), bounds.getEast(), bounds.getNorth()];
+      },
     }),
     [reducedMotion],
   );
@@ -138,6 +172,15 @@ export function MapCanvas({ initialCamera, onReady, onMoveEnd, onUserMove, onPic
   );
 
   const onClick = (event: MapLayerMouseEvent) => {
+    // In 3D the vehicles are drawn by the custom layer, so the picker answers first (DR-111).
+    const api = api3d.current;
+    if (api) {
+      const id = api.pick(event.point.x, event.point.y);
+      if (id !== undefined) {
+        onPick({ layer: 'vehicles', properties: { id }, lon: event.lngLat.lng, lat: event.lngLat.lat });
+        return;
+      }
+    }
     const feature = event.features?.[0];
     onPick(
       feature
@@ -149,6 +192,17 @@ export function MapCanvas({ initialCamera, onReady, onMoveEnd, onUserMove, onPic
           }
         : undefined,
     );
+  };
+
+  /** The pointer over a 3D vehicle: one pick per frame, cancelled by the next move (DR-111). */
+  const onMouseMove = (event: MapLayerMouseEvent) => {
+    const api = api3d.current;
+    if (!api) return;
+    const { x, y } = event.point;
+    cancelAnimationFrame(hoverFrame.current);
+    hoverFrame.current = requestAnimationFrame(() => {
+      setCursor(api.pick(x, y) !== undefined ? POINTER : undefined);
+    });
   };
 
   const camera = parseCamera(initialCamera);
@@ -163,7 +217,14 @@ export function MapCanvas({ initialCamera, onReady, onMoveEnd, onUserMove, onPic
           styleDiffing={false}
           initialViewState={
             camera
-              ? { longitude: camera.lon, latitude: camera.lat, zoom: camera.zoom }
+              ? {
+                  longitude: camera.lon,
+                  latitude: camera.lat,
+                  zoom: camera.zoom,
+                  // The 3D view keeps its tilt and bearing in `c` (DR-111); 2D leaves them at zero.
+                  bearing: camera.bearing ?? 0,
+                  pitch: camera.pitch ?? 0,
+                }
               : { bounds: FEED_BOUNDS, fitBoundsOptions: { padding: 24 } }
           }
           minZoom={9}
@@ -176,16 +237,25 @@ export function MapCanvas({ initialCamera, onReady, onMoveEnd, onUserMove, onPic
           cursor={cursor}
           onLoad={onLoad}
           onClick={onClick}
+          onMouseMove={onMouseMove}
           onMouseEnter={() => {
-            setCursor(POINTER);
+            // In 3D the picker owns the cursor, so the map only sets it for the 2D layers (DR-111).
+            if (!api3d.current) setCursor(POINTER);
           }}
           onMouseLeave={() => {
+            cancelAnimationFrame(hoverFrame.current);
             setCursor(undefined);
           }}
           onDragStart={onUserMove}
           onMoveEnd={(event) => {
-            const center = event.viewState;
-            onMoveEnd({ lon: center.longitude, lat: center.latitude, zoom: center.zoom });
+            const view = event.viewState;
+            onMoveEnd({
+              lon: view.longitude,
+              lat: view.latitude,
+              zoom: view.zoom,
+              bearing: view.bearing,
+              pitch: view.pitch,
+            });
           }}
           style={{ position: 'absolute', inset: 0 }}
         >

@@ -50,6 +50,25 @@ export const mapCopy = {
       stopDetails: 'Stop details',
       closeStop: 'Close',
     },
+    /**
+     * The few strings the non-lazy screen needs for the 3D view (screens/live-map §8, row "Chế độ 3D"). The 3D
+     * chunks keep their own copy in src/i18n/map3d.ts; these are here because MapCanvas, MapViewSwitch and
+     * use-map3d are part of the /map chunk.
+     */
+    view3d: {
+      label: 'Map view',
+      two: '2D',
+      three: '3D',
+      webgl: '3D needs a browser with WebGL 2.',
+      canvasLabel: '3D vehicle map',
+      loading: 'Loading 3D…',
+      failed: "Couldn't load the 3D view.",
+      retry: 'Retry',
+      slow: {
+        message: '3D was running slowly, so buildings are off.',
+        turnBackOn: 'Turn back on',
+      },
+    },
     legend: {
       title: 'Legend',
       layer: 'Layer',

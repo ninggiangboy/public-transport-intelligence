@@ -12,8 +12,9 @@ import { BottomSheet, type SheetSnap } from '@/features/map/components/BottomShe
 import { ControlPanel, DisruptionChip, MapChip, RouteChips } from '@/features/map/components/ControlPanel';
 import { MapCanvas, MapPing, MapPopup } from '@/features/map/components/MapCanvas';
 import { MapSearch } from '@/features/map/components/MapSearch';
+import { MapViewSwitch } from '@/features/map/components/MapViewSwitch';
 import { NearbyStops, type Location } from '@/features/map/components/NearbyStops';
-import { EmptyVehicles, Legend, MapControls, SummaryPill } from '@/features/map/components/overlays';
+import { EmptyVehicles, Legend, MapControls, MapFloatPanel, SummaryPill } from '@/features/map/components/overlays';
 import { PanelBar, type PanelKind } from '@/features/map/components/panel-parts';
 import type { MapHandle, MapPick } from '@/features/map/handle';
 import {
@@ -40,9 +41,17 @@ import {
   routeStopsQuery,
   routesQuery,
 } from '@/features/map/queries';
-import { formatCamera, type ColourMode, type MapSearch as MapSearchParams } from '@/features/map/search';
+import {
+  formatCamera,
+  parseCamera,
+  type Camera,
+  type ColourMode,
+  type MapSearch as MapSearchParams,
+} from '@/features/map/search';
+import { useMap3d } from '@/features/map/use-map3d';
 import { useMapToasts } from '@/features/map/use-map-toasts';
 import { useVehicleLayers } from '@/features/map/use-vehicle-layers';
+import { supportsWebGL2 } from '@/features/map/webgl';
 import { mapCopy } from '@/i18n/map';
 import { useMediaQuery } from '@/lib/browser';
 import { useBusinessClock } from '@/lib/business-clock';
@@ -55,8 +64,11 @@ import { useRealtime } from '@/realtime/useRealtime';
 
 const copy = mapCopy.map;
 const MD = '(min-width: 768px)';
+const LG = '(min-width: 1024px)';
 const CAMERA_DEBOUNCE_MS = 500;
 const NEARBY_RADIUS_M = 400;
+/** The tilt the 3D view enters at when `c` carries no pitch (DR-111). */
+const DEFAULT_PITCH = 58;
 const NO_ROUTES: readonly RouteItem[] = [];
 
 // Not needed for the first paint of the map: the panels load on the first selection, the table with `view=list`.
@@ -65,6 +77,13 @@ const PanelContent = lazy(() =>
 );
 const VehicleList = lazy(() =>
   import('@/features/map/components/VehicleList').then((module) => ({ default: module.VehicleList })),
+);
+// The 3D map controls ride the same lazily loaded module (DR-107): the camera cluster replaces "Locate"/"List view".
+const CameraControls = lazy(() =>
+  import('@/features/map/components/Map3dControls').then((module) => ({ default: module.CameraControls })),
+);
+const Layers3dToggles = lazy(() =>
+  import('@/features/map/components/Map3dControls').then((module) => ({ default: module.Layers3dToggles })),
 );
 
 interface Selection {
@@ -104,6 +123,15 @@ export function LiveMapPage({ search }: { search: MapSearchParams }) {
   const routeIds = useMemo(() => (routeKey ? routeKey.split(',') : []), [routeKey]);
   const mode: ColourMode = search.colour ?? 'delay';
   const view = search.view ?? 'map';
+  const desktop = useMediaQuery(LG);
+  const [loadFailed, setLoadFailed] = useState(false);
+  const webgl = supportsWebGL2();
+  // `view=3d` only becomes 3D on desktop with WebGL 2 and no load failure; otherwise it renders as the 2D map and the
+  // URL is left untouched (screens/live-map §2, §7, DR-111).
+  const view3d = view === '3d' && desktop && webgl && !loadFailed;
+  const initialCamera = parseCamera(search.c);
+  const entryPitch = initialCamera?.pitch ?? DEFAULT_PITCH;
+  const [camera3d, setCamera3d] = useState({ pitch: entryPitch, bearing: initialCamera?.bearing ?? 0 });
   // `bunching` means nothing to anonymous users: they have no overlay data (screens/live-map §2).
   const bunchingId = staff ? search.bunching : undefined;
   const selection = useMemo<Selection | undefined>(
@@ -193,9 +221,9 @@ export function LiveMapPage({ search }: { search: MapSearchParams }) {
 
   const [handle, setHandle] = useState<MapHandle>();
   const palette = usePalette();
-  // "Follow" belongs to one bus: opening another one starts without it.
+  // "Follow" belongs to one bus: opening another one starts without it. It is a 2D behaviour only (DR-111).
   const [followed, setFollowed] = useState<string>();
-  const following = followed !== undefined && followed === search.vehicle;
+  const following = !view3d && followed !== undefined && followed === search.vehicle;
   const setFollowing = (follow: boolean) => {
     setFollowed(follow ? search.vehicle : undefined);
   };
@@ -320,13 +348,24 @@ export function LiveMapPage({ search }: { search: MapSearchParams }) {
 
   const cameraTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const onMoveEnd = useCallback(
-    (camera: { lon: number; lat: number; zoom: number }) => {
+    (camera: Camera) => {
+      if (view3d) setCamera3d({ pitch: camera.pitch ?? DEFAULT_PITCH, bearing: camera.bearing ?? 0 });
       clearTimeout(cameraTimer.current);
       cameraTimer.current = setTimeout(() => {
-        update({ c: formatCamera(camera) }, true);
+        const { lon, lat, zoom, bearing, pitch } = camera;
+        // 2D keeps `c` to three numbers; 3D appends the whole degrees of bearing and pitch (DR-111).
+        update(
+          {
+            c:
+              view3d && bearing !== undefined && pitch !== undefined
+                ? formatCamera({ lon, lat, zoom, bearing, pitch })
+                : formatCamera({ lon, lat, zoom }),
+          },
+          true,
+        );
       }, CAMERA_DEBOUNCE_MS);
     },
-    [update],
+    [update, view3d],
   );
   useEffect(
     () => () => {
@@ -334,6 +373,25 @@ export function LiveMapPage({ search }: { search: MapSearchParams }) {
     },
     [],
   );
+
+  const three = useMap3d({
+    handle,
+    active: view3d,
+    pitch: entryPitch,
+    routeIds,
+    mode,
+    palette,
+    routes: byId,
+    selectedVehicle: search.vehicle,
+    focus,
+    onCamera: onMoveEnd,
+    onLoadError: () => {
+      setLoadFailed(true);
+    },
+    retry: () => {
+      setLoadFailed(false);
+    },
+  });
 
   const vehicleById = (id: string) =>
     queryClient
@@ -433,6 +491,7 @@ export function LiveMapPage({ search }: { search: MapSearchParams }) {
         operator={operator}
         following={following}
         onFollow={setFollowing}
+        {...(view3d ? { view3d: { mode: three.mode, onMode: three.setMode, fixAgeSeconds: three.estimateAge } } : {})}
         alertId={selection.kind === 'vehicle' ? undefined : alertFor(selection.id)}
         onExpired={() => {
           update({ disruption: undefined }, true);
@@ -485,7 +544,8 @@ export function LiveMapPage({ search }: { search: MapSearchParams }) {
       }}
       onPick={onPick}
     >
-      {search.vehicle ? <SelectedPing vehicleId={search.vehicle} routeIds={routeIds} /> : null}
+      {/* In 3D the custom layer draws the ring around the selected vehicle, so no 2D ping (DR-111). */}
+      {search.vehicle && !view3d ? <SelectedPing vehicleId={search.vehicle} routeIds={routeIds} /> : null}
       {disruption && affectedStops.length > 0 ? (
         <DisruptionPing stop={patternStops.get(disruption.affectedStopIds[0] ?? '')} />
       ) : null}
@@ -510,7 +570,27 @@ export function LiveMapPage({ search }: { search: MapSearchParams }) {
     </MapCanvas>
   );
 
-  const controls = (
+  const controls = view3d ? (
+    <Suspense fallback={null}>
+      <CameraControls
+        pitch={camera3d.pitch}
+        bearing={camera3d.bearing}
+        onTilt={(delta) => {
+          three.api?.tilt(camera3d.pitch + delta);
+        }}
+        onRotate={(delta) => {
+          three.api?.rotate(delta);
+        }}
+        onResetNorth={() => {
+          three.api?.resetNorth();
+        }}
+        onZoom={(delta) => {
+          handle?.zoomBy(delta);
+        }}
+        className={tablet ? cn('bottom-4 z-10', selection ? 'right-[412px]' : 'right-4') : 'top-[128px] right-3 z-10'}
+      />
+    </Suspense>
+  ) : (
     <MapControls
       touch={!tablet}
       legendOpen={legendOpen}
@@ -539,6 +619,15 @@ export function LiveMapPage({ search }: { search: MapSearchParams }) {
         setLegendOpen(!legendOpen);
       }}
       {...(tablet ? {} : { onModeChange: setMode })}
+      {...(view3d
+        ? {
+            extra: (
+              <Suspense fallback={null}>
+                <Layers3dToggles layers={three.layers} onChange={three.setLayers} />
+              </Suspense>
+            ),
+          }
+        : {})}
       className={tablet ? 'bottom-4 left-4 z-10' : 'top-[128px] left-3 z-10'}
     />
   );
@@ -564,9 +653,27 @@ export function LiveMapPage({ search }: { search: MapSearchParams }) {
               select({ kind: 'disruption', id: episode.id });
             }}
           />
-          <SummaryPill
-            routeIds={routeIds}
-            className={cn('top-4 z-10', selection ? 'left-[372px]' : 'left-1/2 -translate-x-1/2')}
+          {view3d && three.state === 'loading' ? (
+            <MapFloatPanel
+              className={cn(
+                'top-4 z-10 flex h-9 items-center rounded-full px-3 text-[12.5px] whitespace-nowrap text-muted-foreground',
+                selection ? 'left-[372px]' : 'left-1/2 -translate-x-1/2',
+              )}
+            >
+              {copy.view3d.loading}
+            </MapFloatPanel>
+          ) : (
+            <SummaryPill
+              routeIds={routeIds}
+              className={cn('top-4 z-10', selection ? 'left-[372px]' : 'left-1/2 -translate-x-1/2')}
+            />
+          )}
+          <MapViewSwitch
+            view3d={view3d}
+            onView3d={(on) => {
+              update({ view: on ? '3d' : undefined }, true);
+            }}
+            className={cn('top-4 z-10', selection ? 'right-[412px]' : 'right-4')}
           />
           <EmptyVehicles routeIds={routeIds} routes={byId} />
           {legend}

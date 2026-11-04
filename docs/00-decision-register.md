@@ -729,6 +729,18 @@ Tài liệu gốc mô tả tốt *cái gì* và *vì sao*, nhưng còn nhiều c
 
 ## H. Vận hành, hạ tầng, thực nghiệm
 
+
+### DR-114 · Chi tiết khi làm Live map 3D — **Chốt** (P5-18; sửa DR-111, screens/live-map §3.1, §4.3, §10, DOC-35 §6.4)
+- **Vấn đề:** (1) DR-111 để "dòng đứt" cho vòng "Last GPS fix", mà lớp `circle` của MapLibre không vẽ nét đứt. (2) AC-16 và E2E-MAP-07 nói "không có WebGL 2 thì 2D", nhưng MapLibre 6 tự nó cần WebGL 2: trình duyệt không có WebGL 2 thì cả bản đồ 2D cũng không vẽ được. (3) AC-12 của master plan đòi chunk `/map` "không đổi", mà nút `2D | 3D` và mã nối chế độ 3D nằm trong chunk đó. (4) E2E-MAP-06 cần đọc vị trí xe trên màn hình, mà bản đồ là canvas.
+- **Quyết định:**
+  1. Vòng "Last GPS fix" là nét liền 1,5 px cộng một chấm; nét đứt bỏ.
+  2. `supportsWebGL2()` (`src/features/map/webgl.ts`) vẫn chặn nút "3D" và `view=3d`, được kiểm bằng test thành phần; E2E-MAP-07 chạy bằng viewport 800 px (không cần stack). Ca "không có WebGL 2" không có E2E, vì Chromium thiếu WebGL 2 cũng không dựng nổi bản đồ.
+  3. Chunk `/map` tăng từ 348,2 lên **352,7 KB** (nút chuyển, hook nối, chuỗi sao chép của chế độ 3D), vẫn dưới ngân sách 360 KB của DR-107. Mã 3D còn lại nằm ngoài: controller 8,9 KB gzip (cùng lớp xe, nội suy, mô hình, nhãn), `Map3dControls` 1,4 KB, trong ngân sách 15 KB của ADR-0033; chuỗi của khối Camera, CameraControls và hai công tắc ở `src/i18n/map3d.ts`, chỉ tải khi vào 3D.
+  4. Khi `localStorage['pti.e2e'] = '1'`, `MapCanvas` đặt `window.__pti3d` (một `Map3dApi`) lúc vào 3D và xoá khi rời; E2E-MAP-06 đọc `screenPosition()` mỗi khung hình.
+  5. Xe vẽ không nhỏ hơn khoảng 14 px dọc khi zoom xa; đĩa nhãn chỉ hiện từ zoom 14; ở zoom thấp các xe chồng lên nhau thành một đốm (không gom cụm như 2D).
+- **Kiểm chứng:** Chrome 156 có GPU thật (Apple M2), `vite preview` của bản build với API giả và file `make tiles` thật: vào 3D từ 2D và từ URL có `c` năm số, F5 giữ chế độ, về 2D bỏ bearing và pitch khỏi `c`; 60 fps; xe di chuyển mỗi khung hình trong 30 s, bước nhảy lớn nhất 0,65 px (AC-13); reduced motion chỉ đổi chỗ theo từng fix; Follow giữ xe giữa khung nhìn, Chase quay theo hướng đi, kéo bản đồ về Free (AC-14); axe không lỗi nghiêm trọng. **Chưa chạy:** E2E-MAP-05 và E2E-MAP-06 trên stack compose (cần simulator), đo AC-17 (≥ 50 fps với 600 xe) trên app thật: S-07 đo 60 fps với 600 xe trên spike (ADR-0033).
+- **Ghi vào:** DR-111, screens/live-map §10, `src/features/map3d/`, `src/features/map/use-map3d.ts`, `src/features/map/components/{MapViewSwitch,Map3dControls,CameraBlock}.tsx`, `e2e/live-map-3d.spec.ts`.
+
 ### DR-50 · Nơi lưu trữ log và trace
 - **Vấn đề:** SDD gốc có OpenTelemetry nhưng chưa có nơi lưu trace, và log JSON cũng chưa có nơi lưu.
 - **Quyết định:** Metrics: Micrometer → Prometheus (scrape), gồm metric có sẵn của Spring Batch và Spring Kafka. Traces: Micrometer Observation → Micrometer Tracing (bridge OpenTelemetry) → OTLP → OTel Collector → Grafana Tempo; bật observation của Spring Kafka (`observation-enabled` cho listener và template) để `traceparent` đi qua Kafka header, và observation của Spring Batch cho job/step. Không dùng OTel Java agent song song để tránh span trùng. Logs: JSON có cấu trúc (structured logging có sẵn của Spring Boot) ra stdout → Grafana Alloy → Loki, `trace_id`/`span_id` tự vào MDC nhờ Micrometer Tracing. Tất cả nằm trong compose profile `observability`.

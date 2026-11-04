@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import { BunchingPanel } from '@/features/map/components/BunchingPanel';
 import { DisruptionPanel } from '@/features/map/components/DisruptionPanel';
 import type { PanelKind } from '@/features/map/components/panel-parts';
-import { VehiclePanel } from '@/features/map/components/VehiclePanel';
+import { VehiclePanel, type View3d } from '@/features/map/components/VehiclePanel';
 import type { RouteItem } from '@/features/map/model';
 
 // The body of the detail panel. Loaded on the first selection, not with the map (DOC-34 §7).
@@ -16,6 +16,7 @@ interface PanelContentProps {
   operator: boolean;
   following: boolean;
   onFollow: (follow: boolean) => void;
+  view3d?: View3d;
   alertId: string | undefined;
   onExpired: () => void;
 }
@@ -33,6 +34,7 @@ export function PanelContent(props: PanelContentProps): ReactNode {
         operator={props.operator}
         following={props.following}
         onFollow={props.onFollow}
+        view3d={props.view3d}
       />
     );
   if (selection.kind === 'bunching')

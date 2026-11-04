@@ -146,6 +146,8 @@ interface LegendProps {
   onToggle: () => void;
   /** Mobile: the colour mode lives in the legend. */
   onModeChange?: (mode: ColourMode) => void;
+  /** Extra rows at the end of the legend: the 3D layer switches (screens/live-map §4.3, DR-111). */
+  extra?: ReactNode;
   className?: string;
 }
 
@@ -199,6 +201,7 @@ export function Legend({
   open,
   onToggle,
   onModeChange,
+  extra,
   className,
 }: LegendProps) {
   const clock = useBusinessClock();
@@ -277,6 +280,7 @@ export function Legend({
               <Row swatch={<Swatch colour="" shape="cluster" />} label={copy.legend.cluster} />
             </tbody>
           </table>
+          {extra ? <div className="mt-2 border-t border-border pt-2">{extra}</div> : null}
         </div>
       ) : null}
     </MapFloatPanel>
