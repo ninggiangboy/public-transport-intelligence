@@ -1,5 +1,8 @@
+import { useQuery } from '@tanstack/react-query';
+
+import { api, read } from '@/api/client';
 import type { components } from '@/api/generated/schema';
-import { useFreshness } from '@/app/freshness';
+import { keys } from '@/api/keys';
 import { presetOf, type DayRange } from '@/features/scorecard/model';
 import { scorecardCopy } from '@/i18n/scorecard';
 import { useBusinessClock } from '@/lib/business-clock';
@@ -11,14 +14,27 @@ const copy = scorecardCopy.scorecard;
 
 /**
  * Yesterday by the business clock (DOC-34 §8) and the agency's zone. Scores end yesterday, so the page waits for
- * /system/freshness rather than guess from the wall clock; `ready` turns true with it.
+ * /system/freshness rather than guess from the wall clock; `ready` turns true with it. When that call fails there is
+ * no business date to use, so `error` carries the failure for the panels to show (DOC-37 §2.3) and `retry` asks again.
+ * The query is keyed like the app's E-60, so it is one request whichever part of the app observes it.
  */
 export function useServiceDays() {
   const clock = useBusinessClock();
-  const { data: freshness } = useFreshness();
-  const timezone = freshness?.activeFeed?.timezone ?? clock.timezone;
-  const today = freshness ? zonedDate(freshness.businessNow, timezone) : undefined;
-  return { ready: today !== undefined, yesterday: today ? addDays(today, -1) : '1970-01-01', timezone };
+  const freshness = useQuery({
+    queryKey: keys.system.freshness(),
+    queryFn: async () => (await read(api.GET('/api/v1/system/freshness'))).data,
+  });
+  const timezone = freshness.data?.activeFeed?.timezone ?? clock.timezone;
+  const today = freshness.data ? zonedDate(freshness.data.businessNow, timezone) : undefined;
+  return {
+    ready: today !== undefined,
+    error: freshness.isError ? freshness.error : undefined,
+    retry: () => {
+      void freshness.refetch();
+    },
+    yesterday: today ? addDays(today, -1) : '1970-01-01',
+    timezone,
+  };
 }
 
 /** "Sep 22, 2026 – Sep 28, 2026" for service dates, which have no zone. */

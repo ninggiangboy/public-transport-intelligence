@@ -247,6 +247,19 @@ describe('Route scorecard', () => {
     expect(await screen.findByText(copy.empty.title)).toBeInTheDocument();
     expect(screen.getByText(copy.empty.body)).toBeInTheDocument();
   });
+
+  it('shows error panels and no made-up range when the API is down', async () => {
+    server.use(http.all('*/api/v1/*', () => HttpResponse.error()));
+    await renderRoute('/scorecard', { as: 'viewer' });
+    const main = await screen.findByRole('main');
+    await waitFor(() => {
+      expect(within(main).getAllByRole('alert')).not.toHaveLength(0);
+    });
+    expect(main.querySelector('[aria-busy="true"]')).toBeNull();
+    expect(await screen.findAllByText(en.error.couldntLoad(copy.panels.otp))).not.toHaveLength(0);
+    expect(within(main).getAllByRole('button', { name: en.common.retry })).not.toHaveLength(0);
+    expect(main.textContent).not.toMatch(/1969|1970/);
+  });
 });
 
 describe('Route details', () => {

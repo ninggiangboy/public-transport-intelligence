@@ -257,15 +257,17 @@ export function OverviewPage({ period }: { period: Period }) {
   useDocumentTitle(overviewCopy.overview.crumb);
   const navigate = useNavigate({ from: '/overview' });
   const clock = useBusinessClock();
-  const { data: freshness } = useFreshness();
+  const { data: freshness, failed: freshnessFailed } = useFreshness();
   useRealtime({ channels: ['vehicles', 'alerts', 'dlq'] });
 
   // "Yesterday" is the business clock's (DOC-34 §8): wait for /system/freshness rather than guess from the wall clock.
+  // When E-60 fails there is no business date, so the OTP panels fall back to the machine clock and settle on their
+  // own error instead of a skeleton (DOC-37 §2.3).
   const today = freshness
     ? zonedDate(freshness.businessNow, freshness.activeFeed?.timezone ?? clock.timezone)
     : undefined;
-  const ranges = periodRanges(period, today ?? '1970-01-02');
-  const ready = today !== undefined;
+  const ranges = periodRanges(period, today ?? zonedDate(clock.now(), clock.timezone));
+  const ready = today !== undefined || freshnessFailed;
   const current = useQuery({ ...otpQuery(ranges.current), enabled: ready });
   const previous = useQuery({ ...otpQuery(ranges.previous), enabled: ready });
   const chartCurrent = useQuery({ ...otpQuery(ranges.chart), enabled: ready });

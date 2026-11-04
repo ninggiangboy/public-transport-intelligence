@@ -4,6 +4,7 @@ import { http, HttpResponse } from 'msw';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { components } from '@/api/generated/schema';
+import { en } from '@/i18n/en';
 import { replayCopy as copy } from '@/i18n/replay';
 import { mswPath, respond, respondProblem } from '@/test/handlers';
 import { renderRoute } from '@/test/render';
@@ -306,6 +307,13 @@ describe('Replay (DOC-36 screens/ops-console-replay)', () => {
     expect(await within(card).findByText(copy.estimate.unavailable)).toBeInTheDocument();
     expect(within(card).getByText('No processing history for this range.')).toBeInTheDocument();
     expect(within(card).getByRole('button', { name: copy.form.start })).toBeEnabled();
+  });
+
+  it('shows an error panel with Retry when the pipeline summary is down', async () => {
+    server.use(respondProblem('get', '/api/v1/etl/jobs/summary', 503, 'service-unavailable'));
+    const { form } = await openForm();
+    expect(await within(form).findByRole('alert')).toHaveTextContent(/Couldn't load/);
+    expect(within(form).getByRole('button', { name: en.common.retry })).toBeInTheDocument();
   });
 
   it('prefills the form from the URL once (§2)', async () => {

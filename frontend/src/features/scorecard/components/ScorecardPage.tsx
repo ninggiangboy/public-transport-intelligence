@@ -211,6 +211,14 @@ export function ScorecardPage({ search }: { search: ScorecardSearch }) {
   ];
   const modeCount = (value: Mode) => (value === 'all' ? all.length : counts[value]);
   const kpisReady = current.data !== undefined;
+  // Without a business date the scorecard's own queries cannot run (DOC-34 §8); once E-60 has failed, each panel
+  // shows that failure instead of waiting on a skeleton forever (DOC-37 §2.3).
+  const loadError = current.isError ? current.error : days.ready ? undefined : days.error;
+  const showError = current.data === undefined && loadError !== undefined;
+  const retry = () => {
+    if (current.isError) void current.refetch();
+    else days.retry();
+  };
 
   return (
     <div className="flex flex-col gap-4">
@@ -220,8 +228,8 @@ export function ScorecardPage({ search }: { search: ScorecardSearch }) {
         subtitle={current.data ? <ThresholdNote items={all} asOf={current.data.asOf} /> : undefined}
         actions={
           <RangeControls
-            range={range}
-            yesterday={days.yesterday}
+            range={days.ready ? range : undefined}
+            yesterday={days.ready ? days.yesterday : undefined}
             onChange={setRange}
             {...(items.length > 0 ? { onExport: exportCsv } : {})}
           />
@@ -255,14 +263,9 @@ export function ScorecardPage({ search }: { search: ScorecardSearch }) {
               delta={before.data ? countDelta(now.trips, then.trips, caption, formatPercentWhole) : undefined}
             />
           </>
-        ) : current.isError ? (
+        ) : showError ? (
           <div className="col-span-full">
-            <ErrorState
-              error={current.error}
-              variant="block"
-              panel={copy.panels.otp}
-              onRetry={() => void current.refetch()}
-            />
+            <ErrorState error={loadError} variant="block" panel={copy.panels.otp} onRetry={retry} />
           </div>
         ) : (
           [copy.kpi.systemOtp, copy.kpi.early, copy.kpi.late, copy.kpi.trips].map((label) => (
@@ -272,15 +275,10 @@ export function ScorecardPage({ search }: { search: ScorecardSearch }) {
       </div>
 
       <Card title={copy.dailyChart.title}>
-        {!current.data && !current.isError ? (
+        {showError ? (
+          <ErrorState error={loadError} variant="block" panel={copy.panels.otp} onRetry={retry} />
+        ) : !current.data ? (
           <PanelSkeleton variant="chart" />
-        ) : current.isError && !current.data ? (
-          <ErrorState
-            error={current.error}
-            variant="block"
-            panel={copy.panels.otp}
-            onRetry={() => void current.refetch()}
-          />
         ) : byMode.length === 0 ? (
           <EmptyState title={copy.chartEmpty} />
         ) : (
@@ -345,13 +343,8 @@ export function ScorecardPage({ search }: { search: ScorecardSearch }) {
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
-        {current.isError && !current.data ? (
-          <ErrorState
-            error={current.error}
-            variant="block"
-            panel={copy.panels.otp}
-            onRetry={() => void current.refetch()}
-          />
+        {showError ? (
+          <ErrorState error={loadError} variant="block" panel={copy.panels.otp} onRetry={retry} />
         ) : (
           <DataTable
             columns={columns}
@@ -363,13 +356,13 @@ export function ScorecardPage({ search }: { search: ScorecardSearch }) {
             }}
             isLoading={!current.data}
             dimmed={current.isPlaceholderData}
-            caption={copy.tableCaption(range.from, range.to)}
+            caption={days.ready ? copy.tableCaption(range.from, range.to) : copy.title}
             empty={<EmptyState title={copy.empty.title} description={copy.empty.body} />}
           />
         )}
       </section>
 
-      {search.route ? (
+      {days.ready && search.route ? (
         <RouteDrawer
           routeId={search.route}
           range={range}

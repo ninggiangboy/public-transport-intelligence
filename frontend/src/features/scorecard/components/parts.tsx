@@ -36,12 +36,14 @@ export function RangeControls({
   onChange,
   onExport,
 }: {
-  range: DayRange;
-  yesterday: string;
+  /** Undefined while the business date is unknown, so no made-up range is shown (DOC-37 §2.1). */
+  range: DayRange | undefined;
+  /** Undefined with `range`: the presets and the picker stay, without a range. */
+  yesterday: string | undefined;
   onChange: (range: DayRange) => void;
   onExport?: () => void;
 }) {
-  const preset = presetOf(range, yesterday);
+  const preset = range && yesterday ? presetOf(range, yesterday) : undefined;
   return (
     <>
       <SegmentedControl<Preset | ''>
@@ -49,15 +51,15 @@ export function RangeControls({
         value={preset ?? ''}
         options={PRESETS.map((value) => ({ value, label: copy.preset[value] }))}
         onChange={(value) => {
-          if (value) onChange(presetRange(value, yesterday));
+          if (value && yesterday) onChange(presetRange(value, yesterday));
         }}
       />
       <TimeRangePicker
-        value={{ from: range.from, to: range.to }}
+        value={range ? { from: range.from, to: range.to } : {}}
         presets={[]}
         maxRangeSeconds={MAX_DAYS * DAY_SECONDS}
         granularity="date"
-        maxDate={yesterday}
+        {...(yesterday ? { maxDate: yesterday } : {})}
         onChange={(value) => {
           if (value.from && value.to) onChange({ from: value.from, to: value.to });
         }}

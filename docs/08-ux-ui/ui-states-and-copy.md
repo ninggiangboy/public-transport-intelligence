@@ -335,6 +335,7 @@ Caption biểu đồ (đọc bởi screen reader) theo mẫu: "{Chart title}. {n
 | CP-08 | Component: `StaleBanner` khi đồng thời offline và `stale` | Chỉ hiện điều kiện ưu tiên 1 |
 | CP-09 | Component: panel đã có dữ liệu rồi refetch 500 | Dữ liệu cũ còn; dải inline "… Showing data from …" |
 | CP-10 | Component: skeleton với response trả sau 100 ms và sau 400 ms | Lần 1 không có skeleton; lần 2 có |
+| CP-11 | Component (`src/app/states.test.tsx`, P5-14): mọi màn hình ở mọi route, API trả 503 hoặc không với tới được; cả khi chỉ dữ liệu chết còn phiên vẫn sống | Trang giữ tiêu đề và có `role="alert"` trong `main`; không còn `aria-busy`; axe không có vi phạm `serious`/`critical` |
 
 ## 8. Câu hỏi còn mở
 

@@ -8,6 +8,7 @@ import { useFreshness } from '@/app/freshness';
 import { AppLink } from '@/components/AppLink';
 import { Callout } from '@/components/Callout';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
+import { ErrorState } from '@/components/ErrorState';
 import { KeyValueList } from '@/components/KeyValueList';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
@@ -207,8 +208,10 @@ export function NewReplayForm({ search, onSent }: NewReplayFormProps) {
             check.ok ? { from: Date.parse(check.body.fromTs), to: Date.parse(check.body.toTs) } : undefined,
           )}
           barsLoading={day.isPending}
+          barsError={day.isError ? day.error : undefined}
           clockOffset={freshness.data?.clockOffset}
           onChange={change}
+          onRetryBars={() => void day.refetch()}
         />
         <Step number={3} title={copy.options}>
           <div className="flex items-start justify-between gap-4">
@@ -394,12 +397,24 @@ interface RangeStepProps {
   errors: FieldErrors;
   bars: HourBar[];
   barsLoading: boolean;
+  barsError: unknown;
   clockOffset: string | undefined;
   onChange: (patch: Partial<ReplayFormValues>) => void;
+  onRetryBars: () => void;
 }
 
 /** ② Presets, From and To in the agency's zone, the hourly bars and the matching business time. */
-function RangeStep({ values, now, errors, bars, barsLoading, clockOffset, onChange }: RangeStepProps) {
+function RangeStep({
+  values,
+  now,
+  errors,
+  bars,
+  barsLoading,
+  barsError,
+  clockOffset,
+  onRetryBars,
+  onChange,
+}: RangeStepProps) {
   const clock = useBusinessClock();
   const timeZone = clock.timezone;
   const fromId = useId();
@@ -471,7 +486,11 @@ function RangeStep({ values, now, errors, bars, barsLoading, clockOffset, onChan
         </div>
       </div>
 
-      <HourlyBars bars={bars} loading={barsLoading} />
+      {barsError ? (
+        <ErrorState error={barsError} variant="block" panel={copy.perHour} onRetry={onRetryBars} />
+      ) : (
+        <HourlyBars bars={bars} loading={barsLoading} />
+      )}
 
       {offset !== 0 && !Number.isNaN(from) && !Number.isNaN(to) ? (
         <p className="mt-2 flex items-center gap-1.5 text-sm text-muted-foreground">

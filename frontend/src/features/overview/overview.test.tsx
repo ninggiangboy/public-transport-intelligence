@@ -178,6 +178,28 @@ describe('Overview page', () => {
     expect(chart.getByRole('table')).toHaveTextContent('75.0%');
   });
 
+  it('shows an error in every panel and offers Retry when the API is down', async () => {
+    server.use(http.all('*/api/v1/*', () => HttpResponse.error()));
+    await renderRoute('/overview', { as: 'viewer' });
+    const main = await screen.findByRole('main');
+    await waitFor(() => {
+      expect(main.querySelector('[aria-busy="true"]')).toBeNull();
+      for (const panel of Object.values(overviewCopy.overview.panels)) {
+        expect(within(main).getAllByText(en.error.couldntLoad(panel)).length).toBeGreaterThan(0);
+      }
+    });
+    for (const title of [
+      overviewCopy.overview.pulse.title,
+      overviewCopy.overview.attention.title,
+      overviewCopy.overview.otpChart.title,
+      overviewCopy.overview.watch.title,
+      overviewCopy.overview.pipeline.title,
+    ]) {
+      const region = within(main).getByRole('region', { name: title });
+      expect(within(region).getByRole('button', { name: en.common.retry })).toBeInTheDocument();
+    }
+  });
+
   it('asks anonymous users to sign in and loads nothing', async () => {
     await renderRoute('/overview');
     expect(await screen.findByRole('heading', { name: en.states.noAccess.signInTitle })).toBeInTheDocument();
