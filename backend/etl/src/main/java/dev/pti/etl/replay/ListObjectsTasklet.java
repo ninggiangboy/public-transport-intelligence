@@ -1,7 +1,7 @@
 package dev.pti.etl.replay;
 
 import dev.pti.common.error.FatalException;
-import dev.pti.etl.core.EtlSource;
+import dev.pti.etl.core.domain.EtlSource;
 import dev.pti.etl.raw.RawZone;
 import java.time.Instant;
 import java.util.ArrayList;

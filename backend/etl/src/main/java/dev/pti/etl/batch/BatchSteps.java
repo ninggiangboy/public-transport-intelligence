@@ -1,7 +1,7 @@
 package dev.pti.etl.batch;
 
-import dev.pti.etl.core.InboundMessage;
-import dev.pti.etl.core.WriteSet;
+import dev.pti.etl.core.domain.InboundMessage;
+import dev.pti.etl.core.domain.WriteSet;
 import java.util.List;
 import org.springframework.batch.core.job.builder.JobBuilder;
 import org.springframework.batch.core.listener.ChunkListener;

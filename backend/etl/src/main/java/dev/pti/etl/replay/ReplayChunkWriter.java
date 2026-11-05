@@ -2,12 +2,12 @@ package dev.pti.etl.replay;
 
 import dev.pti.common.time.BusinessClock;
 import dev.pti.etl.batch.StepValues;
-import dev.pti.etl.core.InboundMessage;
-import dev.pti.etl.core.WriteSet;
-import dev.pti.etl.write.ChunkWriter;
-import dev.pti.etl.write.RunMode;
-import dev.pti.etl.write.WriteContext;
-import dev.pti.etl.write.WriteOutcome;
+import dev.pti.etl.core.domain.InboundMessage;
+import dev.pti.etl.core.domain.WriteSet;
+import dev.pti.etl.write.application.port.ChunkWriter;
+import dev.pti.etl.write.domain.RunMode;
+import dev.pti.etl.write.domain.WriteContext;
+import dev.pti.etl.write.domain.WriteOutcome;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;

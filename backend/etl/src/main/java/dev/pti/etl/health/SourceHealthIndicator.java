@@ -1,9 +1,9 @@
 package dev.pti.etl.health;
 
-import dev.pti.etl.stream.ListenerPauseCoordinator;
-import dev.pti.etl.stream.ListenerPauseCoordinator.Reason;
-import dev.pti.etl.stream.SourceActivity;
-import dev.pti.etl.stream.StreamListener;
+import dev.pti.etl.stream.adapter.in.kafka.ListenerPauseCoordinator;
+import dev.pti.etl.stream.adapter.in.kafka.ListenerPauseCoordinator.Reason;
+import dev.pti.etl.stream.application.SourceActivity;
+import dev.pti.etl.stream.application.StreamListener;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Clock;

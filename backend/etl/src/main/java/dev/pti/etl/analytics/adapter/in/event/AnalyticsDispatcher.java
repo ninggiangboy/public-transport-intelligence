@@ -3,7 +3,7 @@ package dev.pti.etl.analytics.adapter.in.event;
 import dev.pti.etl.analytics.application.BatchCommit;
 import dev.pti.etl.analytics.application.DispatchBatchAnalytics;
 import dev.pti.etl.analytics.application.DispatchSummary;
-import dev.pti.etl.stream.MicroBatchCommitted;
+import dev.pti.etl.stream.application.MicroBatchCommitted;
 import io.micrometer.tracing.Link;
 import io.micrometer.tracing.Span;
 import io.micrometer.tracing.Tracer;

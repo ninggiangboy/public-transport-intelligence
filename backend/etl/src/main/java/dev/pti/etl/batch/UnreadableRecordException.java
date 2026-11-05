@@ -1,7 +1,7 @@
 package dev.pti.etl.batch;
 
 import dev.pti.common.error.DataException;
-import dev.pti.etl.core.InboundMessage;
+import dev.pti.etl.core.domain.InboundMessage;
 
 /**
  * A reader found a record it cannot turn into an item, e.g. a broken raw-zone line (DOC-22). Carries what the reader

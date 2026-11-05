@@ -27,7 +27,7 @@ import dev.pti.etl.gtfs.ValidateFeedTasklet;
 import dev.pti.etl.raw.RawZone;
 import dev.pti.etl.raw.S3RawZone;
 import dev.pti.etl.reference.ReferenceDataRefresher;
-import dev.pti.etl.write.SqlResource;
+import dev.pti.etl.write.adapter.out.jdbc.SqlResource;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.util.ArrayList;
 import java.util.List;

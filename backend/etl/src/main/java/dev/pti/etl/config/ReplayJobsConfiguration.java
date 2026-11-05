@@ -16,7 +16,7 @@ import dev.pti.etl.replay.ReplayChunkWriter;
 import dev.pti.etl.replay.ReplayRequestListener;
 import dev.pti.etl.replay.ReplayRequestPoller;
 import dev.pti.etl.replay.ReplayRequests;
-import dev.pti.etl.write.FactChunkWriter;
+import dev.pti.etl.write.adapter.out.jdbc.FactChunkWriter;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.util.concurrent.ThreadPoolExecutor;
 import org.springframework.batch.core.ExitStatus;

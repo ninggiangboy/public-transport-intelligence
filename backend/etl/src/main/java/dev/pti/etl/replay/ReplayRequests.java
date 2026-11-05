@@ -1,6 +1,6 @@
 package dev.pti.etl.replay;
 
-import dev.pti.etl.core.EtlSource;
+import dev.pti.etl.core.domain.EtlSource;
 import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.Instant;

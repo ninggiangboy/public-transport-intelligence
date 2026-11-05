@@ -1,7 +1,7 @@
 package dev.pti.etl.batch;
 
-import dev.pti.etl.fault.FaultInjector;
-import dev.pti.etl.fault.FaultPoint;
+import dev.pti.etl.fault.application.port.FaultInjector;
+import dev.pti.etl.fault.domain.FaultPoint;
 import org.jspecify.annotations.Nullable;
 import org.springframework.batch.core.listener.ChunkListener;
 import org.springframework.batch.core.listener.ItemProcessListener;

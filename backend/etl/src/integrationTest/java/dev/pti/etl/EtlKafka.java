@@ -1,6 +1,6 @@
 package dev.pti.etl;
 
-import dev.pti.etl.core.EtlSource;
+import dev.pti.etl.core.domain.EtlSource;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;

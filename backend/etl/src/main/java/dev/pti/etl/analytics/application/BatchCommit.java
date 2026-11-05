@@ -1,7 +1,7 @@
 package dev.pti.etl.analytics.application;
 
 import dev.pti.analytics.core.domain.Detector;
-import dev.pti.etl.core.EtlSource;
+import dev.pti.etl.core.domain.EtlSource;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.Set;

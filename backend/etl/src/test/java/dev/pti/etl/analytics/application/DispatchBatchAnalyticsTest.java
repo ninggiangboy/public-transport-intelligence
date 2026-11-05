@@ -10,7 +10,7 @@ import dev.pti.analytics.event.domain.InsightEvent;
 import dev.pti.common.events.Audience;
 import dev.pti.common.events.UiChannel;
 import dev.pti.common.time.BusinessClock;
-import dev.pti.etl.core.EtlSource;
+import dev.pti.etl.core.domain.EtlSource;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.time.Clock;

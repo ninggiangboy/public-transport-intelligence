@@ -1,10 +1,10 @@
 package dev.pti.etl.realtime.adapter.in.event;
 
-import dev.pti.etl.core.EtlSource;
-import dev.pti.etl.core.VehiclePositionRow;
+import dev.pti.etl.core.domain.EtlSource;
+import dev.pti.etl.core.domain.VehiclePositionRow;
 import dev.pti.etl.realtime.application.VehiclesBatchPublisher;
 import dev.pti.etl.realtime.domain.VehiclePosition;
-import dev.pti.etl.stream.MicroBatchCommitted;
+import dev.pti.etl.stream.application.MicroBatchCommitted;
 import java.util.List;
 import org.springframework.context.event.EventListener;
 

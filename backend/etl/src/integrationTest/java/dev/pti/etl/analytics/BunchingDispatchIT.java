@@ -28,7 +28,7 @@ import dev.pti.etl.batch.BatchContextSupport;
 import dev.pti.etl.batch.JobParams;
 import dev.pti.etl.batch.PtiJob;
 import dev.pti.etl.batch.PtiJobLauncher;
-import dev.pti.etl.core.EtlSource;
+import dev.pti.etl.core.domain.EtlSource;
 import dev.pti.etl.gtfs.FeedBuilder;
 import dev.pti.etl.gtfs.FeedContext;
 import dev.pti.etl.gtfs.FetchFeedTasklet;

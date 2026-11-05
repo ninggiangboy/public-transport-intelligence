@@ -1,7 +1,7 @@
 package dev.pti.etl.replay;
 
 import dev.pti.common.json.MessageJson;
-import dev.pti.etl.core.InboundMessage;
+import dev.pti.etl.core.domain.InboundMessage;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;

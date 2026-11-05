@@ -2,7 +2,7 @@ package dev.pti.etl.gtfs;
 
 import dev.pti.common.json.MessageJson;
 import dev.pti.common.time.BusinessClock;
-import dev.pti.etl.write.SqlResource;
+import dev.pti.etl.write.adapter.out.jdbc.SqlResource;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.util.ArrayList;

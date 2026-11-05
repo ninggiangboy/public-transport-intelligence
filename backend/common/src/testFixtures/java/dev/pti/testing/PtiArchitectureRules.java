@@ -107,7 +107,8 @@ public final class PtiArchitectureRules {
     private static final String PROFILE = "org.springframework.context.annotation.Profile";
     private static final String QUALIFIER = "org.springframework.beans.factory.annotation.Qualifier";
     private static final String OPERATOR_REPOSITORY = "dev.pti.api.platform.adapter.out.jdbc.OperatorRepository";
-    private static final String CONFIGURABLE_FAULT_INJECTOR = "dev.pti.etl.fault.ConfigurableFaultInjector";
+    private static final String CONFIGURABLE_FAULT_INJECTOR =
+            "dev.pti.etl.fault.adapter.out.chaos.ConfigurableFaultInjector";
 
     /**
      * Test code: the class directories of the test source sets and the test fixtures jar. Gradle puts a module's own

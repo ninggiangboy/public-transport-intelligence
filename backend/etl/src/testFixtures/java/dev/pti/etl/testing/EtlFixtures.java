@@ -2,14 +2,14 @@ package dev.pti.etl.testing;
 
 import dev.pti.common.json.MessageJson;
 import dev.pti.etl.config.DqProperties;
-import dev.pti.etl.core.EtlSource;
-import dev.pti.etl.core.InboundMessage;
+import dev.pti.etl.core.domain.EtlSource;
+import dev.pti.etl.core.domain.InboundMessage;
 import dev.pti.etl.reference.BoundingBox;
 import dev.pti.etl.reference.ReferenceData;
 import dev.pti.etl.reference.ServiceCalendar;
 import dev.pti.etl.reference.StopTimes;
 import dev.pti.etl.reference.TripRef;
-import dev.pti.etl.rules.RuleContext;
+import dev.pti.etl.rules.domain.RuleContext;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;

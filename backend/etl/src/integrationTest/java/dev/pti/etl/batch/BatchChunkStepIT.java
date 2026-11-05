@@ -6,11 +6,11 @@ import static dev.pti.etl.WarehouseSupport.vp;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import dev.pti.common.error.DeserializationException;
-import dev.pti.etl.core.EtlSource;
-import dev.pti.etl.core.InboundMessage;
-import dev.pti.etl.core.VehiclePositionRow;
-import dev.pti.etl.core.WriteSet;
-import dev.pti.etl.write.FactChunkWriter;
+import dev.pti.etl.core.domain.EtlSource;
+import dev.pti.etl.core.domain.InboundMessage;
+import dev.pti.etl.core.domain.VehiclePositionRow;
+import dev.pti.etl.core.domain.WriteSet;
+import dev.pti.etl.write.adapter.out.jdbc.FactChunkWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
@@ -367,7 +367,7 @@ class BatchChunkStepIT extends BatchContextSupport {
     }
 
     @Autowired
-    dev.pti.etl.fault.ConfigurableFaultInjector faults;
+    dev.pti.etl.fault.adapter.out.chaos.ConfigurableFaultInjector faults;
 
     @org.junit.jupiter.api.AfterEach
     void disarm() {
@@ -376,14 +376,15 @@ class BatchChunkStepIT extends BatchContextSupport {
 
     static java.util.stream.Stream<org.junit.jupiter.params.provider.Arguments> faultCases() {
         List<org.junit.jupiter.params.provider.Arguments> cases = new ArrayList<>();
-        for (dev.pti.etl.fault.FaultPoint point : List.of(
-                dev.pti.etl.fault.FaultPoint.BEFORE_READ,
-                dev.pti.etl.fault.FaultPoint.BEFORE_PROCESS,
-                dev.pti.etl.fault.FaultPoint.AFTER_PROCESS,
-                dev.pti.etl.fault.FaultPoint.BEFORE_WRITE,
-                dev.pti.etl.fault.FaultPoint.AFTER_WRITE_BEFORE_COMMIT)) {
-            for (dev.pti.etl.fault.FaultAction action :
-                    List.of(dev.pti.etl.fault.FaultAction.THROW_TRANSIENT, dev.pti.etl.fault.FaultAction.THROW_FATAL)) {
+        for (dev.pti.etl.fault.domain.FaultPoint point : List.of(
+                dev.pti.etl.fault.domain.FaultPoint.BEFORE_READ,
+                dev.pti.etl.fault.domain.FaultPoint.BEFORE_PROCESS,
+                dev.pti.etl.fault.domain.FaultPoint.AFTER_PROCESS,
+                dev.pti.etl.fault.domain.FaultPoint.BEFORE_WRITE,
+                dev.pti.etl.fault.domain.FaultPoint.AFTER_WRITE_BEFORE_COMMIT)) {
+            for (dev.pti.etl.fault.domain.FaultAction action : List.of(
+                    dev.pti.etl.fault.domain.FaultAction.THROW_TRANSIENT,
+                    dev.pti.etl.fault.domain.FaultAction.THROW_FATAL)) {
                 cases.add(org.junit.jupiter.params.provider.Arguments.of(point, action));
             }
         }
@@ -398,7 +399,7 @@ class BatchChunkStepIT extends BatchContextSupport {
     @org.junit.jupiter.params.ParameterizedTest(name = "{0} {1}")
     @org.junit.jupiter.params.provider.MethodSource("faultCases")
     void b06EveryFaultPointEndsWithEveryItemExactlyOnce(
-            dev.pti.etl.fault.FaultPoint point, dev.pti.etl.fault.FaultAction action) throws Exception {
+            dev.pti.etl.fault.domain.FaultPoint point, dev.pti.etl.fault.domain.FaultAction action) throws Exception {
         String prefix = prefix();
         int afterN =
                 switch (point) {

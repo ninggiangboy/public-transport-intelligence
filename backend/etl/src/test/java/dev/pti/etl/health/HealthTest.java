@@ -11,17 +11,17 @@ import static org.springframework.test.web.client.match.MockRestRequestMatchers.
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withServerError;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
-import dev.pti.etl.core.EtlSource;
+import dev.pti.etl.core.domain.EtlSource;
 import dev.pti.etl.flags.RuntimeFlagChanged;
 import dev.pti.etl.flags.RuntimeFlags;
 import dev.pti.etl.reference.ReferenceData;
 import dev.pti.etl.reference.ReferenceDataHolder;
-import dev.pti.etl.stream.ListenerPauseCoordinator;
-import dev.pti.etl.stream.MicroBatchCommitted;
-import dev.pti.etl.stream.SourceActivity;
-import dev.pti.etl.stream.StreamChunkResult;
-import dev.pti.etl.stream.StreamListener;
-import dev.pti.etl.write.WriteMode;
+import dev.pti.etl.stream.adapter.in.kafka.ListenerPauseCoordinator;
+import dev.pti.etl.stream.application.MicroBatchCommitted;
+import dev.pti.etl.stream.application.SourceActivity;
+import dev.pti.etl.stream.application.StreamChunkResult;
+import dev.pti.etl.stream.application.StreamListener;
+import dev.pti.etl.write.domain.WriteMode;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.net.URI;

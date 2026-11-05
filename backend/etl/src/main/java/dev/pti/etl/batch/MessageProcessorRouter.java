@@ -1,11 +1,11 @@
 package dev.pti.etl.batch;
 
 import dev.pti.common.time.BusinessClock;
-import dev.pti.etl.core.InboundMessage;
-import dev.pti.etl.core.MessageProcessors;
-import dev.pti.etl.core.WriteSet;
+import dev.pti.etl.core.application.MessageProcessors;
+import dev.pti.etl.core.domain.InboundMessage;
+import dev.pti.etl.core.domain.WriteSet;
 import dev.pti.etl.reference.ReferenceDataHolder;
-import dev.pti.etl.rules.RuleContext;
+import dev.pti.etl.rules.domain.RuleContext;
 import java.util.function.Supplier;
 import org.springframework.batch.core.step.StepExecution;
 import org.springframework.batch.infrastructure.item.ItemProcessor;
