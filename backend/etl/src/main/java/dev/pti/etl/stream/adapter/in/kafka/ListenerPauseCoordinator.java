@@ -1,6 +1,6 @@
 package dev.pti.etl.stream.adapter.in.kafka;
 
-import dev.pti.etl.flags.RuntimeFlagChanged;
+import dev.pti.etl.flags.domain.RuntimeFlagChanged;
 import dev.pti.etl.stream.application.StreamListener;
 import dev.pti.etl.stream.application.TopicNames;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;

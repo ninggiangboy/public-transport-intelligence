@@ -4,7 +4,7 @@ import dev.pti.analytics.core.domain.Detector;
 import dev.pti.analytics.recompute.application.AnalyticsRecomputeService;
 import dev.pti.analytics.recompute.domain.ReplayRange;
 import dev.pti.analytics.recompute.domain.ReplaySource;
-import dev.pti.etl.replay.ReplayChunkWriter;
+import dev.pti.etl.replay.adapter.in.batch.ReplayChunkWriter;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.EnumSet;

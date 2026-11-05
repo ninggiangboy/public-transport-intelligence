@@ -8,7 +8,7 @@ import dev.pti.analytics.eta.application.EtaPlanRequest;
 import dev.pti.analytics.eta.application.EtaRouteRun;
 import dev.pti.analytics.eta.application.EtaRunPlanner;
 import dev.pti.common.time.BusinessClock;
-import dev.pti.etl.batch.StepValues;
+import dev.pti.etl.batch.adapter.in.batch.StepValues;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;

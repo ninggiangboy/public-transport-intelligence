@@ -1,13 +1,13 @@
 package dev.pti.etl.config;
 
 import dev.pti.common.time.BusinessClock;
-import dev.pti.etl.batch.BatchSteps;
-import dev.pti.etl.batch.PtiJob;
-import dev.pti.etl.batch.maintenance.BatchMetadataCleanupTasklet;
-import dev.pti.etl.batch.maintenance.BatchedPurgeTasklet;
-import dev.pti.etl.batch.maintenance.BatchedPurgeTasklet.PurgeTarget;
-import dev.pti.etl.batch.maintenance.PartitionMaintenanceTasklet;
-import dev.pti.etl.batch.maintenance.PartitionMaintenanceTasklet.ManagedTable;
+import dev.pti.etl.batch.adapter.in.batch.BatchSteps;
+import dev.pti.etl.batch.domain.PtiJob;
+import dev.pti.etl.maintenance.adapter.in.batch.BatchMetadataCleanupTasklet;
+import dev.pti.etl.maintenance.adapter.in.batch.BatchedPurgeTasklet;
+import dev.pti.etl.maintenance.adapter.in.batch.BatchedPurgeTasklet.PurgeTarget;
+import dev.pti.etl.maintenance.adapter.in.batch.PartitionMaintenanceTasklet;
+import dev.pti.etl.maintenance.adapter.in.batch.PartitionMaintenanceTasklet.ManagedTable;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Clock;
 import java.util.List;

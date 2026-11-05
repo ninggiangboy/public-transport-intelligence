@@ -21,7 +21,7 @@ import dev.pti.etl.core.domain.WriteSet;
 import dev.pti.etl.fault.adapter.out.chaos.ConfigurableFaultInjector;
 import dev.pti.etl.fault.domain.FaultAction;
 import dev.pti.etl.fault.domain.FaultPoint;
-import dev.pti.etl.reference.ReferenceDataHolder;
+import dev.pti.etl.reference.application.ReferenceDataHolder;
 import dev.pti.etl.stream.adapter.out.jdbc.SpringChunkTransaction;
 import dev.pti.etl.stream.adapter.out.jdbc.StreamBatchLog;
 import dev.pti.etl.stream.adapter.out.metrics.MicrometerStreamMetrics;

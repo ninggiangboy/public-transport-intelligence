@@ -1,7 +1,7 @@
 package dev.pti.etl.stream.adapter.in.kafka;
 
-import dev.pti.etl.reference.ReferenceDataChanged;
-import dev.pti.etl.reference.ReferenceDataHolder;
+import dev.pti.etl.reference.application.ReferenceDataHolder;
+import dev.pti.etl.reference.domain.ReferenceDataChanged;
 import dev.pti.etl.stream.application.StreamListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

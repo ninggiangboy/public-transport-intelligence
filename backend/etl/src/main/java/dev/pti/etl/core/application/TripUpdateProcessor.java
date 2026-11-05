@@ -15,7 +15,7 @@ import dev.pti.etl.core.domain.RuleContext;
 import dev.pti.etl.core.domain.RuleEngine;
 import dev.pti.etl.core.domain.TripUpdateRow;
 import dev.pti.etl.core.domain.WriteSet;
-import dev.pti.etl.reference.ReferenceData;
+import dev.pti.etl.reference.domain.ReferenceData;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;

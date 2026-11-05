@@ -2,9 +2,9 @@ package dev.pti.etl.analytics.adapter.in.scheduling;
 
 import dev.pti.common.time.BusinessClock;
 import dev.pti.etl.analytics.adapter.in.batch.EtaAggregationTasklet;
-import dev.pti.etl.batch.JobParams;
-import dev.pti.etl.batch.PtiJob;
-import dev.pti.etl.batch.PtiJobLauncher;
+import dev.pti.etl.batch.adapter.in.batch.JobParams;
+import dev.pti.etl.batch.adapter.in.batch.PtiJobLauncher;
+import dev.pti.etl.batch.domain.PtiJob;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;

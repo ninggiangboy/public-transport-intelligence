@@ -1,8 +1,8 @@
 package dev.pti.etl.analytics.adapter.out.feed;
 
 import dev.pti.analytics.reference.application.port.ActiveFeedVersion;
-import dev.pti.etl.reference.ReferenceData;
-import dev.pti.etl.reference.ReferenceDataHolder;
+import dev.pti.etl.reference.application.ReferenceDataHolder;
+import dev.pti.etl.reference.domain.ReferenceData;
 import java.util.OptionalLong;
 
 /**

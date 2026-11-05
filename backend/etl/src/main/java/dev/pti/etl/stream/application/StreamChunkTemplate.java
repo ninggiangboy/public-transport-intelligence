@@ -13,7 +13,7 @@ import dev.pti.etl.core.domain.RuleContext;
 import dev.pti.etl.core.domain.WriteSet;
 import dev.pti.etl.fault.application.port.FaultInjector;
 import dev.pti.etl.fault.domain.FaultPoint;
-import dev.pti.etl.reference.ReferenceDataHolder;
+import dev.pti.etl.reference.application.ReferenceDataHolder;
 import dev.pti.etl.stream.application.port.BatchCommittedPublisher;
 import dev.pti.etl.stream.application.port.ChunkBatchLog;
 import dev.pti.etl.stream.application.port.ChunkTracing;

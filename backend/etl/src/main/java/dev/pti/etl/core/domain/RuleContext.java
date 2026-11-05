@@ -1,7 +1,7 @@
 package dev.pti.etl.core.domain;
 
 import dev.pti.common.error.FatalException;
-import dev.pti.etl.reference.ReferenceData;
+import dev.pti.etl.reference.domain.ReferenceData;
 import java.time.Duration;
 import java.time.Instant;
 import org.jspecify.annotations.Nullable;

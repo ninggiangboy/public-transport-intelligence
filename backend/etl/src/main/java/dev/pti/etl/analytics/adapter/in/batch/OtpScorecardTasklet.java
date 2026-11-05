@@ -10,7 +10,7 @@ import dev.pti.analytics.otp.application.OtpPlanRequest;
 import dev.pti.analytics.otp.application.OtpRunPlanner;
 import dev.pti.analytics.otp.application.OtpScorecardCalculator;
 import dev.pti.analytics.otp.domain.OtpServiceDates;
-import dev.pti.etl.batch.StepValues;
+import dev.pti.etl.batch.adapter.in.batch.StepValues;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 import java.util.Arrays;
