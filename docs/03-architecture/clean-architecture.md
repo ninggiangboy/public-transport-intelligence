@@ -392,7 +392,7 @@ Làm theo thứ tự ở master plan §5 (Phase R). Nguyên tắc:
 | --- | --- | --- | --- | --- |
 | `common` | 64 | A-08: 6, A-14: 16, A-18: 42 | **0** (RF-01 xong: A-08 sửa; A-14 và A-18 không áp cho thư viện phẳng, D-R1) | RF-01 |
 | `source-simulator` | 254 | A-08: 18, A-14: 28, A-16: 36, A-18: 172 | 254 | RF-02 |
-| `etl` | 289 | A-07: 8, A-08: 41, A-14: 42, A-18: 198 | 289 | RF-03, RF-04 |
+| `etl` | 289 | A-07: 8, A-08: 41, A-14: 42, A-18: 198 | 148 sau RF-03 (còn `batch`, `gtfs`, `replay`, `reference`, `raw`, `health`, `flags`, `config`) | RF-03, RF-04 |
 | `db` | 2 | A-18: 2 | 2 | RF-05 |
 
 RF-00 đếm lại từng file store (`archunit_store/`) và thấy `etl` có 289 dòng với A-07 là 8, không phải 290 và 9 như ghi lúc P4-18 (một vi phạm `Clock.systemUTC()` đã biến mất khi code P4 sửa `config`). Bảng trên là số thật; mỗi task RF cập nhật cột "Còn lại" khi đóng.
