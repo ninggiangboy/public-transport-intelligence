@@ -12,10 +12,10 @@ Tài liệu này quy định **cách tổ chức code bên trong mỗi module Ja
 | `analytics` | Mới (P4) | P4-00 | A-11…A-18 đầy đủ, fail build |
 | `api` | Mới (P4) | P4-00 | A-11…A-18 đầy đủ, fail build |
 | `triage-worker` | Mới (P6) | P6-00 | A-11…A-18 đầy đủ, fail build |
-| `etl` | Cũ (P2) | Phase R (RF-03, RF-04) | Tới Phase R: `FreezingArchRule` (§9.2). **Package mới** thêm vào `etl` từ P4 (ví dụ `dev.pti.etl.analytics`) phải tuân thủ ngay |
+| `etl` | Cũ (P2) | RF-03, RF-04 (xong 2026-11-05) | A-11…A-18 chạy trực tiếp, không freeze |
 | `source-simulator` | Cũ (P1, P3) | RF-02 (xong 2026-11-05) | A-11…A-18 chạy trực tiếp, không freeze; ngoại lệ X-05 |
 | `common` | Cũ (P1) | RF-01 (xong 2026-11-05) | Thư viện phẳng, không áp A-11…A-18 (D-R1, DR-115); kernel là Java thuần (§4.2), kiểm trực tiếp, không freeze |
-| `db` | Cũ (P1) | Phase R (RF-05) | Như `etl` (chỉ là Flyway runner, gần như không có việc) |
+| `db` | Cũ (P1) | RF-05 (xong 2026-11-05) | A-11…A-18 chạy trực tiếp, không freeze |
 
 **Không áp dụng:** frontend (cấu trúc theo DOC-34, DOC-35) và `experiments/` (Python, ADR-0025).
 
@@ -393,8 +393,8 @@ Làm theo thứ tự ở master plan §5 (Phase R). Nguyên tắc:
 | --- | --- | --- | --- | --- |
 | `common` | 64 | A-08: 6, A-14: 16, A-18: 42 | **0** (RF-01 xong: A-08 sửa; A-14 và A-18 không áp cho thư viện phẳng, D-R1) | RF-01 |
 | `source-simulator` | 254 | A-08: 18, A-14: 28, A-16: 36, A-18: 172 | **0** (RF-02 xong; sau khi chuyển package số đo là 467 vì các tầng lộ ra vi phạm A-12; xem DR-116) | RF-02 |
-| `etl` | 289 | A-07: 8, A-08: 41, A-14: 42, A-18: 198 | 148 sau RF-03 (còn `batch`, `gtfs`, `replay`, `reference`, `raw`, `health`, `flags`, `config`) | RF-03, RF-04 |
-| `db` | 2 | A-18: 2 | 2 | RF-05 |
+| `etl` | 289 | A-07: 8, A-08: 41, A-14: 42, A-18: 198 | **0** (RF-03 và RF-04 xong; sau khi chuyển package số đo là 370 trước khi sửa) | RF-03, RF-04 |
+| `db` | 2 | A-18: 2 | **0** (RF-05 xong) | RF-05 |
 
 RF-00 đếm lại từng file store (`archunit_store/`) và thấy `etl` có 289 dòng với A-07 là 8, không phải 290 và 9 như ghi lúc P4-18 (một vi phạm `Clock.systemUTC()` đã biến mất khi code P4 sửa `config`). Bảng trên là số thật; mỗi task RF cập nhật cột "Còn lại" khi đóng.
 

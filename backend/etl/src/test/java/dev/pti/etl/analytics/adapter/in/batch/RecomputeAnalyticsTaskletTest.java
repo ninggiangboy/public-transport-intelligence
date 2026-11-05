@@ -9,8 +9,8 @@ import dev.pti.analytics.recompute.domain.ReplayRange;
 import dev.pti.analytics.recompute.domain.ReplaySource;
 import dev.pti.analytics.recompute.domain.WorkItem;
 import dev.pti.common.json.MessageJson;
-import dev.pti.etl.batch.StepValues;
-import dev.pti.etl.replay.ReplayRequestListener;
+import dev.pti.etl.batch.domain.BatchId;
+import dev.pti.etl.replay.adapter.in.batch.ReplayRequestListener;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.EnumSet;
@@ -72,7 +72,7 @@ class RecomputeAnalyticsTaskletTest {
         JobExecution job = MetaDataInstanceFactory.createJobExecution();
         StepExecution step = MetaDataInstanceFactory.createStepExecution(job, "recompute", 7L);
         step.getExecutionContext()
-                .putString(StepValues.BATCH_ID, UUID.randomUUID().toString());
+                .putString(BatchId.CONTEXT_KEY, UUID.randomUUID().toString());
         return step;
     }
 
@@ -98,7 +98,10 @@ class RecomputeAnalyticsTaskletTest {
         assertThat(statuses).containsExactly(RepeatStatus.CONTINUABLE, RepeatStatus.CONTINUABLE, RepeatStatus.FINISHED);
         assertThat(service.plans).as("planned once").isEqualTo(1);
         assertThat(service.executed).isEqualTo(ITEMS);
-        assertThat(service.batches).as("the step's batch_id (DR-63)").containsOnly(StepValues.batchId(step));
+        assertThat(service.batches)
+                .as("the step's batch_id (DR-63)")
+                .containsOnly(
+                        BatchId.of(step.getExecutionContext().getString(BatchId.CONTEXT_KEY, ""), step.getStepName()));
         JsonNode analytics = MessageJson.mapper()
                 .readTree(
                         step.getJobExecution().getExecutionContext().getString(ReplayRequestListener.ANALYTICS_STATS));

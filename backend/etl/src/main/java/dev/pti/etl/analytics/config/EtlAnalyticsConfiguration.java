@@ -10,7 +10,7 @@ import dev.pti.etl.analytics.adapter.out.kafka.KafkaAnalyticsEventSink;
 import dev.pti.etl.config.GtfsProperties;
 import dev.pti.etl.config.PlatformProperties;
 import dev.pti.etl.config.RetentionProperties;
-import dev.pti.etl.reference.ReferenceDataHolder;
+import dev.pti.etl.reference.application.ReferenceDataHolder;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.util.Map;
 import org.apache.kafka.clients.producer.ProducerConfig;

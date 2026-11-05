@@ -5,11 +5,12 @@ import dev.pti.etl.config.DqProperties;
 import dev.pti.etl.core.domain.EtlSource;
 import dev.pti.etl.core.domain.InboundMessage;
 import dev.pti.etl.core.domain.RuleContext;
-import dev.pti.etl.reference.BoundingBox;
-import dev.pti.etl.reference.ReferenceData;
-import dev.pti.etl.reference.ServiceCalendar;
-import dev.pti.etl.reference.StopTimes;
-import dev.pti.etl.reference.TripRef;
+import dev.pti.etl.reference.adapter.out.jdbc.CaffeineStopTimes;
+import dev.pti.etl.reference.domain.BoundingBox;
+import dev.pti.etl.reference.domain.ReferenceData;
+import dev.pti.etl.reference.domain.ServiceCalendar;
+import dev.pti.etl.reference.domain.StopTimes;
+import dev.pti.etl.reference.domain.TripRef;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
@@ -46,7 +47,7 @@ public final class EtlFixtures {
                 List.of(new ServiceCalendar.Weekly(
                         "1", weekdays, LocalDate.parse("2026-09-28"), LocalDate.parse("2026-11-13"))),
                 List.of());
-        StopTimes stopTimes = new StopTimes(
+        StopTimes stopTimes = new CaffeineStopTimes(
                 date -> Map.of(TRIP, new int[][] {{14, 15}, {16 * 3600 + 16 * 60, 16 * 3600 + 17 * 60}}), 4);
         return new ReferenceData(
                 3,

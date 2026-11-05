@@ -21,9 +21,9 @@ import dev.pti.etl.core.domain.RealtimeFacts;
 import dev.pti.etl.core.domain.RuleEngine;
 import dev.pti.etl.fault.adapter.out.chaos.ConfigurableFaultInjector;
 import dev.pti.etl.fault.application.port.FaultInjector;
-import dev.pti.etl.reference.ReferenceDataHolder;
-import dev.pti.etl.reference.ReferenceDataLoader;
-import dev.pti.etl.reference.ReferenceDataRefresher;
+import dev.pti.etl.reference.adapter.in.scheduling.ReferenceDataRefresher;
+import dev.pti.etl.reference.adapter.out.jdbc.ReferenceDataLoader;
+import dev.pti.etl.reference.application.ReferenceDataHolder;
 import dev.pti.etl.rules.domain.RealtimeRules;
 import dev.pti.etl.rules.domain.TicketRules;
 import dev.pti.etl.write.adapter.out.cache.CaffeineKnownKeyCache;
@@ -69,10 +69,10 @@ import org.springframework.transaction.support.TransactionTemplate;
 })
 public class EtlCoreConfiguration {
 
-    /** The business clock (DR-67): the only place that reads the system clock. */
+    /** The business clock (DR-67): it shifts the system clock by {@code pti.clock.offset}. */
     @Bean
-    BusinessClock businessClock(@Value("${pti.clock.offset:0s}") Duration offset) {
-        return new BusinessClock(Clock.systemUTC(), offset);
+    BusinessClock businessClock(@Value("${pti.clock.offset:0s}") Duration offset, Clock clock) {
+        return new BusinessClock(clock, offset);
     }
 
     @Bean

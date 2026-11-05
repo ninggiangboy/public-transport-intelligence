@@ -1,21 +1,23 @@
 package dev.pti.etl.config;
 
 import dev.pti.common.time.BusinessClock;
-import dev.pti.etl.batch.BatchSchedules;
-import dev.pti.etl.batch.BatchSteps;
-import dev.pti.etl.batch.MessageProcessorRouter;
-import dev.pti.etl.batch.PtiJob;
-import dev.pti.etl.batch.PtiJobLauncher;
-import dev.pti.etl.raw.RawZone;
-import dev.pti.etl.replay.DeadLetterReader;
-import dev.pti.etl.replay.DeadLetterReplays;
-import dev.pti.etl.replay.DlqReplayWriter;
-import dev.pti.etl.replay.ListObjectsTasklet;
-import dev.pti.etl.replay.RawZoneReader;
-import dev.pti.etl.replay.ReplayChunkWriter;
-import dev.pti.etl.replay.ReplayRequestListener;
-import dev.pti.etl.replay.ReplayRequestPoller;
-import dev.pti.etl.replay.ReplayRequests;
+import dev.pti.etl.batch.adapter.in.batch.BatchSteps;
+import dev.pti.etl.batch.adapter.in.batch.MessageProcessorRouter;
+import dev.pti.etl.batch.application.port.BatchReadiness;
+import dev.pti.etl.batch.application.port.LaunchJob;
+import dev.pti.etl.batch.domain.PtiJob;
+import dev.pti.etl.raw.application.port.RawZone;
+import dev.pti.etl.replay.adapter.in.batch.DlqReplayWriter;
+import dev.pti.etl.replay.adapter.in.batch.ListObjectsTasklet;
+import dev.pti.etl.replay.adapter.in.batch.RawZoneReader;
+import dev.pti.etl.replay.adapter.in.batch.ReplayChunkWriter;
+import dev.pti.etl.replay.adapter.in.batch.ReplayRequestListener;
+import dev.pti.etl.replay.adapter.in.scheduling.ReplayRequestPoller;
+import dev.pti.etl.replay.adapter.out.jdbc.DeadLetterReader;
+import dev.pti.etl.replay.adapter.out.jdbc.DeadLetterReplays;
+import dev.pti.etl.replay.adapter.out.jdbc.ReplayRequests;
+import dev.pti.etl.replay.adapter.out.json.RawLines;
+import dev.pti.etl.replay.application.port.RawRecordParser;
 import dev.pti.etl.write.adapter.out.jdbc.FactChunkWriter;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -59,6 +61,11 @@ public class ReplayJobsConfiguration {
     }
 
     @Bean
+    RawRecordParser rawRecordParser() {
+        return new RawLines();
+    }
+
+    @Bean
     ReplayRequestListener replayRequestListener(
             ReplayRequests requests, JdbcTemplate jdbc, MeterRegistry meters, JobRepository repository) {
         return new ReplayRequestListener(requests, jdbc, meters, repository);
@@ -67,8 +74,8 @@ public class ReplayJobsConfiguration {
     @Bean
     ReplayRequestPoller replayRequestPoller(
             ReplayRequests requests,
-            PtiJobLauncher launcher,
-            BatchSchedules schedules,
+            LaunchJob launcher,
+            BatchReadiness schedules,
             ThreadPoolTaskExecutor batchTaskExecutor,
             ReplayProperties replay) {
         return new ReplayRequestPoller(
@@ -86,8 +93,8 @@ public class ReplayJobsConfiguration {
     /** Step scoped: two replays of different sources may run at once, each with its own reader. */
     @Bean
     @StepScope
-    RawZoneReader rawZoneReader(RawZone raw) {
-        return new RawZoneReader(raw);
+    RawZoneReader rawZoneReader(RawZone raw, RawRecordParser parser) {
+        return new RawZoneReader(raw, parser);
     }
 
     @Bean

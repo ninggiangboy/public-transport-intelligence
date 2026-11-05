@@ -1,13 +1,24 @@
 package dev.pti.etl.config;
 
 import dev.pti.common.time.BusinessClock;
-import dev.pti.etl.batch.BatchSteps;
-import dev.pti.etl.batch.PtiJob;
-import dev.pti.etl.batch.maintenance.BatchMetadataCleanupTasklet;
-import dev.pti.etl.batch.maintenance.BatchedPurgeTasklet;
-import dev.pti.etl.batch.maintenance.BatchedPurgeTasklet.PurgeTarget;
-import dev.pti.etl.batch.maintenance.PartitionMaintenanceTasklet;
-import dev.pti.etl.batch.maintenance.PartitionMaintenanceTasklet.ManagedTable;
+import dev.pti.etl.batch.adapter.in.batch.BatchSteps;
+import dev.pti.etl.batch.domain.PtiJob;
+import dev.pti.etl.maintenance.adapter.in.batch.BatchMetadataCleanupTasklet;
+import dev.pti.etl.maintenance.adapter.in.batch.BatchedPurgeTasklet;
+import dev.pti.etl.maintenance.adapter.in.batch.PartitionMaintenanceTasklet;
+import dev.pti.etl.maintenance.adapter.out.jdbc.JdbcBatchMetadataStore;
+import dev.pti.etl.maintenance.adapter.out.jdbc.JdbcExpiredRows;
+import dev.pti.etl.maintenance.adapter.out.jdbc.JdbcPartitions;
+import dev.pti.etl.maintenance.adapter.out.metrics.MicrometerRetentionMetrics;
+import dev.pti.etl.maintenance.application.CleanupBatchMetadata;
+import dev.pti.etl.maintenance.application.MaintainPartitions;
+import dev.pti.etl.maintenance.application.ManagedTable;
+import dev.pti.etl.maintenance.application.PurgeExpiredRows;
+import dev.pti.etl.maintenance.application.PurgeTarget;
+import dev.pti.etl.maintenance.application.port.BatchMetadataStore;
+import dev.pti.etl.maintenance.application.port.ExpiredRows;
+import dev.pti.etl.maintenance.application.port.Partitions;
+import dev.pti.etl.maintenance.application.port.RetentionMetrics;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Clock;
 import java.util.List;
@@ -33,15 +44,52 @@ public class MaintenanceJobsConfiguration {
     /** Monthly ticket partitions are created further ahead (DOC-14 §7.4). */
     static final int TICKET_DAYS_AHEAD = 40;
 
+    @Bean
+    RetentionMetrics maintenanceRetentionMetrics(MeterRegistry meters) {
+        return new MicrometerRetentionMetrics(meters);
+    }
+
+    @Bean
+    ExpiredRows maintenanceExpiredRows(JdbcTemplate jdbc) {
+        return new JdbcExpiredRows(jdbc);
+    }
+
+    @Bean
+    BatchMetadataStore maintenanceBatchMetadataStore(JdbcTemplate jdbc) {
+        return new JdbcBatchMetadataStore(jdbc);
+    }
+
+    @Bean
+    Partitions maintenancePartitions(JdbcTemplate jdbc) {
+        return new JdbcPartitions(jdbc);
+    }
+
+    @Bean
+    PurgeExpiredRows purgeExpiredRows(
+            ExpiredRows maintenanceExpiredRows, RetentionMetrics maintenanceRetentionMetrics) {
+        return new PurgeExpiredRows(maintenanceExpiredRows, maintenanceRetentionMetrics);
+    }
+
+    @Bean
+    CleanupBatchMetadata cleanupBatchMetadata(
+            BatchMetadataStore maintenanceBatchMetadataStore, RetentionMetrics maintenanceRetentionMetrics) {
+        return new CleanupBatchMetadata(maintenanceBatchMetadataStore, maintenanceRetentionMetrics);
+    }
+
+    @Bean
+    MaintainPartitions maintainPartitions(
+            Partitions maintenancePartitions, RetentionMetrics maintenanceRetentionMetrics) {
+        return new MaintainPartitions(maintenancePartitions, maintenanceRetentionMetrics);
+    }
+
     @Bean(name = "PartitionMaintenanceJob")
     Job partitionMaintenanceJob(
             BatchSteps steps,
-            JdbcTemplate jdbc,
+            MaintainPartitions maintenance,
             BusinessClock clock,
             GtfsProperties gtfs,
             RetentionProperties retention,
-            PlatformProperties platform,
-            MeterRegistry meters) {
+            PlatformProperties platform) {
         int ahead = platform.partition().precreateDays();
         List<ManagedTable> tables = List.of(
                 new ManagedTable("fact_vehicle_position", ahead, retention.vehiclePosition()),
@@ -51,7 +99,7 @@ public class MaintenanceJobsConfiguration {
                 .start(steps.tasklet(
                         "maintainPartitions",
                         new PartitionMaintenanceTasklet(
-                                jdbc, clock, gtfs.staticFeed().zone(), tables, meters)))
+                                maintenance, clock, gtfs.staticFeed().zone(), tables)))
                 .build();
     }
 
@@ -64,9 +112,8 @@ public class MaintenanceJobsConfiguration {
     @Bean(name = "OpsRetentionJob")
     Job opsRetentionJob(
             BatchSteps steps,
-            JdbcTemplate jdbc,
+            PurgeExpiredRows purge,
             RetentionProperties retention,
-            MeterRegistry meters,
             BusinessClock businessClock,
             @Qualifier("purgeInsightStep") Step purgeInsight) {
         Clock realClock = Clock.offset(businessClock, businessClock.offset().negated());
@@ -81,30 +128,29 @@ public class MaintenanceJobsConfiguration {
                 new PurgeTarget("ops.dq_check_result", "checked_at < ?", retention.dqCheckResult()),
                 new PurgeTarget("ops.alert_event", "created_at < ?", retention.alertEvent()));
         return steps.job(PtiJob.OPS_RETENTION)
-                .start(steps.tasklet(
-                        "purgeOps", new BatchedPurgeTasklet(jdbc, realClock, targets, PURGE_BATCH, meters)))
+                .start(steps.tasklet("purgeOps", new BatchedPurgeTasklet(purge, realClock, targets, PURGE_BATCH)))
                 .next(purgeInsight)
                 .build();
     }
 
     @Bean(name = "BatchMetadataCleanupJob")
-    Job batchMetadataCleanupJob(
-            BatchSteps steps, JdbcTemplate jdbc, RetentionProperties retention, MeterRegistry meters) {
+    Job batchMetadataCleanupJob(BatchSteps steps, CleanupBatchMetadata cleanup, RetentionProperties retention) {
         return steps.job(PtiJob.BATCH_METADATA_CLEANUP)
                 .start(steps.tasklet(
                         "purgeBatchMetadata",
                         new BatchMetadataCleanupTasklet(
-                                jdbc, Clock.systemDefaultZone(), retention.batchMetadata(), METADATA_BATCH, meters)))
+                                cleanup, Clock.systemDefaultZone(), retention.batchMetadata(), METADATA_BATCH)))
                 .build();
     }
 
     @Bean(name = "DedupRegistryCleanupJob")
-    Job dedupRegistryCleanupJob(BatchSteps steps, JdbcTemplate jdbc, EtlProperties etl, MeterRegistry meters) {
+    Job dedupRegistryCleanupJob(
+            BatchSteps steps, PurgeExpiredRows purge, EtlProperties etl, BusinessClock businessClock) {
+        Clock realClock = Clock.offset(businessClock, businessClock.offset().negated());
         List<PurgeTarget> targets = List.of(new PurgeTarget(
                 "ops.dedup_registry", "first_seen_at < ?", etl.dedup().ttl()));
         return steps.job(PtiJob.DEDUP_REGISTRY_CLEANUP)
-                .start(steps.tasklet(
-                        "purgeDedup", new BatchedPurgeTasklet(jdbc, Clock.systemUTC(), targets, PURGE_BATCH, meters)))
+                .start(steps.tasklet("purgeDedup", new BatchedPurgeTasklet(purge, realClock, targets, PURGE_BATCH)))
                 .build();
     }
 }

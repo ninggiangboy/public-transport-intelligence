@@ -1,8 +1,8 @@
 package dev.pti.etl.config;
 
 import dev.pti.common.time.BusinessClock;
-import dev.pti.etl.batch.BatchSteps;
-import dev.pti.etl.batch.PtiJob;
+import dev.pti.etl.batch.adapter.in.batch.BatchSteps;
+import dev.pti.etl.batch.domain.PtiJob;
 import dev.pti.etl.dq.adapter.in.batch.DataQualityTasklet;
 import dev.pti.etl.dq.adapter.out.jdbc.DqCheckResults;
 import dev.pti.etl.dq.adapter.out.jdbc.JdbcPostWriteChecks;
@@ -11,7 +11,7 @@ import dev.pti.etl.dq.application.RunDataQualityChecks;
 import dev.pti.etl.dq.application.port.DqCheckMetrics;
 import dev.pti.etl.dq.application.port.PostWriteChecks;
 import dev.pti.etl.dq.application.port.PostWriteRuleStore;
-import dev.pti.etl.gtfs.FeedVersions;
+import dev.pti.etl.gtfs.adapter.out.jdbc.FeedVersions;
 import dev.pti.etl.metrics.adapter.out.micrometer.OpsGauges;
 import io.micrometer.core.instrument.MeterRegistry;
 import org.springframework.batch.core.job.Job;

@@ -17,7 +17,7 @@ import dev.pti.etl.core.domain.RuleContext;
 import dev.pti.etl.core.domain.VehiclePositionRow;
 import dev.pti.etl.core.domain.WriteSet;
 import dev.pti.etl.fault.application.port.FaultInjector;
-import dev.pti.etl.reference.ReferenceDataHolder;
+import dev.pti.etl.reference.application.ReferenceDataHolder;
 import dev.pti.etl.stream.adapter.out.jdbc.StreamBatchLog;
 import dev.pti.etl.stream.adapter.out.metrics.MicrometerStreamMetrics;
 import dev.pti.etl.stream.adapter.out.tracing.NoopChunkTracing;

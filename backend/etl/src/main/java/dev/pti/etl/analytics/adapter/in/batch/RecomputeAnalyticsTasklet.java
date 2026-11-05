@@ -5,8 +5,8 @@ import dev.pti.analytics.recompute.application.AnalyticsRecomputeService;
 import dev.pti.analytics.recompute.domain.DetectorStats;
 import dev.pti.analytics.recompute.domain.WorkItem;
 import dev.pti.common.json.MessageJson;
-import dev.pti.etl.batch.StepValues;
-import dev.pti.etl.replay.ReplayRequestListener;
+import dev.pti.etl.batch.domain.BatchId;
+import dev.pti.etl.replay.adapter.in.batch.ReplayRequestListener;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.EnumSet;
@@ -70,7 +70,8 @@ public class RecomputeAnalyticsTasklet implements Tasklet {
         List<WorkItem> items = decode(context.getString(ITEMS_KEY));
         int index = context.getInt(INDEX_KEY);
         if (index < items.size()) {
-            DetectorStats stats = service.execute(items.get(index), StepValues.batchId(step));
+            DetectorStats stats = service.execute(
+                    items.get(index), BatchId.of(context.getString(BatchId.CONTEXT_KEY, ""), step.getStepName()));
             add(context, items.get(index).detector(), stats);
             context.putInt(INDEX_KEY, index + 1);
             contribution.incrementWriteCount(stats.upserted());

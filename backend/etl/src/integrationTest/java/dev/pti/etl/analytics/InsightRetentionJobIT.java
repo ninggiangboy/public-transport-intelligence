@@ -3,10 +3,10 @@ package dev.pti.etl.analytics;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import dev.pti.db.MigratedDatabases;
-import dev.pti.etl.batch.BatchContextSupport;
-import dev.pti.etl.batch.JobParams;
-import dev.pti.etl.batch.PtiJob;
-import dev.pti.etl.batch.PtiJobLauncher;
+import dev.pti.etl.batch.adapter.in.batch.BatchContextSupport;
+import dev.pti.etl.batch.adapter.in.batch.JobParams;
+import dev.pti.etl.batch.adapter.in.batch.PtiJobLauncher;
+import dev.pti.etl.batch.domain.PtiJob;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.sql.Connection;
 import java.sql.SQLException;

@@ -10,7 +10,7 @@ import dev.pti.analytics.otp.application.OtpPlanRequest;
 import dev.pti.analytics.otp.application.OtpRunPlanner;
 import dev.pti.analytics.otp.application.OtpScorecardCalculator;
 import dev.pti.analytics.otp.domain.OtpServiceDates;
-import dev.pti.etl.batch.StepValues;
+import dev.pti.etl.batch.domain.BatchId;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 import java.util.Arrays;
@@ -80,7 +80,10 @@ public class OtpScorecardTasklet implements Tasklet {
             contribution.setExitStatus(completed(context, dates));
             return RepeatStatus.FINISHED;
         }
-        RunResult result = calculator.calculate(new OtpDayRun(dates.get(index), StepValues.batchId(step), Trigger.JOB));
+        RunResult result = calculator.calculate(new OtpDayRun(
+                dates.get(index),
+                BatchId.of(context.getString(BatchId.CONTEXT_KEY, ""), step.getStepName()),
+                Trigger.JOB));
         context.putInt(INDEX_KEY, index + 1);
         context.putLong(UPSERTED_KEY, context.getLong(UPSERTED_KEY, 0L) + result.updated());
         context.putLong(DELETED_KEY, context.getLong(DELETED_KEY, 0L) + result.deleted());

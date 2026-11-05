@@ -2,33 +2,38 @@ package dev.pti.etl.config;
 
 import dev.pti.common.error.ErrorClassifier;
 import dev.pti.common.time.BusinessClock;
-import dev.pti.etl.batch.BatchSteps;
-import dev.pti.etl.batch.JobParameterCheck;
-import dev.pti.etl.batch.PtiJob;
-import dev.pti.etl.batch.PtiJobLauncher;
-import dev.pti.etl.gtfs.FeedExtractor;
-import dev.pti.etl.gtfs.FeedSource;
-import dev.pti.etl.gtfs.FeedVersions;
-import dev.pti.etl.gtfs.FeedWorkspace;
-import dev.pti.etl.gtfs.FeedWorkspaceListener;
-import dev.pti.etl.gtfs.FetchFeedTasklet;
-import dev.pti.etl.gtfs.GtfsFileReader;
-import dev.pti.etl.gtfs.GtfsInsert;
-import dev.pti.etl.gtfs.GtfsJobListener;
-import dev.pti.etl.gtfs.GtfsRow;
-import dev.pti.etl.gtfs.GtfsRowProcessor;
-import dev.pti.etl.gtfs.GtfsSkipCollector;
-import dev.pti.etl.gtfs.GtfsSkipPolicy;
-import dev.pti.etl.gtfs.GtfsTable;
-import dev.pti.etl.gtfs.GtfsTriggers;
-import dev.pti.etl.gtfs.RetireFeedsTasklet;
-import dev.pti.etl.gtfs.SimpleFeedTasklets;
-import dev.pti.etl.gtfs.ValidateFeedTasklet;
-import dev.pti.etl.raw.RawZone;
-import dev.pti.etl.raw.S3RawZone;
-import dev.pti.etl.reference.ReferenceDataRefresher;
+import dev.pti.etl.batch.adapter.in.batch.BatchSteps;
+import dev.pti.etl.batch.application.port.JobParameterCheck;
+import dev.pti.etl.batch.application.port.LaunchJob;
+import dev.pti.etl.batch.domain.PtiJob;
+import dev.pti.etl.gtfs.adapter.in.batch.FeedWorkspaceListener;
+import dev.pti.etl.gtfs.adapter.in.batch.FetchFeedTasklet;
+import dev.pti.etl.gtfs.adapter.in.batch.GtfsFileReader;
+import dev.pti.etl.gtfs.adapter.in.batch.GtfsJobListener;
+import dev.pti.etl.gtfs.adapter.in.batch.GtfsRowProcessor;
+import dev.pti.etl.gtfs.adapter.in.batch.GtfsSkipCollector;
+import dev.pti.etl.gtfs.adapter.in.batch.GtfsSkipPolicy;
+import dev.pti.etl.gtfs.adapter.in.batch.RetireFeedsTasklet;
+import dev.pti.etl.gtfs.adapter.in.batch.SimpleFeedTasklets;
+import dev.pti.etl.gtfs.adapter.in.batch.ValidateFeedTasklet;
+import dev.pti.etl.gtfs.adapter.in.scheduling.GtfsTriggers;
+import dev.pti.etl.gtfs.adapter.out.file.FeedExtractor;
+import dev.pti.etl.gtfs.adapter.out.file.FeedSource;
+import dev.pti.etl.gtfs.adapter.out.file.FeedWorkspace;
+import dev.pti.etl.gtfs.adapter.out.jdbc.ClasspathSqlStatements;
+import dev.pti.etl.gtfs.adapter.out.jdbc.FeedVersions;
+import dev.pti.etl.gtfs.adapter.out.json.FeedReportJson;
+import dev.pti.etl.gtfs.application.port.FeedReports;
+import dev.pti.etl.gtfs.application.port.SqlStatements;
+import dev.pti.etl.gtfs.domain.GtfsInsert;
+import dev.pti.etl.gtfs.domain.GtfsRow;
+import dev.pti.etl.gtfs.domain.GtfsTable;
+import dev.pti.etl.raw.adapter.out.s3.S3RawZone;
+import dev.pti.etl.raw.application.port.RawZone;
+import dev.pti.etl.reference.application.port.ReferenceRefresher;
 import dev.pti.etl.write.adapter.out.jdbc.SqlResource;
 import io.micrometer.core.instrument.MeterRegistry;
+import java.time.Clock;
 import java.util.ArrayList;
 import java.util.List;
 import org.springframework.batch.core.job.Job;
@@ -47,6 +52,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import software.amazon.awssdk.services.s3.S3Client;
 
@@ -61,8 +67,8 @@ public class GtfsJobConfiguration {
     }
 
     @Bean
-    FeedWorkspace feedWorkspace(GtfsProperties gtfs) {
-        return new FeedWorkspace(gtfs.staticFeed().workDir());
+    FeedWorkspace feedWorkspace(GtfsProperties gtfs, Clock clock) {
+        return new FeedWorkspace(gtfs.staticFeed().workDir(), clock);
     }
 
     @Bean
@@ -82,6 +88,16 @@ public class GtfsJobConfiguration {
         return new FeedVersions(jdbc);
     }
 
+    @Bean
+    SqlStatements sqlStatements() {
+        return new ClasspathSqlStatements();
+    }
+
+    @Bean
+    FeedReports feedReports() {
+        return new FeedReportJson();
+    }
+
     /** G-13: a {@code job_request} with a source outside DOC-21 §1.1 is rejected before anything runs. */
     @Bean
     JobParameterCheck feedSourceCheck(FeedSource source) {
@@ -94,7 +110,7 @@ public class GtfsJobConfiguration {
 
     @Bean
     GtfsTriggers gtfsTriggers(
-            PtiJobLauncher launcher,
+            LaunchJob launcher,
             FeedVersions versions,
             JobRepository jobRepository,
             FeedWorkspace workspace,
@@ -122,7 +138,9 @@ public class GtfsJobConfiguration {
             FeedWorkspace workspace,
             FeedExtractor extractor,
             FeedVersions versions,
-            ReferenceDataRefresher refresher,
+            ReferenceRefresher refresher,
+            SqlStatements sql,
+            FeedReports reports,
             ErrorClassifier classifier,
             BusinessClock clock,
             GtfsProperties gtfs,
@@ -130,7 +148,7 @@ public class GtfsJobConfiguration {
         GtfsProperties.Static feed = gtfs.staticFeed();
         FeedWorkspaceListener workspaceListener = new FeedWorkspaceListener(workspace, extractor, raw);
         GtfsSkipPolicy skipPolicy = new GtfsSkipPolicy(classifier, feed.maxRowErrors());
-        GtfsSkipCollector collector = new GtfsSkipCollector(feed.reportSamples());
+        GtfsSkipCollector collector = new GtfsSkipCollector(feed.reportSamples(), reports);
 
         Step fetch = steps.tasklet(
                 "fetch",
@@ -142,7 +160,8 @@ public class GtfsJobConfiguration {
                         versions,
                         jobRepository,
                         new FetchFeedTasklet.Defaults(
-                                feed.source(), gtfs.bootstrapLocation(), feed.expectedSha256(), feed.reportSamples())));
+                                feed.source(), gtfs.bootstrapLocation(), feed.expectedSha256(), feed.reportSamples()),
+                        reports));
         List<Step> loads = new ArrayList<>();
         for (GtfsTable table : GtfsTable.LOAD_ORDER) {
             loads.add(loadStep(
@@ -156,11 +175,11 @@ public class GtfsJobConfiguration {
         }
         loads.add(
                 steps.tasklet("loadFeedInfo", SimpleFeedTasklets.loadFeedInfo(workspace, versions), workspaceListener));
-        Step validate =
-                steps.tasklet("validate", new ValidateFeedTasklet(named, versions, clock, feed.reportSamples()));
+        Step validate = steps.tasklet(
+                "validate", new ValidateFeedTasklet(named, versions, clock, feed.reportSamples(), sql, reports));
         Step reject = steps.tasklet("reject", SimpleFeedTasklets.reject(versions));
-        Step finalizeStep = steps.tasklet("finalize", SimpleFeedTasklets.finalizeFeed(named));
-        Step activate = steps.tasklet("activate", SimpleFeedTasklets.activate(named, versions, refresher));
+        Step finalizeStep = steps.tasklet("finalize", SimpleFeedTasklets.finalizeFeed(named, sql));
+        Step activate = steps.tasklet("activate", SimpleFeedTasklets.activate(named, versions, refresher, sql));
         Step vehicles = loadStep(
                 steps,
                 GtfsTable.VEHICLES,
@@ -225,7 +244,7 @@ public class GtfsJobConfiguration {
         JdbcBatchItemWriter<GtfsInsert> writer = new JdbcBatchItemWriter<>();
         writer.setJdbcTemplate(named);
         writer.setSql(sql);
-        writer.setItemSqlParameterSourceProvider(GtfsInsert::params);
+        writer.setItemSqlParameterSourceProvider(insert -> new MapSqlParameterSource(insert.values()));
         writer.setAssertUpdates(true);
         writer.afterPropertiesSet();
         return writer;

@@ -5,7 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 
 import dev.pti.common.time.BusinessClock;
-import dev.pti.etl.batch.PtiJob;
+import dev.pti.etl.batch.domain.PtiJob;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
