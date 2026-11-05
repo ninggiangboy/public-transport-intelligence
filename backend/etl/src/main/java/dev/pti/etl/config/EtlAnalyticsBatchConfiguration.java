@@ -1,4 +1,4 @@
-package dev.pti.etl.analytics.config;
+package dev.pti.etl.config;
 
 import dev.pti.analytics.eta.application.EtaAggregator;
 import dev.pti.analytics.eta.application.EtaRunPlanner;
@@ -15,11 +15,9 @@ import dev.pti.etl.analytics.adapter.in.batch.RecomputeAnalyticsTasklet;
 import dev.pti.etl.analytics.adapter.in.batch.RecomputePlans;
 import dev.pti.etl.analytics.adapter.in.scheduling.AnalyticsJobSchedules;
 import dev.pti.etl.batch.adapter.in.batch.BatchSteps;
-import dev.pti.etl.batch.adapter.in.batch.PtiJobLauncher;
 import dev.pti.etl.batch.application.port.JobParameterCheck;
+import dev.pti.etl.batch.application.port.LaunchJob;
 import dev.pti.etl.batch.domain.PtiJob;
-import dev.pti.etl.config.GtfsProperties;
-import dev.pti.etl.config.RetentionProperties;
 import org.springframework.batch.core.job.Job;
 import org.springframework.batch.core.step.Step;
 import org.springframework.context.annotation.Bean;
@@ -31,10 +29,14 @@ import org.springframework.context.annotation.Profile;
  * {@code OtpScorecardJob}, {@code AnalyticsRecomputeJob}, their triggers and request checks, the {@code purgeInsight}
  * step that {@code OpsRetentionJob} runs after {@code purgeOps}, and the {@code recomputeAnalytics} step that
  * {@code RawZoneReplayJob} runs after {@code replayRecords}. The tasklets only call {@code analytics} use cases.
+ *
+ * <p>It lives in the app-level {@code config} (DOC-49 §3): wiring the analytics jobs needs both the {@code batch}
+ * feature's step builder and the {@code analytics} tasklets, and only the composition root may depend on every
+ * feature (A-14).
  */
 @Configuration(proxyBeanMethods = false)
 @Profile("batch")
-class EtlAnalyticsBatchConfiguration {
+public class EtlAnalyticsBatchConfiguration {
 
     /** Rows per delete: one transaction each, as every retention step (DOC-18 §5). */
     static final int PURGE_BATCH = 5000;
@@ -75,7 +77,7 @@ class EtlAnalyticsBatchConfiguration {
     }
 
     @Bean
-    AnalyticsJobSchedules analyticsJobSchedules(PtiJobLauncher launcher, BusinessClock clock, GtfsProperties gtfs) {
+    AnalyticsJobSchedules analyticsJobSchedules(LaunchJob launcher, BusinessClock clock, GtfsProperties gtfs) {
         return new AnalyticsJobSchedules(launcher, clock, gtfs.staticFeed().zone());
     }
 

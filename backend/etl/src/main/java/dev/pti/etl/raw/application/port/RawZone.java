@@ -1,5 +1,6 @@
 package dev.pti.etl.raw.application.port;
 
+import dev.pti.common.error.FatalException;
 import java.io.InputStream;
 import java.nio.file.Path;
 import java.util.List;
@@ -33,7 +34,7 @@ public interface RawZone {
     InputStream open(String key);
 
     /** A missing object is not transient: retrying will not make it appear. */
-    final class RawObjectMissingException extends RuntimeException {
+    final class RawObjectMissingException extends FatalException {
 
         private static final long serialVersionUID = 1L;
 

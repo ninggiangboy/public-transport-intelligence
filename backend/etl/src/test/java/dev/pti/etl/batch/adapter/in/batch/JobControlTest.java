@@ -12,11 +12,14 @@ import static org.mockito.Mockito.when;
 
 import dev.pti.common.time.BusinessClock;
 import dev.pti.etl.batch.adapter.in.scheduling.BatchSchedules;
-import dev.pti.etl.batch.adapter.in.scheduling.JobRequestPoller;
 import dev.pti.etl.batch.adapter.out.jdbc.JobRequests;
-import dev.pti.etl.batch.adapter.out.jdbc.JobRequests.JobRequest;
-import dev.pti.etl.batch.adapter.out.jdbc.JobRequests.Kind;
 import dev.pti.etl.batch.adapter.out.jdbc.StaleExecutionRecoverer;
+import dev.pti.etl.batch.adapter.out.metrics.MicrometerBatchRequestMetrics;
+import dev.pti.etl.batch.application.HandleJobRequests;
+import dev.pti.etl.batch.application.port.JobRequestStore;
+import dev.pti.etl.batch.application.port.JobRequestStore.JobRequest;
+import dev.pti.etl.batch.application.port.JobRequestStore.Kind;
+import dev.pti.etl.batch.application.port.StaleExecutions;
 import dev.pti.etl.batch.domain.PtiJob;
 import dev.pti.etl.testing.EtlFixtures;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
@@ -113,8 +116,10 @@ class JobControlTest {
     @Test
     void theLauncherTreatsASecondTriggerAsNothingToDo() throws Exception {
         JobOperator operator = mock(JobOperator.class);
+        JobRepository repository = mock(JobRepository.class);
         Job job = job(PtiJob.OPS_RETENTION, true);
-        PtiJobLauncher launcher = new PtiJobLauncher(operator, List.of(job, job(PtiJob.DATA_QUALITY, true)));
+        PtiJobLauncher launcher =
+                new PtiJobLauncher(operator, repository, List.of(job, job(PtiJob.DATA_QUALITY, true)));
         JobParameters parameters = JobParams.runDate(PtiJob.OPS_RETENTION, LocalDate.parse("2026-09-29"));
         JobExecution started = execution(1, "OpsRetentionJob", BatchStatus.STARTING);
         when(operator.start(job, parameters))
@@ -133,24 +138,24 @@ class JobControlTest {
                 .isInstanceOf(IllegalStateException.class);
     }
 
-    /** A poller over mocks; the tests script the requests. */
-    private static final class PollerFixture {
-        final JobRequests requests = mock(JobRequests.class);
+    /** A handler over mocks; the tests script the requests. */
+    private static final class RequestFixture {
+        final JobRequestStore requests = mock(JobRequestStore.class);
         final JobOperator operator = mock(JobOperator.class);
         final JobRepository repository = mock(JobRepository.class);
         final Job retention = job(PtiJob.OPS_RETENTION, true);
         final Job dedup = job(PtiJob.DEDUP_REGISTRY_CLEANUP, false);
         final PtiJobLauncher launcher = new PtiJobLauncher(
-                operator, List.of(retention, dedup, job(PtiJob.GTFS_STATIC_LOAD, true), job(PtiJob.DLQ_REPLAY, true)));
-        boolean room = true;
-        final JobRequestPoller poller = new JobRequestPoller(
-                requests,
-                launcher,
                 operator,
                 repository,
+                List.of(retention, dedup, job(PtiJob.GTFS_STATIC_LOAD, true), job(PtiJob.DLQ_REPLAY, true)));
+        boolean room = true;
+        final HandleJobRequests handle = new HandleJobRequests(
+                requests,
+                launcher,
                 CLOCK,
                 () -> room,
-                new SimpleMeterRegistry(),
+                new MicrometerBatchRequestMetrics(new SimpleMeterRegistry()),
                 List.of((job, name, value) -> {
                     if (name.equals("sourceUri") && value.startsWith("file:/etc")) {
                         throw new IllegalArgumentException(
@@ -163,7 +168,7 @@ class JobControlTest {
         }
 
         String rejection(JobRequest request) {
-            poller.handle(request);
+            handle.handle(request);
             ArgumentCaptor<String> message = ArgumentCaptor.forClass(String.class);
             verify(requests).reject(eq(request.id()), message.capture());
             return message.getValue();
@@ -172,7 +177,7 @@ class JobControlTest {
 
     @Test
     void aRunRequestStartsTheJobAndLinksTheExecution() throws Exception {
-        PollerFixture f = new PollerFixture();
+        RequestFixture f = new RequestFixture();
         JobRequest request = f.run("OpsRetentionJob", Map.of("runDate", "2026-09-28"));
         JobExecution started = execution(7, "OpsRetentionJob", BatchStatus.STARTED);
         ArgumentCaptor<JobParameters> parameters = ArgumentCaptor.forClass(JobParameters.class);
@@ -180,7 +185,7 @@ class JobControlTest {
         when(f.repository.getJobExecution(7L)).thenReturn(execution(7, "OpsRetentionJob", BatchStatus.COMPLETED));
         when(f.requests.claim()).thenReturn(Optional.of(request)).thenReturn(Optional.empty());
 
-        f.poller.poll();
+        f.handle.poll();
 
         verify(f.requests).started(request.id(), 7L);
         verify(f.requests).finish(any());
@@ -194,30 +199,21 @@ class JobControlTest {
 
     @Test
     void identifyingParametersGetDefaults() {
-        PollerFixture f = new PollerFixture();
+        RequestFixture f = new RequestFixture();
         JobRequest gtfs = f.run("GtfsStaticLoadJob", Map.of("sourceUri", "file:/feed/a.zip"));
-        assertThat(f.poller
-                        .parameters(PtiJob.GTFS_STATIC_LOAD, gtfs)
-                        .toJobParameters()
-                        .getString("runKey"))
+        assertThat(f.handle.parameters(PtiJob.GTFS_STATIC_LOAD, gtfs).identity())
                 .isEqualTo("manual:" + gtfs.id());
         JobRequest retention = f.run("OpsRetentionJob", Map.of());
-        assertThat(f.poller
-                        .parameters(PtiJob.OPS_RETENTION, retention)
-                        .toJobParameters()
-                        .getString("runDate"))
+        assertThat(f.handle.parameters(PtiJob.OPS_RETENTION, retention).identity())
                 .isEqualTo("2026-09-29");
         JobRequest dedup = f.run("DedupRegistryCleanupJob", Map.of("slot", "2026-09-29T21:15:00Z"));
-        assertThat(f.poller
-                        .parameters(PtiJob.DEDUP_REGISTRY_CLEANUP, dedup)
-                        .toJobParameters()
-                        .getString("slot"))
+        assertThat(f.handle.parameters(PtiJob.DEDUP_REGISTRY_CLEANUP, dedup).identity())
                 .isEqualTo("2026-09-29T21:15:00Z");
     }
 
     @Test
     void badRunRequestsAreRejectedWithAReason() throws Exception {
-        PollerFixture f = new PollerFixture();
+        RequestFixture f = new RequestFixture();
         assertThat(f.rejection(f.run("NoSuchJob", Map.of()))).isEqualTo("Unknown job NoSuchJob");
         assertThat(f.rejection(f.run("DlqReplayJob", Map.of()))).isEqualTo("Unknown job DlqReplayJob");
         assertThat(f.rejection(f.run("OpsRetentionJob", Map.of("force", "true"))))
@@ -244,21 +240,21 @@ class JobControlTest {
 
     @Test
     void aFullExecutorLeavesTheRequestPending() throws Exception {
-        PollerFixture f = new PollerFixture();
+        RequestFixture f = new RequestFixture();
         JobRequest request = f.run("OpsRetentionJob", Map.of());
         when(f.operator.start(eq(f.retention), any())).thenThrow(new TaskRejectedException("full"));
-        f.poller.handle(request);
+        f.handle.handle(request);
         verify(f.requests).release(request.id());
 
         f.room = false;
-        f.poller.poll();
+        f.handle.poll();
         verify(f.requests, never()).claim();
-        verify(f.requests, org.mockito.Mockito.times(1)).failInterrupted(JobRequestPoller.INTERRUPTED_AFTER);
+        verify(f.requests, org.mockito.Mockito.times(1)).failInterrupted(HandleJobRequests.INTERRUPTED_AFTER);
     }
 
     @Test
     void restartAndStopRequestsCheckTheirTarget() throws Exception {
-        PollerFixture f = new PollerFixture();
+        RequestFixture f = new RequestFixture();
         JobRequest missing = new JobRequest(UUID.randomUUID(), Kind.RESTART, "OpsRetentionJob", Map.of(), 99L);
         assertThat(f.rejection(missing)).isEqualTo("No job execution 99");
 
@@ -279,7 +275,7 @@ class JobControlTest {
                 .thenThrow(new JobRestartException("already running"));
         when(f.repository.getJobExecution(9L)).thenReturn(execution(9, "OpsRetentionJob", BatchStatus.STARTED));
         JobRequest restart = new JobRequest(UUID.randomUUID(), Kind.RESTART, "x", Map.of(), 8L);
-        f.poller.handle(restart);
+        f.handle.handle(restart);
         verify(f.requests).started(restart.id(), 9L);
         verify(f.requests, never()).finish(any());
         assertThat(f.rejection(new JobRequest(UUID.randomUUID(), Kind.RESTART, "x", Map.of(), 8L)))
@@ -287,7 +283,7 @@ class JobControlTest {
 
         JobRequest stop = new JobRequest(UUID.randomUUID(), Kind.STOP, "x", Map.of(), 8L);
         when(f.operator.stop(failed)).thenReturn(true).thenThrow(new JobExecutionNotRunningException("no"));
-        f.poller.handle(stop);
+        f.handle.handle(stop);
         verify(f.requests).done(stop.id(), 8L, "Stop requested");
         assertThat(f.rejection(new JobRequest(UUID.randomUUID(), Kind.STOP, "x", Map.of(), 8L)))
                 .isEqualTo("Execution 8 is not running");
@@ -295,7 +291,7 @@ class JobControlTest {
 
     @Test
     void theJobListenerRecordsTheEndAndCleansTheMdc() {
-        JobRequests requests = mock(JobRequests.class);
+        JobRequestStore requests = mock(JobRequestStore.class);
         JobRequestListener listener = new JobRequestListener(requests);
         JobExecution execution = execution(3, "OpsRetentionJob", BatchStatus.COMPLETED);
 
@@ -303,7 +299,11 @@ class JobControlTest {
         assertThat(org.slf4j.MDC.get(JobRequestListener.MDC_JOB)).isEqualTo("OpsRetentionJob");
         listener.afterJob(execution);
 
-        verify(requests).finish(execution);
+        ArgumentCaptor<JobRequestStore.FinishedJob> finished =
+                ArgumentCaptor.forClass(JobRequestStore.FinishedJob.class);
+        verify(requests).finish(finished.capture());
+        assertThat(finished.getValue().jobExecutionId()).isEqualTo(execution.getId());
+        assertThat(finished.getValue().completed()).isTrue();
         assertThat(org.slf4j.MDC.get(JobRequestListener.MDC_JOB)).isNull();
     }
 
@@ -320,7 +320,7 @@ class JobControlTest {
             recoverer = new StaleExecutionRecoverer(
                     repository,
                     operator,
-                    new PtiJobLauncher(operator, jobs),
+                    new PtiJobLauncher(operator, repository, jobs),
                     requests,
                     jdbc,
                     Duration.ofMinutes(2),
@@ -403,15 +403,15 @@ class JobControlTest {
     void schedulesLaunchWithTheRightIdentity() {
         PtiJobLauncher launcher = mock(PtiJobLauncher.class);
         when(launcher.job(any())).thenReturn(Optional.of(mock(Job.class)));
-        JobRequestPoller poller = mock(JobRequestPoller.class);
-        StaleExecutionRecoverer recoverer = mock(StaleExecutionRecoverer.class);
+        HandleJobRequests requests = mock(HandleJobRequests.class);
+        StaleExecutions recoverer = mock(StaleExecutions.class);
         LockingTaskExecutor locks = mock(LockingTaskExecutor.class);
         AtomicInteger startup = new AtomicInteger();
         BusinessClock offset =
                 new BusinessClock(Clock.fixed(Instant.parse("2026-09-29T03:00:00Z"), ZoneOffset.UTC), Duration.ZERO);
         BatchSchedules schedules = new BatchSchedules(
                 launcher,
-                poller,
+                requests,
                 recoverer,
                 locks,
                 offset,
@@ -422,8 +422,8 @@ class JobControlTest {
 
         schedules.pollJobRequests();
         schedules.recoverStaleExecutions();
-        verify(poller, never()).poll();
-        verify(recoverer, never()).recover();
+        verify(requests, never()).poll();
+        verify(recoverer, never()).recoverAll();
 
         schedules.onReady();
         assertThat(schedules.isReady()).isTrue();
@@ -440,8 +440,8 @@ class JobControlTest {
         schedules.batchMetadataCleanup();
         schedules.dedupRegistryCleanup();
         schedules.dataQuality();
-        verify(poller).poll();
-        verify(recoverer).recover();
+        verify(requests).poll();
+        verify(recoverer).recoverAll();
         verify(launcher)
                 .launchIfNew(
                         PtiJob.OPS_RETENTION, JobParams.runDate(PtiJob.OPS_RETENTION, LocalDate.parse("2026-09-29")));
@@ -457,6 +457,6 @@ class JobControlTest {
                 .launchIfNew(
                         PtiJob.BATCH_METADATA_CLEANUP,
                         JobParams.runDate(PtiJob.BATCH_METADATA_CLEANUP, LocalDate.parse("2026-09-29")));
-        verify(launcher, never()).launchIfNew(eq(PtiJob.GTFS_STATIC_LOAD), any());
+        verify(launcher, never()).launchIfNew(eq(PtiJob.GTFS_STATIC_LOAD), any(JobParameters.class));
     }
 }

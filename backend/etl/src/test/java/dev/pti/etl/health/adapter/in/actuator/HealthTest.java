@@ -16,11 +16,11 @@ import dev.pti.etl.flags.adapter.out.jdbc.RuntimeFlags;
 import dev.pti.etl.flags.domain.RuntimeFlagChanged;
 import dev.pti.etl.reference.application.ReferenceDataHolder;
 import dev.pti.etl.reference.domain.ReferenceData;
-import dev.pti.etl.stream.adapter.in.kafka.ListenerPauseCoordinator;
 import dev.pti.etl.stream.application.MicroBatchCommitted;
 import dev.pti.etl.stream.application.SourceActivity;
 import dev.pti.etl.stream.application.StreamChunkResult;
 import dev.pti.etl.stream.application.StreamListener;
+import dev.pti.etl.stream.application.port.ListenerPauseState;
 import dev.pti.etl.write.domain.WriteMode;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
@@ -114,8 +114,8 @@ class HealthTest {
         return activity;
     }
 
-    private static ListenerPauseCoordinator pauses(Set<ListenerPauseCoordinator.Reason> reasons, boolean running) {
-        ListenerPauseCoordinator pauses = mock(ListenerPauseCoordinator.class);
+    private static ListenerPauseState pauses(Set<ListenerPauseState.Reason> reasons, boolean running) {
+        ListenerPauseState pauses = mock(ListenerPauseState.class);
         when(pauses.isRunning(any())).thenReturn(running);
         when(pauses.reasons(any())).thenReturn(reasons);
         return pauses;
@@ -128,7 +128,7 @@ class HealthTest {
     }
 
     private static SourceHealthIndicator gtfs(
-            WarehouseHealthIndicator warehouse, ListenerPauseCoordinator pauses, SourceActivity activity) {
+            WarehouseHealthIndicator warehouse, ListenerPauseState pauses, SourceActivity activity) {
         return new SourceHealthIndicator(
                 List.of(StreamListener.GTFS_RT_VEHICLE_POSITION, StreamListener.GTFS_RT_TRIP_UPDATE),
                 warehouse,
@@ -144,7 +144,7 @@ class HealthTest {
     void aSourceIsUpWhenDataArrivedRecently() {
         SourceHealthIndicator indicator = gtfs(
                 upWarehouse(),
-                pauses(EnumSet.noneOf(ListenerPauseCoordinator.Reason.class), true),
+                pauses(EnumSet.noneOf(ListenerPauseState.Reason.class), true),
                 activity(EtlSource.GTFS_RT_VEHICLE_POSITION, NOW.minusSeconds(5)));
         SimpleMeterRegistry meters = new SimpleMeterRegistry();
         indicator.bindTo(meters, "gtfs-rt");
@@ -155,7 +155,7 @@ class HealthTest {
 
         assertThat(gtfs(
                                 upWarehouse(),
-                                pauses(EnumSet.noneOf(ListenerPauseCoordinator.Reason.class), true),
+                                pauses(EnumSet.noneOf(ListenerPauseState.Reason.class), true),
                                 activity(EtlSource.GTFS_RT_VEHICLE_POSITION, NOW.minusSeconds(60)))
                         .health()
                         .getStatus())
@@ -166,21 +166,21 @@ class HealthTest {
     @Test
     void pausesDecideBetweenOutOfServiceAndDown() {
         SourceActivity fresh = activity(EtlSource.GTFS_RT_VEHICLE_POSITION, NOW);
-        assertThat(gtfs(upWarehouse(), pauses(EnumSet.of(ListenerPauseCoordinator.Reason.FLAG), true), fresh)
+        assertThat(gtfs(upWarehouse(), pauses(EnumSet.of(ListenerPauseState.Reason.FLAG), true), fresh)
                         .health()
                         .getStatus())
                 .isEqualTo(Status.OUT_OF_SERVICE);
-        assertThat(gtfs(upWarehouse(), pauses(EnumSet.of(ListenerPauseCoordinator.Reason.BACKOFF), true), fresh)
+        assertThat(gtfs(upWarehouse(), pauses(EnumSet.of(ListenerPauseState.Reason.BACKOFF), true), fresh)
                         .health()
                         .getStatus())
                 .isEqualTo(Status.DOWN);
-        assertThat(gtfs(upWarehouse(), pauses(EnumSet.noneOf(ListenerPauseCoordinator.Reason.class), false), fresh)
+        assertThat(gtfs(upWarehouse(), pauses(EnumSet.noneOf(ListenerPauseState.Reason.class), false), fresh)
                         .health()
                         .getStatus())
                 .as("a stopped container")
                 .isEqualTo(Status.DOWN);
         WarehouseHealthIndicator downWarehouse = mock(WarehouseHealthIndicator.class);
-        assertThat(gtfs(downWarehouse, pauses(EnumSet.noneOf(ListenerPauseCoordinator.Reason.class), true), fresh)
+        assertThat(gtfs(downWarehouse, pauses(EnumSet.noneOf(ListenerPauseState.Reason.class), true), fresh)
                         .health()
                         .getStatus())
                 .isEqualTo(Status.DOWN);
@@ -194,7 +194,7 @@ class HealthTest {
         when(failed.state()).thenReturn("FAILED");
         SourceActivity quiet = new SourceActivity(CLOCK);
         List<StreamListener> ticketing = List.of(StreamListener.TICKETING_SALES, StreamListener.TICKETING_SALE_POINTS);
-        ListenerPauseCoordinator none = pauses(EnumSet.noneOf(ListenerPauseCoordinator.Reason.class), true);
+        ListenerPauseState none = pauses(EnumSet.noneOf(ListenerPauseState.Reason.class), true);
 
         SourceHealthIndicator caughtUp = new SourceHealthIndicator(
                 ticketing, upWarehouse(), none, quiet, Duration.ofSeconds(30), CLOCK, running, () -> true);

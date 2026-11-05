@@ -8,7 +8,7 @@ import dev.pti.analytics.eta.application.EtaPlanRequest;
 import dev.pti.analytics.eta.application.EtaRouteRun;
 import dev.pti.analytics.eta.application.EtaRunPlanner;
 import dev.pti.common.time.BusinessClock;
-import dev.pti.etl.batch.adapter.in.batch.StepValues;
+import dev.pti.etl.batch.domain.BatchId;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
@@ -78,7 +78,7 @@ public class EtaAggregationTasklet implements Tasklet {
         RunResult result = aggregator.aggregate(new EtaRouteRun(
                 routes.get(index),
                 Instant.parse(context.getString(HOUR_KEY)),
-                StepValues.batchId(step),
+                BatchId.of(context.getString(BatchId.CONTEXT_KEY, ""), step.getStepName()),
                 Trigger.JOB,
                 completion));
         context.putInt(INDEX_KEY, index + 1);

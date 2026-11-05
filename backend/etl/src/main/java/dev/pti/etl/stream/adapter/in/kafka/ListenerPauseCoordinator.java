@@ -3,12 +3,13 @@ package dev.pti.etl.stream.adapter.in.kafka;
 import dev.pti.etl.flags.domain.RuntimeFlagChanged;
 import dev.pti.etl.stream.application.StreamListener;
 import dev.pti.etl.stream.application.TopicNames;
+import dev.pti.etl.stream.application.port.ListenerPauseState;
+import dev.pti.etl.stream.application.port.ListenerPauseState.Reason;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.util.EnumMap;
 import java.util.EnumSet;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import org.jspecify.annotations.Nullable;
@@ -24,18 +25,7 @@ import org.springframework.kafka.listener.MessageListenerContainer;
  * the container error handler; {@link #reconcile()} re-applies the wanted state in case one of those resumes a
  * container that should stay paused.
  */
-public class ListenerPauseCoordinator {
-
-    /** Label {@code reason} of {@code pti_etl_listener_paused}. */
-    public enum Reason {
-        FLAG,
-        CIRCUIT,
-        BACKOFF;
-
-        public String tag() {
-            return name().toLowerCase(Locale.ROOT);
-        }
-    }
+public class ListenerPauseCoordinator implements ListenerPauseState {
 
     private static final Logger log = LoggerFactory.getLogger(ListenerPauseCoordinator.class);
 
@@ -98,6 +88,7 @@ public class ListenerPauseCoordinator {
         return reasons.get(listener).contains(reason);
     }
 
+    @Override
     public synchronized Set<Reason> reasons(StreamListener listener) {
         Set<Reason> all = EnumSet.noneOf(Reason.class);
         all.addAll(reasons.get(listener));
@@ -107,6 +98,7 @@ public class ListenerPauseCoordinator {
         return all;
     }
 
+    @Override
     public boolean isRunning(StreamListener listener) {
         MessageListenerContainer c = container(listener);
         return c != null && c.isRunning();

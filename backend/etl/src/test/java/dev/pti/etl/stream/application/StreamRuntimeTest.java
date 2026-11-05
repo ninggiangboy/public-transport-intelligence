@@ -21,6 +21,7 @@ import dev.pti.etl.stream.adapter.in.kafka.EtlListeners;
 import dev.pti.etl.stream.adapter.in.kafka.ListenerLifecycleManager;
 import dev.pti.etl.stream.adapter.in.kafka.ListenerPauseCoordinator;
 import dev.pti.etl.stream.adapter.in.kafka.StreamChunkHandler;
+import dev.pti.etl.stream.application.port.ListenerPauseState;
 import dev.pti.etl.write.application.port.ChunkWriter;
 import dev.pti.etl.write.domain.WriteMode;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
@@ -80,8 +81,7 @@ class StreamRuntimeTest {
         pauses.onCircuit(CircuitBreaker.StateTransition.CLOSED_TO_OPEN);
         assertThat(c.isPauseRequested()).isTrue();
         assertThat(pauses.reasons(StreamListener.GTFS_RT_VEHICLE_POSITION))
-                .containsExactlyInAnyOrder(
-                        ListenerPauseCoordinator.Reason.FLAG, ListenerPauseCoordinator.Reason.CIRCUIT);
+                .containsExactlyInAnyOrder(ListenerPauseState.Reason.FLAG, ListenerPauseState.Reason.CIRCUIT);
         assertThat(meters.get("pti.etl.listener.paused")
                         .tag("listener", "gtfs-rt-vehicle-position")
                         .tag("reason", "flag")
@@ -97,7 +97,7 @@ class StreamRuntimeTest {
         assertThat(c.isPauseRequested()).isFalse();
 
         sales.pause();
-        assertThat(pauses.isPausedFor(StreamListener.TICKETING_SALES, ListenerPauseCoordinator.Reason.BACKOFF))
+        assertThat(pauses.isPausedFor(StreamListener.TICKETING_SALES, ListenerPauseState.Reason.BACKOFF))
                 .as("a pause nobody asked for is the error handler's back-off")
                 .isTrue();
         pauses.reconcile();

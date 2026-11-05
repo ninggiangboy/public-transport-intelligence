@@ -13,11 +13,16 @@ import dev.pti.etl.batch.adapter.in.batch.PtiJobLauncher;
 import dev.pti.etl.batch.adapter.in.batch.RatioSkipPolicy;
 import dev.pti.etl.batch.adapter.in.batch.TransientRetryPolicy;
 import dev.pti.etl.batch.adapter.in.scheduling.BatchSchedules;
-import dev.pti.etl.batch.adapter.in.scheduling.JobRequestPoller;
 import dev.pti.etl.batch.adapter.out.jdbc.JobRequests;
 import dev.pti.etl.batch.adapter.out.jdbc.StaleExecutionRecoverer;
+import dev.pti.etl.batch.adapter.out.metrics.MicrometerBatchRequestMetrics;
+import dev.pti.etl.batch.application.HandleJobRequests;
+import dev.pti.etl.batch.application.port.BatchRequestMetrics;
 import dev.pti.etl.batch.application.port.BatchStartupTask;
 import dev.pti.etl.batch.application.port.JobParameterCheck;
+import dev.pti.etl.batch.application.port.JobRequestStore;
+import dev.pti.etl.batch.application.port.LaunchJob;
+import dev.pti.etl.batch.application.port.StaleExecutions;
 import dev.pti.etl.core.application.MessageProcessors;
 import dev.pti.etl.fault.application.port.FaultInjector;
 import dev.pti.etl.reference.application.ReferenceDataHolder;
@@ -171,28 +176,29 @@ public class EtlBatchConfiguration {
     }
 
     @Bean
-    PtiJobLauncher ptiJobLauncher(JobOperator jobOperator, List<Job> jobs) {
-        return new PtiJobLauncher(jobOperator, jobs);
+    PtiJobLauncher ptiJobLauncher(JobOperator jobOperator, JobRepository jobRepository, List<Job> jobs) {
+        return new PtiJobLauncher(jobOperator, jobRepository, jobs);
     }
 
     @Bean
-    JobRequestPoller jobRequestPoller(
-            JobRequests requests,
-            PtiJobLauncher launcher,
-            JobOperator jobOperator,
-            JobRepository jobRepository,
+    BatchRequestMetrics batchRequestMetrics(MeterRegistry meters) {
+        return new MicrometerBatchRequestMetrics(meters);
+    }
+
+    @Bean
+    HandleJobRequests handleJobRequests(
+            JobRequestStore requests,
+            LaunchJob launcher,
             BusinessClock clock,
             ThreadPoolTaskExecutor batchTaskExecutor,
-            MeterRegistry meters,
+            BatchRequestMetrics metrics,
             ObjectProvider<JobParameterCheck> checks) {
-        return new JobRequestPoller(
+        return new HandleJobRequests(
                 requests,
                 launcher,
-                jobOperator,
-                jobRepository,
                 clock,
                 () -> hasRoom(batchTaskExecutor),
-                meters,
+                metrics,
                 checks.orderedStream().toList());
     }
 
@@ -203,7 +209,7 @@ public class EtlBatchConfiguration {
     }
 
     @Bean
-    StaleExecutionRecoverer staleExecutionRecoverer(
+    StaleExecutions staleExecutionRecoverer(
             JobRepository jobRepository,
             JobOperator jobOperator,
             PtiJobLauncher launcher,
@@ -225,15 +231,15 @@ public class EtlBatchConfiguration {
     @Bean
     BatchSchedules batchSchedules(
             PtiJobLauncher launcher,
-            JobRequestPoller poller,
-            StaleExecutionRecoverer recoverer,
+            HandleJobRequests handleJobRequests,
+            StaleExecutions recoverer,
             LockingTaskExecutor locks,
             BusinessClock clock,
             GtfsProperties gtfs,
             ObjectProvider<BatchStartupTask> startupTasks) {
         return new BatchSchedules(
                 launcher,
-                poller,
+                handleJobRequests,
                 recoverer,
                 locks,
                 clock,

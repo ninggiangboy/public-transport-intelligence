@@ -1,5 +1,6 @@
 package dev.pti.etl.batch.adapter.in.batch;
 
+import dev.pti.etl.batch.application.JobLaunch;
 import dev.pti.etl.batch.domain.PtiJob;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -12,9 +13,17 @@ import org.springframework.batch.core.job.parameters.JobParametersBuilder;
 public final class JobParams {
 
     /** Non-identifying parameter linking an execution to the {@code ops.job_request} that started it. */
-    public static final String JOB_REQUEST_ID = "jobRequestId";
+    public static final String JOB_REQUEST_ID = JobLaunch.JOB_REQUEST_ID;
 
     private JobParams() {}
+
+    /** The identifying parameter of a job plus the extra, non-identifying parameters of one launch. */
+    public static JobParameters of(PtiJob job, JobLaunch launch) {
+        JobParametersBuilder builder =
+                new JobParametersBuilder().addString(job.identity().parameter(), launch.identity(), true);
+        launch.parameters().forEach((name, value) -> builder.addString(name, value, false));
+        return builder.toJobParameters();
+    }
 
     public static JobParametersBuilder identity(PtiJob job, String value) {
         return new JobParametersBuilder().addString(job.identity().parameter(), value, true);

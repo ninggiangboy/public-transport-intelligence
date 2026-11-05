@@ -1,5 +1,6 @@
 package dev.pti.etl.reference.adapter.out.jdbc;
 
+import dev.pti.etl.reference.application.port.ReferenceDataSource;
 import dev.pti.etl.reference.domain.BoundingBox;
 import dev.pti.etl.reference.domain.ReferenceData;
 import dev.pti.etl.reference.domain.ServiceCalendar;
@@ -21,7 +22,7 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 /** Reads a feed version from the warehouse into a {@link ReferenceData} (DOC-21 §6.1). */
-public class ReferenceDataLoader {
+public class ReferenceDataLoader implements ReferenceDataSource {
 
     private static final String STOP_TIMES_ON = """
             SELECT st.trip_id,
@@ -46,12 +47,14 @@ public class ReferenceDataLoader {
     }
 
     /** The id of the ACTIVE feed version, if any. */
+    @Override
     public Optional<Long> activeFeedVersionId() {
         List<Long> ids = jdbc.queryForList(
                 "SELECT feed_version_id FROM dw.gtfs_feed_version WHERE status = 'ACTIVE'", Long.class);
         return ids.stream().findFirst();
     }
 
+    @Override
     public ReferenceData load(long feedVersionId) {
         Map<String, Object> version = jdbc.queryForMap("""
                 SELECT agency_timezone, bbox_min_lon, bbox_min_lat, bbox_max_lon, bbox_max_lat
@@ -90,7 +93,7 @@ public class ReferenceDataLoader {
                         (rs, n) -> new ServiceCalendar.DateChange(
                                 rs.getString(1), rs.getObject(2, LocalDate.class), rs.getInt(3)),
                         feedVersionId));
-        StopTimes stopTimes = new StopTimes(date -> stopTimesOn(feedVersionId, date), cachedDates);
+        StopTimes stopTimes = new CaffeineStopTimes(date -> stopTimesOn(feedVersionId, date), cachedDates);
         return new ReferenceData(
                 feedVersionId,
                 ZoneId.of((String) version.get("agency_timezone")),

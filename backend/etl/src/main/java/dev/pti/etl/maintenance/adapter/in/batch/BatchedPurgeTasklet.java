@@ -1,9 +1,8 @@
 package dev.pti.etl.maintenance.adapter.in.batch;
 
-import dev.pti.etl.maintenance.adapter.out.metrics.RetentionMetrics;
-import io.micrometer.core.instrument.MeterRegistry;
+import dev.pti.etl.maintenance.application.PurgeExpiredRows;
+import dev.pti.etl.maintenance.application.PurgeTarget;
 import java.time.Clock;
-import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
@@ -14,7 +13,6 @@ import org.springframework.batch.core.step.StepContribution;
 import org.springframework.batch.core.step.tasklet.Tasklet;
 import org.springframework.batch.infrastructure.item.ExecutionContext;
 import org.springframework.batch.infrastructure.repeat.RepeatStatus;
-import org.springframework.jdbc.core.JdbcTemplate;
 
 /**
  * Deletes expired rows in batches of {@code batchSize}, one batch per transaction (DOC-18 §5): each call deletes one
@@ -23,36 +21,20 @@ import org.springframework.jdbc.core.JdbcTemplate;
  */
 public class BatchedPurgeTasklet implements Tasklet {
 
-    /**
-     * One table to purge.
-     *
-     * @param condition a {@code WHERE} condition with one {@code ?}, the cutoff; it must match only expired rows
-     */
-    public record PurgeTarget(String table, String condition, Duration retention) {
-
-        String sql() {
-            return "DELETE FROM " + table + " WHERE ctid IN (SELECT ctid FROM " + table + " WHERE " + condition
-                    + " LIMIT ?)";
-        }
-    }
-
     static final String TARGET_KEY = "pti.purge.target";
     static final String DELETED_KEY_PREFIX = "pti.purge.deleted.";
 
-    private final JdbcTemplate jdbc;
+    private final PurgeExpiredRows purge;
     private final Clock clock;
     private final List<PurgeTarget> targets;
     private final int batchSize;
-    private final RetentionMetrics metrics;
 
     /** @param clock real time: every purged column is an audit timestamp (DR-67) */
-    public BatchedPurgeTasklet(
-            JdbcTemplate jdbc, Clock clock, List<PurgeTarget> targets, int batchSize, MeterRegistry meters) {
-        this.jdbc = jdbc;
+    public BatchedPurgeTasklet(PurgeExpiredRows purge, Clock clock, List<PurgeTarget> targets, int batchSize) {
+        this.purge = purge;
         this.clock = clock;
         this.targets = List.copyOf(targets);
         this.batchSize = batchSize;
-        this.metrics = new RetentionMetrics(meters);
     }
 
     @Override
@@ -66,11 +48,10 @@ public class BatchedPurgeTasklet implements Tasklet {
         PurgeTarget target = targets.get(index);
         OffsetDateTime cutoff =
                 OffsetDateTime.now(clock).withOffsetSameInstant(ZoneOffset.UTC).minus(target.retention());
-        int deleted = jdbc.update(target.sql(), cutoff, batchSize);
+        int deleted = purge.purgeOne(target, cutoff, batchSize);
         String key = DELETED_KEY_PREFIX + target.table();
         context.putLong(key, context.getLong(key, 0L) + deleted);
         contribution.incrementWriteCount(deleted);
-        metrics.deleted(target.table(), deleted);
         if (deleted < batchSize) {
             context.putInt(TARGET_KEY, index + 1);
         }

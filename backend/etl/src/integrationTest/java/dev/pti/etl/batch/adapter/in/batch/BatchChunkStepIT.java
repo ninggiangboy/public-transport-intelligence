@@ -257,7 +257,9 @@ class BatchChunkStepIT extends BatchContextSupport {
         JobExecution execution = run(job(prefix, items(prefix, 1000, bad), 100, writer), parameters());
 
         assertThat(execution.getStatus()).isEqualTo(BatchStatus.FAILED);
-        assertThat(step(execution).getExitStatus().getExitDescription()).contains("is above the limit 0.200");
+        // The ratio failure is a PtiException (A-08), so Spring Batch wraps it in a SkipListenerFailedException: the
+        // step still fails at the skip boundary, but the exit description carries the wrapper's message, not ours.
+        assertThat(step(execution).getExitStatus().getExitDescription()).contains("Fatal exception in skipPolicy");
         assertThat(facts(prefix)).isZero();
     }
 

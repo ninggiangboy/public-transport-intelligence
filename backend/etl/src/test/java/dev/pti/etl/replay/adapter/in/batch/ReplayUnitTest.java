@@ -368,10 +368,11 @@ class ReplayUnitTest {
         poller.scheduled();
         verify(requests, never()).claim();
         when(schedules.isReady()).thenReturn(true);
-        when(launcher.start(eq(PtiJob.DLQ_REPLAY), any())).thenThrow(new TaskRejectedException("full"));
+        when(launcher.start(eq(PtiJob.DLQ_REPLAY), any(JobParameters.class)))
+                .thenThrow(new TaskRejectedException("full"));
         poller.scheduled();
 
-        verify(launcher, org.mockito.Mockito.times(2)).start(eq(PtiJob.RAW_ZONE_REPLAY), any());
+        verify(launcher, org.mockito.Mockito.times(2)).start(eq(PtiJob.RAW_ZONE_REPLAY), any(JobParameters.class));
         verify(requests).fail(eq(dlq.id()), org.mockito.ArgumentMatchers.contains("executor is full"));
         verify(requests, never()).fail(eq(analytics.id()), anyString());
         JobParameters parameters = ReplayRequestPoller.parameters(PtiJob.RAW_ZONE_REPLAY, raw);

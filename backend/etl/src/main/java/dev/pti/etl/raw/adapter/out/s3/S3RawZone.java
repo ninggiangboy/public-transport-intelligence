@@ -1,5 +1,6 @@
 package dev.pti.etl.raw.adapter.out.s3;
 
+import dev.pti.common.error.FatalException;
 import dev.pti.common.error.TransientInfraException;
 import dev.pti.etl.raw.application.port.RawZone;
 import java.io.InputStream;
@@ -82,7 +83,7 @@ public class S3RawZone implements RawZone {
         } catch (SdkClientException e) {
             throw new TransientInfraException("Raw zone unreachable: " + e.getMessage(), e);
         } catch (java.io.IOException e) {
-            throw new java.io.UncheckedIOException(e);
+            throw new FatalException("Cannot write raw zone object " + key + " to " + target, e);
         }
     }
 

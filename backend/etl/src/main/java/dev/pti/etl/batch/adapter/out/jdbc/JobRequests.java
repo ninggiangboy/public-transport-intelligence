@@ -2,6 +2,8 @@ package dev.pti.etl.batch.adapter.out.jdbc;
 
 import dev.pti.common.json.MessageJson;
 import dev.pti.etl.batch.adapter.in.batch.JobParams;
+import dev.pti.etl.batch.application.port.JobRequestStore;
+import java.time.Duration;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -13,25 +15,11 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.support.TransactionTemplate;
 import tools.jackson.databind.JsonNode;
 
-/** Reads and updates {@code ops.job_request} (DOC-19 §7.3); every update only moves a request forward. */
-public class JobRequests {
+/** {@link JobRequestStore} on {@code ops.job_request} (DOC-19 §7.3); every update only moves a request forward. */
+public class JobRequests implements JobRequestStore {
 
     /** Longest message stored on a request; the full exit description stays in Spring Batch metadata. */
     public static final int MAX_MESSAGE = 1000;
-
-    public enum Kind {
-        RUN,
-        RESTART,
-        STOP
-    }
-
-    /** A request claimed by this pod: already {@code RUNNING}, not yet linked to an execution. */
-    public record JobRequest(
-            UUID id,
-            Kind kind,
-            String jobName,
-            Map<String, String> parameters,
-            @Nullable Long targetExecutionId) {}
 
     private final JdbcTemplate jdbc;
     private final TransactionTemplate tx;
@@ -42,6 +30,7 @@ public class JobRequests {
     }
 
     /** Claims the oldest {@code PENDING} request; {@code SKIP LOCKED} keeps two pods from claiming the same one. */
+    @Override
     public Optional<JobRequest> claim() {
         return Optional.ofNullable(tx.execute(status -> {
             JobRequest request = jdbc.query(
@@ -70,12 +59,14 @@ public class JobRequests {
     }
 
     /** Puts a claimed request back, e.g. when the job executor queue is full (DOC-19 §3.3). */
+    @Override
     public void release(UUID id) {
         jdbc.update(
                 "UPDATE ops.job_request SET status = 'PENDING', started_at = NULL WHERE id = ? AND status = 'RUNNING'",
                 id);
     }
 
+    @Override
     public void started(UUID id, long jobExecutionId) {
         jdbc.update(
                 "UPDATE ops.job_request SET job_execution_id = ? WHERE id = ? AND status = 'RUNNING'",
@@ -83,11 +74,13 @@ public class JobRequests {
                 id);
     }
 
+    @Override
     public void reject(UUID id, String message) {
         end(id, "REJECTED", message);
     }
 
     /** A {@code STOP} request is done once the stop has been signalled. */
+    @Override
     public void done(UUID id, long jobExecutionId, String message) {
         jdbc.update("""
                 UPDATE ops.job_request SET status = 'DONE', job_execution_id = ?, finished_at = now(), message = ?
@@ -95,31 +88,45 @@ public class JobRequests {
                 """, jobExecutionId, truncate(message), id);
     }
 
+    /** Records the end of a Spring Batch execution on its request (e.g. from {@code StaleExecutionRecoverer}). */
+    public int finish(JobExecution execution) {
+        String description = execution.getExitStatus().getExitDescription();
+        return finish(new FinishedJob(
+                execution.getStatus() == BatchStatus.COMPLETED,
+                execution.getExitStatus().getExitCode(),
+                description,
+                execution.getId(),
+                execution.getJobParameters().getString(JobParams.JOB_REQUEST_ID)));
+    }
+
     /**
      * Records the end of an execution on the request that started it: by execution id, or by the
      * {@code jobRequestId} parameter when the job ended before the poller linked it.
      */
-    public int finish(JobExecution execution) {
-        boolean completed = execution.getStatus() == BatchStatus.COMPLETED;
-        String description = execution.getExitStatus().getExitDescription();
-        String message = execution.getExitStatus().getExitCode()
-                + (description == null || description.isBlank() ? "" : ": " + description);
-        String requestId = execution.getJobParameters().getString(JobParams.JOB_REQUEST_ID);
+    @Override
+    public int finish(FinishedJob finished) {
+        String message = finished.exitCode()
+                + (finished.exitDescription() == null
+                                || finished.exitDescription().isBlank()
+                        ? ""
+                        : ": " + finished.exitDescription());
+        String requestId = finished.requestId();
         return jdbc.update(
                 """
                 UPDATE ops.job_request
                 SET status = ?, job_execution_id = ?, finished_at = now(), message = ?
                 WHERE status = 'RUNNING' AND kind <> 'STOP' AND (job_execution_id = ? OR id::text = ?)
                 """,
-                completed ? "DONE" : "FAILED",
-                execution.getId(),
+                finished.completed() ? "DONE" : "FAILED",
+                finished.jobExecutionId(),
                 truncate(message),
-                execution.getId(),
+                finished.jobExecutionId(),
                 requestId == null ? "" : requestId);
     }
 
     /** Requests claimed by a pod that died before it started the job (DOC-19 §7.3). */
-    public int failInterrupted(java.time.Duration olderThan) {
+    @Override
+    public int failInterrupted(Duration olderThan) {
         return jdbc.update("""
                 UPDATE ops.job_request
                 SET status = 'FAILED', finished_at = now(), message = 'The launch was interrupted; submit it again'

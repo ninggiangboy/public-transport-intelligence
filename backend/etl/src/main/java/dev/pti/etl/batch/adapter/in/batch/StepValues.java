@@ -1,5 +1,6 @@
 package dev.pti.etl.batch.adapter.in.batch;
 
+import dev.pti.etl.batch.domain.BatchId;
 import java.util.UUID;
 import org.springframework.batch.core.scope.context.StepContext;
 import org.springframework.batch.core.scope.context.StepSynchronizationManager;
@@ -9,7 +10,7 @@ import org.springframework.batch.core.step.StepExecution;
 public final class StepValues {
 
     /** Step context key of the step's {@code batch_id} (DR-63), set by {@link BatchIdStepListener}. */
-    public static final String BATCH_ID = "pti.batchId";
+    public static final String BATCH_ID = BatchId.CONTEXT_KEY;
 
     /** Step context key: items the chunk rules sent to the dead-letter queue, which Spring Batch does not count. */
     public static final String REJECTED = "pti.rejected";
@@ -34,12 +35,7 @@ public final class StepValues {
     }
 
     public static UUID batchId(StepExecution step) {
-        String value = step.getExecutionContext().getString(BATCH_ID, "");
-        if (value.isEmpty()) {
-            throw new IllegalStateException(
-                    "Step " + step.getStepName() + " has no " + BATCH_ID + "; is BatchIdStepListener registered?");
-        }
-        return UUID.fromString(value);
+        return BatchId.of(step.getExecutionContext().getString(BATCH_ID, ""), step.getStepName());
     }
 
     public static boolean replay(StepExecution step) {

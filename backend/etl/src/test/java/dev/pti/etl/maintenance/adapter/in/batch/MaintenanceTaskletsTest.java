@@ -10,8 +10,15 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import dev.pti.common.time.BusinessClock;
-import dev.pti.etl.maintenance.adapter.in.batch.BatchedPurgeTasklet.PurgeTarget;
-import dev.pti.etl.maintenance.adapter.in.batch.PartitionMaintenanceTasklet.ManagedTable;
+import dev.pti.etl.maintenance.adapter.out.jdbc.JdbcBatchMetadataStore;
+import dev.pti.etl.maintenance.adapter.out.jdbc.JdbcExpiredRows;
+import dev.pti.etl.maintenance.adapter.out.jdbc.JdbcPartitions;
+import dev.pti.etl.maintenance.adapter.out.metrics.MicrometerRetentionMetrics;
+import dev.pti.etl.maintenance.application.CleanupBatchMetadata;
+import dev.pti.etl.maintenance.application.MaintainPartitions;
+import dev.pti.etl.maintenance.application.ManagedTable;
+import dev.pti.etl.maintenance.application.PurgeExpiredRows;
+import dev.pti.etl.maintenance.application.PurgeTarget;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.time.Clock;
 import java.time.Duration;
@@ -43,11 +50,10 @@ class MaintenanceTaskletsTest {
                 .thenReturn(null);
         SimpleMeterRegistry meters = new SimpleMeterRegistry();
         PartitionMaintenanceTasklet tasklet = new PartitionMaintenanceTasklet(
-                jdbc,
+                new MaintainPartitions(new JdbcPartitions(jdbc), new MicrometerRetentionMetrics(meters)),
                 new BusinessClock(REAL, Duration.ofHours(-24)),
                 ZoneId.of("America/Chicago"),
-                List.of(new ManagedTable("fact_vehicle_position", 7, Duration.ofDays(14))),
-                meters);
+                List.of(new ManagedTable("fact_vehicle_position", 7, Duration.ofDays(14))));
         StepContribution contribution = contribution();
 
         assertThat(tasklet.execute(contribution, null)).isEqualTo(RepeatStatus.FINISHED);
@@ -76,13 +82,12 @@ class MaintenanceTaskletsTest {
         when(jdbc.update(anyString(), any(Object[].class))).thenReturn(10, 4, 0);
         SimpleMeterRegistry meters = new SimpleMeterRegistry();
         BatchedPurgeTasklet tasklet = new BatchedPurgeTasklet(
-                jdbc,
+                new PurgeExpiredRows(new JdbcExpiredRows(jdbc), new MicrometerRetentionMetrics(meters)),
                 REAL,
                 List.of(
                         new PurgeTarget("ops.a", "created_at < ?", Duration.ofDays(1)),
                         new PurgeTarget("ops.b", "created_at < ?", Duration.ofDays(1))),
-                10,
-                meters);
+                10);
         StepContribution contribution = contribution();
 
         assertThat(tasklet.execute(contribution, null)).isEqualTo(RepeatStatus.CONTINUABLE);
@@ -108,8 +113,12 @@ class MaintenanceTaskletsTest {
         when(jdbc.queryForList(anyString(), eq(Long.class), any(Object[].class)))
                 .thenReturn(List.of(1L, 2L))
                 .thenReturn(List.of(3L));
-        BatchMetadataCleanupTasklet tasklet =
-                new BatchMetadataCleanupTasklet(jdbc, REAL, Duration.ofDays(30), 2, new SimpleMeterRegistry());
+        BatchMetadataCleanupTasklet tasklet = new BatchMetadataCleanupTasklet(
+                new CleanupBatchMetadata(
+                        new JdbcBatchMetadataStore(jdbc), new MicrometerRetentionMetrics(new SimpleMeterRegistry())),
+                REAL,
+                Duration.ofDays(30),
+                2);
         StepContribution contribution = contribution();
 
         assertThat(tasklet.execute(contribution, null)).isEqualTo(RepeatStatus.CONTINUABLE);

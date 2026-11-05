@@ -1,8 +1,8 @@
 package dev.pti.etl.reference.adapter.in.scheduling;
 
 import dev.pti.common.time.BusinessClock;
-import dev.pti.etl.reference.adapter.out.jdbc.ReferenceDataLoader;
 import dev.pti.etl.reference.application.ReferenceDataHolder;
+import dev.pti.etl.reference.application.port.ReferenceDataSource;
 import dev.pti.etl.reference.domain.ReferenceData;
 import dev.pti.etl.reference.domain.ReferenceDataChanged;
 import io.micrometer.core.instrument.Counter;
@@ -23,14 +23,14 @@ public class ReferenceDataRefresher {
 
     private static final Logger log = LoggerFactory.getLogger(ReferenceDataRefresher.class);
 
-    private final ReferenceDataLoader loader;
+    private final ReferenceDataSource loader;
     private final ReferenceDataHolder holder;
     private final BusinessClock clock;
     private final ApplicationEventPublisher events;
     private final Counter errors;
 
     public ReferenceDataRefresher(
-            ReferenceDataLoader loader,
+            ReferenceDataSource loader,
             ReferenceDataHolder holder,
             BusinessClock clock,
             ApplicationEventPublisher events,

@@ -1,9 +1,8 @@
 package dev.pti.etl.maintenance.adapter.in.batch;
 
 import dev.pti.common.time.BusinessClock;
-import dev.pti.etl.maintenance.adapter.out.metrics.RetentionMetrics;
-import io.micrometer.core.instrument.MeterRegistry;
-import java.time.Duration;
+import dev.pti.etl.maintenance.application.MaintainPartitions;
+import dev.pti.etl.maintenance.application.ManagedTable;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.ArrayList;
@@ -13,7 +12,6 @@ import org.springframework.batch.core.scope.context.ChunkContext;
 import org.springframework.batch.core.step.StepContribution;
 import org.springframework.batch.core.step.tasklet.Tasklet;
 import org.springframework.batch.infrastructure.repeat.RepeatStatus;
-import org.springframework.jdbc.core.JdbcTemplate;
 
 /**
  * Creates the partitions of the coming days and drops those past retention (DOC-18 §5, DOC-14 §7.4). Dates are
@@ -22,26 +20,17 @@ import org.springframework.jdbc.core.JdbcTemplate;
  */
 public class PartitionMaintenanceTasklet implements Tasklet {
 
-    /** One partitioned fact table: how far ahead to create partitions and how long to keep them. */
-    public record ManagedTable(String table, int daysAhead, Duration retention) {}
-
-    private final JdbcTemplate jdbc;
+    private final MaintainPartitions maintenance;
     private final BusinessClock clock;
     private final ZoneId agencyZone;
     private final List<ManagedTable> tables;
-    private final RetentionMetrics metrics;
 
     public PartitionMaintenanceTasklet(
-            JdbcTemplate jdbc,
-            BusinessClock clock,
-            ZoneId agencyZone,
-            List<ManagedTable> tables,
-            MeterRegistry meters) {
-        this.jdbc = jdbc;
+            MaintainPartitions maintenance, BusinessClock clock, ZoneId agencyZone, List<ManagedTable> tables) {
+        this.maintenance = maintenance;
         this.clock = clock;
         this.agencyZone = agencyZone;
         this.tables = List.copyOf(tables);
-        this.metrics = new RetentionMetrics(meters);
     }
 
     @Override
@@ -49,21 +38,8 @@ public class PartitionMaintenanceTasklet implements Tasklet {
         LocalDate today = LocalDate.ofInstant(clock.instant(), agencyZone);
         List<String> summary = new ArrayList<>();
         for (ManagedTable t : tables) {
-            Integer created = jdbc.queryForObject(
-                    "SELECT dw.ensure_partitions(?, ?, ?)",
-                    Integer.class,
-                    t.table(),
-                    today.minusDays(1),
-                    today.plusDays(t.daysAhead()));
-            Integer dropped = jdbc.queryForObject(
-                    "SELECT dw.drop_partitions_before(?, ?)",
-                    Integer.class,
-                    t.table(),
-                    today.minusDays(t.retention().toDays()));
-            int c = created == null ? 0 : created;
-            int d = dropped == null ? 0 : dropped;
-            metrics.deleted(t.table(), d);
-            summary.add(t.table() + ": created " + c + ", dropped " + d);
+            MaintainPartitions.Result result = maintenance.maintain(t, today);
+            summary.add(t.table() + ": created " + result.created() + ", dropped " + result.dropped());
         }
         contribution.setExitStatus(
                 ExitStatus.COMPLETED.addExitDescription("Business date " + today + "; " + String.join("; ", summary)));

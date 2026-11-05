@@ -2,10 +2,10 @@ package dev.pti.etl.batch.adapter.in.batch;
 
 import dev.pti.common.error.ErrorClassifier;
 import dev.pti.common.error.ErrorKind;
+import dev.pti.common.error.FatalException;
 import java.util.Locale;
 import java.util.function.Supplier;
 import org.springframework.batch.core.step.StepExecution;
-import org.springframework.batch.core.step.skip.SkipLimitExceededException;
 import org.springframework.batch.core.step.skip.SkipPolicy;
 
 /**
@@ -46,26 +46,20 @@ public class RatioSkipPolicy implements SkipPolicy {
     }
 
     /** The step fails with this; its message is the step's exit description. */
-    public static final class SkipRatioExceededException extends SkipLimitExceededException {
+    public static final class SkipRatioExceededException extends FatalException {
 
         private static final long serialVersionUID = 1L;
 
-        private final String message;
-
         SkipRatioExceededException(long skipCount, long seen, double maxRatio, Throwable cause) {
-            super(skipCount, cause);
-            this.message = String.format(
-                    Locale.ROOT,
-                    "Skip ratio %.3f (%d of %d items) is above the limit %.3f",
-                    (double) (skipCount + 1) / seen,
-                    skipCount + 1,
-                    seen,
-                    maxRatio);
-        }
-
-        @Override
-        public String getMessage() {
-            return message;
+            super(
+                    String.format(
+                            Locale.ROOT,
+                            "Skip ratio %.3f (%d of %d items) is above the limit %.3f",
+                            (double) (skipCount + 1) / seen,
+                            skipCount + 1,
+                            seen,
+                            maxRatio),
+                    cause);
         }
     }
 }

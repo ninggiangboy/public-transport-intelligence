@@ -5,11 +5,14 @@ import static org.awaitility.Awaitility.await;
 
 import dev.pti.common.time.BusinessClock;
 import dev.pti.db.MigratedDatabases;
-import dev.pti.etl.batch.adapter.in.scheduling.JobRequestPoller;
 import dev.pti.etl.batch.adapter.out.jdbc.StaleExecutionRecoverer;
+import dev.pti.etl.batch.application.HandleJobRequests;
 import dev.pti.etl.batch.domain.PtiJob;
 import dev.pti.etl.maintenance.adapter.in.batch.PartitionMaintenanceTasklet;
-import dev.pti.etl.maintenance.adapter.in.batch.PartitionMaintenanceTasklet.ManagedTable;
+import dev.pti.etl.maintenance.adapter.out.jdbc.JdbcPartitions;
+import dev.pti.etl.maintenance.adapter.out.metrics.MicrometerRetentionMetrics;
+import dev.pti.etl.maintenance.application.MaintainPartitions;
+import dev.pti.etl.maintenance.application.ManagedTable;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.time.Clock;
 import java.time.Duration;
@@ -46,7 +49,7 @@ class BatchJobsIT extends BatchContextSupport {
     JobOperator jobOperator;
 
     @Autowired
-    JobRequestPoller poller;
+    HandleJobRequests poller;
 
     @Autowired
     StaleExecutionRecoverer recoverer;
@@ -74,11 +77,11 @@ class BatchJobsIT extends BatchContextSupport {
         Clock real = Clock.fixed(Instant.parse("2027-03-10T12:00:00Z"), ZoneOffset.UTC);
         BusinessClock clock = new BusinessClock(real, Duration.ofHours(-12));
         PartitionMaintenanceTasklet tasklet = new PartitionMaintenanceTasklet(
-                jdbc,
+                new MaintainPartitions(
+                        new JdbcPartitions(jdbc), new MicrometerRetentionMetrics(new SimpleMeterRegistry())),
                 clock,
                 ZoneId.of("America/Chicago"),
-                List.of(new ManagedTable("fact_vehicle_position", 7, Duration.ofDays(3650))),
-                new SimpleMeterRegistry());
+                List.of(new ManagedTable("fact_vehicle_position", 7, Duration.ofDays(3650))));
         JobExecution execution = awaitEnd(jobOperator.start(
                 steps.job("TestPartitionsJob")
                         .start(steps.tasklet("maintainPartitions", tasklet))

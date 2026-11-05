@@ -3,7 +3,8 @@ package dev.pti.etl.batch.adapter.in.scheduling;
 import dev.pti.common.time.BusinessClock;
 import dev.pti.etl.batch.adapter.in.batch.JobParams;
 import dev.pti.etl.batch.adapter.in.batch.PtiJobLauncher;
-import dev.pti.etl.batch.adapter.out.jdbc.StaleExecutionRecoverer;
+import dev.pti.etl.batch.application.HandleJobRequests;
+import dev.pti.etl.batch.application.port.StaleExecutions;
 import dev.pti.etl.batch.domain.PtiJob;
 import java.time.Duration;
 import java.time.LocalDate;
@@ -32,8 +33,8 @@ public class BatchSchedules {
     static final Duration STALE_LOCK_AT_MOST = Duration.ofMinutes(5);
 
     private final PtiJobLauncher launcher;
-    private final JobRequestPoller jobRequests;
-    private final StaleExecutionRecoverer recoverer;
+    private final HandleJobRequests jobRequests;
+    private final StaleExecutions recoverer;
     private final LockingTaskExecutor locks;
     private final BusinessClock clock;
     private final ZoneId agencyZone;
@@ -43,8 +44,8 @@ public class BatchSchedules {
     /** @param startupTasks run once after the stale executions are recovered, e.g. the first GTFS load */
     public BatchSchedules(
             PtiJobLauncher launcher,
-            JobRequestPoller jobRequests,
-            StaleExecutionRecoverer recoverer,
+            HandleJobRequests jobRequests,
+            StaleExecutions recoverer,
             LockingTaskExecutor locks,
             BusinessClock clock,
             ZoneId agencyZone,
@@ -65,7 +66,7 @@ public class BatchSchedules {
     @EventListener(ApplicationReadyEvent.class)
     public void onReady() {
         locks.executeWithLock(
-                (Runnable) recoverer::recover,
+                (Runnable) recoverer::recoverAll,
                 new LockConfiguration(clock.realNow(), STALE_LOCK, STALE_LOCK_AT_MOST, Duration.ZERO));
         partitionMaintenance();
         for (Runnable task : startupTasks) {
@@ -82,7 +83,7 @@ public class BatchSchedules {
     @SchedulerLock(name = STALE_LOCK, lockAtMostFor = "5m")
     public void recoverStaleExecutions() {
         if (ready.get()) {
-            recoverer.recover();
+            recoverer.recoverAll();
         }
     }
 

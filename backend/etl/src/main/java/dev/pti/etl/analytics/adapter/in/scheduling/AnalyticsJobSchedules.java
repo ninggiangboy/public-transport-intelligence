@@ -2,15 +2,15 @@ package dev.pti.etl.analytics.adapter.in.scheduling;
 
 import dev.pti.common.time.BusinessClock;
 import dev.pti.etl.analytics.adapter.in.batch.EtaAggregationTasklet;
-import dev.pti.etl.batch.adapter.in.batch.JobParams;
-import dev.pti.etl.batch.adapter.in.batch.PtiJobLauncher;
+import dev.pti.etl.batch.application.JobLaunch;
+import dev.pti.etl.batch.application.port.LaunchJob;
 import dev.pti.etl.batch.domain.PtiJob;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
+import java.util.Map;
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
-import org.springframework.batch.core.job.parameters.JobParameters;
 import org.springframework.scheduling.annotation.Scheduled;
 
 /**
@@ -21,11 +21,11 @@ import org.springframework.scheduling.annotation.Scheduled;
  */
 public class AnalyticsJobSchedules {
 
-    private final PtiJobLauncher launcher;
+    private final LaunchJob launcher;
     private final BusinessClock clock;
     private final ZoneId agencyZone;
 
-    public AnalyticsJobSchedules(PtiJobLauncher launcher, BusinessClock clock, ZoneId agencyZone) {
+    public AnalyticsJobSchedules(LaunchJob launcher, BusinessClock clock, ZoneId agencyZone) {
         this.launcher = launcher;
         this.clock = clock;
         this.agencyZone = agencyZone;
@@ -35,8 +35,8 @@ public class AnalyticsJobSchedules {
     @Scheduled(cron = "${pti.batch.schedule.eta-aggregation}", zone = "UTC", scheduler = "ptiTaskScheduler")
     @SchedulerLock(name = "etaAggregation", lockAtMostFor = "30m")
     public void etaAggregation() {
-        if (launcher.job(PtiJob.ETA_AGGREGATION).isPresent()) {
-            launcher.launchIfNew(PtiJob.ETA_AGGREGATION, etaParameters(clock.instant()));
+        if (launcher.isDeployed(PtiJob.ETA_AGGREGATION)) {
+            launcher.launchIfNew(PtiJob.ETA_AGGREGATION, etaLaunch(clock.instant()));
         }
     }
 
@@ -47,20 +47,18 @@ public class AnalyticsJobSchedules {
             scheduler = "ptiTaskScheduler")
     @SchedulerLock(name = "otpScorecard", lockAtMostFor = "30m")
     public void otpScorecard() {
-        if (launcher.job(PtiJob.OTP_SCORECARD).isPresent()) {
-            launcher.launchIfNew(PtiJob.OTP_SCORECARD, otpParameters(clock.instant()));
+        if (launcher.isDeployed(PtiJob.OTP_SCORECARD)) {
+            launcher.launchIfNew(PtiJob.OTP_SCORECARD, otpLaunch(clock.instant()));
         }
     }
 
-    JobParameters etaParameters(Instant now) {
+    JobLaunch etaLaunch(Instant now) {
         String hour = now.truncatedTo(ChronoUnit.HOURS).toString();
-        return JobParams.identity(PtiJob.ETA_AGGREGATION, "scheduled:" + hour)
-                .addString(EtaAggregationTasklet.HOUR, hour, false)
-                .toJobParameters();
+        return new JobLaunch("scheduled:" + hour, Map.of(EtaAggregationTasklet.HOUR, hour));
     }
 
-    JobParameters otpParameters(Instant now) {
+    JobLaunch otpLaunch(Instant now) {
         LocalDate runDate = now.atZone(agencyZone).toLocalDate();
-        return JobParams.runKey(PtiJob.OTP_SCORECARD, "scheduled:" + runDate);
+        return new JobLaunch("scheduled:" + runDate, Map.of());
     }
 }

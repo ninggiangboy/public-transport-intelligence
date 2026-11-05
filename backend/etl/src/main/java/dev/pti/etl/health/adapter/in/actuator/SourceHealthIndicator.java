@@ -1,9 +1,9 @@
 package dev.pti.etl.health.adapter.in.actuator;
 
-import dev.pti.etl.stream.adapter.in.kafka.ListenerPauseCoordinator;
-import dev.pti.etl.stream.adapter.in.kafka.ListenerPauseCoordinator.Reason;
 import dev.pti.etl.stream.application.SourceActivity;
 import dev.pti.etl.stream.application.StreamListener;
+import dev.pti.etl.stream.application.port.ListenerPauseState;
+import dev.pti.etl.stream.application.port.ListenerPauseState.Reason;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Clock;
@@ -29,7 +29,7 @@ public class SourceHealthIndicator implements HealthIndicator {
 
     private final List<StreamListener> listeners;
     private final WarehouseHealthIndicator warehouse;
-    private final ListenerPauseCoordinator pauses;
+    private final ListenerPauseState pauses;
     private final SourceActivity activity;
     private final Duration freshness;
     private final Clock clock;
@@ -43,7 +43,7 @@ public class SourceHealthIndicator implements HealthIndicator {
     public SourceHealthIndicator(
             List<StreamListener> listeners,
             WarehouseHealthIndicator warehouse,
-            ListenerPauseCoordinator pauses,
+            ListenerPauseState pauses,
             SourceActivity activity,
             Duration freshness,
             Clock clock,

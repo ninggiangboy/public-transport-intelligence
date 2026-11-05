@@ -1,6 +1,7 @@
 package dev.pti.etl.batch.adapter.out.jdbc;
 
 import dev.pti.etl.batch.adapter.in.batch.PtiJobLauncher;
+import dev.pti.etl.batch.application.port.StaleExecutions;
 import dev.pti.etl.batch.domain.PtiJob;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -26,7 +27,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
  * for restartable jobs, restart it from the last committed chunk. A zombie that wakes up afterwards fails its next
  * commit on the {@code VERSION} check, so it never writes past the restart point.
  */
-public class StaleExecutionRecoverer {
+public class StaleExecutionRecoverer implements StaleExecutions {
 
     private static final Logger log = LoggerFactory.getLogger(StaleExecutionRecoverer.class);
 
@@ -65,6 +66,12 @@ public class StaleExecutionRecoverer {
         this.staleAfter = staleAfter;
         this.batchClock = batchClock;
         this.meters = meters;
+    }
+
+    /** The port entry point; the caller of DOC-19 §7.2 only needs the side effect. */
+    @Override
+    public void recoverAll() {
+        recover();
     }
 
     /** @return the executions that were recovered */

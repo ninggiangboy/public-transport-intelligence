@@ -12,6 +12,7 @@ import dev.pti.common.classifier.PlatformErrorClassifier;
 import dev.pti.common.dq.DlqStage;
 import dev.pti.common.error.DataException;
 import dev.pti.common.error.DeserializationException;
+import dev.pti.common.error.FatalException;
 import dev.pti.common.error.TransientInfraException;
 import dev.pti.common.time.BusinessClock;
 import dev.pti.etl.batch.domain.UnreadableRecordException;
@@ -45,7 +46,6 @@ import org.springframework.batch.core.ExitStatus;
 import org.springframework.batch.core.job.parameters.JobParametersBuilder;
 import org.springframework.batch.core.scope.context.StepSynchronizationManager;
 import org.springframework.batch.core.step.StepExecution;
-import org.springframework.batch.core.step.skip.SkipLimitExceededException;
 import org.springframework.batch.infrastructure.item.Chunk;
 import org.springframework.batch.test.MetaDataInstanceFactory;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -111,7 +111,7 @@ class StepComponentsTest {
                 .as("20 of max(50, 100) is exactly the limit")
                 .isTrue();
         assertThatThrownBy(() -> policy.shouldSkip(new DeserializationException("bad", null), 20))
-                .isInstanceOf(SkipLimitExceededException.class)
+                .isInstanceOf(FatalException.class)
                 .hasMessage("Skip ratio 0.210 (21 of 100 items) is above the limit 0.200");
 
         step.setReadCount(1000);

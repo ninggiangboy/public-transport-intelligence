@@ -1,7 +1,9 @@
 package dev.pti.etl.batch.adapter.in.batch;
 
-import dev.pti.etl.batch.adapter.out.jdbc.JobRequests;
+import dev.pti.etl.batch.application.port.JobRequestStore;
+import dev.pti.etl.batch.application.port.JobRequestStore.FinishedJob;
 import org.slf4j.MDC;
+import org.springframework.batch.core.BatchStatus;
 import org.springframework.batch.core.job.JobExecution;
 import org.springframework.batch.core.listener.JobExecutionListener;
 
@@ -10,9 +12,9 @@ public class JobRequestListener implements JobExecutionListener {
 
     static final String MDC_JOB = "job";
 
-    private final JobRequests requests;
+    private final JobRequestStore requests;
 
-    public JobRequestListener(JobRequests requests) {
+    public JobRequestListener(JobRequestStore requests) {
         this.requests = requests;
     }
 
@@ -24,9 +26,19 @@ public class JobRequestListener implements JobExecutionListener {
     @Override
     public void afterJob(JobExecution execution) {
         try {
-            requests.finish(execution);
+            requests.finish(finished(execution));
         } finally {
             MDC.remove(MDC_JOB);
         }
+    }
+
+    private static FinishedJob finished(JobExecution execution) {
+        String description = execution.getExitStatus().getExitDescription();
+        return new FinishedJob(
+                execution.getStatus() == BatchStatus.COMPLETED,
+                execution.getExitStatus().getExitCode(),
+                description,
+                execution.getId(),
+                execution.getJobParameters().getString(JobParams.JOB_REQUEST_ID));
     }
 }
