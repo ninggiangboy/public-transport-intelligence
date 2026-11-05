@@ -1,7 +1,8 @@
-package dev.pti.db;
+package dev.pti.db.migration.adapter.in.cli;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import dev.pti.db.migration.domain.MigrationSet;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 

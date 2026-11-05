@@ -1,5 +1,6 @@
-package dev.pti.db;
+package dev.pti.db.migration.adapter.in.cli;
 
+import dev.pti.db.migration.domain.MigrationSet;
 import java.util.Map;
 import org.flywaydb.core.Flyway;
 import org.flywaydb.core.api.FlywayException;
@@ -15,7 +16,7 @@ import org.slf4j.LoggerFactory;
  */
 public final class DbMigrate {
 
-    static final int EXIT_OK = 0;
+    public static final int EXIT_OK = 0;
     static final int EXIT_MIGRATION_FAILED = 1;
     static final int EXIT_BAD_CONFIGURATION = 2;
 
@@ -27,7 +28,7 @@ public final class DbMigrate {
         System.exit(run(System.getenv()));
     }
 
-    static int run(Map<String, String> env) {
+    public static int run(Map<String, String> env) {
         for (MigrationSet set : MigrationSet.values()) {
             String password = env.get(set.passwordVariable());
             if (password == null || password.isEmpty()) {

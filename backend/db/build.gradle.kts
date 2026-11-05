@@ -25,6 +25,6 @@ jib {
         image = jib.to.image!!.replace("/pti-db:", "/pti-db-migrate:")
     }
     container {
-        mainClass = "dev.pti.db.DbMigrate"
+        mainClass = "dev.pti.db.migration.adapter.in.cli.DbMigrate"
     }
 }

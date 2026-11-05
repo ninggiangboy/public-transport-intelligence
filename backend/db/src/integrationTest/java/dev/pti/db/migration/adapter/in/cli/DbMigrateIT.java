@@ -1,7 +1,9 @@
-package dev.pti.db;
+package dev.pti.db.migration.adapter.in.cli;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import dev.pti.db.PostgresFixtures;
+import dev.pti.db.migration.domain.MigrationSet;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;

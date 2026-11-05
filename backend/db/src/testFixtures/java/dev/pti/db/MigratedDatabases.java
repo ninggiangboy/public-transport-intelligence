@@ -1,5 +1,6 @@
 package dev.pti.db;
 
+import dev.pti.db.migration.adapter.in.cli.DbMigrate;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;

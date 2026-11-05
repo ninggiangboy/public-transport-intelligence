@@ -1,5 +1,7 @@
 package dev.pti.db;
 
+import dev.pti.db.migration.adapter.in.cli.DbMigrate;
+import dev.pti.db.migration.domain.MigrationSet;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
