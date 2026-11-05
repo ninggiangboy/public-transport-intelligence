@@ -141,14 +141,15 @@ Hệ quả thực tế:
 | Package | Được dùng | Ghi chú |
 | --- | --- | --- |
 | `dev.pti.common.time` | `BusinessClock`, `DayType`, `Timestamps` | |
-| `dev.pti.common.error` | `PtiException` và các lớp con | **Trừ** `ErrorClassifier` (dùng Spring, chỉ adapter được gọi) |
+| `dev.pti.common.error` | `PtiException` và các lớp con | `ErrorClassifier` là interface; hiện thực ở `common.classifier` (DR-115) |
 | `dev.pti.common.dq` | `DlqStage` | |
-| `dev.pti.common.gtfs` | `GtfsTime` | Đọc zip/CSV GTFS là việc của adapter |
+| `dev.pti.common.gtfs` | `GtfsTime`, `GtfsRecord`, `GtfsCsv`, `GtfsZipReader`, `GtfsFormatException` | Từ RF-01. Chỉ dùng JDK (`java.util.zip`, `java.io`) |
+| `dev.pti.common.message` | `Envelope`, các payload, enum, `BusinessKey` | Từ RF-01. Không còn Jackson; ràng buộc `jakarta.validation.constraints` giữ nguyên (X-04, DR-115) |
 | `dev.pti.common.tx` | `TransactionRunner` (mới ở P4-18) | Chỉ interface; hiện thực Spring ở `common.spring` là adapter |
 | `dev.pti.common.id` | `InsightIds` (mới ở P4, DOC-23 §2.3) | Java thuần |
 | `dev.pti.common.events` | `UiChannel`, `Audience`, `UiEvent` (mới ở P4, DOC-33 §2) | Phải giữ Java thuần: tên viết thường khi serialize do adapter Kafka lo. `UiEventPublisher` là port; hiện thực bằng `KafkaTemplate` là adapter ra |
 
-Không nằm trong shared kernel (chỉ adapter được dùng): `common.message` (record mang annotation Jackson, schema), `common.json`, `common.pii` (thao tác trên cây Jackson), `common.error.ErrorClassifier`. Phase R (RF-01) tách phần thuần của các package này ra shared kernel.
+Không nằm trong shared kernel (chỉ adapter và `config` được dùng): `common.json` (`MessageJson`, `MessageSchemas`, `PayloadHasher`, mixin), `common.pii` (thao tác trên cây Jackson, ngoại lệ X-01 cho `triage..application`), `common.spring`, `common.classifier` (`PlatformErrorClassifier`). `common.error.ErrorClassifier` là interface trong kernel. Các package `common` đều phẳng (D-R1, DR-115).
 
 Port dùng chung giữa các app đặt trong `common`, Java thuần:
 
@@ -294,6 +295,7 @@ Danh sách đóng. Thêm ngoại lệ mới cần một DR.
 | X-01 | Cây JSON của Jackson (`tools.jackson.databind.JsonNode`, `tools.jackson.databind.node..`) và `dev.pti.common.pii` | `dev.pti.triage..application..` | Trạng thái gửi cho Jev là tài liệu JSON tự do theo từng use case (ADR-0018, DOC-24 §4.2); dựng một cây tương đương chỉ để né Jackson không thêm giá trị. Chỉ dùng mô hình cây, không dùng `ObjectMapper` (serialize nằm ở `adapter.out.jev`) |
 | X-02 | Transaction của Spring Batch chunk | `adapter.in.batch` của `etl` | §5.1 |
 | X-03 | `@Scheduled` và `@SchedulerLock` trên lớp adapter vào | `adapter.in.scheduling` | Đó chính là adapter vào; không phải ngoại lệ của A-12, ghi ra để tránh hiểu nhầm |
+| X-04 | Annotation khai báo `jakarta.validation.constraints.*` và `jakarta.validation.Valid` | `dev.pti.common.message` | Hợp đồng dây (DOC-09) mang ràng buộc ngay trên record; annotation không có hành vi, `Validator` chỉ chạy ở adapter (DR-115) |
 
 ## 11. Ánh xạ thiết kế của module mới
 
@@ -386,12 +388,14 @@ Làm theo thứ tự ở master plan §5 (Phase R). Nguyên tắc:
 5. Cập nhật tài liệu thiết kế của code cũ (DOC-19, 20, 21, 22, 25, 30) trong cùng commit với code (RF-06).
 6. Hồi quy cuối (RF-08): toàn bộ test, `pti-exp smoke` đạt như M3, so số liệu với chuỗi `p3-08-d`.
 
-| Module | Vi phạm lúc freeze (P4-18) | Còn lại | Task |
-| --- | --- | --- | --- |
-| `common` | 64 (A-08: 6, A-14: 16, A-18: 42) | 64 | RF-01 |
-| `source-simulator` | 254 (A-08: 18, A-14: 28, A-16: 36, A-18: 172) | 254 | RF-02 |
-| `etl` | 290 (A-07: 9, A-08: 41, A-14: 42, A-18: 198) | 290 | RF-03, RF-04 |
-| `db` | 2 (A-18: 2) | 2 | RF-05 |
+| Module | Vi phạm trong store (đếm lại ở RF-00) | Theo luật | Còn lại | Task |
+| --- | --- | --- | --- | --- |
+| `common` | 64 | A-08: 6, A-14: 16, A-18: 42 | 64 | RF-01 |
+| `source-simulator` | 254 | A-08: 18, A-14: 28, A-16: 36, A-18: 172 | 254 | RF-02 |
+| `etl` | 289 | A-07: 8, A-08: 41, A-14: 42, A-18: 198 | 289 | RF-03, RF-04 |
+| `db` | 2 | A-18: 2 | 2 | RF-05 |
+
+RF-00 đếm lại từng file store (`archunit_store/`) và thấy `etl` có 289 dòng với A-07 là 8, không phải 290 và 9 như ghi lúc P4-18 (một vi phạm `Clock.systemUTC()` đã biến mất khi code P4 sửa `config`). Bảng trên là số thật; mỗi task RF cập nhật cột "Còn lại" khi đóng.
 
 Ghi chú về số liệu lúc freeze (P4-18):
 
@@ -399,6 +403,79 @@ Ghi chú về số liệu lúc freeze (P4-18):
 - `A-07` (`etl`) và `A-08` (`etl`, `source-simulator`, `common`) cũng bị freeze vì code cũ vi phạm: `A-07` do `Clock.systemUTC()` trong các lớp `config` và `Instant.now()` trong `FeedWorkspace`; `A-08` do exception riêng không kế thừa `PtiException` (`JobRequestPoller.Rejected`, `FeedRejectedException`, `ScenarioException`, `InvalidParamException`…), `UncheckedIOException` và `UnsupportedOperationException` của `BusinessClock.withZone`. Luật `A-01`…`A-06`, `A-09`, `A-10` không có vi phạm nên chạy thẳng, không freeze.
 - Store của `common` chỉ phủ các package cũ (`message`, `json`, `pii`, `gtfs`, `time`, `error`, `dq`). Các package thêm ở P4-18 (`tx`, `id`, `events`, `spring`) là shared kernel phẳng theo §4.2 nên không áp `A-11`…`A-18` và không nằm trong store; thay vào đó luật "shared kernel là Java thuần" chạy thẳng.
 - Với `etl`, `source-simulator`, `db`: package nằm ngoài danh sách package cũ trong `ArchitectureTest` của module (ví dụ `dev.pti.etl.analytics`) bị kiểm `A-11`…`A-18` **không qua freeze**, ngoài việc mọi vi phạm không có trong store đều làm test đỏ.
+
+### 12.1 Quyết định thiết kế của Phase R (DR-115)
+
+RF-00 chốt các quyết định dưới đây trước khi chuyển code. Chúng không đổi hành vi ngoài; chỉ đổi chỗ đặt và ranh giới.
+
+| # | Quyết định | Lý do |
+| --- | --- | --- |
+| D-R1 | `common` là thư viện phẳng, không áp A-11…A-18 (giống `tx`, `id`, `events`). Hai nhóm package: **kernel Java thuần** (`time`, `error`, `dq`, `gtfs`, `message`, `tx`, `id`, `events`) và **gắn framework** (`json`, `pii`, `spring`, `classifier`). `domain`/`application` của app chỉ được dùng nhóm kernel (A-13); luật "kernel là Java thuần" chạy cho cả hai package mới vào kernel | `common` không có use case và không có adapter vào; ép bốn tầng lên nó chỉ đổi tên package của mọi import trong bốn module mà không làm kiến trúc tốt hơn |
+| D-R2 | `message` bỏ annotation Jackson: tên `snake_case` đặt ở `MessageJson` (`PropertyNamingStrategies.SNAKE_CASE`), `isConsistent()` được ẩn bằng mixin trong `json`. Các ràng buộc `jakarta.validation.constraints` (khai báo thuần, không có hành vi) **giữ nguyên** và là ngoại lệ X-04 của luật kernel; `Validator` chỉ chạy ở adapter. `MessageSchemas`, `PayloadHasher` dùng cây Jackson nên chuyển sang `json` | Bỏ luôn ràng buộc nghĩa là viết lại validator tay cho 6 record và đổi đường dẫn lỗi DQ-01; không có lợi ích kiến trúc tương xứng |
+| D-R3 | `ErrorClassifier` thành interface của kernel (`common.error`); hiện thực `PlatformErrorClassifier` (nhận biết `java.sql`, tên lớp Spring/AWS/Kafka) ở `common.classifier` | `StreamChunkTemplate` (RF-03) ở tầng `application` cần phân loại lỗi mà không biết `java.sql` |
+| D-R4 | A-08: ngoại lệ vào/ra của `common` thành lớp con của `PtiException` (`GtfsFormatException`, `FatalException`…), không còn `UncheckedIOException` và `UnsupportedOperationException` | Luật A-08 áp cho mọi module |
+| D-R5 | Mỗi module cũ giữ tên feature hiện có khi tên đó đúng nghĩa nghiệp vụ (`feed`, `motion`, `emit`, `ledger`, `scenario`, `ticketing`, `gtfs`, `replay`, `reference`…); package chỉ đổi khi feature gộp hay tách (bảng §12.2) | Giảm diff, giữ tên trong DOC-19…25 |
+| D-R6 | Lớp `@Configuration` và `@ConfigurationProperties` đi vào `config` của feature mà chúng nối; cấu hình dùng chung giữ ở `dev.pti.<app>.config` | A-16 |
+| D-R7 | Chuyển package bằng script (`git mv` + sửa `package` và import trong toàn repo), tách thành commit riêng không đổi logic; việc đổi code (port, tách lớp) làm ở commit sau. Mọi member `package-private` bị tách khỏi package thành `public` chỉ khi trình biên dịch buộc | Dễ review: commit chuyển chỉ chứa rename, commit logic chứa diff thật |
+
+### 12.2 Bố cục đích theo module
+
+Ký hiệu: `D` domain, `A` application, `P` application.port, `in.x`/`out.x` adapter, `C` config.
+
+**`common` (RF-01).** Không đổi tên package. `ErrorClassifier` (interface, kernel) + `classifier.PlatformErrorClassifier`; `message.{MessageSchemas,PayloadHasher}` → `json`; `pii` giữ (ngoại lệ X-01). `ArchitectureTest` bỏ khối freeze A-11…A-18 và store; `PtiArchitectureRules.SHARED_KERNEL_PACKAGES` thêm `gtfs`, `message`.
+
+**`source-simulator` (RF-02).** Gốc `dev.pti.simulator`, `SourceSimulatorApplication` giữ ở gốc.
+
+| Package cũ | Đích |
+| --- | --- |
+| `feed` | `feed.domain` (record và lớp lịch chạy: `Feed`, `Route`, `Stop`, `Block`, `TripSchedule`, `ScheduleIndex`, `ServiceCalendar`, `ServiceDays`, `ServiceDay`, `ServiceDateMapper`, `Shape`, `Geo`, `VehicleAssigner`); `FeedLoader` (đọc zip) → `feed.adapter.out.gtfs` sau port `feed.application.port.FeedSource` |
+| `motion` | `motion.domain` (thuần); `Seeds`, `Fleet` theo kết quả rà |
+| `emit` | `emit.application` (`Emitter`, `ResendQueue`, `InterceptingSink`), `emit.application.port` (`MessageSink`, `MessageInterceptor`, `VehicleMarks`, `EmitterMetrics`), `emit.domain` (`MessageFactory`, `OutboundMessage`), `emit.adapter.out.kafka` (`KafkaMessageSink`, `KafkaFlush`), `emit.adapter.out.metrics` |
+| `ledger` | `ledger.domain` (`LedgerEntry`), `ledger.application.port` (`Ledger`), `ledger.adapter.out.jdbc` (`LedgerWriter`) |
+| `scenario` | `scenario.domain` (`Scenario`, các `*Scenario`, `ScenarioParam`, `ParamType`, `Selection`, `Concurrency`, `RunStatus`, `InvalidKind`, `ScenarioException`), `scenario.application` (`ScenarioEngine`, `ScenarioCatalog`, `ParamBinder`, `ScenarioHooks`, `MessageCorruptor`), `scenario.application.port` (`ScenarioRuns`, `ScenarioHandle`), `scenario.adapter.out.jdbc` (`JdbcScenarioRuns`), `scenario.config` |
+| `ticketing` | `ticketing.domain` (`Poisson`, `SaleGenerator`, `SalePoint`, `SalePointCatalog`, `TicketType`, `Transaction`, `TicketingSettings`), `ticketing.application` (`TicketingSeeder`), `ticketing.application.port` (`TicketingActions`, `TicketingOverlay`, `TicketingRepository` thành port), `ticketing.adapter.out.jdbc` (`JdbcTicketingRepository`, `SalePointSuggestions`), `ticketing.config` |
+| `control` | `control.adapter.in.web` (controller, `ProblemHandler`, `RateRequest`, `SimStatus`), `control.application` (`StatusService`), `control.domain` (hai exception, đổi sang `PtiException`) |
+| `rate`, `observability`, gốc | `rate.application` + port metrics; `observability.adapter.out.jdbc` (`ReplicationSlotProbe`); `tick.adapter.in.scheduling` (`TickLoop`), `tick.application` (`Throughput`); `*Configuration` và `SimProperties` → `dev.pti.simulator.config` hoặc `config` của feature |
+
+**`etl` luồng stream (RF-03).** Gốc `dev.pti.etl`; `analytics` và `realtime` đã đúng chuẩn, không đụng.
+
+| Package cũ | Đích |
+| --- | --- |
+| `core` (+ `core.gtfsrt`, `core.cdc`) | `ingest.domain` (`InboundMessage`, `WriteSet`, các `*Row`, `EtlSource`, `BestEffortKeys`, `Utf8`), `ingest.application` (`MessageProcessor`, các `*Processor`, `EnvelopeReader`, `CdcReader` sau port đọc thông điệp), `ingest.application.port` |
+| `rules` | `rules.domain` (luật thuần, `RuleEngine`) |
+| `write` | `write.domain` (`DuplicateKeyRule`, `RefundRule`, `WriteOutcome`, enum), `write.application` (`DedupRegistry`, `KnownKeyCache` nếu không cần Caffeine), `write.application.port` (`ChunkWriter`, `DeadLetterWriter`, kho dedup), `write.adapter.out.jdbc` (`FactChunkWriter`, `BaselineFactWriter`, `JdbcDeadLetterWriter`, `SqlParams`, `SqlResource`), `write.adapter.out.metrics` (`WriteStats`) |
+| `stream` | `stream.application` (`StreamChunkTemplate`, `StreamChunkHandler`; quyết định DR: giữ ở `application` với port ghi, xem D-R8 bên dưới), `stream.adapter.in.kafka` (`EtlListeners`, `BaselineListeners`, `ListenerLifecycleManager`, `ListenerPauseCoordinator`), `stream.adapter.out.metrics`, `stream.config` |
+| `dq` | `dq.domain` (`PostWriteRule`), `dq.application` (kiểm DQ sau ghi), `dq.adapter.in.batch` (`DataQualityTasklet`), `dq.adapter.out.jdbc` (`DqCheckResults`), `dq.adapter.out.metrics` (`DqMetrics`) |
+| `fault`, `metrics` | `fault.domain` (`FaultPoint`, `FaultAction`), `fault.application.port` (`FaultInjector`), `fault.adapter.out.profile` (`ConfigurableFaultInjector`, A-10 giữ nguyên); `metrics.adapter.out.metrics` |
+
+D-R8 (ghi ở RF-03): `StreamChunkTemplate` trở thành `application` với port `ChunkTransaction`/`ChunkWriter` khi tách được mà test F-xx (cả hai chế độ) vẫn xanh. Nếu không tách được ở mức độ chấp nhận được, nó ở `stream.adapter.in.kafka` kèm DR giải thích; không tạo ngoại lệ ẩn trong luật.
+
+**`etl` luồng batch và GTFS (RF-04).**
+
+| Package cũ | Đích |
+| --- | --- |
+| `batch`, `batch.maintenance` | `batch.application` (`JobRequests`, `PtiJob`, `StepValues` nếu thuần), `batch.application.port`, `batch.adapter.in.batch` (listener, policy, tasklet, `BatchSteps`), `batch.adapter.in.scheduling` (`BatchSchedules`, `JobRequestPoller`), `batch.adapter.out.jdbc`, `batch.adapter.out.metrics`, `batch.config` |
+| `gtfs` | `gtfs.domain` (`GtfsTable`, `GtfsRow`, `FeedCheck`, exception), `gtfs.application` (`FeedStructure`, `GtfsIssues`, `FeedReport`, dựng bước), `gtfs.application.port`, `gtfs.adapter.in.batch` (tasklet, reader, listener, skip policy), `gtfs.adapter.out.jdbc` (`FeedVersions`), `gtfs.adapter.out.file` (`FeedWorkspace`, `FeedExtractor`, `FeedSource`), `gtfs.config` |
+| `replay` | `replay.domain` (`RawObjectKey`, `ReplayRange`), `replay.application`, `replay.application.port`, `replay.adapter.in.batch`, `replay.adapter.in.scheduling` (`ReplayRequestPoller`), `replay.adapter.out.jdbc`, `replay.adapter.out.s3` |
+| `reference` | `reference.domain` (`ReferenceData`, `TripRef`, `StopTimes`, `ServiceCalendar`, `BoundingBox`), `reference.application` (`ReferenceDataHolder`), `reference.application.port`, `reference.adapter.out.jdbc` (`ReferenceDataLoader`), `reference.adapter.in.scheduling` (`ReferenceDataRefresher`) |
+| `raw` | `raw.application.port` (`RawZone`), `raw.adapter.out.s3` (`S3RawZone`) |
+| `health`, `flags`, `config` | `health.adapter.in.web` + `health.adapter.out.jdbc`; `flags.application.port` + `flags.adapter.out.jdbc` (`RuntimeFlags`); `config` còn `*Configuration` và `*Properties` của app, mỗi feature giữ cấu hình của mình ở `config` riêng |
+
+**`db` và phần nối còn lại (RF-05).** `db` chỉ có `DbMigrate` (thuộc `migration.adapter.in.cli`) và `MigrationSet` (`migration.domain`), bean dùng chung và wiring analytics trong `etl` (`EtlCoreConfiguration`…) nằm trong `config` đúng nghĩa.
+
+### 12.3 Danh sách test phải xanh trước và sau khi chuyển
+
+Chạy lại **đúng các test này** sau mỗi task RF. Kết quả trước khi chuyển lấy từ lần chạy RF-00 (không có test đỏ sẵn); sau khi chuyển chỉ được đổi tên package của test, không đổi nội dung kiểm.
+
+| Module | Unit (`test`) | `integrationTest` | `contractTest` |
+| --- | --- | --- | --- |
+| `common` | cả module (`message`, `error`, `time`, `gtfs`, `json`, `pii`, `tx`, `id`, `events`, `ArchitectureTest`) | | |
+| `source-simulator` | `control/*`, `emit/EmitterTest`, `feed/*`, `motion/*`, `scenario/*` (P3-01), `ticketing/*`, `ThroughputTest`, `ArchitectureTest` | `JdbcScenarioRunsIT`, `LedgerWriterIT`, `SimulatorMetricsIT`, `TicketingScenariosIT`, `TicketingSeederIT` | `InvalidMessagesContractTest`, `SimulatorMessagesContractTest` |
+| `etl` stream (RF-03) | `core/*`, `dq/*`, `fault/*`, `stream/*` (S-xx), `write/*`, `realtime/*`, `analytics/*` | `StreamChunkTemplateIT`, `StreamObservabilityIT`, `StreamTicketingIT`, `FactChunkWriterIT`, `BaselineFactWriterIT`, `DataQualityIT`, `Analytics*IT`, `VehiclesBatchIT`, `BunchingDispatchIT`, `DisruptionWiringIT` | `MessageContractTest`, `DebeziumTicketingContractTest` |
+| `etl` batch và GTFS (RF-04) | `batch/*` (B-xx), `gtfs/*` (G-xx), `health/*`, `reference/*`, `replay/*` (R-xx), `config/*` | `BatchChunkStepIT`, `BatchJobsIT`, `BatchMetricsIT`, `GtfsStaticLoadIT`, `GtfsRealFeedIT`, `ReplayIT`, `ReferenceCacheIT`, `InsightRetentionJobIT` | |
+| `db` | `ArchitectureTest`, `DbMigrateTest`, `SpringBatchSchemaTest` | `DbMigrateIT`, `*GrantsIT`, `GrantCompletenessIT`, `Insight*IT` | |
+
+Điều kiện đóng thêm: RF-02 so `ledger` của một lần chạy cố định seed với trước refactor (các test `scenario/*` và `LedgerWriterIT` đã so từng dòng ledger). F-xx (DOC-44 §8.2) cần stack compose và chạy bằng `pti-exp`; chúng không nằm trong `./gradlew`, nên RF-03 đóng bằng `StreamChunkTemplateIT`, `StreamRuntimeTest` và `ConfigurableFaultInjectorTest` (cùng hai điểm tiêm lỗi) và F-xx chạy lại ở RF-08 cùng chuỗi smoke.
 
 ## 13. Checklist review
 
