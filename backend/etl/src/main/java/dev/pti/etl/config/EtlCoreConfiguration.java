@@ -69,10 +69,10 @@ import org.springframework.transaction.support.TransactionTemplate;
 })
 public class EtlCoreConfiguration {
 
-    /** The business clock (DR-67): the only place that reads the system clock. */
+    /** The business clock (DR-67): it shifts the system clock by {@code pti.clock.offset}. */
     @Bean
-    BusinessClock businessClock(@Value("${pti.clock.offset:0s}") Duration offset) {
-        return new BusinessClock(Clock.systemUTC(), offset);
+    BusinessClock businessClock(@Value("${pti.clock.offset:0s}") Duration offset, Clock clock) {
+        return new BusinessClock(clock, offset);
     }
 
     @Bean

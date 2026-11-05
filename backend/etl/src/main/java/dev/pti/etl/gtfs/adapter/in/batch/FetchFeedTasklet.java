@@ -1,14 +1,14 @@
 package dev.pti.etl.gtfs.adapter.in.batch;
 
 import dev.pti.common.error.FatalException;
-import dev.pti.etl.gtfs.adapter.out.file.FeedExtractor;
-import dev.pti.etl.gtfs.adapter.out.file.FeedSource;
-import dev.pti.etl.gtfs.adapter.out.file.FeedWorkspace;
-import dev.pti.etl.gtfs.adapter.out.jdbc.FeedVersions;
-import dev.pti.etl.gtfs.application.FeedContext;
-import dev.pti.etl.gtfs.application.FeedReport;
+import dev.pti.etl.gtfs.application.ExtractedFeed;
 import dev.pti.etl.gtfs.application.FeedStructure;
 import dev.pti.etl.gtfs.application.GtfsIssues;
+import dev.pti.etl.gtfs.application.port.FeedArchiveExtractor;
+import dev.pti.etl.gtfs.application.port.FeedDownload;
+import dev.pti.etl.gtfs.application.port.FeedFiles;
+import dev.pti.etl.gtfs.application.port.FeedReports;
+import dev.pti.etl.gtfs.application.port.FeedVersionStore;
 import dev.pti.etl.gtfs.domain.FeedRejectedException;
 import dev.pti.etl.raw.application.port.RawZone;
 import java.net.URI;
@@ -47,22 +47,24 @@ public class FetchFeedTasklet implements Tasklet {
     /** Defaults for a missing {@code sourceUri}: {@code pti.gtfs.static.source}, then the bootstrap location. */
     public record Defaults(String source, String bootstrapLocation, String expectedSha256, int maxSamples) {}
 
-    private final FeedSource source;
+    private final FeedDownload source;
     private final RawZone raw;
-    private final FeedWorkspace workspace;
-    private final FeedExtractor extractor;
-    private final FeedVersions versions;
+    private final FeedFiles workspace;
+    private final FeedArchiveExtractor extractor;
+    private final FeedVersionStore versions;
     private final JobRepository jobRepository;
     private final Defaults defaults;
+    private final FeedReports reports;
 
     public FetchFeedTasklet(
-            FeedSource source,
+            FeedDownload source,
             RawZone raw,
-            FeedWorkspace workspace,
-            FeedExtractor extractor,
-            FeedVersions versions,
+            FeedFiles workspace,
+            FeedArchiveExtractor extractor,
+            FeedVersionStore versions,
             JobRepository jobRepository,
-            Defaults defaults) {
+            Defaults defaults,
+            FeedReports reports) {
         this.source = source;
         this.raw = raw;
         this.workspace = workspace;
@@ -70,6 +72,7 @@ public class FetchFeedTasklet implements Tasklet {
         this.versions = versions;
         this.jobRepository = jobRepository;
         this.defaults = defaults;
+        this.reports = reports;
     }
 
     @Override
@@ -91,9 +94,9 @@ public class FetchFeedTasklet implements Tasklet {
                     + defaults.expectedSha256() + " (pti.gtfs.static.expected-sha256)");
         }
         boolean allowReactivate = Boolean.parseBoolean(job.getJobParameters().getString(ALLOW_REACTIVATE));
-        Optional<FeedVersions.Existing> existing = versions.findByHash(hash);
+        Optional<FeedVersionStore.Existing> existing = versions.findByHash(hash);
         if (existing.isPresent()) {
-            FeedVersions.Existing version = existing.get();
+            FeedVersionStore.Existing version = existing.get();
             switch (version.status()) {
                 case "RETIRED" -> {
                     if (allowReactivate) {
@@ -123,7 +126,7 @@ public class FetchFeedTasklet implements Tasklet {
         }
 
         Optional<String> sourceKey = source.rawKeyOf(uri);
-        String key = sourceKey.orElse(raw.key(FeedSource.RAW_PREFIX + hash + ".zip"));
+        String key = sourceKey.orElse(raw.key(FeedDownload.RAW_PREFIX + hash + ".zip"));
         if (sourceKey.isEmpty() && !raw.exists(key)) {
             raw.put(key, zip);
         }
@@ -131,20 +134,19 @@ public class FetchFeedTasklet implements Tasklet {
 
         FeedStructure.Inspection inspection;
         try {
-            FeedExtractor.Extracted extracted =
-                    FeedWorkspaceListener.extract(extractor, zip, workspace.files(instance));
+            ExtractedFeed extracted = FeedWorkspaceListener.extract(extractor, zip, workspace.files(instance));
             inspection = FeedStructure.inspect(workspace.files(instance), extracted, defaults.maxSamples());
         } catch (FeedRejectedException e) {
             GtfsIssues issues = new GtfsIssues(defaults.maxSamples());
             issues.add(e.check(), FeedStructure.fileSample("feed.zip", e.getMessage()));
             inspection = new FeedStructure.Inspection(null, Map.of(), issues);
         }
-        String extraColumns = FeedReport.extraColumnsJson(inspection.extraColumns());
+        String extraColumns = reports.extraColumns(inspection.extraColumns());
         java.time.ZoneId found = inspection.zone();
         String zone = found == null ? "" : found.getId();
 
         if (inspection.issues().hasErrors()) {
-            String report = FeedReport.build(inspection.issues(), Map.of(), extraColumns, Map.of());
+            String report = reports.build(inspection.issues(), Map.of(), extraColumns, Map.of());
             OptionalLong id = versions.insert(hash, sourceUri, rawObjectKey, zone, "REJECTED", report, job.getId());
             log.error("Feed {} rejected by fetch: {}", hash, inspection.issues().checks());
             return exit(contribution, id.isPresent() ? REJECTED : NOOP, "Feed " + hash + " rejected");
@@ -158,7 +160,7 @@ public class FetchFeedTasklet implements Tasklet {
         context.putLong(FeedContext.FEED_VERSION_ID, id.getAsLong());
         context.putString(FeedContext.FEED_HASH, hash);
         context.putString(FeedContext.AGENCY_ZONE, zone);
-        context.putString(FeedContext.FETCH_ISSUES, inspection.issues().toJson());
+        context.putString(FeedContext.FETCH_ISSUES, reports.issuesToJson(inspection.issues()));
         context.putString(FeedContext.EXTRA_COLUMNS, extraColumns);
         log.info("Feed {} from {} staged as version {}", hash, sourceUri, id.getAsLong());
         contribution.setExitStatus(
@@ -181,7 +183,7 @@ public class FetchFeedTasklet implements Tasklet {
                 "No sourceUri: set the parameter, pti.gtfs.static.source or pti.gtfs.bootstrap-location");
     }
 
-    private static RepeatStatus noop(StepContribution contribution, String hash, FeedVersions.Existing version) {
+    private static RepeatStatus noop(StepContribution contribution, String hash, FeedVersionStore.Existing version) {
         log.info("Feed {} already loaded as {}", hash, version.status());
         return exit(contribution, NOOP, "Feed " + hash + " already loaded as " + version.status());
     }

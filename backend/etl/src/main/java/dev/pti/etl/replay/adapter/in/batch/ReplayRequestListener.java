@@ -1,8 +1,8 @@
 package dev.pti.etl.replay.adapter.in.batch;
 
 import dev.pti.common.json.MessageJson;
-import dev.pti.etl.batch.adapter.in.batch.StepValues;
-import dev.pti.etl.replay.adapter.out.jdbc.ReplayRequests;
+import dev.pti.etl.batch.domain.StepKeys;
+import dev.pti.etl.replay.application.port.ReplayRequestStore;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
@@ -34,13 +34,13 @@ public class ReplayRequestListener implements JobExecutionListener {
      */
     public static final String ANALYTICS_STATS = "pti.recompute.analytics";
 
-    private final ReplayRequests requests;
+    private final ReplayRequestStore requests;
     private final JdbcTemplate jdbc;
     private final MeterRegistry meters;
     private final JobRepository repository;
 
     public ReplayRequestListener(
-            ReplayRequests requests, JdbcTemplate jdbc, MeterRegistry meters, JobRepository repository) {
+            ReplayRequestStore requests, JdbcTemplate jdbc, MeterRegistry meters, JobRepository repository) {
         this.requests = requests;
         this.jdbc = jdbc;
         this.meters = meters;
@@ -176,9 +176,9 @@ public class ReplayRequestListener implements JobExecutionListener {
             stats.put("processed", step.getReadCount());
             stats.put("written", step.getWriteCount());
             stats.put("duplicate", c.getLong(RawZoneReader.DUPLICATE, 0L));
-            stats.put("skipped", step.getSkipCount() + StepValues.rejected(step));
-            stats.put("dlq_inserted", c.getLong(StepValues.DLQ_INSERTED, 0L));
-            stats.put("dlq_updated", c.getLong(StepValues.DLQ_UPDATED, 0L));
+            stats.put("skipped", step.getSkipCount() + ReplayStepValues.rejected(step));
+            stats.put("dlq_inserted", c.getLong(StepKeys.DLQ_INSERTED, 0L));
+            stats.put("dlq_updated", c.getLong(StepKeys.DLQ_UPDATED, 0L));
             stats.put("dlq_resolved", c.getLong(ReplayChunkWriter.RESOLVED, 0L));
             String min = c.getString(ReplayChunkWriter.MIN_EVENT_TS, "");
             String max = c.getString(ReplayChunkWriter.MAX_EVENT_TS, "");

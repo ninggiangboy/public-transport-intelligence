@@ -3,7 +3,7 @@ package dev.pti.etl.gtfs.adapter.in.batch;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import dev.pti.etl.gtfs.application.FeedReport;
+import dev.pti.etl.gtfs.adapter.out.json.FeedReportJson;
 import dev.pti.etl.gtfs.application.GtfsIssues;
 import dev.pti.etl.gtfs.domain.FeedCheck;
 import dev.pti.etl.gtfs.domain.FeedStatements;
@@ -17,7 +17,6 @@ import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.springframework.batch.infrastructure.item.file.FlatFileParseException;
-import tools.jackson.databind.node.ObjectNode;
 
 class GtfsParsingTest {
 
@@ -129,15 +128,15 @@ class GtfsParsingTest {
                         "route_color",
                         "00539f"),
                 5L);
-        assertThat(route.params().getValue("display_name")).isEqualTo("Blue Line");
-        assertThat(route.params().getValue("agency_id")).isEqualTo("");
-        assertThat(route.params().getValue("route_color")).isEqualTo("00539F");
-        assertThat(route.params().getValue("feed_version_id")).isEqualTo(5L);
+        assertThat(route.values().get("display_name")).isEqualTo("Blue Line");
+        assertThat(route.values().get("agency_id")).isEqualTo("");
+        assertThat(route.values().get("route_color")).isEqualTo("00539F");
+        assertThat(route.values().get("feed_version_id")).isEqualTo(5L);
         assertThat(route.line()).isEqualTo(7);
         assertThat(GtfsTable.ROUTES
                         .map(row("routes.txt", "route_id", "5", "route_type", "3"), 1L)
-                        .params()
-                        .getValue("display_name"))
+                        .values()
+                        .get("display_name"))
                 .isEqualTo("5");
 
         GtfsInsert stopTime = GtfsTable.STOP_TIMES.map(
@@ -156,9 +155,9 @@ class GtfsParsingTest {
                         "timepoint",
                         "0"),
                 5L);
-        assertThat(stopTime.params().getValue("arrival_seconds")).isEqualTo(58_560);
-        assertThat(stopTime.params().getValue("pickup_type")).isEqualTo(0);
-        assertThat(stopTime.params().getValue("timepoint")).isEqualTo(false);
+        assertThat(stopTime.values().get("arrival_seconds")).isEqualTo(58_560);
+        assertThat(stopTime.values().get("pickup_type")).isEqualTo(0);
+        assertThat(stopTime.values().get("timepoint")).isEqualTo(false);
 
         for (GtfsTable table : GtfsTable.values()) {
             assertThat(table.baseName()).isEqualTo(table.file().replace(".txt", ""));
@@ -171,13 +170,13 @@ class GtfsParsingTest {
         assertThatThrownBy(GtfsTable.VEHICLES::insertSql).isInstanceOf(IllegalStateException.class);
         assertThat(GtfsTable.VEHICLES
                         .map(row("vehicles.txt", "vehicle_id", "2050", "low_floor", "True"), 0L)
-                        .params()
-                        .getValue("low_floor"))
+                        .values()
+                        .get("low_floor"))
                 .isEqualTo(true);
         assertThat(GtfsTable.FEED_INFO
                         .map(row("feed_info.txt", "feed_publisher_name", "MT"), 0L)
-                        .params()
-                        .getValue("publisher_name"))
+                        .values()
+                        .get("publisher_name"))
                 .isEqualTo("MT");
         for (GtfsTable t : List.of(
                 GtfsTable.AGENCY,
@@ -194,13 +193,13 @@ class GtfsParsingTest {
     void mappingsOfTheOtherFiles() {
         assertThat(GtfsTable.AGENCY
                         .map(row("agency.txt", "agency_name", "MT", "agency_timezone", "America/Chicago"), 1L)
-                        .params()
-                        .getValue("agency_timezone"))
+                        .values()
+                        .get("agency_timezone"))
                 .isEqualTo("America/Chicago");
         assertThat(GtfsTable.STOPS
                         .map(row("stops.txt", "stop_id", "S", "stop_lat", "44.9", "stop_lon", "-93.2"), 1L)
-                        .params()
-                        .getValue("location_type"))
+                        .values()
+                        .get("location_type"))
                 .isEqualTo(0);
         assertThat(GtfsTable.CALENDAR
                         .map(
@@ -227,15 +226,15 @@ class GtfsParsingTest {
                                         "end_date",
                                         "20261113"),
                                 1L)
-                        .params()
-                        .getValue("saturday"))
+                        .values()
+                        .get("saturday"))
                 .isEqualTo(false);
         assertThat(GtfsTable.CALENDAR_DATES
                         .map(
                                 row("calendar_dates.txt", "service_id", "1", "date", "20261126", "exception_type", "2"),
                                 1L)
-                        .params()
-                        .getValue("exception_type"))
+                        .values()
+                        .get("exception_type"))
                 .isEqualTo(2);
         assertThat(GtfsTable.SHAPES
                         .map(
@@ -250,8 +249,8 @@ class GtfsParsingTest {
                                         "shape_pt_sequence",
                                         "3"),
                                 1L)
-                        .params()
-                        .getValue("shape_pt_sequence"))
+                        .values()
+                        .get("shape_pt_sequence"))
                 .isEqualTo(3);
         assertThat(GtfsTable.TRIPS
                         .map(
@@ -268,8 +267,8 @@ class GtfsParsingTest {
                                         "direction",
                                         "SB"),
                                 1L)
-                        .params()
-                        .getValue("direction_label"))
+                        .values()
+                        .get("direction_label"))
                 .isEqualTo("SB");
     }
 
@@ -277,21 +276,24 @@ class GtfsParsingTest {
     void issuesCountKeepSamplesAndSurviveJson() {
         GtfsIssues issues = new GtfsIssues(2);
         for (int i = 0; i < 3; i++) {
-            ObjectNode sample = GtfsIssues.sample();
+            Map<String, Object> sample = GtfsIssues.sample();
             sample.put("line", i);
             issues.add(FeedCheck.GV_04, sample);
         }
         issues.add(FeedCheck.GV_14, 0, List.of());
-        issues.add(FeedCheck.GV_14, 1, List.of(GtfsIssues.sample().put("file", "levels.txt")));
+        Map<String, Object> levels = GtfsIssues.sample();
+        levels.put("file", "levels.txt");
+        issues.add(FeedCheck.GV_14, 1, List.of(levels));
 
-        GtfsIssues copy = GtfsIssues.fromJson(issues.toJson(), 2);
+        FeedReportJson reports = new FeedReportJson();
+        GtfsIssues copy = reports.issuesFromJson(reports.issuesToJson(issues), 2);
 
         assertThat(copy.count(FeedCheck.GV_04)).isEqualTo(3);
         assertThat(copy.hasErrors()).isTrue();
         assertThat(copy.checks()).containsExactly(FeedCheck.GV_04, FeedCheck.GV_14);
-        assertThat(copy.entries(true).get(0).path("samples")).hasSize(2);
-        assertThat(copy.entries(false).get(0).path("check").asString()).isEqualTo("GV-14");
-        assertThat(GtfsIssues.fromJson("", 2).hasErrors()).isFalse();
+        assertThat(copy.samples(FeedCheck.GV_04)).hasSize(2);
+        assertThat(reports.build(copy, Map.of(), "", Map.of())).contains("\"check\":\"GV-14\"");
+        assertThat(reports.issuesFromJson("", 2).hasErrors()).isFalse();
         GtfsIssues merged = new GtfsIssues(5);
         merged.addAll(copy);
         assertThat(merged.count(FeedCheck.GV_04)).isEqualTo(3);
@@ -302,17 +304,20 @@ class GtfsParsingTest {
 
     @Test
     void theReportHasTheDoc21Shape() {
+        FeedReportJson reports = new FeedReportJson();
         GtfsIssues issues = new GtfsIssues(2);
-        issues.add(FeedCheck.GV_14, GtfsIssues.sample().put("file", "levels.txt"));
-        String json = FeedReport.build(
+        Map<String, Object> levels = GtfsIssues.sample();
+        levels.put("file", "levels.txt");
+        issues.add(FeedCheck.GV_14, levels);
+        String json = reports.build(
                 issues,
                 Map.of("routes", 2L),
-                FeedReport.extraColumnsJson(Map.of("trips.txt", List.of("branch_letter"))),
+                reports.extraColumns(Map.of("trips.txt", List.of("branch_letter"))),
                 Map.of("fetch", 10L));
         assertThat(json)
                 .contains("\"report_version\":1", "\"result\":\"ACCEPTED\"", "\"routes\":2", "\"branch_letter\"")
                 .contains("\"fetch\":10", "\"errors\":[]");
-        assertThat(FeedReport.build(new GtfsIssues(1), Map.of(), "", Map.of())).contains("\"extra_columns\":{}");
+        assertThat(reports.build(new GtfsIssues(1), Map.of(), "", Map.of())).contains("\"extra_columns\":{}");
     }
 
     @Test

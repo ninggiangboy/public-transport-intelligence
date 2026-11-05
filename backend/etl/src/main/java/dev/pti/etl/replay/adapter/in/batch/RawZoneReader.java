@@ -6,7 +6,7 @@ import dev.pti.etl.batch.domain.UnreadableRecordException;
 import dev.pti.etl.core.domain.EtlSource;
 import dev.pti.etl.core.domain.InboundMessage;
 import dev.pti.etl.raw.application.port.RawZone;
-import dev.pti.etl.replay.adapter.out.json.RawLines;
+import dev.pti.etl.replay.application.port.RawRecordParser;
 import dev.pti.etl.replay.domain.RawObjectKey;
 import dev.pti.etl.replay.domain.ReplayRange;
 import java.io.BufferedReader;
@@ -49,6 +49,7 @@ public class RawZoneReader implements ItemStreamReader<InboundMessage> {
     public static final String OBJECTS = "pti.replay.objectsRead";
 
     private final RawZone raw;
+    private final RawRecordParser parser;
 
     private EtlSource source = EtlSource.GTFS_RT_VEHICLE_POSITION;
     private String topic = "";
@@ -67,8 +68,9 @@ public class RawZoneReader implements ItemStreamReader<InboundMessage> {
     private @Nullable BufferedReader current;
     private @Nullable RawObjectKey currentKey;
 
-    public RawZoneReader(RawZone raw) {
+    public RawZoneReader(RawZone raw, RawRecordParser parser) {
         this.raw = raw;
+        this.parser = parser;
     }
 
     @Override
@@ -147,7 +149,7 @@ public class RawZoneReader implements ItemStreamReader<InboundMessage> {
             if (text.isBlank()) {
                 continue;
             }
-            InboundMessage message = RawLines.parse(source, topic, key.partition(), text);
+            InboundMessage message = parser.parse(source, topic, key.partition(), text);
             String messagePair = hour + "/" + key.partition();
             if (!messagePair.equals(pair)) {
                 pair = messagePair;

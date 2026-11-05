@@ -1,10 +1,9 @@
 package dev.pti.etl.replay.adapter.in.batch;
 
 import dev.pti.common.time.BusinessClock;
-import dev.pti.etl.batch.adapter.in.batch.StepValues;
 import dev.pti.etl.core.domain.InboundMessage;
 import dev.pti.etl.core.domain.WriteSet;
-import dev.pti.etl.replay.adapter.out.jdbc.DeadLetterReplays;
+import dev.pti.etl.replay.application.port.DeadLetterReplayStore;
 import dev.pti.etl.write.application.port.ChunkWriter;
 import dev.pti.etl.write.domain.RunMode;
 import dev.pti.etl.write.domain.WriteContext;
@@ -30,16 +29,16 @@ public class ReplayChunkWriter implements ItemWriter<WriteSet> {
     public static final String MAX_EVENT_TS = "pti.replay.maxEventTs";
 
     private final ChunkWriter writer;
-    private final DeadLetterReplays deadLetters;
+    private final DeadLetterReplayStore deadLetters;
     private final BusinessClock clock;
     private final Supplier<StepExecution> step;
 
-    public ReplayChunkWriter(ChunkWriter writer, DeadLetterReplays deadLetters, BusinessClock clock) {
-        this(writer, deadLetters, clock, StepValues::current);
+    public ReplayChunkWriter(ChunkWriter writer, DeadLetterReplayStore deadLetters, BusinessClock clock) {
+        this(writer, deadLetters, clock, ReplayStepValues::current);
     }
 
     ReplayChunkWriter(
-            ChunkWriter writer, DeadLetterReplays deadLetters, BusinessClock clock, Supplier<StepExecution> step) {
+            ChunkWriter writer, DeadLetterReplayStore deadLetters, BusinessClock clock, Supplier<StepExecution> step) {
         this.writer = writer;
         this.deadLetters = deadLetters;
         this.clock = clock;
@@ -49,10 +48,10 @@ public class ReplayChunkWriter implements ItemWriter<WriteSet> {
     @Override
     public void write(Chunk<? extends WriteSet> chunk) {
         StepExecution execution = step.get();
-        UUID batchId = StepValues.batchId(execution);
+        UUID batchId = ReplayStepValues.batchId(execution);
         WriteOutcome outcome = writer.write(
                 List.copyOf(chunk.getItems()), new WriteContext(batchId, RunMode.BATCH, true, clock.instant()));
-        StepValues.addRejected(execution, outcome.rejected());
+        ReplayStepValues.addRejected(execution, outcome.rejected());
         List<InboundMessage> written =
                 outcome.written().stream().map(WriteSet::origin).toList();
         int resolved = deadLetters.resolve(written, batchId);

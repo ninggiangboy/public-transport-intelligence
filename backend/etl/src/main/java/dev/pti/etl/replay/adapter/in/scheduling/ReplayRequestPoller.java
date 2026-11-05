@@ -1,20 +1,19 @@
 package dev.pti.etl.replay.adapter.in.scheduling;
 
-import dev.pti.etl.batch.adapter.in.batch.JobParams;
-import dev.pti.etl.batch.adapter.in.batch.PtiJobLauncher;
-import dev.pti.etl.batch.adapter.in.scheduling.BatchSchedules;
+import dev.pti.etl.batch.application.JobLaunch;
+import dev.pti.etl.batch.application.port.BatchReadiness;
+import dev.pti.etl.batch.application.port.LaunchJob;
 import dev.pti.etl.batch.domain.PtiJob;
-import dev.pti.etl.replay.adapter.out.jdbc.ReplayRequests;
-import dev.pti.etl.replay.adapter.out.jdbc.ReplayRequests.ReplayRequest;
+import dev.pti.etl.replay.application.port.ReplayRequestStore;
+import dev.pti.etl.replay.domain.ReplayRequest;
 import java.time.Duration;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.BooleanSupplier;
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.batch.core.job.parameters.JobParameters;
-import org.springframework.core.task.TaskRejectedException;
 import org.springframework.scheduling.annotation.Scheduled;
 
 /**
@@ -30,16 +29,16 @@ public class ReplayRequestPoller {
     /** Job parameter of {@code RawZoneReplayJob}: {@code true} runs step {@code recomputeAnalytics} (DOC-22 §4.4). */
     public static final String RECOMPUTE_ANALYTICS = "recomputeAnalytics";
 
-    private final ReplayRequests requests;
-    private final PtiJobLauncher launcher;
-    private final BatchSchedules schedules;
+    private final ReplayRequestStore requests;
+    private final LaunchJob launcher;
+    private final BatchReadiness schedules;
     private final BooleanSupplier executorHasRoom;
     private final int maxClaims;
 
     public ReplayRequestPoller(
-            ReplayRequests requests,
-            PtiJobLauncher launcher,
-            BatchSchedules schedules,
+            ReplayRequestStore requests,
+            LaunchJob launcher,
+            BatchReadiness schedules,
             BooleanSupplier executorHasRoom,
             int maxClaims) {
         this.requests = requests;
@@ -72,26 +71,30 @@ public class ReplayRequestPoller {
     }
 
     void start(ReplayRequest request) {
-        PtiJob job = request.kind() == ReplayRequests.Kind.DLQ_RECORD ? PtiJob.DLQ_REPLAY : PtiJob.RAW_ZONE_REPLAY;
+        PtiJob job = request.kind() == ReplayRequest.Kind.DLQ_RECORD ? PtiJob.DLQ_REPLAY : PtiJob.RAW_ZONE_REPLAY;
         try {
-            launcher.start(job, parameters(job, request));
-        } catch (TaskRejectedException e) {
-            requests.fail(request.id(), "The job executor is full; submit the replay again");
-        } catch (Exception e) {
+            LaunchJob.Start started = launcher.start(job, parameters(job, request));
+            if (started.executionId() == null) {
+                requests.fail(
+                        request.id(),
+                        started.requeued()
+                                ? "The job executor is full; submit the replay again"
+                                : "Could not start " + job.jobName() + ": " + started.refusal());
+            }
+        } catch (RuntimeException e) {
             log.warn("Cannot start {} for replay request {}: {}", job.jobName(), request.id(), e.toString());
             requests.fail(request.id(), "Could not start " + job.jobName() + ": " + e.getMessage());
         }
     }
 
-    public static JobParameters parameters(PtiJob job, ReplayRequest request) {
-        var builder = JobParams.identity(job, request.id().toString()).addString("replay", "true", false);
-        if (request.kind() == ReplayRequests.Kind.RAW_RANGE) {
-            builder.addString("source", request.source().name(), false)
-                    .addString(
-                            "fromTs", Objects.requireNonNull(request.fromTs()).toString(), false)
-                    .addString("toTs", Objects.requireNonNull(request.toTs()).toString(), false)
-                    .addString(RECOMPUTE_ANALYTICS, Boolean.toString(request.recomputeAnalytics()), false);
+    public static JobLaunch parameters(PtiJob job, ReplayRequest request) {
+        JobLaunch launch = new JobLaunch(request.id().toString(), Map.of()).with("replay", "true");
+        if (request.kind() == ReplayRequest.Kind.RAW_RANGE) {
+            launch = launch.with("source", request.source().name())
+                    .with("fromTs", Objects.requireNonNull(request.fromTs()).toString())
+                    .with("toTs", Objects.requireNonNull(request.toTs()).toString())
+                    .with(RECOMPUTE_ANALYTICS, Boolean.toString(request.recomputeAnalytics()));
         }
-        return builder.toJobParameters();
+        return launch;
     }
 }

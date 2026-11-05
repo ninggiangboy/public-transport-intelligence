@@ -3,6 +3,7 @@ package dev.pti.etl.reference.adapter.in.scheduling;
 import dev.pti.common.time.BusinessClock;
 import dev.pti.etl.reference.application.ReferenceDataHolder;
 import dev.pti.etl.reference.application.port.ReferenceDataSource;
+import dev.pti.etl.reference.application.port.ReferenceRefresher;
 import dev.pti.etl.reference.domain.ReferenceData;
 import dev.pti.etl.reference.domain.ReferenceDataChanged;
 import io.micrometer.core.instrument.Counter;
@@ -19,7 +20,7 @@ import org.springframework.context.ApplicationEventPublisher;
  * {@code pti.etl.reference.refresh-interval}, loads a new one in the background and swaps it in; a failed load keeps
  * the old snapshot.
  */
-public class ReferenceDataRefresher {
+public class ReferenceDataRefresher implements ReferenceRefresher {
 
     private static final Logger log = LoggerFactory.getLogger(ReferenceDataRefresher.class);
 
@@ -51,6 +52,7 @@ public class ReferenceDataRefresher {
     }
 
     /** Reloads when the ACTIVE version changed; never throws. */
+    @Override
     public synchronized void refresh() {
         try {
             Optional<Long> active = loader.activeFeedVersionId();

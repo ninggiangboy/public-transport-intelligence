@@ -15,6 +15,8 @@ import dev.pti.common.time.BusinessClock;
 import dev.pti.etl.batch.adapter.in.batch.PtiJobLauncher;
 import dev.pti.etl.batch.adapter.in.batch.StepValues;
 import dev.pti.etl.batch.adapter.in.scheduling.BatchSchedules;
+import dev.pti.etl.batch.application.JobLaunch;
+import dev.pti.etl.batch.application.port.LaunchJob;
 import dev.pti.etl.batch.domain.PtiJob;
 import dev.pti.etl.batch.domain.UnreadableRecordException;
 import dev.pti.etl.core.domain.EtlSource;
@@ -25,11 +27,10 @@ import dev.pti.etl.replay.adapter.in.scheduling.ReplayRequestPoller;
 import dev.pti.etl.replay.adapter.out.jdbc.DeadLetterReader;
 import dev.pti.etl.replay.adapter.out.jdbc.DeadLetterReplays;
 import dev.pti.etl.replay.adapter.out.jdbc.ReplayRequests;
-import dev.pti.etl.replay.adapter.out.jdbc.ReplayRequests.Kind;
-import dev.pti.etl.replay.adapter.out.jdbc.ReplayRequests.ReplayRequest;
 import dev.pti.etl.replay.adapter.out.json.RawLines;
 import dev.pti.etl.replay.domain.RawObjectKey;
 import dev.pti.etl.replay.domain.ReplayRange;
+import dev.pti.etl.replay.domain.ReplayRequest;
 import dev.pti.etl.write.application.port.ChunkWriter;
 import dev.pti.etl.write.domain.WriteOutcome;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
@@ -62,7 +63,6 @@ import org.springframework.batch.core.step.StepExecution;
 import org.springframework.batch.infrastructure.item.Chunk;
 import org.springframework.batch.infrastructure.item.ExecutionContext;
 import org.springframework.batch.test.MetaDataInstanceFactory;
-import org.springframework.core.task.TaskRejectedException;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 class ReplayUnitTest {
@@ -99,13 +99,14 @@ class ReplayUnitTest {
 
     @Test
     void rawLinesBecomeTheSameInboundMessage() {
-        InboundMessage m = RawLines.parse(EtlSource.TICKETING_SALES, TOPIC, 4, line(9, HOUR, "{}"));
+        InboundMessage m = new RawLines().parse(EtlSource.TICKETING_SALES, TOPIC, 4, line(9, HOUR, "{}"));
         assertThat(m.partition()).isEqualTo(4);
         assertThat(m.offset()).isEqualTo(9);
         assertThat(m.recordTimestamp()).isEqualTo(HOUR);
         assertThat(m.headers()).containsExactly(Map.entry("h", "v"));
         assertThat(new String(m.value(), StandardCharsets.UTF_8)).isEqualTo("{}");
-        assertThat(RawLines.parse(
+        assertThat(new RawLines()
+                        .parse(
                                 EtlSource.TICKETING_SALES,
                                 TOPIC,
                                 4,
@@ -113,23 +114,24 @@ class ReplayUnitTest {
                         .value())
                 .isNull();
 
-        assertThatThrownBy(() -> RawLines.parse(EtlSource.TICKETING_SALES, TOPIC, 4, "garbage"))
+        assertThatThrownBy(() -> new RawLines().parse(EtlSource.TICKETING_SALES, TOPIC, 4, "garbage"))
                 .isInstanceOfSatisfying(
                         UnreadableRecordException.class,
                         e -> assertThat(e.message().offset()).isNull());
-        assertThatThrownBy(() -> RawLines.parse(
-                        EtlSource.TICKETING_SALES,
-                        TOPIC,
-                        4,
-                        "{\"value\":\"%%%\",\"offset\":3,\"timestamp\":\"" + HOUR + "\"}"))
+        assertThatThrownBy(() -> new RawLines()
+                        .parse(
+                                EtlSource.TICKETING_SALES,
+                                TOPIC,
+                                4,
+                                "{\"value\":\"%%%\",\"offset\":3,\"timestamp\":\"" + HOUR + "\"}"))
                 .isInstanceOfSatisfying(
                         UnreadableRecordException.class,
                         e -> assertThat(e.message().offset()).isEqualTo(3));
-        assertThatThrownBy(
-                        () -> RawLines.parse(EtlSource.TICKETING_SALES, TOPIC, 4, "{\"offset\":3,\"timestamp\":\"x\"}"))
+        assertThatThrownBy(() ->
+                        new RawLines().parse(EtlSource.TICKETING_SALES, TOPIC, 4, "{\"offset\":3,\"timestamp\":\"x\"}"))
                 .hasMessageContaining("timestamp");
-        assertThatThrownBy(
-                        () -> RawLines.parse(EtlSource.TICKETING_SALES, TOPIC, 4, "{\"timestamp\":\"" + HOUR + "\"}"))
+        assertThatThrownBy(() ->
+                        new RawLines().parse(EtlSource.TICKETING_SALES, TOPIC, 4, "{\"timestamp\":\"" + HOUR + "\"}"))
                 .hasMessageContaining("offset");
     }
 
@@ -230,7 +232,7 @@ class ReplayUnitTest {
         StepExecution step = replayStep();
         StepSynchronizationManager.register(step);
         try {
-            RawZoneReader reader = new RawZoneReader(raw);
+            RawZoneReader reader = new RawZoneReader(raw, new RawLines());
             ExecutionContext context = new ExecutionContext();
             reader.open(context);
             InboundMessage first = reader.read();
@@ -238,7 +240,7 @@ class ReplayUnitTest {
             reader.close();
             assertThat(new String(first.value(), StandardCharsets.UTF_8)).isEqualTo("a");
 
-            RawZoneReader restarted = new RawZoneReader(raw);
+            RawZoneReader restarted = new RawZoneReader(raw, new RawLines());
             restarted.open(context);
             List<InboundMessage> rest = readAll(restarted);
             restarted.update(context);
@@ -262,7 +264,7 @@ class ReplayUnitTest {
         when(raw.open(anyString())).thenThrow(new RawZone.RawObjectMissingException("k"));
         StepSynchronizationManager.register(replayStep());
         try {
-            RawZoneReader reader = new RawZoneReader(raw);
+            RawZoneReader reader = new RawZoneReader(raw, new RawLines());
             reader.open(new ExecutionContext());
             assertThatThrownBy(reader::read).isInstanceOf(FatalException.class);
         } finally {
@@ -355,11 +357,21 @@ class ReplayUnitTest {
         BatchSchedules schedules = mock(BatchSchedules.class);
         ReplayRequestPoller poller = new ReplayRequestPoller(requests, launcher, schedules, () -> true, 3);
         ReplayRequest raw = new ReplayRequest(
-                UUID.randomUUID(), Kind.RAW_RANGE, EtlSource.TICKETING_SALES, HOUR, HOUR.plusSeconds(60), false);
-        ReplayRequest dlq =
-                new ReplayRequest(UUID.randomUUID(), Kind.DLQ_RECORD, EtlSource.TICKETING_SALES, null, null, false);
+                UUID.randomUUID(),
+                ReplayRequest.Kind.RAW_RANGE,
+                EtlSource.TICKETING_SALES,
+                HOUR,
+                HOUR.plusSeconds(60),
+                false);
+        ReplayRequest dlq = new ReplayRequest(
+                UUID.randomUUID(), ReplayRequest.Kind.DLQ_RECORD, EtlSource.TICKETING_SALES, null, null, false);
         ReplayRequest analytics = new ReplayRequest(
-                UUID.randomUUID(), Kind.RAW_RANGE, EtlSource.TICKETING_SALES, HOUR, HOUR.plusSeconds(60), true);
+                UUID.randomUUID(),
+                ReplayRequest.Kind.RAW_RANGE,
+                EtlSource.TICKETING_SALES,
+                HOUR,
+                HOUR.plusSeconds(60),
+                true);
         when(requests.claim())
                 .thenReturn(Optional.of(raw))
                 .thenReturn(Optional.of(dlq))
@@ -368,20 +380,23 @@ class ReplayUnitTest {
         poller.scheduled();
         verify(requests, never()).claim();
         when(schedules.isReady()).thenReturn(true);
-        when(launcher.start(eq(PtiJob.DLQ_REPLAY), any(JobParameters.class)))
-                .thenThrow(new TaskRejectedException("full"));
+        when(launcher.start(eq(PtiJob.RAW_ZONE_REPLAY), any(JobLaunch.class)))
+                .thenReturn(new LaunchJob.Start(1L, null, false));
+        when(launcher.start(eq(PtiJob.DLQ_REPLAY), any(JobLaunch.class)))
+                .thenReturn(new LaunchJob.Start(null, null, true));
         poller.scheduled();
 
-        verify(launcher, org.mockito.Mockito.times(2)).start(eq(PtiJob.RAW_ZONE_REPLAY), any(JobParameters.class));
+        verify(launcher, org.mockito.Mockito.times(2)).start(eq(PtiJob.RAW_ZONE_REPLAY), any(JobLaunch.class));
         verify(requests).fail(eq(dlq.id()), org.mockito.ArgumentMatchers.contains("executor is full"));
         verify(requests, never()).fail(eq(analytics.id()), anyString());
-        JobParameters parameters = ReplayRequestPoller.parameters(PtiJob.RAW_ZONE_REPLAY, raw);
-        assertThat(parameters.getString("source")).isEqualTo("TICKETING_SALES");
-        assertThat(parameters.getString("replay")).isEqualTo("true");
-        assertThat(parameters.getString("recomputeAnalytics")).isEqualTo("false");
-        assertThat(parameters.getIdentifyingParameters()).hasSize(1);
+        JobLaunch launch = ReplayRequestPoller.parameters(PtiJob.RAW_ZONE_REPLAY, raw);
+        assertThat(launch.parameters().get("source")).isEqualTo("TICKETING_SALES");
+        assertThat(launch.parameters().get("replay")).isEqualTo("true");
+        assertThat(launch.parameters().get("recomputeAnalytics")).isEqualTo("false");
+        assertThat(launch.identity()).isEqualTo(raw.id().toString());
         assertThat(ReplayRequestPoller.parameters(PtiJob.RAW_ZONE_REPLAY, analytics)
-                        .getString("recomputeAnalytics"))
+                        .parameters()
+                        .get("recomputeAnalytics"))
                 .isEqualTo("true");
     }
 

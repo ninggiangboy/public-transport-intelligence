@@ -1,4 +1,4 @@
-package dev.pti.etl.gtfs.application;
+package dev.pti.etl.gtfs.adapter.in.batch;
 
 import java.time.ZoneId;
 import org.springframework.batch.core.job.JobExecution;

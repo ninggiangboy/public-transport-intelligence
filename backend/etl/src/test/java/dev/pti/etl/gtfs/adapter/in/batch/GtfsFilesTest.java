@@ -11,7 +11,8 @@ import dev.pti.common.error.FatalException;
 import dev.pti.etl.gtfs.adapter.out.file.FeedExtractor;
 import dev.pti.etl.gtfs.adapter.out.file.FeedSource;
 import dev.pti.etl.gtfs.adapter.out.file.FeedWorkspace;
-import dev.pti.etl.gtfs.application.FeedContext;
+import dev.pti.etl.gtfs.adapter.out.json.FeedReportJson;
+import dev.pti.etl.gtfs.application.ExtractedFeed;
 import dev.pti.etl.gtfs.application.FeedStructure;
 import dev.pti.etl.gtfs.application.GtfsIssues;
 import dev.pti.etl.gtfs.domain.FeedCheck;
@@ -28,6 +29,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.FileTime;
+import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.LinkedHashMap;
@@ -44,7 +46,6 @@ import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.step.StepExecution;
 import org.springframework.batch.infrastructure.item.file.FlatFileParseException;
 import org.springframework.batch.test.MetaDataInstanceFactory;
-import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 
 class GtfsFilesTest {
 
@@ -86,7 +87,7 @@ class GtfsFilesTest {
         FeedExtractor extractor = new FeedExtractor(1_000_000, 20);
         Path target = dir.resolve("feed");
 
-        FeedExtractor.Extracted extracted = extractor.extract(zip(minimal()), target);
+        ExtractedFeed extracted = extractor.extract(zip(minimal()), target);
 
         assertThat(extracted.files()).contains("agency.txt", "stop_times.txt").doesNotContain("levels.txt");
         assertThat(extracted.ignored()).containsExactlyInAnyOrder("levels.txt", "sub/routes.txt");
@@ -105,7 +106,7 @@ class GtfsFilesTest {
         files.put("trips.txt", "route_id,service_id\n1,1\n");
         files.put("agency.txt", AGENCY + "1,Other,https://y,America/New_York\n");
         Path target = dir.resolve("feed");
-        FeedExtractor.Extracted extracted = new FeedExtractor(1_000_000, 20).extract(zip(files), target);
+        ExtractedFeed extracted = new FeedExtractor(1_000_000, 20).extract(zip(files), target);
 
         FeedStructure.Inspection inspection = FeedStructure.inspect(target, extracted, 5);
 
@@ -213,7 +214,7 @@ class GtfsFilesTest {
 
     @Test
     void theWorkspaceIsPerJobInstanceAndCleaned() throws IOException {
-        FeedWorkspace workspace = new FeedWorkspace(dir);
+        FeedWorkspace workspace = new FeedWorkspace(dir, Clock.systemUTC());
         Files.createDirectories(workspace.files(1));
         Files.createDirectories(workspace.files(2));
         Files.setLastModifiedTime(workspace.dir(2), FileTime.from(Instant.now().minus(Duration.ofDays(3))));
@@ -225,7 +226,7 @@ class GtfsFilesTest {
         assertThat(workspace.dir(1)).exists();
         workspace.delete(1);
         assertThat(workspace.dir(1)).doesNotExist();
-        new FeedWorkspace(dir.resolve("absent")).deleteOlderThan(Duration.ZERO);
+        new FeedWorkspace(dir.resolve("absent"), Clock.systemUTC()).deleteOlderThan(Duration.ZERO);
     }
 
     @Test
@@ -240,7 +241,7 @@ class GtfsFilesTest {
                 })
                 .when(raw)
                 .download(any(), any());
-        FeedWorkspace workspace = new FeedWorkspace(dir.resolve("work"));
+        FeedWorkspace workspace = new FeedWorkspace(dir.resolve("work"), Clock.systemUTC());
         FeedWorkspaceListener listener = new FeedWorkspaceListener(workspace, new FeedExtractor(1_000_000, 20), raw);
         StepExecution step = MetaDataInstanceFactory.createStepExecution();
         step.getJobExecution().getExecutionContext().putString(FeedContext.FEED_HASH, hash);
@@ -259,27 +260,28 @@ class GtfsFilesTest {
     @Test
     void skipCollectorKeepsRowErrorsInTheStepThenTheJob() {
         StepExecution step = MetaDataInstanceFactory.createStepExecution();
-        GtfsSkipCollector collector = new GtfsSkipCollector(5, () -> step);
+        FeedReportJson reports = new FeedReportJson();
+        GtfsSkipCollector collector = new GtfsSkipCollector(5, reports, () -> step);
 
         collector.onSkipInRead(new FlatFileParseException("Parsing error", "x", 4));
         collector.onSkipInRead(new IllegalStateException("odd"));
         collector.onSkipInProcess(new GtfsRow("stops.txt", 5, Map.of()), new GtfsRowException("stop_id is required"));
         collector.onSkipInWrite(
-                new GtfsInsert("stops.txt", 6, new MapSqlParameterSource()),
+                new GtfsInsert("stops.txt", 6, Map.of()),
                 new org.springframework.dao.DuplicateKeyException(
                         "PreparedStatementCallback",
                         new java.sql.SQLException("ERROR: duplicate key value\n  Detail: x")));
         collector.afterStep(step);
 
-        GtfsIssues issues = GtfsIssues.fromJson(
+        GtfsIssues issues = reports.issuesFromJson(
                 step.getJobExecution()
                         .getExecutionContext()
                         .getString(FeedContext.ROW_ISSUES_PREFIX + step.getStepName()),
                 5);
         assertThat(issues.count(FeedCheck.GV_04)).isEqualTo(4);
-        assertThat(issues.entries(true).toString()).contains("duplicate key value", "\"line\":6");
+        assertThat(reports.build(issues, Map.of(), "", Map.of())).contains("duplicate key value", "\"line\":6");
         StepExecution clean = MetaDataInstanceFactory.createStepExecution();
-        new GtfsSkipCollector(5, () -> clean).afterStep(clean);
+        new GtfsSkipCollector(5, reports, () -> clean).afterStep(clean);
         assertThat(clean.getJobExecution().getExecutionContext().isEmpty()).isTrue();
     }
 
@@ -289,7 +291,7 @@ class GtfsFilesTest {
         JobExecution older = MetaDataInstanceFactory.createJobExecution("GtfsStaticLoadJob", 1L, 4L);
         JobExecution newer = MetaDataInstanceFactory.createJobExecution("GtfsStaticLoadJob", 2L, 5L);
         when(repository.findRunningJobExecutions("GtfsStaticLoadJob")).thenReturn(java.util.Set.of(older, newer));
-        FeedWorkspace workspace = new FeedWorkspace(dir);
+        FeedWorkspace workspace = new FeedWorkspace(dir, Clock.systemUTC());
         SimpleMeterRegistry meters = new SimpleMeterRegistry();
         GtfsJobListener listener = new GtfsJobListener(repository, workspace, meters);
 

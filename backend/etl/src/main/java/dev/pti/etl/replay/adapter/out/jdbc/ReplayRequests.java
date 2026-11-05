@@ -1,6 +1,8 @@
 package dev.pti.etl.replay.adapter.out.jdbc;
 
 import dev.pti.etl.core.domain.EtlSource;
+import dev.pti.etl.replay.application.port.ReplayRequestStore;
+import dev.pti.etl.replay.domain.ReplayRequest;
 import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.Instant;
@@ -10,22 +12,8 @@ import org.jspecify.annotations.Nullable;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.support.TransactionTemplate;
 
-/** {@code ops.replay_request} as {@code etl-batch} executes it (DOC-22 §6, ADR-0013). */
-public class ReplayRequests {
-
-    public enum Kind {
-        RAW_RANGE,
-        DLQ_RECORD
-    }
-
-    /** A request claimed by this pod: already {@code RUNNING}. */
-    public record ReplayRequest(
-            UUID id,
-            Kind kind,
-            EtlSource source,
-            @Nullable Instant fromTs,
-            @Nullable Instant toTs,
-            boolean recomputeAnalytics) {}
+/** {@link ReplayRequestStore} on {@code ops.replay_request} (DOC-22 §6, ADR-0013). */
+public class ReplayRequests implements ReplayRequestStore {
 
     private final JdbcTemplate jdbc;
     private final TransactionTemplate tx;
@@ -36,6 +24,7 @@ public class ReplayRequests {
     }
 
     /** The oldest PENDING request; {@code SKIP LOCKED} keeps two pods from claiming the same one. */
+    @Override
     public Optional<ReplayRequest> claim() {
         return Optional.ofNullable(tx.execute(status -> {
             ReplayRequest request = jdbc.query(
@@ -50,7 +39,7 @@ public class ReplayRequests {
                     rs -> rs.next()
                             ? new ReplayRequest(
                                     rs.getObject("id", UUID.class),
-                                    Kind.valueOf(rs.getString("kind")),
+                                    ReplayRequest.Kind.valueOf(rs.getString("kind")),
                                     EtlSource.valueOf(rs.getString("source")),
                                     instant(rs.getTimestamp("from_ts")),
                                     instant(rs.getTimestamp("to_ts")),
@@ -70,6 +59,7 @@ public class ReplayRequests {
     }
 
     /** The execution now running the request: first start and restarts alike (DOC-22 §4.7). */
+    @Override
     public void running(UUID id, long jobExecutionId) {
         jdbc.update("""
                 UPDATE ops.replay_request
@@ -78,6 +68,7 @@ public class ReplayRequests {
                 """, jobExecutionId, id);
     }
 
+    @Override
     public void finish(UUID id, long jobExecutionId, boolean done, String statsJson, @Nullable String message) {
         jdbc.update("""
                 UPDATE ops.replay_request
@@ -86,6 +77,7 @@ public class ReplayRequests {
                 """, done ? "DONE" : "FAILED", jobExecutionId, statsJson, message, id);
     }
 
+    @Override
     public void fail(UUID id, String message) {
         jdbc.update("""
                 UPDATE ops.replay_request SET status = 'FAILED', finished_at = now(), message = ?
@@ -94,6 +86,7 @@ public class ReplayRequests {
     }
 
     /** Requests claimed by a pod that died before the job started. */
+    @Override
     public int failInterrupted(Duration olderThan) {
         return jdbc.update("""
                 UPDATE ops.replay_request

@@ -1,7 +1,7 @@
 package dev.pti.etl.gtfs.adapter.in.batch;
 
 import dev.pti.etl.batch.domain.PtiJob;
-import dev.pti.etl.gtfs.adapter.out.file.FeedWorkspace;
+import dev.pti.etl.gtfs.application.port.FeedFiles;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.util.Comparator;
@@ -20,10 +20,10 @@ public class GtfsJobListener implements JobExecutionListener {
     static final String ANOTHER_RUNNING = "Another GtfsStaticLoadJob is running";
 
     private final JobRepository jobRepository;
-    private final FeedWorkspace workspace;
+    private final FeedFiles workspace;
     private final MeterRegistry meters;
 
-    public GtfsJobListener(JobRepository jobRepository, FeedWorkspace workspace, MeterRegistry meters) {
+    public GtfsJobListener(JobRepository jobRepository, FeedFiles workspace, MeterRegistry meters) {
         this.jobRepository = jobRepository;
         this.workspace = workspace;
         this.meters = meters;

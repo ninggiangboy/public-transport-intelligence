@@ -1,13 +1,14 @@
 package dev.pti.etl.gtfs.adapter.out.jdbc;
 
+import dev.pti.etl.gtfs.application.port.FeedVersionStore;
 import java.util.List;
 import java.util.Optional;
 import java.util.OptionalLong;
 import org.jspecify.annotations.Nullable;
 import org.springframework.jdbc.core.JdbcTemplate;
 
-/** {@code dw.gtfs_feed_version} and the removal of a version's rows (DOC-14 §4, DOC-21 §3.1, §5). */
-public class FeedVersions {
+/** {@link FeedVersionStore} on {@code dw.gtfs_feed_version} and the removal of a version's rows. */
+public class FeedVersions implements FeedVersionStore {
 
     /** Tables of a version, children first (DOC-21 §5). */
     static final List<String> PURGE_ORDER = List.of(
@@ -22,15 +23,13 @@ public class FeedVersions {
             "dw.dim_agency",
             "dw.gtfs_feed_version");
 
-    /** A version found by its hash. */
-    public record Existing(long id, String status, @Nullable Long jobExecutionId) {}
-
     private final JdbcTemplate jdbc;
 
     public FeedVersions(JdbcTemplate jdbc) {
         this.jdbc = jdbc;
     }
 
+    @Override
     public Optional<Existing> findByHash(String hash) {
         return jdbc
                 .query(
@@ -41,6 +40,7 @@ public class FeedVersions {
                 .findFirst();
     }
 
+    @Override
     public Optional<String> status(long id) {
         return jdbc
                 .queryForList("SELECT status FROM dw.gtfs_feed_version WHERE feed_version_id = ?", String.class, id)
@@ -48,17 +48,14 @@ public class FeedVersions {
                 .findFirst();
     }
 
+    @Override
     public OptionalLong activeId() {
         List<Long> ids = jdbc.queryForList(
                 "SELECT feed_version_id FROM dw.gtfs_feed_version WHERE status = 'ACTIVE'", Long.class);
         return ids.isEmpty() ? OptionalLong.empty() : OptionalLong.of(ids.getFirst());
     }
 
-    /**
-     * Inserts a version; empty when another execution inserted the same hash first (DOC-21 §3.1 step 7).
-     *
-     * @param report the validation report as JSON, for a feed rejected by {@code fetch}
-     */
+    @Override
     public OptionalLong insert(
             String hash,
             String sourceUri,
@@ -78,12 +75,14 @@ public class FeedVersions {
         return ids.isEmpty() ? OptionalLong.empty() : OptionalLong.of(ids.getFirst());
     }
 
+    @Override
     public void setReport(long id, String report) {
         jdbc.update(
                 "UPDATE dw.gtfs_feed_version SET validation_report = ?::jsonb WHERE feed_version_id = ?", report, id);
     }
 
     /** Appends warnings found after activation (loadVehicles) to the report. */
+    @Override
     public void appendWarnings(long id, String warningsJsonArray) {
         jdbc.update("""
                 UPDATE dw.gtfs_feed_version
@@ -93,10 +92,12 @@ public class FeedVersions {
                 """, warningsJsonArray, id);
     }
 
+    @Override
     public void reject(long id) {
         jdbc.update("UPDATE dw.gtfs_feed_version SET status = 'REJECTED' WHERE feed_version_id = ?", id);
     }
 
+    @Override
     public void feedInfo(long id, @Nullable String publisherName, @Nullable String publisherVersion) {
         jdbc.update("""
                 UPDATE dw.gtfs_feed_version SET publisher_name = ?, publisher_feed_version = ?
@@ -109,6 +110,7 @@ public class FeedVersions {
      *
      * @return the table and the number of rows deleted; 0 rows once the version is gone
      */
+    @Override
     public Purged purgeBatch(long id, int limit) {
         for (String table : PURGE_ORDER) {
             int deleted = jdbc.update(
@@ -124,12 +126,10 @@ public class FeedVersions {
     }
 
     /** Every row of the version, in one go; for an orphan STAGED version found by {@code fetch}. */
+    @Override
     public void purgeAll(long id) {
         while (purgeBatch(id, Integer.MAX_VALUE).rows() > 0) {
             // next table
         }
     }
-
-    /** The rows one {@link #purgeBatch} call removed. */
-    public record Purged(String table, int rows) {}
 }

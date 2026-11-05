@@ -1,20 +1,20 @@
 package dev.pti.etl.gtfs.adapter.in.scheduling;
 
 import dev.pti.common.time.BusinessClock;
-import dev.pti.etl.batch.adapter.in.batch.JobParams;
-import dev.pti.etl.batch.adapter.in.batch.PtiJobLauncher;
+import dev.pti.etl.batch.application.JobLaunch;
 import dev.pti.etl.batch.application.port.BatchStartupTask;
+import dev.pti.etl.batch.application.port.LaunchJob;
 import dev.pti.etl.batch.domain.PtiJob;
 import dev.pti.etl.gtfs.adapter.in.batch.FetchFeedTasklet;
-import dev.pti.etl.gtfs.adapter.out.file.FeedWorkspace;
-import dev.pti.etl.gtfs.adapter.out.jdbc.FeedVersions;
+import dev.pti.etl.gtfs.application.port.FeedFiles;
+import dev.pti.etl.gtfs.application.port.FeedVersionStore;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.util.Map;
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.batch.core.job.parameters.JobParameters;
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.scheduling.annotation.Scheduled;
 
@@ -29,20 +29,20 @@ public class GtfsTriggers implements BatchStartupTask {
     /** Workspaces of failed jobs older than this are removed at startup (DOC-21 §5). */
     static final Duration STALE_WORKSPACE = Duration.ofDays(2);
 
-    private final PtiJobLauncher launcher;
-    private final FeedVersions versions;
+    private final LaunchJob launcher;
+    private final FeedVersionStore versions;
     private final JobRepository jobRepository;
-    private final FeedWorkspace workspace;
+    private final FeedFiles workspace;
     private final BusinessClock clock;
     private final ZoneId agencyZone;
     private final String bootstrapLocation;
     private final String dailySource;
 
     public GtfsTriggers(
-            PtiJobLauncher launcher,
-            FeedVersions versions,
+            LaunchJob launcher,
+            FeedVersionStore versions,
             JobRepository jobRepository,
-            FeedWorkspace workspace,
+            FeedFiles workspace,
             BusinessClock clock,
             ZoneId agencyZone,
             String bootstrapLocation,
@@ -88,10 +88,8 @@ public class GtfsTriggers implements BatchStartupTask {
         }
     }
 
-    JobParameters parameters(String trigger, String sourceUri) {
+    JobLaunch parameters(String trigger, String sourceUri) {
         LocalDate businessDate = LocalDate.ofInstant(clock.instant(), agencyZone);
-        return JobParams.identity(PtiJob.GTFS_STATIC_LOAD, trigger + ":" + businessDate)
-                .addString(FetchFeedTasklet.SOURCE_URI, sourceUri, false)
-                .toJobParameters();
+        return new JobLaunch(trigger + ":" + businessDate, Map.of()).with(FetchFeedTasklet.SOURCE_URI, sourceUri);
     }
 }

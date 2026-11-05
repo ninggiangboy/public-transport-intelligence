@@ -5,6 +5,7 @@ import dev.pti.common.json.MessageJson;
 import dev.pti.etl.batch.domain.UnreadableRecordException;
 import dev.pti.etl.core.domain.EtlSource;
 import dev.pti.etl.core.domain.InboundMessage;
+import dev.pti.etl.replay.application.port.RawRecordParser;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.format.DateTimeParseException;
@@ -18,15 +19,14 @@ import tools.jackson.databind.JsonNode;
  * One line of a raw zone object, {@code {key, value, offset, timestamp, headers}} with a base64 value (DOC-09 §7),
  * back into the {@link InboundMessage} that {@code etl-stream} built from the same Kafka record.
  */
-public final class RawLines {
-
-    private RawLines() {}
+public final class RawLines implements RawRecordParser {
 
     /**
      * @throws UnreadableRecordException when the line is not a raw zone record; the dead letter carries the Kafka
      *     position when the line got that far
      */
-    public static InboundMessage parse(EtlSource source, String topic, int partition, String line) {
+    @Override
+    public InboundMessage parse(EtlSource source, String topic, int partition, String line) {
         JsonNode node;
         try {
             node = MessageJson.mapper().readTree(line);

@@ -1,14 +1,12 @@
 package dev.pti.etl.gtfs.adapter.in.batch;
 
-import dev.pti.common.json.MessageJson;
 import dev.pti.common.time.BusinessClock;
-import dev.pti.etl.gtfs.adapter.out.jdbc.FeedVersions;
-import dev.pti.etl.gtfs.application.FeedContext;
-import dev.pti.etl.gtfs.application.FeedReport;
 import dev.pti.etl.gtfs.application.GtfsIssues;
+import dev.pti.etl.gtfs.application.port.FeedReports;
+import dev.pti.etl.gtfs.application.port.FeedVersionStore;
+import dev.pti.etl.gtfs.application.port.SqlStatements;
 import dev.pti.etl.gtfs.domain.FeedCheck;
 import dev.pti.etl.gtfs.domain.GtfsTable;
-import dev.pti.etl.write.adapter.out.jdbc.SqlResource;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -28,7 +26,6 @@ import org.springframework.batch.infrastructure.repeat.RepeatStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import tools.jackson.databind.node.ObjectNode;
 
 /**
  * Step {@code validate} (DOC-21 §4): gathers the structural issues of {@code fetch}, the row errors of the load steps
@@ -45,19 +42,26 @@ public class ValidateFeedTasklet implements Tasklet {
     static final Map<String, String> COUNTED = countedTables();
 
     private final NamedParameterJdbcTemplate named;
-    private final FeedVersions versions;
+    private final FeedVersionStore versions;
     private final BusinessClock clock;
     private final int maxSamples;
+    private final FeedReports reports;
     private final Map<FeedCheck, String> checks = new EnumMap<>(FeedCheck.class);
 
     public ValidateFeedTasklet(
-            NamedParameterJdbcTemplate named, FeedVersions versions, BusinessClock clock, int maxSamples) {
+            NamedParameterJdbcTemplate named,
+            FeedVersionStore versions,
+            BusinessClock clock,
+            int maxSamples,
+            SqlStatements sql,
+            FeedReports reports) {
         this.named = named;
         this.versions = versions;
         this.clock = clock;
         this.maxSamples = maxSamples;
+        this.reports = reports;
         for (FeedCheck check : FeedCheck.sqlChecks()) {
-            checks.put(check, SqlResource.load("gtfs-validate/" + check.code()));
+            checks.put(check, sql.load("gtfs-validate/" + check.code()));
         }
     }
 
@@ -80,9 +84,9 @@ public class ValidateFeedTasklet implements Tasklet {
         JobExecution job = step.getJobExecution();
         long version = FeedContext.feedVersionId(job);
         GtfsIssues issues =
-                GtfsIssues.fromJson(job.getExecutionContext().getString(FeedContext.FETCH_ISSUES, ""), maxSamples);
+                reports.issuesFromJson(job.getExecutionContext().getString(FeedContext.FETCH_ISSUES, ""), maxSamples);
         for (GtfsTable table : GtfsTable.LOAD_ORDER) {
-            issues.addAll(GtfsIssues.fromJson(
+            issues.addAll(reports.issuesFromJson(
                     job.getExecutionContext().getString(FeedContext.ROW_ISSUES_PREFIX + table.stepName(), ""),
                     maxSamples));
         }
@@ -93,12 +97,12 @@ public class ValidateFeedTasklet implements Tasklet {
                 .addValue("feedVersionId", version)
                 .addValue("businessToday", LocalDate.ofInstant(clock.instant(), FeedContext.agencyZone(job)))
                 .addValue("activeFeedVersionId", versions.activeId().orElse(-1L));
-        checks.forEach((check, sql) -> {
-            List<ObjectNode> samples = new ArrayList<>();
+        checks.forEach((check, checkSql) -> {
+            List<Map<String, Object>> samples = new ArrayList<>();
             long[] total = {0};
-            named.query(sql, params, rs -> {
+            named.query(checkSql, params, rs -> {
                 total[0] = rs.getLong("total");
-                samples.add((ObjectNode) MessageJson.mapper().readTree(rs.getString("sample")));
+                samples.add(reports.readSample(rs.getString("sample")));
             });
             issues.add(check, total[0], samples);
         });
@@ -109,7 +113,7 @@ public class ValidateFeedTasklet implements Tasklet {
                 jdbc.queryForObject(
                         "SELECT count(*) FROM " + table + " WHERE feed_version_id = ?", Long.class, version)));
 
-        String report = FeedReport.build(
+        String report = reports.build(
                 issues, counts, job.getExecutionContext().getString(FeedContext.EXTRA_COLUMNS, ""), durations(job));
         versions.setReport(version, report);
         for (FeedCheck check : issues.checks()) {

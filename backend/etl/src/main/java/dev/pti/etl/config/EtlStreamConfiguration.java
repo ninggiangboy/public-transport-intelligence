@@ -311,8 +311,8 @@ public class EtlStreamConfiguration {
     }
 
     @Bean
-    SourceActivity sourceActivity() {
-        return new SourceActivity(Clock.systemUTC());
+    SourceActivity sourceActivity(Clock clock) {
+        return new SourceActivity(clock);
     }
 
     @Bean
@@ -338,17 +338,18 @@ public class EtlStreamConfiguration {
     }
 
     @Bean("warehouse-db")
-    WarehouseHealthIndicator warehouseHealthIndicator(JdbcTemplate jdbc, CircuitBreaker warehouseCircuitBreaker) {
-        return new WarehouseHealthIndicator(jdbc, warehouseCircuitBreaker, Clock.systemUTC());
+    WarehouseHealthIndicator warehouseHealthIndicator(
+            JdbcTemplate jdbc, CircuitBreaker warehouseCircuitBreaker, Clock clock) {
+        return new WarehouseHealthIndicator(jdbc, warehouseCircuitBreaker, clock);
     }
 
     @Bean
-    ConnectorStatus connectorStatus(EtlProperties etl, MeterRegistry meters) {
+    ConnectorStatus connectorStatus(EtlProperties etl, MeterRegistry meters, Clock clock) {
         JdkClientHttpRequestFactory requests = new JdkClientHttpRequestFactory(
                 HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(2)).build());
         requests.setReadTimeout(Duration.ofSeconds(2));
         ConnectorStatus status = new ConnectorStatus(
-                RestClient.builder().requestFactory(requests), etl.health().connectUrl(), Clock.systemUTC());
+                RestClient.builder().requestFactory(requests), etl.health().connectUrl(), clock);
         status.bindTo(meters);
         return status;
     }
@@ -359,14 +360,15 @@ public class EtlStreamConfiguration {
             ListenerPauseCoordinator pauses,
             SourceActivity activity,
             EtlProperties etl,
-            MeterRegistry meters) {
+            MeterRegistry meters,
+            Clock clock) {
         SourceHealthIndicator health = new SourceHealthIndicator(
                 List.of(StreamListener.GTFS_RT_VEHICLE_POSITION, StreamListener.GTFS_RT_TRIP_UPDATE),
                 warehouse,
                 pauses,
                 activity,
                 etl.health().freshness(),
-                Clock.systemUTC(),
+                clock,
                 null,
                 () -> false);
         health.bindTo(meters, "gtfs-rt");
@@ -381,7 +383,8 @@ public class EtlStreamConfiguration {
             ConnectorStatus connector,
             KafkaListenerEndpointRegistry registry,
             EtlProperties etl,
-            MeterRegistry meters) {
+            MeterRegistry meters,
+            Clock clock) {
         List<StreamListener> listeners = List.of(StreamListener.TICKETING_SALES, StreamListener.TICKETING_SALE_POINTS);
         SourceHealthIndicator health = new SourceHealthIndicator(
                 listeners,
@@ -389,7 +392,7 @@ public class EtlStreamConfiguration {
                 pauses,
                 activity,
                 etl.health().freshness(),
-                Clock.systemUTC(),
+                clock,
                 connector,
                 () -> listeners.stream().allMatch(l -> caughtUp(registry.getListenerContainer(l.id()))));
         health.bindTo(meters, "ticketing");

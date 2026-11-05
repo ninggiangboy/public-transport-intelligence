@@ -1,7 +1,6 @@
 package dev.pti.etl.gtfs.adapter.in.batch;
 
-import dev.pti.etl.gtfs.adapter.out.jdbc.FeedVersions;
-import dev.pti.etl.gtfs.application.FeedContext;
+import dev.pti.etl.gtfs.application.port.FeedVersionStore;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Duration;
@@ -37,14 +36,14 @@ public class RetireFeedsTasklet implements Tasklet {
             """;
 
     private final JdbcTemplate jdbc;
-    private final FeedVersions versions;
+    private final FeedVersionStore versions;
     private final int keepVersions;
     private final Duration rejectedRetention;
     private final MeterRegistry meters;
 
     public RetireFeedsTasklet(
             JdbcTemplate jdbc,
-            FeedVersions versions,
+            FeedVersionStore versions,
             int keepVersions,
             Duration rejectedRetention,
             MeterRegistry meters) {
@@ -66,7 +65,7 @@ public class RetireFeedsTasklet implements Tasklet {
                     "Deleted " + context.getLong(DELETED_KEY, 0L) + " rows of old feed versions"));
             return RepeatStatus.FINISHED;
         }
-        FeedVersions.Purged purged = versions.purgeBatch(victim.getFirst(), BATCH);
+        FeedVersionStore.Purged purged = versions.purgeBatch(victim.getFirst(), BATCH);
         context.putLong(DELETED_KEY, context.getLong(DELETED_KEY, 0L) + purged.rows());
         contribution.incrementWriteCount(purged.rows());
         Counter.builder("pti.retention.deleted")

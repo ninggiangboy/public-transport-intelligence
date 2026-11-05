@@ -1,13 +1,13 @@
 package dev.pti.etl.gtfs.adapter.in.batch;
 
 import dev.pti.common.error.FatalException;
-import dev.pti.etl.gtfs.adapter.out.file.FeedExtractor;
-import dev.pti.etl.gtfs.adapter.out.file.FeedSource;
-import dev.pti.etl.gtfs.adapter.out.file.FeedWorkspace;
-import dev.pti.etl.gtfs.application.FeedContext;
+import dev.pti.etl.gtfs.application.ExtractedFeed;
+import dev.pti.etl.gtfs.application.port.FeedArchiveExtractor;
+import dev.pti.etl.gtfs.application.port.FeedDownload;
+import dev.pti.etl.gtfs.application.port.FeedFiles;
+import dev.pti.etl.gtfs.domain.FeedDigest;
 import dev.pti.etl.raw.application.port.RawZone;
 import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import org.slf4j.Logger;
@@ -27,11 +27,11 @@ public class FeedWorkspaceListener implements StepExecutionListener {
     /** Written after a complete extraction, so a half-extracted directory is not trusted. */
     static final String MARKER = ".extracted";
 
-    private final FeedWorkspace workspace;
-    private final FeedExtractor extractor;
+    private final FeedFiles workspace;
+    private final FeedArchiveExtractor extractor;
     private final RawZone raw;
 
-    public FeedWorkspaceListener(FeedWorkspace workspace, FeedExtractor extractor, RawZone raw) {
+    public FeedWorkspaceListener(FeedFiles workspace, FeedArchiveExtractor extractor, RawZone raw) {
         this.workspace = workspace;
         this.extractor = extractor;
         this.raw = raw;
@@ -47,8 +47,8 @@ public class FeedWorkspaceListener implements StepExecutionListener {
         String hash = FeedContext.feedHash(job);
         log.info("Workspace of feed {} is missing; downloading it again from the raw zone", hash);
         Path zip = workspace.zip(instance);
-        raw.download(raw.key(FeedSource.RAW_PREFIX + hash + ".zip"), zip);
-        String actual = FeedSource.sha256(zip);
+        raw.download(raw.key(FeedDownload.RAW_PREFIX + hash + ".zip"), zip);
+        String actual = FeedDigest.sha256(zip);
         if (!actual.equals(hash)) {
             throw new FatalException("Raw zone copy of feed " + hash + " has hash " + actual);
         }
@@ -56,12 +56,12 @@ public class FeedWorkspaceListener implements StepExecutionListener {
     }
 
     /** Extracts and marks the directory as complete. */
-    static FeedExtractor.Extracted extract(FeedExtractor extractor, Path zip, Path target) {
-        FeedExtractor.Extracted extracted = extractor.extract(zip, target);
+    static ExtractedFeed extract(FeedArchiveExtractor extractor, Path zip, Path target) {
+        ExtractedFeed extracted = extractor.extract(zip, target);
         try {
             Files.writeString(target.resolve(MARKER), "");
         } catch (IOException e) {
-            throw new UncheckedIOException(e);
+            throw new FatalException("Cannot mark the feed directory " + target, e);
         }
         return extracted;
     }

@@ -1,6 +1,5 @@
 package dev.pti.etl.gtfs.adapter.in.batch;
 
-import dev.pti.etl.gtfs.application.FeedContext;
 import dev.pti.etl.gtfs.domain.GtfsInsert;
 import dev.pti.etl.gtfs.domain.GtfsRow;
 import dev.pti.etl.gtfs.domain.GtfsTable;

@@ -14,7 +14,6 @@ import dev.pti.etl.fault.domain.FaultAction;
 import dev.pti.etl.fault.domain.FaultPoint;
 import dev.pti.etl.gtfs.adapter.out.file.FeedSource;
 import dev.pti.etl.gtfs.adapter.out.file.FeedWorkspace;
-import dev.pti.etl.gtfs.application.FeedContext;
 import dev.pti.etl.reference.application.ReferenceDataHolder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;

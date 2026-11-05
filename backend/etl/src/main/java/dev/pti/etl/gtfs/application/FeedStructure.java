@@ -1,15 +1,14 @@
 package dev.pti.etl.gtfs.application;
 
+import dev.pti.common.error.FatalException;
 import dev.pti.common.gtfs.GtfsCsv;
 import dev.pti.common.gtfs.GtfsFormatException;
-import dev.pti.etl.gtfs.adapter.out.file.FeedExtractor;
 import dev.pti.etl.gtfs.domain.FeedCheck;
 import dev.pti.etl.gtfs.domain.GtfsTable;
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -21,7 +20,6 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import org.jspecify.annotations.Nullable;
-import tools.jackson.databind.node.ObjectNode;
 
 /**
  * The checks {@code fetch} makes from headers and {@code agency.txt} alone (DOC-21 §3.1 step 6): required files
@@ -34,7 +32,7 @@ public final class FeedStructure {
 
     private FeedStructure() {}
 
-    public static Inspection inspect(Path dir, FeedExtractor.Extracted extracted, int maxSamples) {
+    public static Inspection inspect(Path dir, ExtractedFeed extracted, int maxSamples) {
         GtfsIssues issues = new GtfsIssues(maxSamples);
         Set<String> files = extracted.files();
         for (GtfsTable required : GtfsTable.REQUIRED) {
@@ -61,7 +59,7 @@ public final class FeedStructure {
             }
             for (String column : table.requiredColumns()) {
                 if (!header.contains(column)) {
-                    ObjectNode sample = fileSample(file, "Required column is missing");
+                    Map<String, Object> sample = fileSample(file, "Required column is missing");
                     sample.put("column", column);
                     issues.add(FeedCheck.GV_02, sample);
                 }
@@ -86,7 +84,7 @@ public final class FeedStructure {
         } catch (java.nio.charset.MalformedInputException e) {
             throw new GtfsFormatException(name(file) + " is not UTF-8");
         } catch (IOException e) {
-            throw new UncheckedIOException(e);
+            throw new FatalException("Cannot read " + file, e);
         }
         if (first == null) {
             throw new GtfsFormatException(name(file) + " is empty");
@@ -107,13 +105,13 @@ public final class FeedStructure {
                 }
             });
         } catch (IOException e) {
-            throw new UncheckedIOException(e);
+            throw new FatalException("Cannot read " + agency, e);
         } catch (GtfsFormatException e) {
             issues.add(FeedCheck.GV_03, fileSample("agency.txt", e.getMessage()));
             return null;
         }
         if (zones.size() != 1) {
-            ObjectNode sample = fileSample("agency.txt", "Expected exactly one agency_timezone");
+            Map<String, Object> sample = fileSample("agency.txt", "Expected exactly one agency_timezone");
             sample.put("timezones", String.join(", ", zones));
             issues.add(FeedCheck.GV_03, sample);
             return null;
@@ -131,8 +129,8 @@ public final class FeedStructure {
         return String.valueOf(file.getFileName());
     }
 
-    public static ObjectNode fileSample(String file, @Nullable String message) {
-        ObjectNode sample = GtfsIssues.sample();
+    public static Map<String, Object> fileSample(String file, @Nullable String message) {
+        Map<String, Object> sample = GtfsIssues.sample();
         sample.put("file", file);
         if (message != null) {
             sample.put("message", message);

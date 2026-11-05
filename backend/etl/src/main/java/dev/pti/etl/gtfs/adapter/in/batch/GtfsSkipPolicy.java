@@ -3,8 +3,8 @@ package dev.pti.etl.gtfs.adapter.in.batch;
 import dev.pti.common.error.ErrorClassifier;
 import dev.pti.common.error.ErrorKind;
 import dev.pti.common.error.ErrorPhase;
+import dev.pti.common.error.FatalException;
 import dev.pti.etl.gtfs.domain.GtfsRowException;
-import org.springframework.batch.core.step.skip.SkipLimitExceededException;
 import org.springframework.batch.core.step.skip.SkipPolicy;
 import org.springframework.batch.infrastructure.item.file.FlatFileParseException;
 
@@ -13,6 +13,9 @@ import org.springframework.batch.infrastructure.item.file.FlatFileParseException
  * {@code maxRowErrors} of them so a broken feed does not scan for hours (DOC-21 §3.2).
  */
 public class GtfsSkipPolicy implements SkipPolicy {
+
+    /** Step rows limit of {@code pti.gtfs.static.max-row-errors}. */
+    private static final String LIMIT_HINT = "pti.gtfs.static.max-row-errors";
 
     private final ErrorClassifier classifier;
     private final int maxRowErrors;
@@ -40,18 +43,12 @@ public class GtfsSkipPolicy implements SkipPolicy {
     }
 
     /** Its message is the exit description of the failed step. */
-    public static final class TooManyRowErrorsException extends SkipLimitExceededException {
+    public static final class TooManyRowErrorsException extends FatalException {
 
         private static final long serialVersionUID = 1L;
 
         TooManyRowErrorsException(int limit, Throwable cause) {
-            super(limit, cause);
-        }
-
-        @Override
-        public String getMessage() {
-            return "More than " + getSkipLimit()
-                    + " row errors; the feed looks broken (pti.gtfs.static.max-row-errors)";
+            super("More than " + limit + " row errors; the feed looks broken (" + LIMIT_HINT + ")", cause);
         }
     }
 }

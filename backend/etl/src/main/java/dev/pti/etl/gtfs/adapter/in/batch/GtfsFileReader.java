@@ -1,7 +1,6 @@
 package dev.pti.etl.gtfs.adapter.in.batch;
 
-import dev.pti.etl.gtfs.adapter.out.file.FeedWorkspace;
-import dev.pti.etl.gtfs.application.FeedContext;
+import dev.pti.etl.gtfs.application.port.FeedFiles;
 import dev.pti.etl.gtfs.domain.GtfsRow;
 import dev.pti.etl.gtfs.domain.GtfsTable;
 import java.nio.charset.StandardCharsets;
@@ -30,10 +29,10 @@ public class GtfsFileReader implements ItemStreamReader<GtfsRow> {
     private static final char BOM = '﻿';
 
     private final GtfsTable table;
-    private final FeedWorkspace workspace;
+    private final FeedFiles workspace;
     private @Nullable FlatFileItemReader<GtfsRow> delegate;
 
-    public GtfsFileReader(GtfsTable table, FeedWorkspace workspace) {
+    public GtfsFileReader(GtfsTable table, FeedFiles workspace) {
         this.table = table;
         this.workspace = workspace;
     }

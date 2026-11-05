@@ -2,6 +2,7 @@ package dev.pti.etl.replay.adapter.out.jdbc;
 
 import dev.pti.common.json.MessageJson;
 import dev.pti.etl.core.domain.InboundMessage;
+import dev.pti.etl.replay.application.port.DeadLetterReplayStore;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -9,7 +10,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import tools.jackson.databind.node.ObjectNode;
 
 /** What a replay does to existing dead letters (DOC-22 §3.2 step 4, §4.4): close them and log why. */
-public class DeadLetterReplays {
+public class DeadLetterReplays implements DeadLetterReplayStore {
 
     static final String ACTOR = "system:etl-batch";
 
@@ -28,6 +29,7 @@ public class DeadLetterReplays {
      *
      * @return how many were resolved
      */
+    @Override
     public int resolve(List<InboundMessage> written, UUID batchId) {
         List<String> topics = new ArrayList<>();
         List<Integer> partitions = new ArrayList<>();
@@ -66,6 +68,7 @@ public class DeadLetterReplays {
     }
 
     /** DLQ replay succeeded: {@code REPLAY_REQUESTED → REPLAYED}; false when the row was no longer waiting. */
+    @Override
     public boolean markReplayed(UUID deadLetterId, UUID replayRequestId, UUID batchId, int rowsWritten) {
         int updated = jdbc.update("""
                 UPDATE ops.dead_letter

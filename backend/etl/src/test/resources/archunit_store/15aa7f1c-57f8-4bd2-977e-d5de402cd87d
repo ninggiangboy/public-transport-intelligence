@@ -1,3 +1,0 @@
-Method <dev.pti.etl.gtfs.application.FeedStructure.inspect(java.nio.file.Path, dev.pti.etl.gtfs.adapter.out.file.FeedExtractor$Extracted, int)> calls method <dev.pti.etl.gtfs.adapter.out.file.FeedExtractor$Extracted.files()> in (FeedStructure.java:39)
-Method <dev.pti.etl.gtfs.application.FeedStructure.inspect(java.nio.file.Path, dev.pti.etl.gtfs.adapter.out.file.FeedExtractor$Extracted, int)> calls method <dev.pti.etl.gtfs.adapter.out.file.FeedExtractor$Extracted.ignored()> in (FeedStructure.java:48)
-Method <dev.pti.etl.gtfs.application.FeedStructure.inspect(java.nio.file.Path, dev.pti.etl.gtfs.adapter.out.file.FeedExtractor$Extracted, int)> has parameter of type <dev.pti.etl.gtfs.adapter.out.file.FeedExtractor$Extracted> in (FeedStructure.java:0)

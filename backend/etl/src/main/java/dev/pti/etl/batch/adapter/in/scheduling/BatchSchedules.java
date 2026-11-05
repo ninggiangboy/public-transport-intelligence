@@ -4,6 +4,7 @@ import dev.pti.common.time.BusinessClock;
 import dev.pti.etl.batch.adapter.in.batch.JobParams;
 import dev.pti.etl.batch.adapter.in.batch.PtiJobLauncher;
 import dev.pti.etl.batch.application.HandleJobRequests;
+import dev.pti.etl.batch.application.port.BatchReadiness;
 import dev.pti.etl.batch.application.port.StaleExecutions;
 import dev.pti.etl.batch.domain.PtiJob;
 import java.time.Duration;
@@ -25,7 +26,7 @@ import org.springframework.scheduling.annotation.Scheduled;
  * Every scheduled trigger of {@code etl-batch} (DOC-19 §2, §2.1), each under its ShedLock lock (DR-24 layer 1). The
  * pollers wait until startup has recovered the executions a killed pod left behind (DOC-19 §7.2).
  */
-public class BatchSchedules {
+public class BatchSchedules implements BatchReadiness {
 
     private static final Logger log = LoggerFactory.getLogger(BatchSchedules.class);
 
@@ -59,6 +60,7 @@ public class BatchSchedules {
         this.startupTasks = List.copyOf(startupTasks);
     }
 
+    @Override
     public boolean isReady() {
         return ready.get();
     }

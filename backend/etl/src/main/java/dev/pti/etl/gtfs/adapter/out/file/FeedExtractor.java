@@ -1,12 +1,14 @@
 package dev.pti.etl.gtfs.adapter.out.file;
 
+import dev.pti.common.error.FatalException;
+import dev.pti.etl.gtfs.application.ExtractedFeed;
+import dev.pti.etl.gtfs.application.port.FeedArchiveExtractor;
 import dev.pti.etl.gtfs.domain.FeedCheck;
 import dev.pti.etl.gtfs.domain.FeedRejectedException;
 import dev.pti.etl.gtfs.domain.GtfsTable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -22,15 +24,12 @@ import java.util.zip.ZipFile;
  * entries escaping the target directory (zip slip), too many entries, too many bytes, or an entry that expands more
  * than {@link #MAX_RATIO} times (zip bomb). Every refusal is GV-01.
  */
-public final class FeedExtractor {
+public final class FeedExtractor implements FeedArchiveExtractor {
 
     static final int MAX_RATIO = 100;
 
     /** Small entries may compress very well; the ratio only counts beyond this size. */
     static final long RATIO_FLOOR = 1024 * 1024;
-
-    /** What was extracted and what was left out (GV-14). */
-    public record Extracted(TreeSet<String> files, List<String> ignored) {}
 
     private final long maxBytes;
     private final int maxEntries;
@@ -40,7 +39,8 @@ public final class FeedExtractor {
         this.maxEntries = maxEntries;
     }
 
-    public Extracted extract(Path zipFile, Path target) {
+    @Override
+    public ExtractedFeed extract(Path zipFile, Path target) {
         try {
             FeedWorkspace.deleteTree(target);
             Files.createDirectories(target);
@@ -78,9 +78,9 @@ public final class FeedExtractor {
             } catch (ZipException e) {
                 throw new FeedRejectedException(FeedCheck.GV_01, "Not a valid zip file: " + e.getMessage());
             }
-            return new Extracted(files, List.copyOf(ignored));
+            return new ExtractedFeed(files, List.copyOf(ignored));
         } catch (IOException e) {
-            throw new UncheckedIOException(e);
+            throw new FatalException("Cannot extract " + zipFile, e);
         }
     }
 

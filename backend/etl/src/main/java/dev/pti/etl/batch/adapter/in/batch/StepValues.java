@@ -1,6 +1,7 @@
 package dev.pti.etl.batch.adapter.in.batch;
 
 import dev.pti.etl.batch.domain.BatchId;
+import dev.pti.etl.batch.domain.StepKeys;
 import java.util.UUID;
 import org.springframework.batch.core.scope.context.StepContext;
 import org.springframework.batch.core.scope.context.StepSynchronizationManager;
@@ -10,18 +11,18 @@ import org.springframework.batch.core.step.StepExecution;
 public final class StepValues {
 
     /** Step context key of the step's {@code batch_id} (DR-63), set by {@link BatchIdStepListener}. */
-    public static final String BATCH_ID = BatchId.CONTEXT_KEY;
+    public static final String BATCH_ID = StepKeys.BATCH_ID;
 
     /** Step context key: items the chunk rules sent to the dead-letter queue, which Spring Batch does not count. */
-    public static final String REJECTED = "pti.rejected";
+    public static final String REJECTED = StepKeys.REJECTED;
 
     /** Step context counters of dead letters written by a replay: new rows and refreshed ones (DOC-22 §4.6). */
-    public static final String DLQ_INSERTED = "pti.dlq.inserted";
+    public static final String DLQ_INSERTED = StepKeys.DLQ_INSERTED;
 
-    public static final String DLQ_UPDATED = "pti.dlq.updated";
+    public static final String DLQ_UPDATED = StepKeys.DLQ_UPDATED;
 
     /** Job parameter that turns on replay semantics (DR-16, DOC-22). */
-    public static final String REPLAY = "replay";
+    public static final String REPLAY = StepKeys.REPLAY;
 
     private StepValues() {}
 
