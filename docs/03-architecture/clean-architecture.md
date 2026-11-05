@@ -14,7 +14,7 @@ Tài liệu này quy định **cách tổ chức code bên trong mỗi module Ja
 | `triage-worker` | Mới (P6) | P6-00 | A-11…A-18 đầy đủ, fail build |
 | `etl` | Cũ (P2) | Phase R (RF-03, RF-04) | Tới Phase R: `FreezingArchRule` (§9.2). **Package mới** thêm vào `etl` từ P4 (ví dụ `dev.pti.etl.analytics`) phải tuân thủ ngay |
 | `source-simulator` | Cũ (P1, P3) | Phase R (RF-02) | Như `etl` |
-| `common` | Cũ (P1) | Phase R (RF-01) | Như `etl`. Lớp mới thêm vào `common` phải Java thuần nếu nằm trong shared kernel (§4.2) |
+| `common` | Cũ (P1) | RF-01 (xong 2026-11-05) | Thư viện phẳng, không áp A-11…A-18 (D-R1, DR-115); kernel là Java thuần (§4.2), kiểm trực tiếp, không freeze |
 | `db` | Cũ (P1) | Phase R (RF-05) | Như `etl` (chỉ là Flyway runner, gần như không có việc) |
 
 **Không áp dụng:** frontend (cấu trúc theo DOC-34, DOC-35) và `experiments/` (Python, ADR-0025).
@@ -390,7 +390,7 @@ Làm theo thứ tự ở master plan §5 (Phase R). Nguyên tắc:
 
 | Module | Vi phạm trong store (đếm lại ở RF-00) | Theo luật | Còn lại | Task |
 | --- | --- | --- | --- | --- |
-| `common` | 64 | A-08: 6, A-14: 16, A-18: 42 | 64 | RF-01 |
+| `common` | 64 | A-08: 6, A-14: 16, A-18: 42 | **0** (RF-01 xong: A-08 sửa; A-14 và A-18 không áp cho thư viện phẳng, D-R1) | RF-01 |
 | `source-simulator` | 254 | A-08: 18, A-14: 28, A-16: 36, A-18: 172 | 254 | RF-02 |
 | `etl` | 289 | A-07: 8, A-08: 41, A-14: 42, A-18: 198 | 289 | RF-03, RF-04 |
 | `db` | 2 | A-18: 2 | 2 | RF-05 |

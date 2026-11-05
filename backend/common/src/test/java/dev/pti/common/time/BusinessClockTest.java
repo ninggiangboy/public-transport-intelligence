@@ -51,6 +51,6 @@ class BusinessClockTest {
         BusinessClock clock = new BusinessClock(Clock.fixed(REAL, ZoneOffset.UTC), Duration.ZERO);
 
         assertThatThrownBy(() -> clock.withZone(ZoneId.of("America/Chicago")))
-                .isInstanceOf(UnsupportedOperationException.class);
+                .isInstanceOf(IllegalArgumentException.class);
     }
 }

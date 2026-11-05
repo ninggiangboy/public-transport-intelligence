@@ -19,6 +19,7 @@ import dev.pti.api.platform.adapter.out.jdbc.QueryMetrics;
 import dev.pti.api.platform.application.RequireActiveFeed;
 import dev.pti.api.platform.application.port.ActiveFeedReader;
 import dev.pti.api.platform.domain.ActiveFeed;
+import dev.pti.common.classifier.PlatformErrorClassifier;
 import dev.pti.common.error.ErrorClassifier;
 import dev.pti.common.time.BusinessClock;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -99,7 +100,7 @@ class PlatformConfiguration implements WebMvcConfigurer {
 
     @Bean
     ErrorClassifier errorClassifier() {
-        return new ErrorClassifier();
+        return new PlatformErrorClassifier();
     }
 
     @Bean

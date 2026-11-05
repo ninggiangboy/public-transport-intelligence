@@ -5,7 +5,7 @@ import static org.assertj.core.api.Assertions.fail;
 
 import dev.pti.common.error.DataException;
 import dev.pti.common.json.MessageJson;
-import dev.pti.common.message.MessageSchemas;
+import dev.pti.common.json.MessageSchemas;
 import dev.pti.etl.config.DqProperties;
 import dev.pti.etl.core.EtlSource;
 import dev.pti.etl.core.InboundMessage;

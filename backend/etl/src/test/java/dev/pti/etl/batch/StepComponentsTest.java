@@ -8,10 +8,10 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import dev.pti.common.classifier.PlatformErrorClassifier;
 import dev.pti.common.dq.DlqStage;
 import dev.pti.common.error.DataException;
 import dev.pti.common.error.DeserializationException;
-import dev.pti.common.error.ErrorClassifier;
 import dev.pti.common.error.TransientInfraException;
 import dev.pti.common.time.BusinessClock;
 import dev.pti.etl.core.EtlSource;
@@ -99,7 +99,7 @@ class StepComponentsTest {
     void ratioSkipPolicySkipsDataErrorsUntilTheRatio() {
         StepExecution step = step(false);
         step.setReadCount(50);
-        RatioSkipPolicy policy = new RatioSkipPolicy(new ErrorClassifier(), 0.2, 100, () -> step);
+        RatioSkipPolicy policy = new RatioSkipPolicy(new PlatformErrorClassifier(), 0.2, 100, () -> step);
 
         assertThat(policy.shouldSkip(new DeserializationException("bad", null), 0))
                 .isTrue();
@@ -118,7 +118,7 @@ class StepComponentsTest {
 
         StepSynchronizationManager.register(step);
         try {
-            assertThat(new RatioSkipPolicy(new ErrorClassifier(), 0.2, 100)
+            assertThat(new RatioSkipPolicy(new PlatformErrorClassifier(), 0.2, 100)
                             .shouldSkip(new DeserializationException("bad", null), 0))
                     .as("the public constructor reads the step of the thread")
                     .isTrue();
@@ -129,7 +129,7 @@ class StepComponentsTest {
 
     @Test
     void transientRetryPolicyRetriesInfrastructureErrorsOnly() {
-        TransientRetryPolicy policy = new TransientRetryPolicy(new ErrorClassifier(), 3);
+        TransientRetryPolicy policy = new TransientRetryPolicy(new PlatformErrorClassifier(), 3);
         RetryContext context = policy.open(null);
         assertThat(policy.canRetry(context)).isTrue();
         policy.registerThrowable(context, new DataIntegrityViolationException("23514"));

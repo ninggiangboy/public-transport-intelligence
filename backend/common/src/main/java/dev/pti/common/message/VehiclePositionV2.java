@@ -8,11 +8,8 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import org.jspecify.annotations.Nullable;
-import tools.jackson.databind.PropertyNamingStrategies;
-import tools.jackson.databind.annotation.JsonNaming;
 
 /** VehiclePosition payload, version 2: version 1 plus {@code occupancy_status} (DOC-09 §3.2, DR-59). */
-@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public record VehiclePositionV2(
         @NotNull @Size(min = 1, max = 64) String vehicleId,
         @NotNull @Size(min = 1, max = 128) String tripId,

@@ -334,7 +334,7 @@ class GtfsParsingTest {
 
     @Test
     void skipPolicySkipsRowErrorsUpToTheLimit() {
-        GtfsSkipPolicy policy = new GtfsSkipPolicy(new dev.pti.common.error.ErrorClassifier(), 2);
+        GtfsSkipPolicy policy = new GtfsSkipPolicy(new dev.pti.common.classifier.PlatformErrorClassifier(), 2);
         assertThat(policy.shouldSkip(new GtfsRowException("bad"), 0)).isTrue();
         assertThat(policy.shouldSkip(new FlatFileParseException("bad", "x", 3), 1))
                 .isTrue();

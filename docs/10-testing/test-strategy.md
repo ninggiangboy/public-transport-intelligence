@@ -110,7 +110,7 @@ Lớp `PtiArchitectureRules` trong `backend/common/src/testFixtures`, mỗi app 
 A-11…A-18 được thêm ở P4-18 (DR-104, ADR-0032):
 
 - `analytics`, `api`, `triage-worker` gọi các luật trực tiếp: vi phạm là test đỏ. `analytics` là thư viện nên có test ArchUnit riêng trong module.
-- `etl`, `source-simulator`, `common`, `db` gọi A-11…A-18 qua `FreezingArchRule`. Store vi phạm nằm ở `backend/<module>/src/test/resources/archunit_store/` và được commit; `archunit.properties` đặt `freeze.store.default.allowStoreCreation=false`. Store chỉ được giảm. Package mới trong các module này (ví dụ `dev.pti.etl.analytics`) không được có mặt trong store.
+- `etl`, `source-simulator`, `db` gọi A-11…A-18 qua `FreezingArchRule`. `common` không áp A-11…A-18 từ RF-01: nó là thư viện phẳng, bị ràng bởi luật "kernel là Java thuần" và A-13 của các app (DR-115). Store vi phạm nằm ở `backend/<module>/src/test/resources/archunit_store/` và được commit; `archunit.properties` đặt `freeze.store.default.allowStoreCreation=false`. Store chỉ được giảm. Package mới trong các module này (ví dụ `dev.pti.etl.analytics`) không được có mặt trong store.
 - Phase R (RF-07) xóa freeze; từ đó mọi module chạy A-11…A-18 trực tiếp.
 
 ## 4. Test theo module

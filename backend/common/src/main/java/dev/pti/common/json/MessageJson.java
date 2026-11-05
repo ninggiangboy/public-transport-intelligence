@@ -19,7 +19,7 @@ import tools.jackson.databind.module.SimpleModule;
 import tools.jackson.databind.ser.std.StdSerializer;
 
 /**
- * The Jackson setup for Kafka messages (DOC-09): snake_case names come from the DTOs, timestamps are written in
+ * The Jackson setup for Kafka messages (DOC-09): snake_case names come from the mixins of {@link MessageMixins}, timestamps are written in
  * the {@link Timestamps} form, absent optional fields are omitted, and reading is strict (unknown fields, scalar
  * coercion and numeric enums fail), matching {@code additionalProperties: false} in the schemas. REST JSON uses
  * Spring Boot's own mapper with camelCase (DR-39); the two are never mixed.
@@ -27,6 +27,7 @@ import tools.jackson.databind.ser.std.StdSerializer;
 public final class MessageJson {
 
     private static final JsonMapper MAPPER = JsonMapper.builder()
+            .addModule(MessageMixins.module())
             .addModule(new SimpleModule("pti-messages").addSerializer(Instant.class, new InstantSerializer()))
             .changeDefaultPropertyInclusion(incl -> incl.withValueInclusion(JsonInclude.Include.NON_NULL))
             .enable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)

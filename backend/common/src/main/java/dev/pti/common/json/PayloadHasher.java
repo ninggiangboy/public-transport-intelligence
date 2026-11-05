@@ -1,9 +1,9 @@
-package dev.pti.common.message;
+package dev.pti.common.json;
 
-import dev.pti.common.json.MessageJson;
+import dev.pti.common.error.FatalException;
+import dev.pti.common.message.Envelope;
 import dev.pti.common.time.Timestamps;
 import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -65,7 +65,7 @@ public final class PayloadHasher {
         try {
             return new JsonCanonicalizer(MessageJson.mapper().writeValueAsString(node)).getEncodedString();
         } catch (IOException e) {
-            throw new UncheckedIOException(e);
+            throw new FatalException("Cannot canonicalise the payload", e);
         }
     }
 

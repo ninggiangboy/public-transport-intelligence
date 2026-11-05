@@ -1,8 +1,17 @@
-package dev.pti.common.error;
+package dev.pti.common.classifier;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 import dev.pti.common.dq.DlqStage;
+import dev.pti.common.error.DataException;
+import dev.pti.common.error.DeserializationException;
+import dev.pti.common.error.ErrorClassifier;
+import dev.pti.common.error.ErrorKind;
+import dev.pti.common.error.ErrorPhase;
+import dev.pti.common.error.FatalException;
+import dev.pti.common.error.RuleViolationException;
+import dev.pti.common.error.SchemaViolationException;
+import dev.pti.common.error.TransientInfraException;
 import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import java.io.IOException;
@@ -39,9 +48,9 @@ import tools.jackson.core.exc.StreamReadException;
 import tools.jackson.databind.json.JsonMapper;
 
 /** DOC-30 §6: E-01 to E-04. */
-class ErrorClassifierTest {
+class PlatformErrorClassifierTest {
 
-    private final ErrorClassifier classifier = new ErrorClassifier();
+    private final ErrorClassifier classifier = new PlatformErrorClassifier();
 
     /** The driver's own exception, as JdbcTemplate wraps it. */
     @Test

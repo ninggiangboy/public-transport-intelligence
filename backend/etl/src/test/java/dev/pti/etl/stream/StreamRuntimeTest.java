@@ -8,7 +8,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import dev.pti.common.error.ErrorClassifier;
+import dev.pti.common.classifier.PlatformErrorClassifier;
 import dev.pti.common.error.FatalException;
 import dev.pti.common.error.TransientInfraException;
 import dev.pti.etl.core.EtlSource;
@@ -174,7 +174,7 @@ class StreamRuntimeTest {
                 new MessageProcessors(List.of(processor)),
                 mock(ChunkWriter.class),
                 breaker,
-                new ErrorClassifier(),
+                new PlatformErrorClassifier(),
                 "pod-1");
         StreamChunkResult ok = result(EtlSource.TICKETING_SALES, null);
         ArgumentCaptor<StreamChunkRequest> request = ArgumentCaptor.forClass(StreamChunkRequest.class);

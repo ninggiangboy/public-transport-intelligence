@@ -1,7 +1,8 @@
 package dev.pti.etl.config;
 
+import dev.pti.common.classifier.PlatformErrorClassifier;
 import dev.pti.common.error.ErrorClassifier;
-import dev.pti.common.message.MessageSchemas;
+import dev.pti.common.json.MessageSchemas;
 import dev.pti.common.pii.PiiScrubber;
 import dev.pti.common.time.BusinessClock;
 import dev.pti.etl.core.MessageProcessor;
@@ -84,7 +85,7 @@ public class EtlCoreConfiguration {
 
     @Bean
     ErrorClassifier errorClassifier() {
-        return new ErrorClassifier();
+        return new PlatformErrorClassifier();
     }
 
     @Bean

@@ -2,7 +2,6 @@ package dev.pti.common.gtfs;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.UncheckedIOException;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.function.Consumer;
@@ -42,7 +41,7 @@ public final class GtfsZipReader implements AutoCloseable {
         try (InputStream in = zip.getInputStream(entry)) {
             return GtfsCsv.read(file, in, rows);
         } catch (IOException e) {
-            throw new UncheckedIOException(e);
+            throw new GtfsFormatException("Cannot read " + file + " from the feed", e);
         }
     }
 
@@ -51,7 +50,7 @@ public final class GtfsZipReader implements AutoCloseable {
         try {
             zip.close();
         } catch (IOException e) {
-            throw new UncheckedIOException(e);
+            throw new GtfsFormatException("Cannot close the feed", e);
         }
     }
 }

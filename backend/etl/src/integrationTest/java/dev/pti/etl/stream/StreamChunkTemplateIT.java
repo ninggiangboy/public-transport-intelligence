@@ -7,8 +7,8 @@ import static dev.pti.etl.WarehouseSupport.vp;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import dev.pti.common.classifier.PlatformErrorClassifier;
 import dev.pti.common.error.DeserializationException;
-import dev.pti.common.error.ErrorClassifier;
 import dev.pti.common.error.TransientInfraException;
 import dev.pti.common.time.BusinessClock;
 import dev.pti.etl.WarehouseSupport;
@@ -68,7 +68,7 @@ class StreamChunkTemplateIT {
                 db.tx,
                 db.deadLetters,
                 new StreamBatchLog(db.named),
-                new ErrorClassifier(),
+                new PlatformErrorClassifier(),
                 FAULTS,
                 EVENTS::add,
                 new BusinessClock(Clock.fixed(NOW, ZoneOffset.UTC), Duration.ZERO),

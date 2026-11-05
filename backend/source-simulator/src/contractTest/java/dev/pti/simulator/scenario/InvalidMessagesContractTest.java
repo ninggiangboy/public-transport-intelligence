@@ -4,9 +4,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import dev.pti.common.json.MessageJson;
+import dev.pti.common.json.MessageSchemas;
 import dev.pti.common.message.EntityType;
 import dev.pti.common.message.Envelope;
-import dev.pti.common.message.MessageSchemas;
 import dev.pti.common.message.Payload;
 import dev.pti.simulator.emit.EmitterHarness;
 import dev.pti.simulator.emit.OutboundMessage;

@@ -3,7 +3,7 @@ package dev.pti.simulator.emit;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import dev.pti.common.json.MessageJson;
-import dev.pti.common.message.MessageSchemas;
+import dev.pti.common.json.MessageSchemas;
 import dev.pti.simulator.feed.Feeds;
 import java.time.Duration;
 import java.time.Instant;

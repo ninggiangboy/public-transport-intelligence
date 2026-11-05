@@ -9,7 +9,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import dev.pti.api.platform.domain.ApiException;
 import dev.pti.api.platform.domain.ProblemType;
-import dev.pti.common.error.ErrorClassifier;
+import dev.pti.common.classifier.PlatformErrorClassifier;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import jakarta.validation.ConstraintViolationException;
 import java.util.List;
@@ -75,7 +75,8 @@ class ApiExceptionHandlerTest {
 
     @BeforeEach
     void setUp() {
-        ApiExceptionHandler advice = new ApiExceptionHandler(new ProblemFactory(registry), new ErrorClassifier());
+        ApiExceptionHandler advice =
+                new ApiExceptionHandler(new ProblemFactory(registry), new PlatformErrorClassifier());
         mvc = MockMvcBuilders.standaloneSetup(new Controller())
                 .setControllerAdvice(advice)
                 .addInterceptors(new UnknownQueryParameterInterceptor())

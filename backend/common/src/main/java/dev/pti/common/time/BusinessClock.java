@@ -67,6 +67,9 @@ public class BusinessClock extends Clock {
     /** Business clocks are always UTC; a zoned view would hide which of the two times is meant. */
     @Override
     public Clock withZone(ZoneId zone) {
-        throw new UnsupportedOperationException("BusinessClock is always UTC");
+        if (zone.equals(ZoneOffset.UTC)) {
+            return this;
+        }
+        throw new IllegalArgumentException("BusinessClock is always UTC");
     }
 }

@@ -53,7 +53,7 @@ Quy tắc:
 
 ### 2.1 Thuật toán `ErrorClassifier`
 
-`ErrorClassifier implements Classifier<Throwable, ErrorKind>`, bean trong `common`. Duyệt chuỗi `cause` từ ngoài vào trong (tối đa 10 tầng) và dừng ở luật khớp đầu tiên theo thứ tự các bảng dưới đây. Không khớp luật nào thì trả `FATAL` (ADR-0006).
+`ErrorClassifier` là interface trong `common.error` (kernel); `PlatformErrorClassifier` (`common.classifier`) là hiện thực duy nhất và là bean trong từng app (DR-115). Duyệt chuỗi `cause` từ ngoài vào trong (tối đa 10 tầng) và dừng ở luật khớp đầu tiên theo thứ tự các bảng dưới đây. Không khớp luật nào thì trả `FATAL` (ADR-0006).
 
 ### 2.2 Exception của dự án và của thư viện
 

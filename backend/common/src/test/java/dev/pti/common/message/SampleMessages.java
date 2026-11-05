@@ -10,14 +10,14 @@ import java.util.UUID;
 import tools.jackson.databind.node.ObjectNode;
 
 /** The DOC-09 examples, as JSON and as DTOs. */
-final class SampleMessages {
+public final class SampleMessages {
 
-    static final String VEHICLE_POSITION_V2 = "messages/vehicle-position.v2.json";
-    static final String TRIP_UPDATE_V1 = "messages/trip-update.v1.json";
+    public static final String VEHICLE_POSITION_V2 = "messages/vehicle-position.v2.json";
+    public static final String TRIP_UPDATE_V1 = "messages/trip-update.v1.json";
 
     private SampleMessages() {}
 
-    static ObjectNode json(String resource) {
+    public static ObjectNode json(String resource) {
         try (InputStream in = SampleMessages.class.getClassLoader().getResourceAsStream(resource)) {
             return (ObjectNode) MessageJson.mapper().readTree(in);
         } catch (IOException e) {
@@ -25,7 +25,7 @@ final class SampleMessages {
         }
     }
 
-    static VehiclePositionV1 vehiclePositionV1() {
+    public static VehiclePositionV1 vehiclePositionV1() {
         return new VehiclePositionV1(
                 "2050",
                 "1361959",
@@ -41,7 +41,7 @@ final class SampleMessages {
                 VehicleStopStatus.IN_TRANSIT_TO);
     }
 
-    static VehiclePositionV2 vehiclePositionV2() {
+    public static VehiclePositionV2 vehiclePositionV2() {
         return new VehiclePositionV2(
                 "2050",
                 "1361959",
@@ -58,7 +58,7 @@ final class SampleMessages {
                 OccupancyStatus.FEW_SEATS_AVAILABLE);
     }
 
-    static TripUpdateV1 tripUpdateV1() {
+    public static TripUpdateV1 tripUpdateV1() {
         return new TripUpdateV1(
                 "1361959",
                 "18",
@@ -80,7 +80,7 @@ final class SampleMessages {
                                 ScheduleRelationship.SCHEDULED)));
     }
 
-    static Envelope<VehiclePositionV2> vehiclePositionEnvelope() {
+    public static Envelope<VehiclePositionV2> vehiclePositionEnvelope() {
         return Envelope.of(
                 UUID.fromString("0192f4a6-7c1e-7b3a-9d2e-5f0a1b2c3d4e"),
                 Envelope.SIMULATOR_SOURCE,
@@ -89,7 +89,7 @@ final class SampleMessages {
                 vehiclePositionV2());
     }
 
-    static Envelope<TripUpdateV1> tripUpdateEnvelope() {
+    public static Envelope<TripUpdateV1> tripUpdateEnvelope() {
         return Envelope.of(
                 UUID.fromString("0192f4a6-8a10-7d44-b0c1-22aa4c1e9f10"),
                 Envelope.SIMULATOR_SOURCE,

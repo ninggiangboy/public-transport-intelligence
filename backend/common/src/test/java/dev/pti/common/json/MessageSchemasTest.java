@@ -1,4 +1,4 @@
-package dev.pti.common.message;
+package dev.pti.common.json;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -6,7 +6,10 @@ import com.networknt.schema.Schema;
 import com.networknt.schema.SchemaLocation;
 import com.networknt.schema.SchemaRegistry;
 import com.networknt.schema.SpecificationVersion;
-import dev.pti.common.json.MessageJson;
+import dev.pti.common.message.Envelope;
+import dev.pti.common.message.PayloadType;
+import dev.pti.common.message.SampleMessages;
+import dev.pti.common.message.VehiclePositionV1;
 import java.io.InputStream;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;

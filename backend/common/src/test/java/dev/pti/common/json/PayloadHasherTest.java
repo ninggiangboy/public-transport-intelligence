@@ -1,9 +1,9 @@
-package dev.pti.common.message;
+package dev.pti.common.json;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import dev.pti.common.json.MessageJson;
+import dev.pti.common.message.SampleMessages;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.node.ObjectNode;
 

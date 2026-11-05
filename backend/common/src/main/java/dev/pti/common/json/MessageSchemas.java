@@ -1,13 +1,13 @@
-package dev.pti.common.message;
+package dev.pti.common.json;
 
 import com.networknt.schema.Error;
 import com.networknt.schema.Schema;
 import com.networknt.schema.SchemaRegistry;
 import com.networknt.schema.SpecificationVersion;
-import dev.pti.common.json.MessageJson;
+import dev.pti.common.error.FatalException;
+import dev.pti.common.message.PayloadType;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.List;
@@ -70,7 +70,7 @@ public final class MessageSchemas {
             }
             return registry.getSchema(in);
         } catch (IOException e) {
-            throw new UncheckedIOException(e);
+            throw new FatalException("Cannot load the message schema " + resource, e);
         }
     }
 }

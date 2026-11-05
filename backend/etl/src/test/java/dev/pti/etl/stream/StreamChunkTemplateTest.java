@@ -4,9 +4,9 @@ import static dev.pti.etl.testing.EtlFixtures.NOW;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import dev.pti.common.classifier.PlatformErrorClassifier;
 import dev.pti.common.dq.DlqStage;
 import dev.pti.common.error.DeserializationException;
-import dev.pti.common.error.ErrorClassifier;
 import dev.pti.common.error.FatalException;
 import dev.pti.common.error.TransientInfraException;
 import dev.pti.common.time.BusinessClock;
@@ -92,7 +92,7 @@ class StreamChunkTemplateTest {
                 new TransactionTemplate(txManager),
                 deadLetters,
                 batchLog,
-                new ErrorClassifier(),
+                new PlatformErrorClassifier(),
                 FaultInjector.NOOP,
                 events::add,
                 new BusinessClock(Clock.fixed(NOW, ZoneOffset.UTC), Duration.ZERO),

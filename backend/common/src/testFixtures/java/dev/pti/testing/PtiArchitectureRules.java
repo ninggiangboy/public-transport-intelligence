@@ -89,14 +89,16 @@ public final class PtiArchitectureRules {
             "dev.pti.common.time",
             "dev.pti.common.error",
             "dev.pti.common.dq",
+            "dev.pti.common.gtfs",
+            "dev.pti.common.message",
             "dev.pti.common.tx",
             "dev.pti.common.id",
             "dev.pti.common.events");
 
-    /** Kernel types that live in a package which is otherwise not in the kernel, or are excluded from one that is. */
-    private static final String GTFS_TIME = "dev.pti.common.gtfs.GtfsTime";
+    /** The one framework API that the kernel may use: the constraint annotations on the message records (X-04). */
+    private static final String MESSAGE_PACKAGE = "dev.pti.common.message";
 
-    private static final String ERROR_CLASSIFIER = "dev.pti.common.error.ErrorClassifier";
+    private static final String VALIDATION_ANNOTATIONS = "jakarta.validation..";
 
     private static final String CONFIGURATION_PROPERTIES =
             "org.springframework.boot.context.properties.ConfigurationProperties";
@@ -773,8 +775,12 @@ public final class PtiArchitectureRules {
      */
     public static ArchRule sharedKernelIsJavaPure() {
         DescribedPredicate<JavaClass> infrastructure = JavaClass.Predicates.resideInAnyPackage(INFRASTRUCTURE_PACKAGES);
+        DescribedPredicate<JavaClass> validationAnnotations =
+                JavaClass.Predicates.resideInAPackage(VALIDATION_ANNOTATIONS);
         ArchCondition<JavaClass> condition = noDependencyCondition(
-                "depend on no framework or infrastructure", (origin, target) -> infrastructure.test(target));
+                "depend on no framework or infrastructure",
+                (origin, target) ->
+                        infrastructure.test(target) && !(validationAnnotations.test(target) && isMessageClass(origin)));
         return ArchRuleDefinition.classes()
                 .that(DescribedPredicate.describe(
                         "are in the shared kernel of common", PtiArchitectureRules::isSharedKernel))
@@ -868,20 +874,19 @@ public final class PtiArchitectureRules {
         return place != null && (place.layer() == Layer.DOMAIN || place.layer() == Layer.APPLICATION);
     }
 
+    /** X-04 (DOC-49 §10): the message records carry {@code jakarta.validation} constraint annotations. */
+    private static boolean isMessageClass(JavaClass javaClass) {
+        String packageName = javaClass.getPackageName();
+        return packageName.equals(MESSAGE_PACKAGE);
+    }
+
     private static boolean isCommon(JavaClass javaClass) {
         String packageName = javaClass.getPackageName();
         return packageName.equals(COMMON_PACKAGE) || packageName.startsWith(COMMON_PACKAGE + ".");
     }
 
-    /** The kernel of DOC-49 §4.2: time, error (not ErrorClassifier), dq, GtfsTime, tx, id, events. */
+    /** The kernel of DOC-49 §4.2: time, error, dq, gtfs, message, tx, id, events. */
     private static boolean isSharedKernel(JavaClass javaClass) {
-        String name = topLevelName(javaClass);
-        if (name.equals(GTFS_TIME)) {
-            return true;
-        }
-        if (name.equals(ERROR_CLASSIFIER)) {
-            return false;
-        }
         String packageName = javaClass.getPackageName();
         return SHARED_KERNEL_PACKAGES.stream()
                 .anyMatch(kernel -> packageName.equals(kernel) || packageName.startsWith(kernel + "."));

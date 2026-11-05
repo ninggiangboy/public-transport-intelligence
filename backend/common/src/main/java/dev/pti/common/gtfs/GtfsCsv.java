@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
-import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -44,7 +43,7 @@ public final class GtfsCsv {
             }
             return List.copyOf(header);
         } catch (IOException e) {
-            throw new UncheckedIOException(e);
+            throw new GtfsFormatException("Cannot read " + file, e);
         }
     }
 

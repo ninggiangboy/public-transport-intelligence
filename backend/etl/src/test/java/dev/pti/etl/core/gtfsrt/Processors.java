@@ -1,6 +1,6 @@
 package dev.pti.etl.core.gtfsrt;
 
-import dev.pti.common.message.MessageSchemas;
+import dev.pti.common.json.MessageSchemas;
 import dev.pti.etl.rules.RealtimeRules;
 import dev.pti.etl.rules.RuleEngine;
 import dev.pti.etl.testing.EtlFixtures;

@@ -44,7 +44,7 @@ import dev.pti.api.etlops.domain.RawReplayRules;
 import dev.pti.api.platform.application.RequireActiveFeed;
 import dev.pti.api.platform.application.port.WriteMetrics;
 import dev.pti.common.events.UiEventPublisher;
-import dev.pti.common.message.MessageSchemas;
+import dev.pti.common.json.MessageSchemas;
 import dev.pti.common.pii.PiiScrubber;
 import dev.pti.common.time.BusinessClock;
 import dev.pti.common.tx.TransactionRunner;
