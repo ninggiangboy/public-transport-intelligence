@@ -1,6 +1,5 @@
 package dev.pti.etl.stream.adapter.in.kafka;
 
-import dev.pti.etl.stream.application.StreamChunkHandler;
 import dev.pti.etl.stream.application.StreamListener;
 import java.util.List;
 import org.apache.kafka.clients.consumer.ConsumerRecord;

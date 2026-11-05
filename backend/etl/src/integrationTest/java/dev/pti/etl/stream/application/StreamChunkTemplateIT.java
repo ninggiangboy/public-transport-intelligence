@@ -22,7 +22,10 @@ import dev.pti.etl.fault.adapter.out.chaos.ConfigurableFaultInjector;
 import dev.pti.etl.fault.domain.FaultAction;
 import dev.pti.etl.fault.domain.FaultPoint;
 import dev.pti.etl.reference.ReferenceDataHolder;
+import dev.pti.etl.stream.adapter.out.jdbc.SpringChunkTransaction;
 import dev.pti.etl.stream.adapter.out.jdbc.StreamBatchLog;
+import dev.pti.etl.stream.adapter.out.metrics.MicrometerStreamMetrics;
+import dev.pti.etl.stream.adapter.out.tracing.NoopChunkTracing;
 import dev.pti.etl.write.adapter.out.metrics.MicrometerWriteMetrics;
 import dev.pti.etl.write.domain.WriteMode;
 import java.nio.charset.StandardCharsets;
@@ -66,7 +69,7 @@ class StreamChunkTemplateIT {
 
     private static StreamChunkTemplate template(boolean failBatch) {
         return new StreamChunkTemplate(
-                db.tx,
+                new SpringChunkTransaction(db.tx),
                 db.deadLetters,
                 new StreamBatchLog(db.named),
                 new PlatformErrorClassifier(),
@@ -75,7 +78,8 @@ class StreamChunkTemplateIT {
                 new BusinessClock(Clock.fixed(NOW, ZoneOffset.UTC), Duration.ZERO),
                 new ReferenceDataHolder(),
                 new MicrometerWriteMetrics(db.meters),
-                db.meters,
+                new MicrometerStreamMetrics(db.meters),
+                NoopChunkTracing.INSTANCE,
                 failBatch);
     }
 

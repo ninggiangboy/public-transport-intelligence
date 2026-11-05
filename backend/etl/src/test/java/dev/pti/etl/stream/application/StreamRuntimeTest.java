@@ -20,6 +20,7 @@ import dev.pti.etl.stream.adapter.in.kafka.BaselineListeners;
 import dev.pti.etl.stream.adapter.in.kafka.EtlListeners;
 import dev.pti.etl.stream.adapter.in.kafka.ListenerLifecycleManager;
 import dev.pti.etl.stream.adapter.in.kafka.ListenerPauseCoordinator;
+import dev.pti.etl.stream.adapter.in.kafka.StreamChunkHandler;
 import dev.pti.etl.write.application.port.ChunkWriter;
 import dev.pti.etl.write.domain.WriteMode;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
@@ -179,7 +180,8 @@ class StreamRuntimeTest {
                 mock(ChunkWriter.class),
                 breaker,
                 new PlatformErrorClassifier(),
-                "pod-1");
+                "pod-1",
+                new FakeStreamMetrics());
         StreamChunkResult ok = result(EtlSource.TICKETING_SALES, null);
         ArgumentCaptor<StreamChunkRequest> request = ArgumentCaptor.forClass(StreamChunkRequest.class);
         when(template.execute(request.capture(), any(), any()))

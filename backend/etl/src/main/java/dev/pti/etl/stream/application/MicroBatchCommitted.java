@@ -1,7 +1,7 @@
 package dev.pti.etl.stream.application;
 
 import dev.pti.etl.core.domain.EtlSource;
-import io.micrometer.tracing.TraceContext;
+import dev.pti.etl.stream.application.port.PollSpan;
 import java.time.Instant;
 import java.util.Set;
 import java.util.UUID;
@@ -13,13 +13,13 @@ import org.jspecify.annotations.Nullable;
  *
  * @param committedAt real time at the commit, for {@code pti_analytics_dispatch_delay_seconds} and
  *     {@code pti_ui_commit_to_publish_seconds} (DOC-20 §8)
- * @param pollTrace the trace context of the {@code pti.etl.poll} span, so that work done later on another thread can
- *     link to it (DOC-23 §14.3); {@code null} when tracing is off
+ * @param pollTrace the trace of the {@code pti.etl.poll} span, so that work done later on another thread can link to
+ *     it (DOC-23 §14.3); {@code null} when tracing is off
  */
 public record MicroBatchCommitted(
         StreamChunkResult result,
         Instant committedAt,
-        @Nullable TraceContext pollTrace) {
+        @Nullable PollSpan pollTrace) {
 
     public MicroBatchCommitted(StreamChunkResult result, Instant committedAt) {
         this(result, committedAt, null);

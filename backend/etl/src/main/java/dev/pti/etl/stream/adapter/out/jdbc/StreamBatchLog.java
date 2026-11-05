@@ -3,6 +3,7 @@ package dev.pti.etl.stream.adapter.out.jdbc;
 import dev.pti.common.json.MessageJson;
 import dev.pti.etl.stream.application.StreamChunkRequest;
 import dev.pti.etl.stream.application.StreamChunkResult;
+import dev.pti.etl.stream.application.port.ChunkBatchLog;
 import dev.pti.etl.write.domain.WriteMode;
 import java.sql.Types;
 import java.time.Instant;
@@ -18,7 +19,7 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
  * {@code ops.etl_stream_batch} (DR-22, DR-63): one row per committed poll, written inside its transaction, and a
  * best-effort FAILED row for a poll that rolled back.
  */
-public class StreamBatchLog {
+public class StreamBatchLog implements ChunkBatchLog {
 
     private static final Logger log = LoggerFactory.getLogger(StreamBatchLog.class);
     private static final int MAX_ERROR_MESSAGE = 4000;

@@ -33,7 +33,6 @@ import dev.pti.etl.write.adapter.out.jdbc.JdbcDeadLetterWriter;
 import dev.pti.etl.write.adapter.out.jdbc.JdbcRefundOriginals;
 import dev.pti.etl.write.adapter.out.metrics.MicrometerWriteMetrics;
 import dev.pti.etl.write.application.RefundRule;
-import dev.pti.etl.write.application.WriteStats;
 import dev.pti.etl.write.application.port.DeadLetterWriter;
 import dev.pti.etl.write.application.port.WriteMetrics;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -195,7 +194,7 @@ public class EtlCoreConfiguration {
     }
 
     @Bean
-    WriteStats writeMetrics(MeterRegistry meters) {
+    WriteMetrics writeMetrics(MeterRegistry meters) {
         return new MicrometerWriteMetrics(meters);
     }
 

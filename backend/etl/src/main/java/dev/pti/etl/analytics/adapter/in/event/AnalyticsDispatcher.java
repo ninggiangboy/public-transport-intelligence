@@ -4,6 +4,7 @@ import dev.pti.etl.analytics.application.BatchCommit;
 import dev.pti.etl.analytics.application.DispatchBatchAnalytics;
 import dev.pti.etl.analytics.application.DispatchSummary;
 import dev.pti.etl.stream.application.MicroBatchCommitted;
+import dev.pti.etl.stream.application.port.PollSpan;
 import io.micrometer.tracing.Link;
 import io.micrometer.tracing.Span;
 import io.micrometer.tracing.Tracer;
@@ -52,7 +53,12 @@ public class AnalyticsDispatcher {
                 .tag("trigger", "batch")
                 .tag("source", batch.source().name());
         if (event.pollTrace() != null) {
-            builder.addLink(new Link(event.pollTrace()));
+            PollSpan poll = event.pollTrace();
+            builder.addLink(new Link(tracer.traceContextBuilder()
+                    .traceId(poll.traceId())
+                    .spanId(poll.spanId())
+                    .sampled(poll.sampled())
+                    .build()));
         }
         Span span = builder.start();
         try (Tracer.SpanInScope _ = tracer.withSpan(span)) {

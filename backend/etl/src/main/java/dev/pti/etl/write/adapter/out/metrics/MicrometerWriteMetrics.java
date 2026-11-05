@@ -2,14 +2,14 @@ package dev.pti.etl.write.adapter.out.metrics;
 
 import dev.pti.etl.core.domain.EtlSource;
 import dev.pti.etl.write.adapter.out.jdbc.AfterCommit;
-import dev.pti.etl.write.application.WriteStats;
+import dev.pti.etl.write.application.port.WriteMetrics;
 import dev.pti.etl.write.domain.RunMode;
 import dev.pti.etl.write.domain.WriteOutcome;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 
-/** {@link WriteStats} on Micrometer (DOC-28): the write and duplicate counters, incremented after commit. */
-public final class MicrometerWriteMetrics implements WriteStats {
+/** {@link WriteMetrics} on Micrometer (DOC-28): the write and duplicate counters, incremented after commit. */
+public final class MicrometerWriteMetrics implements WriteMetrics {
 
     private final MeterRegistry meters;
 

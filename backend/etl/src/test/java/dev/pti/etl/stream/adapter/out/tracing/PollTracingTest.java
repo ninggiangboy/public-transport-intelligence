@@ -1,4 +1,4 @@
-package dev.pti.etl.stream.adapter.in.kafka;
+package dev.pti.etl.stream.adapter.out.tracing;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.tuple;
 import dev.pti.etl.core.domain.EtlSource;
 import dev.pti.etl.core.domain.InboundMessage;
 import dev.pti.etl.stream.application.StreamChunkRequest;
+import dev.pti.etl.stream.application.port.ChunkTracing;
 import io.micrometer.tracing.otel.bridge.OtelCurrentTraceContext;
 import io.micrometer.tracing.otel.bridge.OtelTracer;
 import io.opentelemetry.api.trace.SpanContext;
@@ -53,7 +54,7 @@ class PollTracingTest {
                 "not a traceparent",
                 null);
 
-        try (PollTracing.Poll poll = tracing.poll(request)) {
+        try (ChunkTracing.Poll poll = tracing.poll(request)) {
             tracing.child("pti.etl.write", "GTFS_RT_VEHICLE_POSITION", () -> {});
             poll.outcome("completed");
         }
@@ -78,7 +79,7 @@ class PollTracingTest {
             headers.add(traceparent(TRACE_A, "%016x".formatted(i + 1), "01"));
         }
 
-        try (PollTracing.Poll _ = tracing.poll(request(headers.toArray(String[]::new)))) {
+        try (ChunkTracing.Poll _ = tracing.poll(request(headers.toArray(String[]::new)))) {
             // nothing else in the poll
         }
 

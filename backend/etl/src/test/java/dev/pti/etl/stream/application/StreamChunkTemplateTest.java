@@ -19,6 +19,8 @@ import dev.pti.etl.core.domain.WriteSet;
 import dev.pti.etl.fault.application.port.FaultInjector;
 import dev.pti.etl.reference.ReferenceDataHolder;
 import dev.pti.etl.stream.adapter.out.jdbc.StreamBatchLog;
+import dev.pti.etl.stream.adapter.out.metrics.MicrometerStreamMetrics;
+import dev.pti.etl.stream.adapter.out.tracing.NoopChunkTracing;
 import dev.pti.etl.write.adapter.out.metrics.MicrometerWriteMetrics;
 import dev.pti.etl.write.application.port.ChunkWriter;
 import dev.pti.etl.write.application.port.DeadLetterWriter;
@@ -41,13 +43,12 @@ import org.junit.jupiter.api.Test;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import org.springframework.transaction.support.TransactionTemplate;
 import tools.jackson.core.exc.StreamReadException;
 
 /** DOC-19 §6.2 without a database: the transaction boundaries, the scan and what reaches the dead-letter queue. */
 class StreamChunkTemplateTest {
 
-    private final FakeTransactionManager txManager = new FakeTransactionManager();
+    private final FakeChunkTransaction txManager = new FakeChunkTransaction();
     private final List<DeadLetter> live = new ArrayList<>();
     private final List<DeadLetter> replayed = new ArrayList<>();
     private final List<StreamChunkResult> logged = new ArrayList<>();
@@ -103,7 +104,7 @@ class StreamChunkTemplateTest {
 
     private StreamChunkTemplate template(boolean failBatch) {
         return new StreamChunkTemplate(
-                new TransactionTemplate(txManager),
+                txManager,
                 deadLetters,
                 batchLog,
                 new PlatformErrorClassifier(),
@@ -112,7 +113,8 @@ class StreamChunkTemplateTest {
                 new BusinessClock(Clock.fixed(NOW, ZoneOffset.UTC), Duration.ZERO),
                 new ReferenceDataHolder(),
                 new MicrometerWriteMetrics(meters),
-                meters,
+                new MicrometerStreamMetrics(meters),
+                NoopChunkTracing.INSTANCE,
                 failBatch);
     }
 

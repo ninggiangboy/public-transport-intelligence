@@ -11,21 +11,29 @@ import dev.pti.etl.health.ReferenceDataHealthIndicator;
 import dev.pti.etl.health.SourceHealthIndicator;
 import dev.pti.etl.health.WarehouseHealthIndicator;
 import dev.pti.etl.reference.ReferenceDataHolder;
+import dev.pti.etl.stream.adapter.in.event.SourceActivityListener;
 import dev.pti.etl.stream.adapter.in.kafka.BaselineListeners;
 import dev.pti.etl.stream.adapter.in.kafka.EtlListeners;
 import dev.pti.etl.stream.adapter.in.kafka.ListenerLifecycleManager;
 import dev.pti.etl.stream.adapter.in.kafka.ListenerPauseCoordinator;
-import dev.pti.etl.stream.adapter.in.kafka.PollTracing;
+import dev.pti.etl.stream.adapter.in.kafka.StreamChunkHandler;
+import dev.pti.etl.stream.adapter.out.event.SpringBatchCommittedPublisher;
+import dev.pti.etl.stream.adapter.out.jdbc.SpringChunkTransaction;
 import dev.pti.etl.stream.adapter.out.jdbc.StreamBatchLog;
+import dev.pti.etl.stream.adapter.out.metrics.MicrometerStreamMetrics;
+import dev.pti.etl.stream.adapter.out.tracing.PollTracing;
 import dev.pti.etl.stream.application.DataBatchFailedException;
 import dev.pti.etl.stream.application.SourceActivity;
-import dev.pti.etl.stream.application.StreamChunkHandler;
 import dev.pti.etl.stream.application.StreamChunkTemplate;
 import dev.pti.etl.stream.application.StreamListener;
 import dev.pti.etl.stream.application.TopicNames;
+import dev.pti.etl.stream.application.port.BatchCommittedPublisher;
+import dev.pti.etl.stream.application.port.ChunkBatchLog;
+import dev.pti.etl.stream.application.port.ChunkTracing;
+import dev.pti.etl.stream.application.port.ChunkTransaction;
+import dev.pti.etl.stream.application.port.StreamMetrics;
 import dev.pti.etl.write.adapter.out.jdbc.BaselineFactWriter;
 import dev.pti.etl.write.adapter.out.jdbc.FactChunkWriter;
-import dev.pti.etl.write.application.WriteStats;
 import dev.pti.etl.write.application.port.ChunkWriter;
 import dev.pti.etl.write.application.port.DeadLetterWriter;
 import dev.pti.etl.write.application.port.WriteMetrics;
@@ -208,35 +216,53 @@ public class EtlStreamConfiguration {
     }
 
     @Bean
+    ChunkTransaction chunkTransaction(TransactionTemplate tx) {
+        return new SpringChunkTransaction(tx);
+    }
+
+    @Bean
+    StreamMetrics streamMetrics(MeterRegistry meters) {
+        return new MicrometerStreamMetrics(meters);
+    }
+
+    @Bean
+    BatchCommittedPublisher batchCommittedPublisher(ApplicationEventPublisher events, Environment env) {
+        // DOC-20 §9: the baseline publishes nothing after a commit.
+        return new SpringBatchCommittedPublisher(isBaseline(env) ? event -> {} : events);
+    }
+
+    @Bean
+    ChunkTracing chunkTracing(ObjectProvider<Tracer> tracer, @Value("${pti.etl.trace.max-links:20}") int maxLinks) {
+        return new PollTracing(tracer.getIfAvailable(() -> Tracer.NOOP), maxLinks);
+    }
+
+    @Bean
     StreamChunkTemplate streamChunkTemplate(
-            TransactionTemplate tx,
+            ChunkTransaction tx,
             DeadLetterWriter deadLetters,
-            StreamBatchLog batchLog,
+            ChunkBatchLog batchLog,
             ErrorClassifier classifier,
             FaultInjector faults,
-            ApplicationEventPublisher events,
+            BatchCommittedPublisher publisher,
             BusinessClock clock,
             ReferenceDataHolder reference,
-            WriteStats stats,
-            MeterRegistry meters,
-            EtlProperties etl,
-            Environment env,
-            ObjectProvider<Tracer> tracer,
-            @Value("${pti.etl.trace.max-links:20}") int maxLinks) {
+            WriteMetrics stats,
+            StreamMetrics metrics,
+            ChunkTracing tracing,
+            EtlProperties etl) {
         return new StreamChunkTemplate(
                 tx,
                 deadLetters,
                 batchLog,
                 classifier,
                 faults,
-                // DOC-20 §9: the baseline publishes nothing after a commit.
-                isBaseline(env) ? event -> {} : events,
+                publisher,
                 clock,
                 reference,
                 stats,
-                meters,
-                etl.baseline().errorMode() == EtlProperties.ErrorMode.FAIL_BATCH,
-                new PollTracing(tracer.getIfAvailable(() -> Tracer.NOOP), maxLinks));
+                metrics,
+                tracing,
+                etl.baseline().errorMode() == EtlProperties.ErrorMode.FAIL_BATCH);
     }
 
     @Bean
@@ -250,12 +276,12 @@ public class EtlStreamConfiguration {
             CircuitBreaker warehouseCircuitBreaker,
             ErrorClassifier classifier,
             @Value("${HOSTNAME:local}") String instanceId,
-            MeterRegistry meters) {
+            StreamMetrics metrics) {
         ChunkWriter chunkWriter = etl.baseline().writeMode() == EtlProperties.WriteMode.INSERT
                 ? new BaselineFactWriter(named, stats)
                 : writer;
         return new StreamChunkHandler(
-                template, processors, chunkWriter, warehouseCircuitBreaker, classifier, instanceId, meters);
+                template, processors, chunkWriter, warehouseCircuitBreaker, classifier, instanceId, metrics);
     }
 
     @Bean
@@ -287,6 +313,11 @@ public class EtlStreamConfiguration {
     @Bean
     SourceActivity sourceActivity() {
         return new SourceActivity(Clock.systemUTC());
+    }
+
+    @Bean
+    SourceActivityListener sourceActivityListener(SourceActivity activity) {
+        return new SourceActivityListener(activity);
     }
 
     @Bean

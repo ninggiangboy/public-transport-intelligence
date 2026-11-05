@@ -1,4 +1,4 @@
-package dev.pti.etl.metrics.adapter.out.micrometer;
+package dev.pti.etl.stream.adapter.out.metrics;
 
 import dev.pti.common.error.ErrorKind;
 import io.micrometer.core.instrument.Counter;

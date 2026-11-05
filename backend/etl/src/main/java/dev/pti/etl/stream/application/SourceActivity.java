@@ -5,7 +5,6 @@ import java.time.Instant;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
-import org.springframework.context.event.EventListener;
 
 /** The last commit per source on this pod, for the source health indicators (DOC-20 §6.1). */
 public class SourceActivity {
@@ -18,7 +17,6 @@ public class SourceActivity {
         this.clock = clock;
     }
 
-    @EventListener
     public void onCommitted(MicroBatchCommitted event) {
         StreamChunkResult result = event.result();
         lastCommit.put(result.source(), clock.instant());

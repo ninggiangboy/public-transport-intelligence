@@ -1,4 +1,4 @@
-package dev.pti.etl.stream.application;
+package dev.pti.etl.stream.adapter.in.kafka;
 
 import com.github.f4b6a3.uuid.UuidCreator;
 import dev.pti.common.error.ErrorClassifier;
@@ -8,12 +8,16 @@ import dev.pti.common.error.PtiException;
 import dev.pti.common.error.TransientInfraException;
 import dev.pti.etl.core.application.MessageProcessors;
 import dev.pti.etl.core.domain.InboundMessage;
-import dev.pti.etl.metrics.adapter.out.micrometer.ErrorMetrics;
+import dev.pti.etl.stream.application.DataBatchFailedException;
+import dev.pti.etl.stream.application.EtlMdc;
+import dev.pti.etl.stream.application.StreamChunkRequest;
+import dev.pti.etl.stream.application.StreamChunkResult;
+import dev.pti.etl.stream.application.StreamChunkTemplate;
+import dev.pti.etl.stream.application.StreamListener;
+import dev.pti.etl.stream.application.port.StreamMetrics;
 import dev.pti.etl.write.application.port.ChunkWriter;
 import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
-import io.micrometer.core.instrument.MeterRegistry;
-import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -26,7 +30,8 @@ import org.apache.kafka.common.header.Header;
 /**
  * What every listener does with a poll (DOC-20 §3): build the request, run the chunk template behind the
  * {@code warehouse} circuit breaker, and turn any failure into {@link TransientInfraException} (retried with back-off)
- * or {@link FatalException} (stops the container), so that the error handler never has to classify.
+ * or {@link FatalException} (stops the container), so that the error handler never has to classify. Inbound adapter of
+ * the {@code stream} feature: it maps the Kafka records and calls the application template.
  */
 public class StreamChunkHandler {
 
@@ -36,19 +41,9 @@ public class StreamChunkHandler {
     private final CircuitBreaker breaker;
     private final ErrorClassifier classifier;
     private final String instanceId;
-    private final MeterRegistry meters;
+    private final StreamMetrics metrics;
 
-    public StreamChunkHandler(
-            StreamChunkTemplate template,
-            MessageProcessors processors,
-            ChunkWriter writer,
-            CircuitBreaker breaker,
-            ErrorClassifier classifier,
-            String instanceId) {
-        this(template, processors, writer, breaker, classifier, instanceId, new SimpleMeterRegistry());
-    }
-
-    /** @param meters for {@code pti_errors_total} of failed polls */
+    /** @param metrics for {@code pti_errors_total} of failed polls */
     public StreamChunkHandler(
             StreamChunkTemplate template,
             MessageProcessors processors,
@@ -56,14 +51,14 @@ public class StreamChunkHandler {
             CircuitBreaker breaker,
             ErrorClassifier classifier,
             String instanceId,
-            MeterRegistry meters) {
+            StreamMetrics metrics) {
         this.template = template;
         this.processors = processors;
         this.writer = writer;
         this.breaker = breaker;
         this.classifier = classifier;
         this.instanceId = instanceId;
-        this.meters = meters;
+        this.metrics = metrics;
     }
 
     public StreamChunkResult handle(StreamListener listener, List<ConsumerRecord<String, byte[]>> records) {
@@ -86,14 +81,14 @@ public class StreamChunkHandler {
         } catch (DataBatchFailedException | CallNotPermittedException e) {
             throw e;
         } catch (PtiException e) {
-            ErrorMetrics.record(meters, e instanceof FatalException ? ErrorKind.FATAL : classifier.classify(e), e);
+            metrics.error(e instanceof FatalException ? ErrorKind.FATAL : classifier.classify(e), e);
             throw e;
         } catch (RuntimeException e) {
             if (classifier.classify(e) == ErrorKind.TRANSIENT_INFRA) {
-                ErrorMetrics.record(meters, ErrorKind.TRANSIENT_INFRA, e);
+                metrics.error(ErrorKind.TRANSIENT_INFRA, e);
                 throw new TransientInfraException("Warehouse unavailable: " + e.getMessage(), e);
             }
-            ErrorMetrics.record(meters, ErrorKind.FATAL, e);
+            metrics.error(ErrorKind.FATAL, e);
             throw new FatalException("Chunk " + request.batchId() + " failed: " + e, e);
         }
     }
