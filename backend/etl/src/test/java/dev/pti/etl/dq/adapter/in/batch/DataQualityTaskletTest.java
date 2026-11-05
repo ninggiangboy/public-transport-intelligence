@@ -1,27 +1,26 @@
 package dev.pti.etl.dq.adapter.in.batch;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.when;
 
 import dev.pti.common.time.BusinessClock;
-import dev.pti.etl.dq.adapter.out.jdbc.DqCheckResults;
+import dev.pti.etl.dq.application.RunDataQualityChecks;
+import dev.pti.etl.dq.application.port.DqCheckMetrics;
+import dev.pti.etl.dq.application.port.PostWriteChecks;
+import dev.pti.etl.dq.application.port.PostWriteRuleStore;
 import dev.pti.etl.dq.domain.PostWriteRule;
-import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Test;
 import org.springframework.batch.core.step.StepContribution;
 import org.springframework.batch.infrastructure.repeat.RepeatStatus;
 import org.springframework.batch.test.MetaDataInstanceFactory;
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import org.springframework.transaction.PlatformTransactionManager;
 
 class DataQualityTaskletTest {
 
@@ -42,24 +41,28 @@ class DataQualityTaskletTest {
 
     @Test
     void everyDueEnabledRuleRunsOncePerJob() {
-        NamedParameterJdbcTemplate named = mock(NamedParameterJdbcTemplate.class);
-        DqCheckResults results = mock(DqCheckResults.class);
-        when(results.lastRun(any())).thenReturn(Optional.empty());
-        when(results.lastRun(PostWriteRule.DQ_26)).thenReturn(Optional.of(NOW.minusSeconds(3600)));
-        SimpleMeterRegistry meters = new SimpleMeterRegistry();
-        DataQualityTasklet tasklet = new DataQualityTasklet(
-                named,
-                results,
-                mock(PlatformTransactionManager.class),
+        List<PostWriteRule> ran = new ArrayList<>();
+        PostWriteRuleStore store = new PostWriteRuleStore() {
+            @Override
+            public Optional<Instant> lastRun(PostWriteRule rule) {
+                return rule == PostWriteRule.DQ_26 ? Optional.of(NOW.minusSeconds(3600)) : Optional.empty();
+            }
+
+            @Override
+            public void insert(PostWriteRule rule, long violations, @Nullable Long population, String sample) {}
+        };
+        PostWriteChecks checks = (rule, parameters) -> ran.add(rule);
+        DqCheckMetrics metrics = ruleId -> {};
+        RunDataQualityChecks useCase = new RunDataQualityChecks(
+                store,
+                checks,
                 new BusinessClock(Clock.fixed(NOW, ZoneOffset.UTC), Duration.ZERO),
                 ZoneId.of("America/Chicago"),
                 Duration.ofMinutes(5),
-                Duration.ofSeconds(30),
                 id -> !id.equals("DQ-24"),
-                () -> -1L,
-                meters);
+                () -> -1L);
+        DataQualityTasklet tasklet = new DataQualityTasklet(useCase);
         StepContribution contribution = new StepContribution(MetaDataInstanceFactory.createStepExecution());
-        tasklet = spyRun(tasklet);
 
         int calls = 0;
         while (tasklet.execute(contribution, null) == RepeatStatus.CONTINUABLE) {
@@ -69,14 +72,12 @@ class DataQualityTaskletTest {
         assertThat(calls).isEqualTo(PostWriteRule.values().length);
         assertThat(contribution.getExitStatus().getExitDescription())
                 .isEqualTo("Ran DQ-20, DQ-21, DQ-22, DQ-23, DQ-25");
-        org.mockito.Mockito.verify(results, never())
-                .insert(any(), org.mockito.ArgumentMatchers.anyLong(), any(), any());
-    }
-
-    /** The real run needs a database; here every rule "runs" without touching one. */
-    private static DataQualityTasklet spyRun(DataQualityTasklet tasklet) {
-        DataQualityTasklet spy = org.mockito.Mockito.spy(tasklet);
-        org.mockito.Mockito.doNothing().when(spy).run(any());
-        return spy;
+        assertThat(ran)
+                .containsExactly(
+                        PostWriteRule.DQ_20,
+                        PostWriteRule.DQ_21,
+                        PostWriteRule.DQ_22,
+                        PostWriteRule.DQ_23,
+                        PostWriteRule.DQ_25);
     }
 }

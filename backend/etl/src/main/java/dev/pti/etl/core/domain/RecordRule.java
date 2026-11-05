@@ -1,4 +1,4 @@
-package dev.pti.etl.rules.domain;
+package dev.pti.etl.core.domain;
 
 import dev.pti.common.dq.DlqStage;
 import java.util.Optional;

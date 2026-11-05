@@ -1,5 +1,6 @@
 package dev.pti.etl.dq.adapter.out.jdbc;
 
+import dev.pti.etl.dq.application.port.PostWriteRuleStore;
 import dev.pti.etl.dq.domain.PostWriteRule;
 import java.sql.Timestamp;
 import java.time.Instant;
@@ -10,7 +11,7 @@ import org.jspecify.annotations.Nullable;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 /** {@code ops.dq_check_result}: one row per rule run, violations or not (DOC-16 §4). */
-public class DqCheckResults {
+public class DqCheckResults implements PostWriteRuleStore {
 
     /** The latest result of a rule, as the metrics show it. */
     public record Latest(long violations, @Nullable Long population, Instant checkedAt) {}
@@ -21,6 +22,7 @@ public class DqCheckResults {
         this.jdbc = jdbc;
     }
 
+    @Override
     public Optional<Instant> lastRun(PostWriteRule rule) {
         Timestamp last = jdbc.queryForObject(
                 "SELECT max(checked_at) FROM ops.dq_check_result WHERE rule_id = ? AND scope = 'TABLE'",
@@ -30,6 +32,7 @@ public class DqCheckResults {
     }
 
     /** DQ-23 keeps its population next to the sample, so the relative threshold survives a restart. */
+    @Override
     public void insert(PostWriteRule rule, long violations, @Nullable Long population, String sample) {
         String stored = population == null ? sample : "{\"population\": " + population + ", \"rows\": " + sample + "}";
         jdbc.update("""

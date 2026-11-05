@@ -13,9 +13,9 @@ import dev.pti.common.error.DataException;
 import dev.pti.common.error.FatalException;
 import dev.pti.common.time.Timestamps;
 import dev.pti.etl.core.domain.EtlSource;
+import dev.pti.etl.core.domain.RuleContext;
 import dev.pti.etl.core.domain.VehiclePositionRow;
 import dev.pti.etl.core.domain.WriteSet;
-import dev.pti.etl.rules.domain.RuleContext;
 import dev.pti.etl.testing.EtlFixtures;
 import java.time.Duration;
 import java.time.Instant;
@@ -249,9 +249,7 @@ class VehiclePositionProcessorTest {
     @Test
     void aDisabledRuleIsNotEvaluated() {
         var dq = EtlFixtures.dq(java.util.Map.of("DQ-03", new dev.pti.etl.config.DqProperties.Rule(false)));
-        var lenient = new VehiclePositionProcessor(
-                Processors.READER,
-                new dev.pti.etl.rules.domain.RuleEngine<>(dev.pti.etl.rules.domain.RealtimeRules.all(dq), dq));
+        var lenient = new VehiclePositionProcessor(Processors.READER, Processors.rules(dq), Processors.KEYS);
         ObjectNode json = vehiclePosition();
         payload(json).put("route_id", "R-UNKNOWN-1").put("trip_id", "999");
         Throwable thrown = org.assertj.core.api.Assertions.catchThrowable(

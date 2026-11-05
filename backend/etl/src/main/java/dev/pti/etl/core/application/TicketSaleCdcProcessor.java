@@ -1,17 +1,16 @@
 package dev.pti.etl.core.application;
 
 import dev.pti.common.error.SchemaViolationException;
-import dev.pti.common.json.PayloadHasher;
 import dev.pti.common.message.BusinessKey;
-import dev.pti.etl.core.adapter.out.json.BestEffortKeys;
-import dev.pti.etl.core.adapter.out.json.CdcReader;
-import dev.pti.etl.core.adapter.out.json.TicketTransactionCdc;
+import dev.pti.etl.core.application.port.BestEffortKeys;
+import dev.pti.etl.core.application.port.CdcReader;
 import dev.pti.etl.core.domain.EtlSource;
 import dev.pti.etl.core.domain.InboundMessage;
+import dev.pti.etl.core.domain.RuleContext;
+import dev.pti.etl.core.domain.RuleEngine;
 import dev.pti.etl.core.domain.TicketSaleRow;
+import dev.pti.etl.core.domain.TicketTransactionCdc;
 import dev.pti.etl.core.domain.WriteSet;
-import dev.pti.etl.rules.domain.RuleContext;
-import dev.pti.etl.rules.domain.RuleEngine;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -23,11 +22,14 @@ import org.jspecify.annotations.Nullable;
 public final class TicketSaleCdcProcessor implements MessageProcessor {
 
     private final CdcReader reader;
+    private final BestEffortKeys keys;
     private final RuleEngine<TicketSaleRow> rules;
     private final ZoneId agencyZone;
 
-    public TicketSaleCdcProcessor(CdcReader reader, RuleEngine<TicketSaleRow> rules, ZoneId agencyZone) {
+    public TicketSaleCdcProcessor(
+            CdcReader reader, BestEffortKeys keys, RuleEngine<TicketSaleRow> rules, ZoneId agencyZone) {
         this.reader = reader;
+        this.keys = keys;
         this.rules = rules;
         this.agencyZone = agencyZone;
     }
@@ -43,7 +45,7 @@ public final class TicketSaleCdcProcessor implements MessageProcessor {
         if (value == null) {
             return WriteSet.empty(message);
         }
-        CdcReader.Read<TicketTransactionCdc> read = reader.read(value, TicketTransactionCdc.class);
+        CdcReader.Read<TicketTransactionCdc> read = reader.ticketSale(value);
         TicketTransactionCdc tx = read.value();
         BigDecimal amount;
         try {
@@ -52,7 +54,7 @@ public final class TicketSaleCdcProcessor implements MessageProcessor {
             throw new SchemaViolationException("amount: not a decimal");
         }
         LocalDate saleDate = LocalDate.ofInstant(tx.createdAt(), agencyZone);
-        String hash = PayloadHasher.hashCdc(read.tree());
+        String hash = read.hash();
         TicketSaleRow row = new TicketSaleRow(
                 saleDate,
                 tx.transactionId(),
@@ -78,9 +80,9 @@ public final class TicketSaleCdcProcessor implements MessageProcessor {
 
     @Override
     public @Nullable String businessKey(InboundMessage message) {
-        return BestEffortKeys.of(message, tree -> {
-            String id = tree.path("transaction_id").asString(null);
-            String created = tree.path("created_at").asString(null);
+        return keys.of(message, fields -> {
+            String id = fields.path("transaction_id").asString();
+            String created = fields.path("created_at").asString();
             if (id == null) {
                 return null;
             }

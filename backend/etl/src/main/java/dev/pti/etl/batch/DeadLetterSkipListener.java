@@ -5,8 +5,8 @@ import dev.pti.common.error.DataException;
 import dev.pti.etl.core.application.MessageProcessors;
 import dev.pti.etl.core.domain.InboundMessage;
 import dev.pti.etl.core.domain.WriteSet;
-import dev.pti.etl.write.application.WriteStats;
 import dev.pti.etl.write.application.port.DeadLetterWriter;
+import dev.pti.etl.write.application.port.WriteMetrics;
 import dev.pti.etl.write.domain.DeadLetter;
 import dev.pti.etl.write.domain.RunMode;
 import java.util.UUID;
@@ -27,17 +27,17 @@ public class DeadLetterSkipListener implements SkipListener<InboundMessage, Writ
 
     private final DeadLetterWriter deadLetters;
     private final MessageProcessors processors;
-    private final WriteStats stats;
+    private final WriteMetrics stats;
     private final Supplier<StepExecution> step;
 
-    public DeadLetterSkipListener(DeadLetterWriter deadLetters, MessageProcessors processors, WriteStats stats) {
+    public DeadLetterSkipListener(DeadLetterWriter deadLetters, MessageProcessors processors, WriteMetrics stats) {
         this(deadLetters, processors, stats, StepValues::current);
     }
 
     DeadLetterSkipListener(
             DeadLetterWriter deadLetters,
             MessageProcessors processors,
-            WriteStats stats,
+            WriteMetrics stats,
             Supplier<StepExecution> step) {
         this.deadLetters = deadLetters;
         this.processors = processors;
@@ -62,7 +62,7 @@ public class DeadLetterSkipListener implements SkipListener<InboundMessage, Writ
 
     @Override
     public void onSkipInWrite(WriteSet item, Throwable t) {
-        write(DeadLetter.load(item.origin(), t, item.businessKey(), batchId()), item.origin());
+        write(deadLetters.loadFailure(item.origin(), t, item.businessKey(), batchId()), item.origin());
     }
 
     private void write(DeadLetter letter, InboundMessage message) {

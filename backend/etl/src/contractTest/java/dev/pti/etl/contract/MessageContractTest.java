@@ -7,18 +7,24 @@ import dev.pti.common.error.DataException;
 import dev.pti.common.json.MessageJson;
 import dev.pti.common.json.MessageSchemas;
 import dev.pti.etl.config.DqProperties;
-import dev.pti.etl.core.adapter.out.json.CdcReader;
-import dev.pti.etl.core.adapter.out.json.EnvelopeReader;
+import dev.pti.etl.core.adapter.out.json.JacksonBestEffortKeys;
+import dev.pti.etl.core.adapter.out.json.JsonCdcReader;
+import dev.pti.etl.core.adapter.out.json.JsonEnvelopeReader;
 import dev.pti.etl.core.application.MessageProcessor;
 import dev.pti.etl.core.application.SalePointCdcProcessor;
 import dev.pti.etl.core.application.TicketSaleCdcProcessor;
 import dev.pti.etl.core.application.TripUpdateProcessor;
 import dev.pti.etl.core.application.VehiclePositionProcessor;
+import dev.pti.etl.core.application.port.BestEffortKeys;
+import dev.pti.etl.core.application.port.CdcReader;
+import dev.pti.etl.core.application.port.EnvelopeReader;
 import dev.pti.etl.core.domain.EtlSource;
 import dev.pti.etl.core.domain.InboundMessage;
+import dev.pti.etl.core.domain.RealtimeFacts;
+import dev.pti.etl.core.domain.RuleEngine;
+import dev.pti.etl.core.domain.TicketSaleRow;
 import dev.pti.etl.core.domain.WriteSet;
 import dev.pti.etl.rules.domain.RealtimeRules;
-import dev.pti.etl.rules.domain.RuleEngine;
 import dev.pti.etl.rules.domain.TicketRules;
 import dev.pti.etl.testing.EtlFixtures;
 import jakarta.validation.Validation;
@@ -49,17 +55,22 @@ class MessageContractTest {
     private static final Validator VALIDATOR =
             Validation.buildDefaultValidatorFactory().getValidator();
     private static final DqProperties DQ = EtlFixtures.dq();
-    private static final EnvelopeReader ENVELOPES = new EnvelopeReader(MessageSchemas.load(), VALIDATOR);
-    private static final CdcReader CDC = new CdcReader(VALIDATOR);
+    private static final EnvelopeReader ENVELOPES = new JsonEnvelopeReader(MessageSchemas.load(), VALIDATOR);
+    private static final CdcReader CDC = new JsonCdcReader(VALIDATOR);
+    private static final BestEffortKeys KEYS = new JacksonBestEffortKeys();
     private static final Map<String, MessageProcessor> PROCESSORS = Map.of(
-            "vehicle-position",
-            new VehiclePositionProcessor(ENVELOPES, new RuleEngine<>(RealtimeRules.all(DQ), DQ)),
-            "trip-update",
-            new TripUpdateProcessor(ENVELOPES, new RuleEngine<>(RealtimeRules.all(DQ), DQ)),
-            "ticket-sale",
-            new TicketSaleCdcProcessor(CDC, new RuleEngine<>(TicketRules.all(DQ), DQ), EtlFixtures.AGENCY_ZONE),
-            "sale-point",
-            new SalePointCdcProcessor(CDC));
+            "vehicle-position", new VehiclePositionProcessor(ENVELOPES, realtimeRules(DQ), KEYS),
+            "trip-update", new TripUpdateProcessor(ENVELOPES, realtimeRules(DQ), KEYS),
+            "ticket-sale", new TicketSaleCdcProcessor(CDC, KEYS, ticketRules(DQ), EtlFixtures.AGENCY_ZONE),
+            "sale-point", new SalePointCdcProcessor(CDC, KEYS));
+
+    private static RuleEngine<RealtimeFacts> realtimeRules(DqProperties dq) {
+        return new RuleEngine<>(RealtimeRules.all(dq.bboxMargin(), dq.maxClockSkew(), dq.maxDelay()), dq::enabled);
+    }
+
+    private static RuleEngine<TicketSaleRow> ticketRules(DqProperties dq) {
+        return new RuleEngine<>(TicketRules.all(dq.maxTicketAmount()), dq::enabled);
+    }
 
     private static Stream<Arguments> examples(String kind) throws IOException {
         Resource[] resources = new PathMatchingResourcePatternResolver()

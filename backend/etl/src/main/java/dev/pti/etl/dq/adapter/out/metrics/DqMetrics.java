@@ -1,7 +1,9 @@
 package dev.pti.etl.dq.adapter.out.metrics;
 
 import dev.pti.etl.dq.adapter.out.jdbc.DqCheckResults;
+import dev.pti.etl.dq.application.port.DqCheckMetrics;
 import dev.pti.etl.dq.domain.PostWriteRule;
+import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.util.Map;
@@ -15,15 +17,17 @@ import org.springframework.scheduling.annotation.Scheduled;
  * The post-write gauges of DOC-16 §4, read from {@code ops.dq_check_result} every minute so they are right after a
  * restart too. A rule turned off has no gauge, so turning it off does not fire {@code DataQualityCheckStale}.
  */
-public class DqMetrics {
+public class DqMetrics implements DqCheckMetrics {
 
     private static final Logger log = LoggerFactory.getLogger(DqMetrics.class);
 
     private final DqCheckResults results;
+    private final MeterRegistry meters;
     private final Map<String, DqCheckResults.Latest> latest = new ConcurrentHashMap<>();
 
     public DqMetrics(DqCheckResults results, MeterRegistry meters, Predicate<String> enabled) {
         this.results = results;
+        this.meters = meters;
         for (PostWriteRule rule : PostWriteRule.values()) {
             if (!enabled.test(rule.id())) {
                 continue;
@@ -51,6 +55,14 @@ public class DqMetrics {
     private double value(PostWriteRule rule, java.util.function.ToDoubleFunction<DqCheckResults.Latest> f) {
         DqCheckResults.Latest l = latest.get(rule.id());
         return l == null ? Double.NaN : f.applyAsDouble(l);
+    }
+
+    @Override
+    public void checkFailed(String ruleId) {
+        Counter.builder("pti.dq.check.errors")
+                .tag("rule", ruleId)
+                .register(meters)
+                .increment();
     }
 
     @Scheduled(initialDelay = 0, fixedDelay = 60_000, scheduler = "ptiTaskScheduler")

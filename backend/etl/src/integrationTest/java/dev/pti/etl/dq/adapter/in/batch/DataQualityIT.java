@@ -9,7 +9,10 @@ import dev.pti.etl.batch.JobParams;
 import dev.pti.etl.batch.PtiJob;
 import dev.pti.etl.batch.PtiJobLauncher;
 import dev.pti.etl.dq.adapter.out.jdbc.DqCheckResults;
+import dev.pti.etl.dq.adapter.out.jdbc.JdbcPostWriteChecks;
 import dev.pti.etl.dq.adapter.out.metrics.DqMetrics;
+import dev.pti.etl.dq.application.RunDataQualityChecks;
+import dev.pti.etl.dq.application.port.PostWriteRuleStore;
 import dev.pti.etl.dq.domain.PostWriteRule;
 import dev.pti.etl.gtfs.FeedBuilder;
 import dev.pti.etl.gtfs.FeedVersions;
@@ -21,6 +24,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -57,28 +61,38 @@ class DataQualityIT extends BatchContextSupport {
     @Autowired
     PtiJobLauncher launcher;
 
-    private DataQualityTasklet tasklet;
+    /** The rule runs here are forced: every call is "due", the schedule itself is covered by the tasklet test. */
+    private PostWriteRuleStore store = new PostWriteRuleStore() {
+        @Override
+        public Optional<Instant> lastRun(PostWriteRule rule) {
+            return Optional.empty();
+        }
+
+        @Override
+        public void insert(PostWriteRule rule, long violations, Long population, String sample) {
+            results.insert(rule, violations, population, sample);
+        }
+    };
+
+    private RunDataQualityChecks useCase;
     private LocalDate today;
 
     @BeforeEach
     void setUp() {
-        tasklet = new DataQualityTasklet(
-                named,
-                results,
-                transactionManager,
+        useCase = new RunDataQualityChecks(
+                store,
+                new JdbcPostWriteChecks(named, transactionManager, Duration.ofSeconds(30), results, ruleId -> {}),
                 clock,
                 AGENCY,
                 Duration.ofMinutes(5),
-                Duration.ofSeconds(30),
                 id -> true,
-                () -> versions.activeId().orElse(-1L),
-                new SimpleMeterRegistry());
+                () -> versions.activeId().orElse(-1L));
         today = LocalDate.ofInstant(clock.instant(), AGENCY);
     }
 
     private long run(PostWriteRule rule) {
         long before = rows(rule);
-        new TransactionTemplate(transactionManager).executeWithoutResult(s -> tasklet.run(rule));
+        new TransactionTemplate(transactionManager).executeWithoutResult(s -> useCase.runIfDue(rule));
         assertThat(rows(rule)).as("a result row per run").isEqualTo(before + 1);
         return jdbc.queryForObject("""
                 SELECT violation_count FROM ops.dq_check_result WHERE rule_id = ? ORDER BY id DESC LIMIT 1

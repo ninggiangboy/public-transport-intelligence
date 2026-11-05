@@ -2,6 +2,7 @@ package dev.pti.etl.core.adapter.out.json;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import dev.pti.etl.core.domain.TicketTransactionCdc;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
@@ -12,11 +13,11 @@ import java.util.UUID;
 import org.jspecify.annotations.Nullable;
 
 /**
- * An unwrapped Debezium event of {@code ticket_transaction} (DOC-09 §5.2, DOC-16 §2.2). {@code customer_ref} is
- * dropped while reading, so personal data never goes further (DR-60); any other unknown field is a schema error.
+ * The wire form of a {@code ticket_transaction} CDC event (DOC-09 §5.2, DOC-16 §2.2). {@code customer_ref} is dropped
+ * while reading, so personal data never goes further (DR-60); any other unknown field is a schema error.
  */
 @JsonIgnoreProperties({"customer_ref"})
-public record TicketTransactionCdc(
+public record TicketTransactionCdcMessage(
         @JsonProperty("transaction_id") @NotNull UUID transactionId,
 
         @JsonProperty("sale_point_id") @NotBlank @Pattern(regexp = "^(KIOSK|ONBOARD|APP)-[0-9A-Z]{1,16}$")
@@ -54,8 +55,23 @@ public record TicketTransactionCdc(
         @JsonProperty("__deleted") @Nullable @Pattern(regexp = "^(true|false)$")
         String deleted) {
 
-    /** A delete event carries the row as it was before the delete (REPLICA IDENTITY FULL). */
-    public boolean isDelete() {
-        return "d".equals(op) || "true".equals(deleted);
+    public TicketTransactionCdc toDomain() {
+        return new TicketTransactionCdc(
+                transactionId,
+                salePointId,
+                routeId,
+                stopId,
+                ticketType,
+                txnType,
+                amount,
+                currency,
+                refundOf,
+                status,
+                createdAt,
+                updatedAt,
+                op,
+                lsn,
+                sourceTsMs,
+                deleted);
     }
 }

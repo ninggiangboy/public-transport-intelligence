@@ -18,15 +18,16 @@ import dev.pti.etl.core.application.MessageProcessor;
 import dev.pti.etl.core.application.MessageProcessors;
 import dev.pti.etl.core.domain.EtlSource;
 import dev.pti.etl.core.domain.InboundMessage;
+import dev.pti.etl.core.domain.RuleContext;
 import dev.pti.etl.core.domain.WriteSet;
 import dev.pti.etl.fault.application.port.FaultInjector;
 import dev.pti.etl.fault.domain.FaultPoint;
 import dev.pti.etl.reference.ReferenceDataHolder;
-import dev.pti.etl.rules.domain.RuleContext;
 import dev.pti.etl.testing.EtlFixtures;
-import dev.pti.etl.write.application.WriteStats;
+import dev.pti.etl.write.adapter.out.metrics.MicrometerWriteMetrics;
 import dev.pti.etl.write.application.port.ChunkWriter;
 import dev.pti.etl.write.application.port.DeadLetterWriter;
+import dev.pti.etl.write.application.port.WriteMetrics;
 import dev.pti.etl.write.domain.DeadLetter;
 import dev.pti.etl.write.domain.WriteContext;
 import dev.pti.etl.write.domain.WriteOutcome;
@@ -202,7 +203,16 @@ class StepComponentsTest {
     @Test
     void deadLetterSkipListenerWritesProcessWriteAndReadSkips() {
         DeadLetterWriter writer = mock(DeadLetterWriter.class);
-        WriteStats stats = new WriteStats(new SimpleMeterRegistry());
+        when(writer.loadFailure(any(), any(), any(), any()))
+                .thenAnswer(call -> new DeadLetter(
+                        call.getArgument(0),
+                        DlqStage.LOAD,
+                        null,
+                        DeadLetter.LOAD_ERROR_CLASS,
+                        "load",
+                        call.getArgument(2),
+                        call.getArgument(3)));
+        WriteMetrics stats = new MicrometerWriteMetrics(new SimpleMeterRegistry());
         StepExecution step = step(false);
         DeadLetterSkipListener listener =
                 new DeadLetterSkipListener(writer, processors(processor("TX-1")), stats, () -> step);
@@ -239,7 +249,7 @@ class StepComponentsTest {
         when(processor.businessKey(any())).thenThrow(new IllegalStateException("unparsable"));
         StepExecution step = step(true);
         DeadLetterSkipListener listener = new DeadLetterSkipListener(
-                writer, processors(processor), new WriteStats(new SimpleMeterRegistry()), () -> step);
+                writer, processors(processor), new MicrometerWriteMetrics(new SimpleMeterRegistry()), () -> step);
 
         listener.onSkipInProcess(MESSAGE, new DeserializationException("bad", null));
         listener.onSkipInProcess(MESSAGE, new DeserializationException("bad", null));

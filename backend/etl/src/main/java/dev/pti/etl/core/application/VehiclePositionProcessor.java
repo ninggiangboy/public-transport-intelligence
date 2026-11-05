@@ -5,31 +5,32 @@ import dev.pti.common.message.BusinessKey;
 import dev.pti.common.message.EntityType;
 import dev.pti.common.message.OccupancyStatus;
 import dev.pti.common.message.VehiclePosition;
-import dev.pti.etl.core.adapter.out.json.BestEffortKeys;
-import dev.pti.etl.core.adapter.out.json.EnvelopeReader;
+import dev.pti.etl.core.application.port.BestEffortKeys;
+import dev.pti.etl.core.application.port.EnvelopeReader;
 import dev.pti.etl.core.domain.EtlSource;
 import dev.pti.etl.core.domain.InboundMessage;
+import dev.pti.etl.core.domain.RealtimeFacts;
+import dev.pti.etl.core.domain.RuleContext;
+import dev.pti.etl.core.domain.RuleEngine;
 import dev.pti.etl.core.domain.VehiclePositionRow;
 import dev.pti.etl.core.domain.WriteSet;
-import dev.pti.etl.rules.domain.RealtimeFacts;
-import dev.pti.etl.rules.domain.RuleContext;
-import dev.pti.etl.rules.domain.RuleEngine;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import org.jspecify.annotations.Nullable;
-import tools.jackson.databind.JsonNode;
 
 /** VehiclePosition v1 and v2 to one fact row and one latest-position row (DOC-20 §4.2). */
 public final class VehiclePositionProcessor implements MessageProcessor {
 
     private final EnvelopeReader reader;
     private final RuleEngine<RealtimeFacts> rules;
+    private final BestEffortKeys keys;
 
-    public VehiclePositionProcessor(EnvelopeReader reader, RuleEngine<RealtimeFacts> rules) {
+    public VehiclePositionProcessor(EnvelopeReader reader, RuleEngine<RealtimeFacts> rules, BestEffortKeys keys) {
         this.reader = reader;
         this.rules = rules;
+        this.keys = keys;
     }
 
     @Override
@@ -82,10 +83,10 @@ public final class VehiclePositionProcessor implements MessageProcessor {
 
     @Override
     public @Nullable String businessKey(InboundMessage message) {
-        return BestEffortKeys.of(message, tree -> {
-            JsonNode payload = tree.path("payload");
-            String vehicle = payload.path("vehicle_id").asString(null);
-            String event = tree.path("event_timestamp").asString(null);
+        return keys.of(message, fields -> {
+            BestEffortKeys.Fields payload = fields.path("payload");
+            String vehicle = payload.path("vehicle_id").asString();
+            String event = fields.path("event_timestamp").asString();
             return vehicle == null || event == null ? null : vehicle + "|" + event;
         });
     }

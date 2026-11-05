@@ -18,11 +18,11 @@ import dev.pti.etl.core.domain.TripUpdateRow;
 import dev.pti.etl.core.domain.VehiclePositionRow;
 import dev.pti.etl.core.domain.WriteSet;
 import dev.pti.etl.testing.EtlFixtures;
-import dev.pti.etl.write.application.WriteStats;
+import dev.pti.etl.write.adapter.out.cache.CaffeineKnownKeyCache;
+import dev.pti.etl.write.adapter.out.metrics.MicrometerWriteMetrics;
+import dev.pti.etl.write.application.RefundRule;
 import dev.pti.etl.write.application.port.DeadLetterWriter;
 import dev.pti.etl.write.domain.DeadLetter;
-import dev.pti.etl.write.domain.KnownKeyCache;
-import dev.pti.etl.write.domain.RefundRule;
 import dev.pti.etl.write.domain.RunMode;
 import dev.pti.etl.write.domain.WriteContext;
 import dev.pti.etl.write.domain.WriteOutcome;
@@ -66,12 +66,22 @@ class FactChunkWriterTest {
     };
     private final DedupRegistry registry = mock(DedupRegistry.class);
     private final DeadLetterWriter deadLetters = mock(DeadLetterWriter.class);
-    private final RefundRule refunds = new RefundRule(new JdbcTemplate(), EtlFixtures.dq());
+    private final RefundRule refunds = new RefundRule(
+            new JdbcRefundOriginals(new JdbcTemplate()),
+            EtlFixtures.dq()::enabled,
+            EtlFixtures.dq().refundGrace());
     private final SimpleMeterRegistry meters = new SimpleMeterRegistry();
 
     private FactChunkWriter writer(boolean dedup, DqProperties dq) {
         return new FactChunkWriter(
-                jdbc, refunds, registry, dedup, deadLetters, new KnownKeyCache(100), new WriteStats(meters), dq);
+                jdbc,
+                refunds,
+                registry,
+                dedup,
+                deadLetters,
+                new CaffeineKnownKeyCache(100),
+                new MicrometerWriteMetrics(meters),
+                dq);
     }
 
     private FactChunkWriter writer() {

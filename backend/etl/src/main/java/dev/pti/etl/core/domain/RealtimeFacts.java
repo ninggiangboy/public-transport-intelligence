@@ -1,4 +1,4 @@
-package dev.pti.etl.rules.domain;
+package dev.pti.etl.core.domain;
 
 import java.time.Instant;
 import java.time.LocalDate;

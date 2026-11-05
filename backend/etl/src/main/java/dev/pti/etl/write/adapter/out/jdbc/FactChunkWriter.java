@@ -7,14 +7,14 @@ import dev.pti.etl.core.domain.TicketSaleRow;
 import dev.pti.etl.core.domain.TripUpdateRow;
 import dev.pti.etl.core.domain.VehiclePositionRow;
 import dev.pti.etl.core.domain.WriteSet;
-import dev.pti.etl.write.application.WriteStats;
+import dev.pti.etl.write.application.RefundRule;
 import dev.pti.etl.write.application.port.ChunkWriter;
 import dev.pti.etl.write.application.port.DeadLetterWriter;
+import dev.pti.etl.write.application.port.KnownKeyCache;
+import dev.pti.etl.write.application.port.WriteMetrics;
 import dev.pti.etl.write.domain.ChunkRuleResult;
 import dev.pti.etl.write.domain.DeadLetter;
 import dev.pti.etl.write.domain.DuplicateKeyRule;
-import dev.pti.etl.write.domain.KnownKeyCache;
-import dev.pti.etl.write.domain.RefundRule;
 import dev.pti.etl.write.domain.WriteContext;
 import dev.pti.etl.write.domain.WriteOutcome;
 import java.util.ArrayList;
@@ -63,7 +63,7 @@ public final class FactChunkWriter implements ChunkWriter {
     private final boolean dedupEnabled;
     private final DeadLetterWriter deadLetters;
     private final KnownKeyCache knownKeys;
-    private final WriteStats stats;
+    private final WriteMetrics stats;
     private final DqProperties dq;
 
     public FactChunkWriter(
@@ -73,7 +73,7 @@ public final class FactChunkWriter implements ChunkWriter {
             boolean dedupEnabled,
             DeadLetterWriter deadLetters,
             KnownKeyCache knownKeys,
-            WriteStats stats,
+            WriteMetrics stats,
             DqProperties dq) {
         this.jdbc = jdbc;
         this.duplicateKeyRule = new DuplicateKeyRule();

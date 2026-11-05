@@ -9,12 +9,16 @@ import static org.assertj.core.api.Assertions.catchThrowable;
 
 import dev.pti.common.dq.DlqStage;
 import dev.pti.common.error.DataException;
-import dev.pti.etl.core.adapter.out.json.CdcReader;
+import dev.pti.etl.config.DqProperties;
+import dev.pti.etl.core.adapter.out.json.JacksonBestEffortKeys;
+import dev.pti.etl.core.adapter.out.json.JsonCdcReader;
+import dev.pti.etl.core.application.port.BestEffortKeys;
+import dev.pti.etl.core.application.port.CdcReader;
 import dev.pti.etl.core.domain.EtlSource;
+import dev.pti.etl.core.domain.RuleEngine;
 import dev.pti.etl.core.domain.SalePointRow;
 import dev.pti.etl.core.domain.TicketSaleRow;
 import dev.pti.etl.core.domain.WriteSet;
-import dev.pti.etl.rules.domain.RuleEngine;
 import dev.pti.etl.rules.domain.TicketRules;
 import dev.pti.etl.testing.EtlFixtures;
 import jakarta.validation.Validation;
@@ -29,10 +33,15 @@ import tools.jackson.databind.node.ObjectNode;
 class CdcProcessorsTest {
 
     private final CdcReader reader =
-            new CdcReader(Validation.buildDefaultValidatorFactory().getValidator());
+            new JsonCdcReader(Validation.buildDefaultValidatorFactory().getValidator());
+    private final BestEffortKeys keys = new JacksonBestEffortKeys();
+    private final DqProperties dq = EtlFixtures.dq();
     private final TicketSaleCdcProcessor sales = new TicketSaleCdcProcessor(
-            reader, new RuleEngine<>(TicketRules.all(EtlFixtures.dq()), EtlFixtures.dq()), EtlFixtures.AGENCY_ZONE);
-    private final SalePointCdcProcessor salePoints = new SalePointCdcProcessor(reader);
+            reader,
+            keys,
+            new RuleEngine<>(TicketRules.all(dq.maxTicketAmount()), dq::enabled),
+            EtlFixtures.AGENCY_ZONE);
+    private final SalePointCdcProcessor salePoints = new SalePointCdcProcessor(reader, keys);
 
     private WriteSet sale(ObjectNode json) {
         return sales.process(message(EtlSource.TICKETING_SALES, json), context());

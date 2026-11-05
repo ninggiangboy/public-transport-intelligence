@@ -15,15 +15,15 @@ import dev.pti.etl.WarehouseSupport;
 import dev.pti.etl.core.application.MessageProcessor;
 import dev.pti.etl.core.domain.EtlSource;
 import dev.pti.etl.core.domain.InboundMessage;
+import dev.pti.etl.core.domain.RuleContext;
 import dev.pti.etl.core.domain.VehiclePositionRow;
 import dev.pti.etl.core.domain.WriteSet;
 import dev.pti.etl.fault.adapter.out.chaos.ConfigurableFaultInjector;
 import dev.pti.etl.fault.domain.FaultAction;
 import dev.pti.etl.fault.domain.FaultPoint;
 import dev.pti.etl.reference.ReferenceDataHolder;
-import dev.pti.etl.rules.domain.RuleContext;
 import dev.pti.etl.stream.adapter.out.jdbc.StreamBatchLog;
-import dev.pti.etl.write.application.WriteStats;
+import dev.pti.etl.write.adapter.out.metrics.MicrometerWriteMetrics;
 import dev.pti.etl.write.domain.WriteMode;
 import java.nio.charset.StandardCharsets;
 import java.time.Clock;
@@ -74,7 +74,7 @@ class StreamChunkTemplateIT {
                 EVENTS::add,
                 new BusinessClock(Clock.fixed(NOW, ZoneOffset.UTC), Duration.ZERO),
                 new ReferenceDataHolder(),
-                new WriteStats(db.meters),
+                new MicrometerWriteMetrics(db.meters),
                 db.meters,
                 failBatch);
     }

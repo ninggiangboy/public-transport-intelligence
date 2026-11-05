@@ -3,7 +3,6 @@ package dev.pti.etl.write.domain;
 import dev.pti.common.dq.DlqStage;
 import dev.pti.common.error.DataException;
 import dev.pti.etl.core.domain.InboundMessage;
-import java.sql.SQLException;
 import java.util.UUID;
 import org.jspecify.annotations.Nullable;
 
@@ -30,22 +29,5 @@ public record DeadLetter(
                 String.valueOf(error.getMessage()),
                 businessKey,
                 batchId);
-    }
-
-    /** A row the database refused (SQLState 22xxx or 23xxx) while writing one message on its own. */
-    public static DeadLetter load(InboundMessage message, Throwable error, @Nullable String businessKey, UUID batchId) {
-        return new DeadLetter(message, DlqStage.LOAD, null, LOAD_ERROR_CLASS, loadMessage(error), businessKey, batchId);
-    }
-
-    private static String loadMessage(Throwable error) {
-        for (Throwable t = error; t != null; t = t.getCause()) {
-            if (t instanceof SQLException sql) {
-                return "[" + sql.getSQLState() + "] " + sql.getMessage();
-            }
-            if (t.getCause() == t) {
-                break;
-            }
-        }
-        return String.valueOf(error.getMessage());
     }
 }

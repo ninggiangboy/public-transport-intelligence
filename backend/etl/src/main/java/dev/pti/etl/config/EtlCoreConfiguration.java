@@ -5,29 +5,37 @@ import dev.pti.common.error.ErrorClassifier;
 import dev.pti.common.json.MessageSchemas;
 import dev.pti.common.pii.PiiScrubber;
 import dev.pti.common.time.BusinessClock;
-import dev.pti.etl.core.adapter.out.json.CdcReader;
-import dev.pti.etl.core.adapter.out.json.EnvelopeReader;
+import dev.pti.etl.core.adapter.out.json.JacksonBestEffortKeys;
+import dev.pti.etl.core.adapter.out.json.JsonCdcReader;
+import dev.pti.etl.core.adapter.out.json.JsonEnvelopeReader;
 import dev.pti.etl.core.application.MessageProcessor;
 import dev.pti.etl.core.application.MessageProcessors;
 import dev.pti.etl.core.application.SalePointCdcProcessor;
 import dev.pti.etl.core.application.TicketSaleCdcProcessor;
 import dev.pti.etl.core.application.TripUpdateProcessor;
 import dev.pti.etl.core.application.VehiclePositionProcessor;
+import dev.pti.etl.core.application.port.BestEffortKeys;
+import dev.pti.etl.core.application.port.CdcReader;
+import dev.pti.etl.core.application.port.EnvelopeReader;
+import dev.pti.etl.core.domain.RealtimeFacts;
+import dev.pti.etl.core.domain.RuleEngine;
 import dev.pti.etl.fault.adapter.out.chaos.ConfigurableFaultInjector;
 import dev.pti.etl.fault.application.port.FaultInjector;
 import dev.pti.etl.reference.ReferenceDataHolder;
 import dev.pti.etl.reference.ReferenceDataLoader;
 import dev.pti.etl.reference.ReferenceDataRefresher;
 import dev.pti.etl.rules.domain.RealtimeRules;
-import dev.pti.etl.rules.domain.RuleEngine;
 import dev.pti.etl.rules.domain.TicketRules;
+import dev.pti.etl.write.adapter.out.cache.CaffeineKnownKeyCache;
 import dev.pti.etl.write.adapter.out.jdbc.DedupRegistry;
 import dev.pti.etl.write.adapter.out.jdbc.FactChunkWriter;
 import dev.pti.etl.write.adapter.out.jdbc.JdbcDeadLetterWriter;
+import dev.pti.etl.write.adapter.out.jdbc.JdbcRefundOriginals;
+import dev.pti.etl.write.adapter.out.metrics.MicrometerWriteMetrics;
+import dev.pti.etl.write.application.RefundRule;
 import dev.pti.etl.write.application.WriteStats;
 import dev.pti.etl.write.application.port.DeadLetterWriter;
-import dev.pti.etl.write.domain.KnownKeyCache;
-import dev.pti.etl.write.domain.RefundRule;
+import dev.pti.etl.write.application.port.WriteMetrics;
 import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.validation.Validator;
 import java.time.Clock;
@@ -100,36 +108,47 @@ public class EtlCoreConfiguration {
 
     @Bean
     EnvelopeReader envelopeReader(MessageSchemas schemas, Validator validator) {
-        return new EnvelopeReader(schemas, validator);
+        return new JsonEnvelopeReader(schemas, validator);
     }
 
     @Bean
     CdcReader cdcReader(Validator validator) {
-        return new CdcReader(validator);
+        return new JsonCdcReader(validator);
     }
 
     @Bean
-    VehiclePositionProcessor vehiclePositionProcessor(EnvelopeReader reader, DqProperties dq) {
-        return new VehiclePositionProcessor(reader, new RuleEngine<>(RealtimeRules.all(dq), dq));
+    BestEffortKeys bestEffortKeys() {
+        return new JacksonBestEffortKeys();
     }
 
     @Bean
-    TripUpdateProcessor tripUpdateProcessor(EnvelopeReader reader, DqProperties dq) {
-        return new TripUpdateProcessor(reader, new RuleEngine<>(RealtimeRules.all(dq), dq));
+    VehiclePositionProcessor vehiclePositionProcessor(EnvelopeReader reader, DqProperties dq, BestEffortKeys keys) {
+        return new VehiclePositionProcessor(reader, realtimeRules(dq), keys);
+    }
+
+    @Bean
+    TripUpdateProcessor tripUpdateProcessor(EnvelopeReader reader, DqProperties dq, BestEffortKeys keys) {
+        return new TripUpdateProcessor(reader, realtimeRules(dq), keys);
     }
 
     /** {@code sale_date} is the agency date of {@code created_at} (DOC-20 §4.4). */
     @Bean
-    TicketSaleCdcProcessor ticketSaleCdcProcessor(CdcReader reader, DqProperties dq, GtfsProperties gtfs) {
+    TicketSaleCdcProcessor ticketSaleCdcProcessor(
+            CdcReader reader, DqProperties dq, GtfsProperties gtfs, BestEffortKeys keys) {
         return new TicketSaleCdcProcessor(
                 reader,
-                new RuleEngine<>(TicketRules.all(dq), dq),
+                keys,
+                new RuleEngine<>(TicketRules.all(dq.maxTicketAmount()), dq::enabled),
                 gtfs.staticFeed().zone());
     }
 
     @Bean
-    SalePointCdcProcessor salePointCdcProcessor(CdcReader reader) {
-        return new SalePointCdcProcessor(reader);
+    SalePointCdcProcessor salePointCdcProcessor(CdcReader reader, BestEffortKeys keys) {
+        return new SalePointCdcProcessor(reader, keys);
+    }
+
+    private static RuleEngine<RealtimeFacts> realtimeRules(DqProperties dq) {
+        return new RuleEngine<>(RealtimeRules.all(dq.bboxMargin(), dq.maxClockSkew(), dq.maxDelay()), dq::enabled);
     }
 
     @Bean
@@ -176,8 +195,8 @@ public class EtlCoreConfiguration {
     }
 
     @Bean
-    WriteStats writeStats(MeterRegistry meters) {
-        return new WriteStats(meters);
+    WriteStats writeMetrics(MeterRegistry meters) {
+        return new MicrometerWriteMetrics(meters);
     }
 
     @Bean
@@ -185,17 +204,17 @@ public class EtlCoreConfiguration {
             NamedParameterJdbcTemplate named,
             JdbcTemplate jdbc,
             DeadLetterWriter deadLetters,
-            WriteStats stats,
+            WriteMetrics stats,
             EtlProperties etl,
             DqProperties dq) {
         boolean dedup = etl.dedup().enabled() && etl.baseline().dedup() == EtlProperties.DedupMode.ON;
         return new FactChunkWriter(
                 named,
-                new RefundRule(jdbc, dq),
+                new RefundRule(new JdbcRefundOriginals(jdbc), dq::enabled, dq.refundGrace()),
                 new DedupRegistry(jdbc),
                 dedup,
                 deadLetters,
-                new KnownKeyCache(etl.knownKeyCache().maxSize()),
+                new CaffeineKnownKeyCache(etl.knownKeyCache().maxSize()),
                 stats,
                 dq);
     }

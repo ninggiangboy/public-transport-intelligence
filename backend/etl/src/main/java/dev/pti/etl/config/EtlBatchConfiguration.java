@@ -22,8 +22,8 @@ import dev.pti.etl.core.application.MessageProcessors;
 import dev.pti.etl.fault.application.port.FaultInjector;
 import dev.pti.etl.reference.ReferenceDataHolder;
 import dev.pti.etl.write.adapter.out.jdbc.FactChunkWriter;
-import dev.pti.etl.write.application.WriteStats;
 import dev.pti.etl.write.application.port.DeadLetterWriter;
+import dev.pti.etl.write.application.port.WriteMetrics;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Clock;
 import java.util.List;
@@ -110,7 +110,7 @@ public class EtlBatchConfiguration {
 
     @Bean
     DeadLetterSkipListener deadLetterSkipListener(
-            DeadLetterWriter deadLetters, MessageProcessors processors, WriteStats stats) {
+            DeadLetterWriter deadLetters, MessageProcessors processors, WriteMetrics stats) {
         return new DeadLetterSkipListener(deadLetters, processors, stats);
     }
 

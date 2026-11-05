@@ -1,17 +1,18 @@
 package dev.pti.etl.write.adapter.out.jdbc;
 
 import com.github.f4b6a3.uuid.UuidCreator;
+import dev.pti.common.dq.DlqStage;
 import dev.pti.common.error.ErrorKind;
 import dev.pti.common.json.MessageJson;
 import dev.pti.common.pii.PiiScrubber;
 import dev.pti.etl.core.domain.InboundMessage;
 import dev.pti.etl.core.domain.Utf8;
-import dev.pti.etl.metrics.adapter.out.micrometer.ErrorMetrics;
 import dev.pti.etl.write.application.port.DeadLetterWriter;
 import dev.pti.etl.write.domain.DeadLetter;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.nio.charset.StandardCharsets;
+import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.sql.Types;
 import java.time.Instant;
@@ -19,6 +20,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.UUID;
 import org.jspecify.annotations.Nullable;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -80,6 +82,24 @@ public final class JdbcDeadLetterWriter implements DeadLetterWriter {
         DeadLetterResult result = inserted ? DeadLetterResult.INSERTED : DeadLetterResult.UPDATED;
         count(letter, "replay", result);
         return result;
+    }
+
+    @Override
+    public DeadLetter loadFailure(InboundMessage message, Throwable error, @Nullable String businessKey, UUID batchId) {
+        return new DeadLetter(
+                message, DlqStage.LOAD, null, DeadLetter.LOAD_ERROR_CLASS, loadMessage(error), businessKey, batchId);
+    }
+
+    private static String loadMessage(Throwable error) {
+        for (Throwable t = error; t != null; t = t.getCause()) {
+            if (t instanceof SQLException sql) {
+                return "[" + sql.getSQLState() + "] " + sql.getMessage();
+            }
+            if (t.getCause() == t) {
+                break;
+            }
+        }
+        return String.valueOf(error.getMessage());
     }
 
     private MapSqlParameterSource params(DeadLetter letter) {
@@ -153,7 +173,7 @@ public final class JdbcDeadLetterWriter implements DeadLetterWriter {
                 .tag("stage", stage)
                 .tag("rule", rule)
                 .register(meters);
-        Counter errors = ErrorMetrics.counter(meters, ErrorKind.DATA, letter.errorClass());
+        Counter errors = errorCounter(letter.errorClass());
         AfterCommit.run(() -> {
             records.increment();
             if (result != DeadLetterResult.IGNORED) {
@@ -161,5 +181,19 @@ public final class JdbcDeadLetterWriter implements DeadLetterWriter {
                 errors.increment();
             }
         });
+    }
+
+    /** {@code pti_errors_total{kind=data, type}} (DOC-30 §5), the shape the metrics adapter uses. */
+    private Counter errorCounter(String errorClass) {
+        return Counter.builder("pti.errors")
+                .tag("kind", ErrorKind.DATA.name().toLowerCase(Locale.ROOT))
+                .tag("type", shortName(errorClass))
+                .register(meters);
+    }
+
+    private static String shortName(String className) {
+        int dollar = className.lastIndexOf('$');
+        int dot = className.lastIndexOf('.');
+        return className.substring(Math.max(dollar, dot) + 1);
     }
 }

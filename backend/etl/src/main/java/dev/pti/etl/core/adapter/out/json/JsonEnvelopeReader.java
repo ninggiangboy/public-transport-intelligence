@@ -9,6 +9,7 @@ import dev.pti.common.message.EntityType;
 import dev.pti.common.message.Envelope;
 import dev.pti.common.message.Payload;
 import dev.pti.common.message.PayloadType;
+import dev.pti.etl.core.application.port.EnvelopeReader;
 import dev.pti.etl.core.domain.InboundMessage;
 import dev.pti.etl.core.domain.Utf8;
 import jakarta.validation.ConstraintViolation;
@@ -25,19 +26,17 @@ import tools.jackson.databind.JsonNode;
  * fields ({@code DESERIALIZE}), then the JSON Schema of the {@code (entity_type, schema_version)} pair, DTO binding
  * and Bean Validation ({@code SCHEMA}, DQ-01).
  */
-public final class EnvelopeReader {
-
-    /** A message that passed DQ-01. */
-    public record Read(JsonNode tree, Envelope<? extends Payload> envelope, String hash) {}
+public final class JsonEnvelopeReader implements EnvelopeReader {
 
     private final MessageSchemas schemas;
     private final Validator validator;
 
-    public EnvelopeReader(MessageSchemas schemas, Validator validator) {
+    public JsonEnvelopeReader(MessageSchemas schemas, Validator validator) {
         this.schemas = schemas;
         this.validator = validator;
     }
 
+    @Override
     public Read read(InboundMessage message, EntityType expected) {
         JsonNode tree = tree(Objects.requireNonNull(message.value(), "tombstone"));
         JsonNode entity = tree.path("entity_type");
@@ -78,11 +77,11 @@ public final class EnvelopeReader {
         if (type.javaType() != envelope.payload().getClass()) {
             throw new SchemaViolationException("Payload does not match " + type);
         }
-        return new Read(tree, envelope, PayloadHasher.hash(tree));
+        return new Read(envelope, PayloadHasher.hash(tree));
     }
 
     /** Parses the bytes into a JSON object, or fails with {@code DESERIALIZE}. */
-    public static JsonNode tree(byte[] value) {
+    static JsonNode tree(byte[] value) {
         String text = Utf8.decode(value);
         JsonNode tree;
         try {

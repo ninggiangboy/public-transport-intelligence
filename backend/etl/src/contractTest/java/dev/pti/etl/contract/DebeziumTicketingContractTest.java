@@ -8,23 +8,27 @@ import dev.pti.common.json.MessageJson;
 import dev.pti.common.pii.PiiScrubber;
 import dev.pti.db.PostgresFixtures;
 import dev.pti.etl.config.DqProperties;
-import dev.pti.etl.core.adapter.out.json.CdcReader;
+import dev.pti.etl.core.adapter.out.json.JacksonBestEffortKeys;
+import dev.pti.etl.core.adapter.out.json.JsonCdcReader;
 import dev.pti.etl.core.application.MessageProcessor;
 import dev.pti.etl.core.application.SalePointCdcProcessor;
 import dev.pti.etl.core.application.TicketSaleCdcProcessor;
+import dev.pti.etl.core.application.port.BestEffortKeys;
+import dev.pti.etl.core.application.port.CdcReader;
 import dev.pti.etl.core.domain.InboundMessage;
+import dev.pti.etl.core.domain.RuleContext;
+import dev.pti.etl.core.domain.RuleEngine;
 import dev.pti.etl.core.domain.WriteSet;
-import dev.pti.etl.rules.domain.RuleContext;
-import dev.pti.etl.rules.domain.RuleEngine;
 import dev.pti.etl.rules.domain.TicketRules;
 import dev.pti.etl.testing.EtlFixtures;
+import dev.pti.etl.write.adapter.out.cache.CaffeineKnownKeyCache;
 import dev.pti.etl.write.adapter.out.jdbc.DedupRegistry;
 import dev.pti.etl.write.adapter.out.jdbc.FactChunkWriter;
 import dev.pti.etl.write.adapter.out.jdbc.JdbcDeadLetterWriter;
-import dev.pti.etl.write.application.WriteStats;
+import dev.pti.etl.write.adapter.out.jdbc.JdbcRefundOriginals;
+import dev.pti.etl.write.adapter.out.metrics.MicrometerWriteMetrics;
+import dev.pti.etl.write.application.RefundRule;
 import dev.pti.etl.write.domain.DeadLetter;
-import dev.pti.etl.write.domain.KnownKeyCache;
-import dev.pti.etl.write.domain.RefundRule;
 import dev.pti.etl.write.domain.RunMode;
 import dev.pti.etl.write.domain.WriteContext;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
@@ -105,12 +109,17 @@ class DebeziumTicketingContractTest {
 
     private static final DqProperties DQ = EtlFixtures.dq();
     private static final CdcReader CDC =
-            new CdcReader(Validation.buildDefaultValidatorFactory().getValidator());
+            new JsonCdcReader(Validation.buildDefaultValidatorFactory().getValidator());
+    private static final BestEffortKeys KEYS = new JacksonBestEffortKeys();
     private static final Map<String, MessageProcessor> PROCESSORS = Map.of(
             SALES,
-            new TicketSaleCdcProcessor(CDC, new RuleEngine<>(TicketRules.all(DQ), DQ), EtlFixtures.AGENCY_ZONE),
+            new TicketSaleCdcProcessor(
+                    CDC,
+                    KEYS,
+                    new RuleEngine<>(TicketRules.all(DQ.maxTicketAmount()), DQ::enabled),
+                    EtlFixtures.AGENCY_ZONE),
             SALE_POINTS,
-            new SalePointCdcProcessor(CDC));
+            new SalePointCdcProcessor(CDC, KEYS));
 
     @BeforeAll
     static void start() throws Exception {
@@ -127,12 +136,12 @@ class DebeziumTicketingContractTest {
         deadLetters = new JdbcDeadLetterWriter(named, PiiScrubber.withDefaults(), 1_048_576, meters);
         writer = new FactChunkWriter(
                 named,
-                new RefundRule(warehouse, DQ),
+                new RefundRule(new JdbcRefundOriginals(warehouse), DQ::enabled, DQ.refundGrace()),
                 new DedupRegistry(warehouse),
                 false,
                 deadLetters,
-                new KnownKeyCache(1000),
-                new WriteStats(meters),
+                new CaffeineKnownKeyCache(1000),
+                new MicrometerWriteMetrics(meters),
                 DQ);
 
         seed();

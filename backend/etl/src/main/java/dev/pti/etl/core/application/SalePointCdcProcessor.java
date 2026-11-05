@@ -1,14 +1,13 @@
 package dev.pti.etl.core.application;
 
-import dev.pti.common.json.PayloadHasher;
-import dev.pti.etl.core.adapter.out.json.BestEffortKeys;
-import dev.pti.etl.core.adapter.out.json.CdcReader;
-import dev.pti.etl.core.adapter.out.json.SalePointCdc;
+import dev.pti.etl.core.application.port.BestEffortKeys;
+import dev.pti.etl.core.application.port.CdcReader;
 import dev.pti.etl.core.domain.EtlSource;
 import dev.pti.etl.core.domain.InboundMessage;
+import dev.pti.etl.core.domain.RuleContext;
+import dev.pti.etl.core.domain.SalePointCdc;
 import dev.pti.etl.core.domain.SalePointRow;
 import dev.pti.etl.core.domain.WriteSet;
-import dev.pti.etl.rules.domain.RuleContext;
 import java.time.Instant;
 import org.jspecify.annotations.Nullable;
 
@@ -16,9 +15,11 @@ import org.jspecify.annotations.Nullable;
 public final class SalePointCdcProcessor implements MessageProcessor {
 
     private final CdcReader reader;
+    private final BestEffortKeys keys;
 
-    public SalePointCdcProcessor(CdcReader reader) {
+    public SalePointCdcProcessor(CdcReader reader, BestEffortKeys keys) {
         this.reader = reader;
+        this.keys = keys;
     }
 
     @Override
@@ -32,20 +33,15 @@ public final class SalePointCdcProcessor implements MessageProcessor {
         if (value == null) {
             return WriteSet.empty(message);
         }
-        CdcReader.Read<SalePointCdc> read = reader.read(value, SalePointCdc.class);
+        CdcReader.Read<SalePointCdc> read = reader.salePoint(value);
         SalePointCdc sp = read.value();
         SalePointRow row = new SalePointRow(
                 sp.salePointId(), sp.name(), sp.kind(), sp.stopId(), sp.routeId(), sp.isDelete(), sp.lsn());
-        return WriteSet.salePoint(
-                message,
-                PayloadHasher.hashCdc(read.tree()),
-                sp.salePointId(),
-                Instant.ofEpochMilli(sp.sourceTsMs()),
-                row);
+        return WriteSet.salePoint(message, read.hash(), sp.salePointId(), Instant.ofEpochMilli(sp.sourceTsMs()), row);
     }
 
     @Override
     public @Nullable String businessKey(InboundMessage message) {
-        return BestEffortKeys.of(message, tree -> tree.path("sale_point_id").asString(null));
+        return keys.of(message, fields -> fields.path("sale_point_id").asString());
     }
 }

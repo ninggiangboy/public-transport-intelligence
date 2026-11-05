@@ -1,8 +1,8 @@
 package dev.pti.etl.write.adapter.out.jdbc;
 
 import dev.pti.etl.core.domain.WriteSet;
-import dev.pti.etl.write.application.WriteStats;
 import dev.pti.etl.write.application.port.ChunkWriter;
+import dev.pti.etl.write.application.port.WriteMetrics;
 import dev.pti.etl.write.domain.WriteContext;
 import dev.pti.etl.write.domain.WriteOutcome;
 import java.util.List;
@@ -45,9 +45,9 @@ public class BaselineFactWriter implements ChunkWriter {
             """;
 
     private final NamedParameterJdbcTemplate jdbc;
-    private final WriteStats stats;
+    private final WriteMetrics stats;
 
-    public BaselineFactWriter(NamedParameterJdbcTemplate jdbc, WriteStats stats) {
+    public BaselineFactWriter(NamedParameterJdbcTemplate jdbc, WriteMetrics stats) {
         this.jdbc = jdbc;
         this.stats = stats;
     }

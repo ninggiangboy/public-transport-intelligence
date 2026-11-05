@@ -3,8 +3,8 @@ package dev.pti.etl.core.application;
 import dev.pti.common.error.DataException;
 import dev.pti.etl.core.domain.EtlSource;
 import dev.pti.etl.core.domain.InboundMessage;
+import dev.pti.etl.core.domain.RuleContext;
 import dev.pti.etl.core.domain.WriteSet;
-import dev.pti.etl.rules.domain.RuleContext;
 import org.jspecify.annotations.Nullable;
 
 /**

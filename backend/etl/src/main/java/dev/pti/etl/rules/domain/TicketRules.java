@@ -1,7 +1,8 @@
 package dev.pti.etl.rules.domain;
 
 import dev.pti.common.dq.DlqStage;
-import dev.pti.etl.config.DqProperties;
+import dev.pti.etl.core.domain.RecordRule;
+import dev.pti.etl.core.domain.RuleContext;
 import dev.pti.etl.core.domain.TicketSaleRow;
 import java.math.BigDecimal;
 import java.util.List;
@@ -12,8 +13,8 @@ public final class TicketRules {
 
     private TicketRules() {}
 
-    public static List<RecordRule<TicketSaleRow>> all(DqProperties properties) {
-        return List.of(new AmountValid(properties.maxTicketAmount()), new TypeConsistent());
+    public static List<RecordRule<TicketSaleRow>> all(BigDecimal maxTicketAmount) {
+        return List.of(new AmountValid(maxTicketAmount), new TypeConsistent());
     }
 
     /** DQ-10: amount between 0 and {@code pti.dq.max-ticket-amount}, in USD. */

@@ -28,6 +28,7 @@ import dev.pti.etl.write.adapter.out.jdbc.FactChunkWriter;
 import dev.pti.etl.write.application.WriteStats;
 import dev.pti.etl.write.application.port.ChunkWriter;
 import dev.pti.etl.write.application.port.DeadLetterWriter;
+import dev.pti.etl.write.application.port.WriteMetrics;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -244,7 +245,7 @@ public class EtlStreamConfiguration {
             MessageProcessors processors,
             FactChunkWriter writer,
             NamedParameterJdbcTemplate named,
-            WriteStats stats,
+            WriteMetrics stats,
             EtlProperties etl,
             CircuitBreaker warehouseCircuitBreaker,
             ErrorClassifier classifier,

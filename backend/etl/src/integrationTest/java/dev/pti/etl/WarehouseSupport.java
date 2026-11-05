@@ -13,12 +13,13 @@ import dev.pti.etl.core.domain.TripUpdateRow;
 import dev.pti.etl.core.domain.VehiclePositionRow;
 import dev.pti.etl.core.domain.WriteSet;
 import dev.pti.etl.testing.EtlFixtures;
+import dev.pti.etl.write.adapter.out.cache.CaffeineKnownKeyCache;
 import dev.pti.etl.write.adapter.out.jdbc.DedupRegistry;
 import dev.pti.etl.write.adapter.out.jdbc.FactChunkWriter;
 import dev.pti.etl.write.adapter.out.jdbc.JdbcDeadLetterWriter;
-import dev.pti.etl.write.application.WriteStats;
-import dev.pti.etl.write.domain.KnownKeyCache;
-import dev.pti.etl.write.domain.RefundRule;
+import dev.pti.etl.write.adapter.out.jdbc.JdbcRefundOriginals;
+import dev.pti.etl.write.adapter.out.metrics.MicrometerWriteMetrics;
+import dev.pti.etl.write.application.RefundRule;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
@@ -75,12 +76,12 @@ public final class WarehouseSupport {
     public FactChunkWriter writer(boolean dedup) {
         return new FactChunkWriter(
                 named,
-                new RefundRule(jdbc, dq()),
+                new RefundRule(new JdbcRefundOriginals(jdbc), dq()::enabled, dq().refundGrace()),
                 new DedupRegistry(jdbc),
                 dedup,
                 deadLetters,
-                new KnownKeyCache(1_000),
-                new WriteStats(meters),
+                new CaffeineKnownKeyCache(1_000),
+                new MicrometerWriteMetrics(meters),
                 dq());
     }
 

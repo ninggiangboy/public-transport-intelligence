@@ -15,12 +15,13 @@ import dev.pti.common.error.RuleViolationException;
 import dev.pti.common.pii.PiiScrubber;
 import dev.pti.etl.core.domain.EtlSource;
 import dev.pti.etl.testing.EtlFixtures;
-import dev.pti.etl.write.application.WriteStats;
+import dev.pti.etl.write.adapter.out.cache.CaffeineKnownKeyCache;
+import dev.pti.etl.write.adapter.out.metrics.MicrometerWriteMetrics;
+import dev.pti.etl.write.application.RefundRule;
 import dev.pti.etl.write.application.port.DeadLetterWriter;
+import dev.pti.etl.write.application.port.WriteMetrics;
 import dev.pti.etl.write.domain.ChunkRuleResult;
 import dev.pti.etl.write.domain.DeadLetter;
-import dev.pti.etl.write.domain.KnownKeyCache;
-import dev.pti.etl.write.domain.RefundRule;
 import dev.pti.etl.write.domain.RunMode;
 import dev.pti.etl.write.domain.WriteContext;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
@@ -88,13 +89,15 @@ class JdbcHelpersTest {
 
     @Test
     void aLoadDeadLetterCarriesTheSqlState() {
+        JdbcDeadLetterWriter writer = new JdbcDeadLetterWriter(
+                new NamedParameterJdbcTemplate(new JdbcTemplate()), PiiScrubber.withDefaults(), 1024, meters);
         var cause = new DataIntegrityViolationException(
                 "insert failed", new SQLException("new row violates check constraint", "23514"));
-        DeadLetter letter =
-                DeadLetter.load(EtlFixtures.message(EtlSource.TICKETING_SALES, "{}"), cause, null, UUID.randomUUID());
+        DeadLetter letter = writer.loadFailure(
+                EtlFixtures.message(EtlSource.TICKETING_SALES, "{}"), cause, null, UUID.randomUUID());
         assertThat(letter.stage()).isEqualTo(DlqStage.LOAD);
         assertThat(letter.errorMessage()).isEqualTo("[23514] new row violates check constraint");
-        assertThat(DeadLetter.load(letter.message(), new IllegalStateException("x"), null, letter.batchId())
+        assertThat(writer.loadFailure(letter.message(), new IllegalStateException("x"), null, letter.batchId())
                         .errorMessage())
                 .isEqualTo("x");
     }
@@ -132,7 +135,10 @@ class JdbcHelpersTest {
                 })
                 .when(jdbc)
                 .query(anyString(), any(PreparedStatementSetter.class), any(RowCallbackHandler.class));
-        RefundRule rule = new RefundRule(jdbc, EtlFixtures.dq());
+        RefundRule rule = new RefundRule(
+                new JdbcRefundOriginals(jdbc),
+                EtlFixtures.dq()::enabled,
+                EtlFixtures.dq().refundGrace());
 
         var refund = refund(original);
         ChunkRuleResult result =
@@ -141,18 +147,17 @@ class JdbcHelpersTest {
                 .singleElement()
                 .satisfies(r -> assertThat(r.violation().getMessage()).contains("itself a refund"));
 
-        ChunkRuleResult off = new RefundRule(
-                        jdbc,
-                        EtlFixtures.dq(Map.of(
-                                "DQ-12", new dev.pti.etl.config.DqProperties.Rule(false),
-                                "DQ-13", new dev.pti.etl.config.DqProperties.Rule(false))))
+        var offDq = EtlFixtures.dq(Map.of(
+                "DQ-12", new dev.pti.etl.config.DqProperties.Rule(false),
+                "DQ-13", new dev.pti.etl.config.DqProperties.Rule(false)));
+        ChunkRuleResult off = new RefundRule(new JdbcRefundOriginals(jdbc), offDq::enabled, offDq.refundGrace())
                 .apply(List.of(refund), new WriteContext(UUID.randomUUID(), RunMode.STREAM, false, NOW));
         assertThat(off.kept()).containsExactly(refund);
     }
 
     @Test
     void theKnownKeyCacheOnlyReportsUnknownKeys() {
-        KnownKeyCache cache = new KnownKeyCache(10);
+        CaffeineKnownKeyCache cache = new CaffeineKnownKeyCache(10);
         cache.addVehiclesAfterCommit(Set.of("A"));
         cache.addSalePointsAfterCommit(List.of());
         assertThat(cache.unknownVehicles(List.of("B", "A", "B"))).containsExactly("B");
@@ -168,7 +173,7 @@ class JdbcHelpersTest {
 
     @Test
     void theWriteStatsCountSkipsOnlyWhenThereAreSome() {
-        WriteStats stats = new WriteStats(meters);
+        WriteMetrics stats = new MicrometerWriteMetrics(meters);
         stats.recordSkipped(EtlSource.TICKETING_SALES, RunMode.BATCH, 0);
         assertThat(meters.find("pti.etl.records").counter()).isNull();
         stats.recordSkipped(EtlSource.TICKETING_SALES, RunMode.BATCH, 2);

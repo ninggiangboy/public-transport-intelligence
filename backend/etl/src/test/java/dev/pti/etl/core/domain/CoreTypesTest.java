@@ -6,7 +6,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import dev.pti.common.error.DeserializationException;
 import dev.pti.etl.core.application.MessageProcessor;
 import dev.pti.etl.core.application.MessageProcessors;
-import dev.pti.etl.rules.domain.RuleContext;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.List;

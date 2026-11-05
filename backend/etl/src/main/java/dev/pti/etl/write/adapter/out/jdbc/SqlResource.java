@@ -1,8 +1,8 @@
 package dev.pti.etl.write.adapter.out.jdbc;
 
+import dev.pti.common.error.FatalException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 
 /** Loads a statement from {@code src/main/resources/sql}, where the canonical SQL of DOC-14 §8 lives. */
@@ -18,7 +18,7 @@ public final class SqlResource {
             }
             return new String(in.readAllBytes(), StandardCharsets.UTF_8);
         } catch (IOException e) {
-            throw new UncheckedIOException("Cannot read SQL resource " + path, e);
+            throw new FatalException("Cannot read SQL resource " + path, e);
         }
     }
 }

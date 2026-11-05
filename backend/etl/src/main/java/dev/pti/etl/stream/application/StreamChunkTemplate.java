@@ -9,11 +9,11 @@ import dev.pti.common.error.FatalException;
 import dev.pti.common.time.BusinessClock;
 import dev.pti.etl.core.application.MessageProcessor;
 import dev.pti.etl.core.domain.InboundMessage;
+import dev.pti.etl.core.domain.RuleContext;
 import dev.pti.etl.core.domain.WriteSet;
 import dev.pti.etl.fault.application.port.FaultInjector;
 import dev.pti.etl.fault.domain.FaultPoint;
 import dev.pti.etl.reference.ReferenceDataHolder;
-import dev.pti.etl.rules.domain.RuleContext;
 import dev.pti.etl.stream.adapter.in.kafka.PollTracing;
 import dev.pti.etl.stream.adapter.out.jdbc.StreamBatchLog;
 import dev.pti.etl.write.application.WriteStats;
@@ -282,7 +282,7 @@ public class StreamChunkTemplate {
                     throw e;
                 }
                 status.rollbackToSavepoint(savepoint);
-                DeadLetter letter = DeadLetter.load(item.origin(), e, item.businessKey(), request.batchId());
+                DeadLetter letter = deadLetters.loadFailure(item.origin(), e, item.businessKey(), request.batchId());
                 writeDeadLetter(letter, context);
                 loadErrors++;
             }

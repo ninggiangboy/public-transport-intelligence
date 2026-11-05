@@ -6,33 +6,34 @@ import dev.pti.common.message.ScheduleRelationship;
 import dev.pti.common.message.StopTimeEvent;
 import dev.pti.common.message.StopTimeUpdate;
 import dev.pti.common.message.TripUpdate;
-import dev.pti.etl.core.adapter.out.json.BestEffortKeys;
-import dev.pti.etl.core.adapter.out.json.EnvelopeReader;
+import dev.pti.etl.core.application.port.BestEffortKeys;
+import dev.pti.etl.core.application.port.EnvelopeReader;
 import dev.pti.etl.core.domain.EtlSource;
 import dev.pti.etl.core.domain.InboundMessage;
+import dev.pti.etl.core.domain.RealtimeFacts;
+import dev.pti.etl.core.domain.RuleContext;
+import dev.pti.etl.core.domain.RuleEngine;
 import dev.pti.etl.core.domain.TripUpdateRow;
 import dev.pti.etl.core.domain.WriteSet;
 import dev.pti.etl.reference.ReferenceData;
-import dev.pti.etl.rules.domain.RealtimeFacts;
-import dev.pti.etl.rules.domain.RuleContext;
-import dev.pti.etl.rules.domain.RuleEngine;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import org.jspecify.annotations.Nullable;
-import tools.jackson.databind.JsonNode;
 
 /** TripUpdate v1 to one fact row per stop time update (DR-13, DOC-20 §4.3). */
 public final class TripUpdateProcessor implements MessageProcessor {
 
     private final EnvelopeReader reader;
     private final RuleEngine<RealtimeFacts> rules;
+    private final BestEffortKeys keys;
 
-    public TripUpdateProcessor(EnvelopeReader reader, RuleEngine<RealtimeFacts> rules) {
+    public TripUpdateProcessor(EnvelopeReader reader, RuleEngine<RealtimeFacts> rules, BestEffortKeys keys) {
         this.reader = reader;
         this.rules = rules;
+        this.keys = keys;
     }
 
     @Override
@@ -130,10 +131,10 @@ public final class TripUpdateProcessor implements MessageProcessor {
 
     @Override
     public @Nullable String businessKey(InboundMessage message) {
-        return BestEffortKeys.of(message, tree -> {
-            JsonNode payload = tree.path("payload");
-            String trip = payload.path("trip_id").asString(null);
-            String startDate = payload.path("start_date").asString(null);
+        return keys.of(message, fields -> {
+            BestEffortKeys.Fields payload = fields.path("payload");
+            String trip = payload.path("trip_id").asString();
+            String startDate = payload.path("start_date").asString();
             if (trip == null || startDate == null) {
                 return null;
             }

@@ -13,13 +13,13 @@ import dev.pti.common.time.BusinessClock;
 import dev.pti.etl.core.application.MessageProcessor;
 import dev.pti.etl.core.domain.EtlSource;
 import dev.pti.etl.core.domain.InboundMessage;
+import dev.pti.etl.core.domain.RuleContext;
 import dev.pti.etl.core.domain.VehiclePositionRow;
 import dev.pti.etl.core.domain.WriteSet;
 import dev.pti.etl.fault.application.port.FaultInjector;
 import dev.pti.etl.reference.ReferenceDataHolder;
-import dev.pti.etl.rules.domain.RuleContext;
 import dev.pti.etl.stream.adapter.out.jdbc.StreamBatchLog;
-import dev.pti.etl.write.application.WriteStats;
+import dev.pti.etl.write.adapter.out.metrics.MicrometerWriteMetrics;
 import dev.pti.etl.write.application.port.ChunkWriter;
 import dev.pti.etl.write.application.port.DeadLetterWriter;
 import dev.pti.etl.write.domain.DeadLetter;
@@ -72,6 +72,19 @@ class StreamChunkTemplateTest {
             replayed.add(letter);
             return DeadLetterResult.UPDATED;
         }
+
+        @Override
+        public DeadLetter loadFailure(
+                InboundMessage message, Throwable error, @Nullable String businessKey, UUID batchId) {
+            return new DeadLetter(
+                    message,
+                    DlqStage.LOAD,
+                    null,
+                    DeadLetter.LOAD_ERROR_CLASS,
+                    String.valueOf(error.getMessage()),
+                    businessKey,
+                    batchId);
+        }
     };
 
     private final StreamBatchLog batchLog = new StreamBatchLog(new NamedParameterJdbcTemplate(new JdbcTemplate())) {
@@ -98,7 +111,7 @@ class StreamChunkTemplateTest {
                 events::add,
                 new BusinessClock(Clock.fixed(NOW, ZoneOffset.UTC), Duration.ZERO),
                 new ReferenceDataHolder(),
-                new WriteStats(meters),
+                new MicrometerWriteMetrics(meters),
                 meters,
                 failBatch);
     }

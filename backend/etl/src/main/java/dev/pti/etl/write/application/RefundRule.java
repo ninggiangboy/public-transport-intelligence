@@ -1,11 +1,13 @@
-package dev.pti.etl.write.domain;
+package dev.pti.etl.write.application;
 
 import dev.pti.common.dq.DlqStage;
 import dev.pti.common.error.RuleViolationException;
-import dev.pti.etl.config.DqProperties;
 import dev.pti.etl.core.domain.TicketSaleRow;
 import dev.pti.etl.core.domain.WriteSet;
-import java.math.BigDecimal;
+import dev.pti.etl.write.application.port.RefundOriginals;
+import dev.pti.etl.write.domain.ChunkRuleResult;
+import dev.pti.etl.write.domain.OriginalSale;
+import dev.pti.etl.write.domain.WriteContext;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -14,8 +16,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Predicate;
 import org.jspecify.annotations.Nullable;
-import org.springframework.jdbc.core.JdbcTemplate;
 
 /**
  * DQ-12 and DQ-13 (DOC-16 §2.3): a refund must refer to a real sale and must not exceed it. The original is looked
@@ -26,24 +28,19 @@ public final class RefundRule {
     public static final String ORPHAN = "DQ-12";
     public static final String EXCEEDS = "DQ-13";
 
-    private static final String FIND_ORIGINALS = """
-            SELECT DISTINCT ON (transaction_id) transaction_id, amount, txn_type
-            FROM dw.fact_ticket_sales
-            WHERE transaction_id = ANY(?)
-            ORDER BY transaction_id, source_lsn DESC
-            """;
+    private final RefundOriginals originals;
+    private final Predicate<String> enabled;
+    private final Duration refundGrace;
 
-    private final JdbcTemplate jdbc;
-    private final DqProperties properties;
-
-    public RefundRule(JdbcTemplate jdbc, DqProperties properties) {
-        this.jdbc = jdbc;
-        this.properties = properties;
+    public RefundRule(RefundOriginals originals, Predicate<String> enabled, Duration refundGrace) {
+        this.originals = originals;
+        this.enabled = enabled;
+        this.refundGrace = refundGrace;
     }
 
     public ChunkRuleResult apply(List<WriteSet> items, WriteContext context) {
-        boolean orphanOn = properties.enabled(ORPHAN) && !context.replay();
-        boolean exceedsOn = properties.enabled(EXCEEDS);
+        boolean orphanOn = enabled.test(ORPHAN) && !context.replay();
+        boolean exceedsOn = enabled.test(EXCEEDS);
         List<TicketSaleRow> refunds = items.stream()
                 .flatMap(i -> i.ticketSales().stream())
                 .filter(r -> r.isRefund() && r.refundOf() != null)
@@ -52,20 +49,20 @@ public final class RefundRule {
             return ChunkRuleResult.keepAll(items);
         }
 
-        Map<UUID, Original> originals = new HashMap<>();
+        Map<UUID, OriginalSale> found = new HashMap<>();
         for (WriteSet item : items) {
             for (TicketSaleRow row : item.ticketSales()) {
-                originals.put(row.transactionId(), new Original(row.amount(), row.txnType()));
+                found.put(row.transactionId(), new OriginalSale(row.amount(), row.txnType()));
             }
         }
         Set<UUID> missing = new LinkedHashSet<>();
         for (TicketSaleRow refund : refunds) {
-            if (!originals.containsKey(refund.refundOf())) {
+            if (!found.containsKey(refund.refundOf())) {
                 missing.add(refund.refundOf());
             }
         }
         if (!missing.isEmpty()) {
-            originals.putAll(findOriginals(missing));
+            found.putAll(originals.find(missing));
         }
 
         List<WriteSet> kept = new ArrayList<>();
@@ -74,7 +71,7 @@ public final class RefundRule {
             @Nullable
             RuleViolationException violation = item.ticketSales().isEmpty()
                     ? null
-                    : check(item.ticketSales().getFirst(), originals, context, orphanOn, exceedsOn);
+                    : check(item.ticketSales().getFirst(), found, context, orphanOn, exceedsOn);
             if (violation == null) {
                 kept.add(item);
             } else {
@@ -86,18 +83,18 @@ public final class RefundRule {
 
     private @Nullable RuleViolationException check(
             TicketSaleRow row,
-            Map<UUID, Original> originals,
+            Map<UUID, OriginalSale> originals,
             WriteContext context,
             boolean orphanOn,
             boolean exceedsOn) {
         if (!row.isRefund() || row.refundOf() == null) {
             return null;
         }
-        Original original = originals.get(row.refundOf());
+        OriginalSale original = originals.get(row.refundOf());
         if (original == null) {
             Duration age = Duration.between(row.createdAt(), context.businessNow());
             boolean live = "c".equals(row.op()) || "u".equals(row.op());
-            if (orphanOn && live && age.compareTo(properties.refundGrace()) > 0) {
+            if (orphanOn && live && age.compareTo(refundGrace) > 0) {
                 return new RuleViolationException(
                         DlqStage.BUSINESS,
                         ORPHAN,
@@ -124,17 +121,4 @@ public final class RefundRule {
         }
         return null;
     }
-
-    private Map<UUID, Original> findOriginals(Set<UUID> ids) {
-        Map<UUID, Original> found = new HashMap<>();
-        jdbc.query(
-                FIND_ORIGINALS, ps -> ps.setArray(1, ps.getConnection().createArrayOf("uuid", ids.toArray())), rs -> {
-                    found.put(
-                            rs.getObject("transaction_id", UUID.class),
-                            new Original(rs.getBigDecimal("amount"), rs.getString("txn_type")));
-                });
-        return found;
-    }
-
-    private record Original(BigDecimal amount, String txnType) {}
 }

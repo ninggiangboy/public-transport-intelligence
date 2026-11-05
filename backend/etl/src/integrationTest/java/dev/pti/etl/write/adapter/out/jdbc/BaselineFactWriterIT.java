@@ -5,7 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import dev.pti.etl.WarehouseSupport;
 import dev.pti.etl.core.domain.WriteSet;
-import dev.pti.etl.write.application.WriteStats;
+import dev.pti.etl.write.adapter.out.metrics.MicrometerWriteMetrics;
 import dev.pti.etl.write.domain.RunMode;
 import dev.pti.etl.write.domain.WriteContext;
 import dev.pti.etl.write.domain.WriteOutcome;
@@ -41,7 +41,7 @@ class BaselineFactWriterIT {
 
     @Test
     void everyDeliveryIsARowAndNothingReachesTheRealFacts() {
-        BaselineFactWriter writer = new BaselineFactWriter(db.named, new WriteStats(db.meters));
+        BaselineFactWriter writer = new BaselineFactWriter(db.named, new MicrometerWriteMetrics(db.meters));
         String vehicle = WarehouseSupport.unique("BL");
         String trip = WarehouseSupport.unique("BLT");
         UUID sale = UUID.randomUUID();

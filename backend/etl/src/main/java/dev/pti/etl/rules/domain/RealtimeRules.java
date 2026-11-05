@@ -1,7 +1,9 @@
 package dev.pti.etl.rules.domain;
 
 import dev.pti.common.dq.DlqStage;
-import dev.pti.etl.config.DqProperties;
+import dev.pti.etl.core.domain.RealtimeFacts;
+import dev.pti.etl.core.domain.RecordRule;
+import dev.pti.etl.core.domain.RuleContext;
 import dev.pti.etl.reference.ReferenceData;
 import dev.pti.etl.reference.TripRef;
 import java.time.Duration;
@@ -15,14 +17,14 @@ public final class RealtimeRules {
 
     private RealtimeRules() {}
 
-    public static List<RecordRule<RealtimeFacts>> all(DqProperties properties) {
+    public static List<RecordRule<RealtimeFacts>> all(double bboxMargin, Duration maxClockSkew, Duration maxDelay) {
         return List.of(
                 new RouteExists(),
                 new StopsExist(),
                 new TripMatches(),
-                new InServiceArea(properties.bboxMargin()),
-                new PlausibleEventTime(properties.maxClockSkew()),
-                new PlausibleDelay(properties.maxDelay()),
+                new InServiceArea(bboxMargin),
+                new PlausibleEventTime(maxClockSkew),
+                new PlausibleDelay(maxDelay),
                 new ServiceDateMatches());
     }
 
