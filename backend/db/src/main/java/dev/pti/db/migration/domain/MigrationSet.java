@@ -1,4 +1,4 @@
-package dev.pti.db;
+package dev.pti.db.migration.domain;
 
 /**
  * The three Flyway migration sets, one per database, each run by that database's owner (DOC-17 §5).
