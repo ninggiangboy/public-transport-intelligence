@@ -1,12 +1,12 @@
 #
-#Thu Nov 05 02:38:52 UTC 2026
-A-07\ no\ LocalDateTime.now(),\ Instant.now()\ or\ Clock.systemUTC()\ outside\ BusinessClock\ and\ SystemClockConfig=2a2b2503-da48-4a1f-a88a-9393f2c6eb1c
-A-08\ exceptions\ thrown\ by\ project\ code\ extend\ PtiException\ (IllegalArgumentException\ and\ IllegalStateException\ allowed\ in\ guards)=ae81660a-dcfe-4743-8e9b-b5e99debfd0c
-A-11\ layering\:\ domain\ <-\ application\ <-\ adapter,\ config\ is\ wired\ from\ outside=b267a820-a37e-4a01-a9c8-9ebc77e9a868
-A-12\ domain\ and\ application\ depend\ on\ no\ framework\ or\ infrastructure=642d6171-d48a-4218-bdc5-116976569fe6
-A-13\ domain\ and\ application\ use\ common\ only\ through\ the\ shared\ kernel=4e88d0fa-cd45-40e0-833c-1af7ceb4a3a1
-A-14\ features\ do\ not\ use\ each\ other's\ adapter\ or\ config\ and\ form\ no\ cycle=8d57947c-0cb6-45ab-9139-082a0d474c40
-A-15\ adapter.in\ does\ not\ depend\ on\ adapter.out=7d738727-fe99-4a2b-bc3c-486da60f69b1
-A-16\ @Configuration,\ @Bean\ and\ @ConfigurationProperties\ only\ live\ in\ config\ packages=b4f41178-e22f-491a-9b87-0bcb45af1398
-A-17\ implementations\ of\ application.port\ interfaces\ live\ in\ adapter\ packages=b385cd1e-46ff-45b0-ab0b-cc67f51f1e74
-A-18\ every\ class\ is\ in\ a\ layer\ of\ a\ feature;\ the\ root\ package\ holds\ only\ *Application=e1e28a49-3c5e-4190-9737-6da7fa15c99b
+#Thu Nov 05 02:39:21 UTC 2026
+A-07\ no\ LocalDateTime.now(),\ Instant.now()\ or\ Clock.systemUTC()\ outside\ BusinessClock\ and\ SystemClockConfig=ded94dcf-a963-4859-b107-b25a1ca09227
+A-08\ exceptions\ thrown\ by\ project\ code\ extend\ PtiException\ (IllegalArgumentException\ and\ IllegalStateException\ allowed\ in\ guards)=42b3fef8-c54e-4b13-9f8f-1f40647fc106
+A-11\ layering\:\ domain\ <-\ application\ <-\ adapter,\ config\ is\ wired\ from\ outside=15aa7f1c-57f8-4bd2-977e-d5de402cd87d
+A-12\ domain\ and\ application\ depend\ on\ no\ framework\ or\ infrastructure=f658042b-07f7-4f27-aab3-fee6d17e2b63
+A-13\ domain\ and\ application\ use\ common\ only\ through\ the\ shared\ kernel=38f6cb7a-93e0-46ea-9951-1aaf23a1c8f2
+A-14\ features\ do\ not\ use\ each\ other's\ adapter\ or\ config\ and\ form\ no\ cycle=f0a6db66-96b3-4e5a-9828-89255ba8e896
+A-15\ adapter.in\ does\ not\ depend\ on\ adapter.out=58ce94bc-d738-484f-aa7e-0a2782b7ecdd
+A-16\ @Configuration,\ @Bean\ and\ @ConfigurationProperties\ only\ live\ in\ config\ packages=4375fd8c-7b8f-4d51-a963-a671d3ebc105
+A-17\ implementations\ of\ application.port\ interfaces\ live\ in\ adapter\ packages=6b44db8e-b4e8-404f-b3bd-5868a1e962b1
+A-18\ every\ class\ is\ in\ a\ layer\ of\ a\ feature;\ the\ root\ package\ holds\ only\ *Application=94d98901-3a43-41a5-867c-428e663cd6a4

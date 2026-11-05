@@ -27,6 +27,7 @@ class ArchitectureTest {
     /** Top-level packages of {@code dev.pti.etl} at the time of the freeze (P4-18). New packages are not listed. */
     private static final Set<String> LEGACY_PACKAGES = Set.of(
             "batch",
+            "maintenance",
             "config",
             "core",
             "dq",
