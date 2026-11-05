@@ -900,6 +900,9 @@ public final class PtiArchitectureRules {
      * need no rule change, because neither is a dependency that A-11…A-18 forbid.
      */
     private static boolean isX01Exempt(JavaClass origin, JavaClass target) {
+        if (isX05Exempt(origin, target)) {
+            return true;
+        }
         if (!JavaClass.Predicates.resideInAPackage("dev.pti.triage..application..")
                 .test(origin)) {
             return false;
@@ -910,6 +913,20 @@ public final class PtiArchitectureRules {
                 || JavaClass.Predicates.resideInAPackage("tools.jackson.databind.node..")
                         .test(target)
                 || JavaClass.Predicates.resideInAPackage(PII_PACKAGE).test(target);
+    }
+
+    /**
+     * X-05 (DOC-49 §10): the declarative constraint annotations of {@code jakarta.validation} on the parameter and
+     * settings records of {@code dev.pti.simulator} (scenario parameters, ticketing settings). The annotations carry no
+     * behaviour; the {@code Validator} stays in the adapters.
+     */
+    private static boolean isX05Exempt(JavaClass origin, JavaClass target) {
+        return JavaClass.Predicates.resideInAnyPackage(
+                                "dev.pti.simulator..domain..", "dev.pti.simulator..application..")
+                        .test(origin)
+                && (JavaClass.Predicates.resideInAPackage("jakarta.validation.constraints..")
+                                .test(target)
+                        || target.getName().equals("jakarta.validation.Valid"));
     }
 
     private static boolean isConfigurationProperties(JavaClass javaClass) {

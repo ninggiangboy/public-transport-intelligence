@@ -1,0 +1,23 @@
+package dev.pti.simulator.emit.domain;
+
+import dev.pti.simulator.ledger.domain.LedgerEntry;
+import java.util.Map;
+import java.util.UUID;
+
+/**
+ * A message ready to send (DOC-25 §6.4).
+ *
+ * @param value the raw JSON string; scenarios may make it deliberately invalid
+ * @param headers {@code schema_version} and {@code entity_type}
+ */
+public record OutboundMessage(String topic, String key, String value, Map<String, String> headers, LedgerEntry ledger) {
+
+    public OutboundMessage {
+        headers = Map.copyOf(headers);
+    }
+
+    /** The same message with its ledger entry marked by a scenario run (DOC-25 §7.1). */
+    public OutboundMessage withScenarioRun(UUID runId) {
+        return new OutboundMessage(topic, key, value, headers, ledger.withScenarioRun(runId));
+    }
+}

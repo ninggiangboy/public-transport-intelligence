@@ -13,7 +13,7 @@ Tài liệu này quy định **cách tổ chức code bên trong mỗi module Ja
 | `api` | Mới (P4) | P4-00 | A-11…A-18 đầy đủ, fail build |
 | `triage-worker` | Mới (P6) | P6-00 | A-11…A-18 đầy đủ, fail build |
 | `etl` | Cũ (P2) | Phase R (RF-03, RF-04) | Tới Phase R: `FreezingArchRule` (§9.2). **Package mới** thêm vào `etl` từ P4 (ví dụ `dev.pti.etl.analytics`) phải tuân thủ ngay |
-| `source-simulator` | Cũ (P1, P3) | Phase R (RF-02) | Như `etl` |
+| `source-simulator` | Cũ (P1, P3) | RF-02 (xong 2026-11-05) | A-11…A-18 chạy trực tiếp, không freeze; ngoại lệ X-05 |
 | `common` | Cũ (P1) | RF-01 (xong 2026-11-05) | Thư viện phẳng, không áp A-11…A-18 (D-R1, DR-115); kernel là Java thuần (§4.2), kiểm trực tiếp, không freeze |
 | `db` | Cũ (P1) | Phase R (RF-05) | Như `etl` (chỉ là Flyway runner, gần như không có việc) |
 
@@ -296,6 +296,7 @@ Danh sách đóng. Thêm ngoại lệ mới cần một DR.
 | X-02 | Transaction của Spring Batch chunk | `adapter.in.batch` của `etl` | §5.1 |
 | X-03 | `@Scheduled` và `@SchedulerLock` trên lớp adapter vào | `adapter.in.scheduling` | Đó chính là adapter vào; không phải ngoại lệ của A-12, ghi ra để tránh hiểu nhầm |
 | X-04 | Annotation khai báo `jakarta.validation.constraints.*` và `jakarta.validation.Valid` | `dev.pti.common.message` | Hợp đồng dây (DOC-09) mang ràng buộc ngay trên record; annotation không có hành vi, `Validator` chỉ chạy ở adapter (DR-115) |
+| X-05 | Annotation khai báo `jakarta.validation.constraints.*` và `jakarta.validation.Valid` | `dev.pti.simulator..domain..` và `..application..` | Record tham số kịch bản và cấu hình bán vé của simulator mang ràng buộc ngay trên record; `Validator` (`ParamBinder`, cấu hình) ở adapter và `config` (DR-116) |
 
 ## 11. Ánh xạ thiết kế của module mới
 
@@ -391,7 +392,7 @@ Làm theo thứ tự ở master plan §5 (Phase R). Nguyên tắc:
 | Module | Vi phạm trong store (đếm lại ở RF-00) | Theo luật | Còn lại | Task |
 | --- | --- | --- | --- | --- |
 | `common` | 64 | A-08: 6, A-14: 16, A-18: 42 | **0** (RF-01 xong: A-08 sửa; A-14 và A-18 không áp cho thư viện phẳng, D-R1) | RF-01 |
-| `source-simulator` | 254 | A-08: 18, A-14: 28, A-16: 36, A-18: 172 | 254 | RF-02 |
+| `source-simulator` | 254 | A-08: 18, A-14: 28, A-16: 36, A-18: 172 | **0** (RF-02 xong; sau khi chuyển package số đo là 467 vì các tầng lộ ra vi phạm A-12; xem DR-116) | RF-02 |
 | `etl` | 289 | A-07: 8, A-08: 41, A-14: 42, A-18: 198 | 148 sau RF-03 (còn `batch`, `gtfs`, `replay`, `reference`, `raw`, `health`, `flags`, `config`) | RF-03, RF-04 |
 | `db` | 2 | A-18: 2 | 2 | RF-05 |
 
